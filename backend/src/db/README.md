@@ -28,7 +28,7 @@ Required environment variables:
 
 The database schema is defined in the `schema/` directory:
 - `users.ts`: User accounts and authentication
-- `jobs.ts`: Job postings and applications
+- `jobsDetails.ts`: Job postings and applications
 
 ## Database Commands
 
@@ -101,7 +101,7 @@ The project includes test database utilities:
 
 - **Test Database**: Uses `{DB_NAME}_test` suffix
 - **Test Utilities**: Located in `tests/utils/testDatabase.ts`
-- **Data Helpers**: Functions to create test users, jobs, and applications
+- **Data Helpers**: Functions to create test users, jobsDetails, and applications
 
 ### Running Tests with Database
 ```bash
