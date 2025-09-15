@@ -1,6 +1,6 @@
 // Export all schema files
 export * from './users';
-export * from './jobs';
+export * from './jobsDetails';
 
 // Re-export common Drizzle types and functions
 export { 
