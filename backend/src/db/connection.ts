@@ -1,7 +1,7 @@
-import { drizzle } from 'drizzle-orm/mysql2';
-import mysql from 'mysql2/promise';
-import { env, isDevelopment } from '../config/env';
-import * as schema from './schema';
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
+import { env, isDevelopment } from "../config/env";
+import * as schema from "./schema";
 
 // Create MySQL connection
 const connection = mysql.createPool({
@@ -10,23 +10,22 @@ const connection = mysql.createPool({
   user: env.DB_USER,
   password: env.DB_PASSWORD,
   database: env.DB_NAME,
-  connectionLimit: env.DB_CONNECTION_LIMIT,
 });
 
 // Create Drizzle instance
 export const db = drizzle(connection, {
   schema,
-  mode: 'default',
+  mode: "default",
   logger: isDevelopment, // Enable logging in development
 });
 
 // Database health check
 export async function checkDatabaseConnection(): Promise<boolean> {
   try {
-    const [result] = await connection.execute('SELECT 1 as healthy');
+    const [result] = await connection.execute("SELECT 1 as healthy");
     return Array.isArray(result) && result.length > 0;
   } catch (error) {
-    console.error('Database connection failed:', error);
+    console.error("Database connection failed:", error);
     return false;
   }
 }
@@ -35,9 +34,9 @@ export async function checkDatabaseConnection(): Promise<boolean> {
 export async function closeDatabaseConnection(): Promise<void> {
   try {
     await connection.end();
-    console.log('📊 Database connection closed');
+    console.log("📊 Database connection closed");
   } catch (error) {
-    console.error('Error closing database connection:', error);
+    console.error("Error closing database connection:", error);
   }
 }
 
