@@ -1,19 +1,20 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
-import exampleRouter from './routes/example';
+import apiRoutes from './routes';
 import { checkDatabaseConnection } from './db/connection';
 import { env } from './config/env';
+import { errorHandler } from './middleware/error.middleware';
 
 // Create Express application
 const app: Application = express();
 
 // Basic middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // CORS middleware (basic setup)
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   
   if (req.method === 'OPTIONS') {
@@ -22,6 +23,18 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     next();
   }
 });
+
+// Request logging middleware (development only)
+if (env.NODE_ENV === 'development') {
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    console.log(`${req.method} ${req.path}`, {
+      body: req.body,
+      query: req.query,
+      params: req.params,
+    });
+    next();
+  });
+}
 
 // Health check route
 app.get('/health', async (req: Request, res: Response) => {
@@ -56,29 +69,29 @@ app.get('/health', async (req: Request, res: Response) => {
 // API routes
 app.get('/api', (req: Request, res: Response) => {
   res.json({
-    message: 'Welcome to the API',
+    message: 'Welcome to the Job Listing API',
     version: '1.0.0',
+    endpoints: {
+      auth: '/api/auth',
+      users: '/api/users',
+      organizations: '/api/organizations',
+      jobs: '/api/jobs',
+    },
   });
 });
 
-// Mount example router
-app.use('/api/example', exampleRouter);
+// Mount API routes
+app.use('/api', apiRoutes);
 
-// 404 handler - this middleware runs when no routes match
+// 404 handler
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.status(404).json({
     status: 'error',
-    message: 'Route not found',
+    message: `Route ${req.method} ${req.path} not found`,
   });
 });
 
 // Global error handler
-app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Error:', error.message);
-  res.status(500).json({
-    status: 'error',
-    message: 'Internal server error',
-  });
-});
+app.use(errorHandler);
 
 export default app;

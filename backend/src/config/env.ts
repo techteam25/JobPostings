@@ -9,7 +9,7 @@ const envSchema = z.object({
     .default("development"),
   PORT: z
     .string()
-    .default("3306")
+    .default("3000")  // Changed from 3306 to 3000
     .transform((val) => parseInt(val, 10)),
   HOST: z.string().default("localhost"),
 
@@ -23,8 +23,8 @@ const envSchema = z.object({
   DB_USER: z.string().min(1, "Database user is required"),
   DB_PASSWORD: z.string().min(1, "Database password is required"),
 
-  // JWT Secret (optional for future use)
-  JWT_SECRET: z.string().optional(),
+  // JWT Secret - now required
+  JWT_SECRET: z.string().min(32, "JWT secret must be at least 32 characters"),
 });
 
 // Type inference from the schema
@@ -55,7 +55,7 @@ function validateEnv(): Env {
           DB_NAME: process.env.DB_NAME || "",
           DB_USER: process.env.DB_USER || "",
           DB_PASSWORD: process.env.DB_PASSWORD || "",
-          JWT_SECRET: process.env.JWT_SECRET,
+          JWT_SECRET: process.env.JWT_SECRET || "",
         };
       }
 

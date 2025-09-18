@@ -89,9 +89,9 @@ export const jobApplications = mysqlTable(
 
 // Relations
 export const jobsRelations = relations(jobsDetails, ({ one, many }) => ({
-  employer: one(users, {
+  employer: one(organizations, {
     fields: [jobsDetails.employerId],
-    references: [users.id],
+    references: [organizations.id],
   }),
   applications: many(jobApplications),
 }));

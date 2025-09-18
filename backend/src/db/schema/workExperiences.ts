@@ -30,7 +30,7 @@ export const workExperiences = mysqlTable(
   (table) => [
     index("program_idx").on(table.companyName),
     check(
-      "graduated_end_date_check",
+      "current_end_date_check",
       sql`${table.current} = false OR ${table.endDate} IS NOT NULL`,
     ),
   ],

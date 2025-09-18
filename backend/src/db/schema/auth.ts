@@ -1,41 +1,12 @@
-import {
-  mysqlTable,
-  serial,
-  timestamp,
-  int,
-  text,
-} from "drizzle-orm/mysql-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { z } from "zod";
-import { relations, sql } from "drizzle-orm";
+import { mysqlTable, int, varchar, timestamp } from "drizzle-orm/mysql-core";
 import { users } from "./users";
 
 export const auth = mysqlTable("auth", {
-  id: serial("id").primaryKey(),
+  id: int("id").autoincrement().primaryKey(),
   userId: int("user_id")
-    .references(() => users.id, { onDelete: "cascade" })
-    .notNull(),
-  token: text("token").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+    .references(() => users.id, { onDelete: "cascade" }),
+  provider: varchar("provider", { length: 50 }).notNull(),
+  providerId: varchar("provider_id", { length: 100 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").onUpdateNow(),
 });
-
-// Relations
-export const authRelations = relations(auth, ({ one }) => ({
-  authentication: one(users, {
-    fields: [auth.userId],
-    references: [users.id],
-  }),
-}));
-
-// Zod schemas for validation
-export const selectAuthSchema = createSelectSchema(auth);
-export const insertAuthSchema = createInsertSchema(auth);
-export const updateAuthSchema = insertAuthSchema
-  .partial()
-  .omit({ id: true, userId: true, createdAt: true });
-
-// Type exports
-export type UserAuth = z.infer<typeof selectAuthSchema>;
-export type UpdateAuth = z.infer<typeof updateAuthSchema>;
-export type InsertAuth = z.infer<typeof insertAuthSchema>;
