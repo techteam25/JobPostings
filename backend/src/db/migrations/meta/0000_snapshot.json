@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "2b48bfe5-b39d-4351-8ea2-177765d47828",
+  "id": "f96594e5-77af-4791-834d-0e61d92070c8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "auth": {
@@ -9,7 +9,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "int",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": true
@@ -78,7 +78,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "int",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": true
@@ -168,7 +168,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "int",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": true
@@ -267,7 +267,7 @@
       "checkConstraint": {
         "graduated_end_date_check": {
           "name": "graduated_end_date_check",
-          "value": "`educations`.`graduated` = false OR `educations`.`end_date` IS NOT NULL"
+          "value": "(`educations`.`graduated` = false OR `educations`.`end_date` IS NOT NULL)"
         }
       }
     },
@@ -276,7 +276,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "int",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": true
@@ -359,7 +359,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "int",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": true
@@ -453,7 +453,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
@@ -476,7 +476,7 @@
       "checkConstraint": {
         "employer_must_have_organization": {
           "name": "employer_must_have_organization",
-          "value": "`users`.`role` != 'employer' OR `users`.`organization_id` IS NOT NULL"
+          "value": "(`users`.`role` != 'employer' OR `users`.`organization_id` IS NOT NULL)"
         }
       }
     },
@@ -485,7 +485,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "int",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": true
@@ -589,7 +589,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "int",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": true
@@ -759,7 +759,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "int",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": true
@@ -892,7 +892,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "int",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": true
@@ -968,9 +968,9 @@
       },
       "uniqueConstraints": {},
       "checkConstraint": {
-        "graduated_end_date_check": {
-          "name": "graduated_end_date_check",
-          "value": "`work_experiences`.`current` = false OR `work_experiences`.`end_date` IS NOT NULL"
+        "resigned_end_date_check": {
+          "name": "resigned_end_date_check",
+          "value": "(`work_experiences`.`current` = false OR `work_experiences`.`end_date` IS NOT NULL)"
         }
       }
     }
