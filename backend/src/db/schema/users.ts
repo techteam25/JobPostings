@@ -1,6 +1,5 @@
 import {
   mysqlTable,
-  serial,
   varchar,
   timestamp,
   mysqlEnum,
@@ -20,7 +19,7 @@ import { auth } from "./auth";
 export const users = mysqlTable(
   "users",
   {
-    id: serial("id").primaryKey(),
+    id: int("id").primaryKey().autoincrement(),
     email: varchar("email", { length: 255 }).notNull().unique(),
     firstName: varchar("first_name", { length: 100 }).notNull(),
     lastName: varchar("last_name", { length: 100 }).notNull(),
@@ -29,7 +28,7 @@ export const users = mysqlTable(
       .default("user")
       .notNull(),
     organizationId: int("organization_id").references(() => organizations.id, {
-      onDelete: "set null",
+      onDelete: "restrict",
     }),
     isEmailVerified: boolean("is_email_verified").default(false).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
@@ -39,13 +38,13 @@ export const users = mysqlTable(
   (table) => [
     check(
       "employer_must_have_organization",
-      sql`${table.role} != 'employer' OR ${table.organizationId} IS NOT NULL`,
+      sql`(${table.role} != 'employer' OR ${table.organizationId} IS NOT NULL)`,
     ),
   ],
 );
 
 export const userProfile = mysqlTable("user_profile", {
-  id: serial("id").primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
   profilePicture: varchar("profile_picture", { length: 500 }),
   bio: text("bio"),
   userId: int("user_id").references(() => users.id, {

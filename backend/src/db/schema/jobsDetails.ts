@@ -1,6 +1,5 @@
 import {
   mysqlTable,
-  serial,
   varchar,
   timestamp,
   mysqlEnum,
@@ -20,7 +19,7 @@ import { organizations } from "./organizations";
 export const jobsDetails = mysqlTable(
   "job_details",
   {
-    id: serial("id").primaryKey(),
+    id: int("id").primaryKey().autoincrement(),
     title: varchar("title", { length: 255 }).notNull(),
     description: text("description").notNull(),
     location: varchar("location", { length: 255 }).notNull(),
@@ -62,7 +61,7 @@ export const jobsDetails = mysqlTable(
 export const jobApplications = mysqlTable(
   "job_applications",
   {
-    id: serial("id").primaryKey(),
+    id: int("id").primaryKey().autoincrement(),
     jobId: int("job_id").notNull(),
     applicantId: int("applicant_id").notNull(),
     status: mysqlEnum("status", [

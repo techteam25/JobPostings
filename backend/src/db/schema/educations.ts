@@ -1,6 +1,5 @@
 import {
   mysqlTable,
-  serial,
   varchar,
   timestamp,
   mysqlEnum,
@@ -13,12 +12,11 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
 import { userProfile } from "./users";
-import { selectAuthSchema } from "./auth";
 
 export const educations = mysqlTable(
   "educations",
   {
-    id: serial("id").primaryKey(),
+    id: int("id").primaryKey().autoincrement(),
     userProfileId: int("user_profile_id")
       .references(() => userProfile.id, {
         onDelete: "cascade",
@@ -43,7 +41,7 @@ export const educations = mysqlTable(
     index("major_idx").on(table.major),
     check(
       "graduated_end_date_check",
-      sql`${table.graduated} = false OR ${table.endDate} IS NOT NULL`,
+      sql<boolean>`(${table.graduated} = false OR ${table.endDate} IS NOT NULL)`,
     ),
   ],
 );
