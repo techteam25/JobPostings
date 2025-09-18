@@ -1,14 +1,8 @@
-import {
-  mysqlTable,
-  serial,
-  varchar,
-  int,
-  primaryKey,
-} from "drizzle-orm/mysql-core";
+import { mysqlTable, varchar, int, primaryKey } from "drizzle-orm/mysql-core";
 import { userProfile } from "./users";
 
 export const certifications = mysqlTable("certifications", {
-  id: serial("id").primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
   certificationName: varchar("certification_name", { length: 100 }).notNull(),
 });
 

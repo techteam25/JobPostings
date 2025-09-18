@@ -1,5 +1,5 @@
 CREATE TABLE `auth` (
-	`id` serial AUTO_INCREMENT NOT NULL,
+	`id` int AUTO_INCREMENT NOT NULL,
 	`user_id` int NOT NULL,
 	`token` text NOT NULL,
 	`created_at` timestamp NOT NULL DEFAULT (now()),
@@ -8,7 +8,7 @@ CREATE TABLE `auth` (
 );
 --> statement-breakpoint
 CREATE TABLE `certifications` (
-	`id` serial AUTO_INCREMENT NOT NULL,
+	`id` int AUTO_INCREMENT NOT NULL,
 	`certification_name` varchar(100) NOT NULL,
 	CONSTRAINT `certifications_id` PRIMARY KEY(`id`)
 );
@@ -20,7 +20,7 @@ CREATE TABLE `user_certifications` (
 );
 --> statement-breakpoint
 CREATE TABLE `educations` (
-	`id` serial AUTO_INCREMENT NOT NULL,
+	`id` int AUTO_INCREMENT NOT NULL,
 	`user_profile_id` int NOT NULL,
 	`school_name` varchar(100) NOT NULL,
 	`program` enum('GED','High School Diploma','Associate Degree','Bachelors','Masters','Doctorate') NOT NULL,
@@ -29,11 +29,11 @@ CREATE TABLE `educations` (
 	`start_date` timestamp NOT NULL,
 	`end_date` timestamp,
 	CONSTRAINT `educations_id` PRIMARY KEY(`id`),
-	CONSTRAINT `graduated_end_date_check` CHECK(`educations`.`graduated` = false OR `educations`.`end_date` IS NOT NULL)
+	CONSTRAINT `graduated_end_date_check` CHECK((`educations`.`graduated` = false OR `educations`.`end_date` IS NOT NULL))
 );
 --> statement-breakpoint
 CREATE TABLE `user_profile` (
-	`id` serial AUTO_INCREMENT NOT NULL,
+	`id` int AUTO_INCREMENT NOT NULL,
 	`profile_picture` varchar(500),
 	`bio` text,
 	`user_id` int,
@@ -44,7 +44,7 @@ CREATE TABLE `user_profile` (
 );
 --> statement-breakpoint
 CREATE TABLE `users` (
-	`id` serial AUTO_INCREMENT NOT NULL,
+	`id` int AUTO_INCREMENT NOT NULL,
 	`email` varchar(255) NOT NULL,
 	`first_name` varchar(100) NOT NULL,
 	`last_name` varchar(100) NOT NULL,
@@ -57,11 +57,11 @@ CREATE TABLE `users` (
 	`updated_at` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `users_id` PRIMARY KEY(`id`),
 	CONSTRAINT `users_email_unique` UNIQUE(`email`),
-	CONSTRAINT `employer_must_have_organization` CHECK(`users`.`role` != 'employer' OR `users`.`organization_id` IS NOT NULL)
+	CONSTRAINT `employer_must_have_organization` CHECK((`users`.`role` != 'employer' OR `users`.`organization_id` IS NOT NULL))
 );
 --> statement-breakpoint
 CREATE TABLE `job_applications` (
-	`id` serial AUTO_INCREMENT NOT NULL,
+	`id` int AUTO_INCREMENT NOT NULL,
 	`job_id` int NOT NULL,
 	`applicant_id` int NOT NULL,
 	`status` enum('pending','reviewed','shortlisted','rejected','hired') NOT NULL DEFAULT 'pending',
@@ -74,7 +74,7 @@ CREATE TABLE `job_applications` (
 );
 --> statement-breakpoint
 CREATE TABLE `job_details` (
-	`id` serial AUTO_INCREMENT NOT NULL,
+	`id` int AUTO_INCREMENT NOT NULL,
 	`title` varchar(255) NOT NULL,
 	`description` text NOT NULL,
 	`location` varchar(255) NOT NULL,
@@ -93,7 +93,7 @@ CREATE TABLE `job_details` (
 );
 --> statement-breakpoint
 CREATE TABLE `organizations` (
-	`id` serial AUTO_INCREMENT NOT NULL,
+	`id` int AUTO_INCREMENT NOT NULL,
 	`name` varchar(100) NOT NULL,
 	`street_address` varchar(100) NOT NULL,
 	`city` varchar(100) NOT NULL,
@@ -109,14 +109,14 @@ CREATE TABLE `organizations` (
 );
 --> statement-breakpoint
 CREATE TABLE `work_experiences` (
-	`id` serial AUTO_INCREMENT NOT NULL,
+	`id` int AUTO_INCREMENT NOT NULL,
 	`user_profile_id` int NOT NULL,
 	`company_name` varchar(100) NOT NULL,
 	`current` boolean NOT NULL DEFAULT false,
 	`start_date` timestamp NOT NULL,
 	`end_date` timestamp,
 	CONSTRAINT `work_experiences_id` PRIMARY KEY(`id`),
-	CONSTRAINT `graduated_end_date_check` CHECK(`work_experiences`.`current` = false OR `work_experiences`.`end_date` IS NOT NULL)
+	CONSTRAINT `resigned_end_date_check` CHECK((`work_experiences`.`current` = false OR `work_experiences`.`end_date` IS NOT NULL))
 );
 --> statement-breakpoint
 ALTER TABLE `auth` ADD CONSTRAINT `auth_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -124,7 +124,7 @@ ALTER TABLE `user_certifications` ADD CONSTRAINT `user_certifications_user_id_us
 ALTER TABLE `user_certifications` ADD CONSTRAINT `user_certifications_certification_id_certifications_id_fk` FOREIGN KEY (`certification_id`) REFERENCES `certifications`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `educations` ADD CONSTRAINT `educations_user_profile_id_user_profile_id_fk` FOREIGN KEY (`user_profile_id`) REFERENCES `user_profile`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `user_profile` ADD CONSTRAINT `user_profile_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE `users` ADD CONSTRAINT `users_organization_id_organizations_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `users` ADD CONSTRAINT `users_organization_id_organizations_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `job_details` ADD CONSTRAINT `job_details_employer_id_organizations_id_fk` FOREIGN KEY (`employer_id`) REFERENCES `organizations`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `work_experiences` ADD CONSTRAINT `work_experiences_user_profile_id_user_profile_id_fk` FOREIGN KEY (`user_profile_id`) REFERENCES `user_profile`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX `program_idx` ON `educations` (`program`);--> statement-breakpoint

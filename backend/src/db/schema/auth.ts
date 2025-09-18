@@ -11,7 +11,7 @@ import { relations, sql } from "drizzle-orm";
 import { users } from "./users";
 
 export const auth = mysqlTable("auth", {
-  id: serial("id").primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
   userId: int("user_id")
     .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
