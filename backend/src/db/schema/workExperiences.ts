@@ -1,6 +1,5 @@
 import {
   mysqlTable,
-  serial,
   varchar,
   timestamp,
   boolean,
@@ -16,7 +15,7 @@ import { userProfile } from "./users";
 export const workExperiences = mysqlTable(
   "work_experiences",
   {
-    id: serial("id").primaryKey(),
+    id: int("id").primaryKey().autoincrement(),
     userProfileId: int("user_profile_id")
       .references(() => userProfile.id, {
         onDelete: "cascade",
@@ -30,8 +29,8 @@ export const workExperiences = mysqlTable(
   (table) => [
     index("program_idx").on(table.companyName),
     check(
-      "current_end_date_check",
-      sql`${table.current} = false OR ${table.endDate} IS NOT NULL`,
+      "resigned_end_date_check",
+      sql`(${table.current} = false OR ${table.endDate} IS NOT NULL)`,
     ),
   ],
 );

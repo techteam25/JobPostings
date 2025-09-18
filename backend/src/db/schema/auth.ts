@@ -2,7 +2,7 @@ import { mysqlTable, int, varchar, timestamp } from "drizzle-orm/mysql-core";
 import { users } from "./users";
 
 export const auth = mysqlTable("auth", {
-  id: int("id").autoincrement().primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
   userId: int("user_id")
     .references(() => users.id, { onDelete: "cascade" }),
   provider: varchar("provider", { length: 50 }).notNull(),

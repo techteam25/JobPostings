@@ -1,6 +1,5 @@
 import {
   mysqlTable,
-  serial,
   varchar,
   timestamp,
   text,
@@ -15,7 +14,7 @@ import { users } from "./users";
 export const organizations = mysqlTable(
   "organizations",
   {
-    id: serial("id").primaryKey(),
+    id: int("id").primaryKey().autoincrement(),
     name: varchar("name", { length: 100 }).notNull(),
     streetAddress: varchar("street_address", { length: 100 }).notNull(),
     city: varchar("city", { length: 100 }).notNull(),
