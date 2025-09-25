@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service';
+import { User } from '../types';
 
 interface AuthRequest extends Request {
   userId?: number;
-  user?: any;
+  user?: User;
 }
 
 export class AuthMiddleware {

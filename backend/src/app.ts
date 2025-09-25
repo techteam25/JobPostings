@@ -3,6 +3,7 @@ import apiRoutes from './routes';
 import { checkDatabaseConnection } from './db/connection';
 import { env } from './config/env';
 import { errorHandler } from './middleware/error.middleware';
+import { sanitizeInput, validateRequest } from './middleware/validation.middleware';
 
 // Create Express application
 const app: Application = express();
@@ -10,6 +11,7 @@ const app: Application = express();
 // Basic middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 
 // CORS middleware (basic setup)
 app.use((req: Request, res: Response, next: NextFunction) => {

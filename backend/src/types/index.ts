@@ -16,8 +16,11 @@ export interface ErrorResponse {
 // Example User type
 export interface User {
   id: number;
-  name: string;
   email: string;
+  firstName: string;
+  lastName: string;
+  role: 'user' | 'employer' | 'admin';
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,4 +29,22 @@ export interface User {
 export interface CreateUserRequest {
   name: string;
   email: string;
+}
+
+// Authenticated request type
+export interface AuthRequest extends Request {
+  userId?: number;
+  sessionId?: number;
+  user?: User;
+}
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  nextPage: number | null;
+  previousPage: number | null;
 }
