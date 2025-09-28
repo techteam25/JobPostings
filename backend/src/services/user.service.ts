@@ -188,7 +188,7 @@ export class UserService extends BaseService {
         throw new Error("Failed to deactivate user");
       }
 
-      return { message: "User deactivated successfully" };
+      return await this.getUserById(id);
     } catch (error) {
       this.handleError(error);
     }
@@ -210,7 +210,7 @@ export class UserService extends BaseService {
         throw new Error("Failed to activate user");
       }
 
-      return { message: "User activated successfully" };
+      return await this.getUserById(id);
     } catch (error) {
       this.handleError(error);
     }

@@ -1,14 +1,11 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { UserService } from '../services/user.service';
 import { AuthService } from '../services/auth.service';
 import { BaseController } from './base.controller';
 import { ValidationError, ForbiddenError, NotFoundError } from '../utils/errors';
-
-interface AuthRequest extends Request {
-  userId?: number;
-  sessionId?: number;
-  user?: { id: number; role: string; email: string; firstName?: string; lastName?: string };
-}
+import { SafeUser, UpdateUser, UpdateUserProfile } from '../db/schema/users';
+import { ChangePasswordData, EmailData } from '../db/interfaces/common';
+import { UserRequest } from '../db/interfaces/users';
 
 export class UserController extends BaseController {
   private userService: UserService;
@@ -20,7 +17,7 @@ export class UserController extends BaseController {
     this.authService = new AuthService();
   }
 
-  getAllUsers = async (req: Request, res: Response) => {
+  getAllUsers = async (req: UserRequest, res: Response) => {
     try {
       const { page, limit } = this.extractPaginationParams(req);
       const { search } = this.extractSearchParams(req);
@@ -33,20 +30,20 @@ export class UserController extends BaseController {
         role,
       });
 
-      this.sendPaginatedResponse(res, result.items, result.pagination, 'Users retrieved successfully');
+      this.sendPaginatedResponse(res, result.items as SafeUser[], result.pagination, 'Users retrieved successfully');
     } catch (error) {
       this.handleControllerError(res, error, 'Failed to retrieve users', 500);
     }
   };
 
-  getUserById = async (req: Request, res: Response) => {
+  getUserById = async (req: UserRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id ?? '', 10);
       if (isNaN(id)) {
         throw new ValidationError('Invalid user ID');
       }
 
-      const user = await this.userService.getUserById(id);
+      const user: SafeUser | null = await this.userService.getUserById(id);
       if (!user) {
         throw new NotFoundError('User not found');
       }
@@ -57,7 +54,7 @@ export class UserController extends BaseController {
     }
   };
 
-  updateUser = async (req: AuthRequest, res: Response) => {
+  updateUser = async (req: UserRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id ?? '', 10);
       if (isNaN(id)) {
@@ -72,8 +69,8 @@ export class UserController extends BaseController {
         throw new ForbiddenError('You can only update your own account');
       }
 
-      const updateData = req.body;
-      const user = await this.userService.updateUser(
+      const updateData: UpdateUser = req.sanitizedBody ?? req.body;
+      const user: SafeUser = await this.userService.updateUser(
         id,
         updateData,
         req.user.id,
@@ -86,27 +83,27 @@ export class UserController extends BaseController {
     }
   };
 
-  updateProfile = async (req: AuthRequest, res: Response) => {
+  updateProfile = async (req: UserRequest, res: Response) => {
     try {
       if (!req.userId) {
         throw new ValidationError('User not authenticated');
       }
 
-      const profileData = req.body;
-      const user = await this.userService.updateUserProfile(req.userId, profileData);
+      const profileData: UpdateUserProfile = req.sanitizedBody ?? req.body;
+      const user: SafeUser = await this.userService.updateUserProfile(req.userId, profileData);
       this.sendSuccess(res, user, 'Profile updated successfully');
     } catch (error) {
       this.handleControllerError(res, error, 'Failed to update profile', 400);
     }
   };
 
-  changePassword = async (req: AuthRequest, res: Response) => {
+  changePassword = async (req: UserRequest, res: Response) => {
     try {
       if (!req.userId) {
         throw new ValidationError('User not authenticated');
       }
 
-      const { currentPassword, newPassword } = req.body;
+      const { currentPassword, newPassword }: ChangePasswordData = req.sanitizedBody ?? req.body;
       if (!currentPassword || !newPassword) {
         throw new ValidationError('Current password and new password are required');
       }
@@ -118,7 +115,7 @@ export class UserController extends BaseController {
     }
   };
 
-  getCurrentUser = async (req: AuthRequest, res: Response) => {
+  getCurrentUser = async (req: UserRequest, res: Response) => {
     try {
       if (!req.user) {
         throw new ValidationError('User not authenticated');
@@ -130,7 +127,7 @@ export class UserController extends BaseController {
     }
   };
 
-  deactivateUser = async (req: AuthRequest, res: Response) => {
+  deactivateUser = async (req: UserRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id ?? '', 10);
       if (isNaN(id)) {
@@ -141,14 +138,14 @@ export class UserController extends BaseController {
         throw new ForbiddenError('Only admins can deactivate users');
       }
 
-      const result = await this.userService.deactivateUser(id, req.user.id);
+      const result: SafeUser = await this.userService.deactivateUser(id, req.user.id);
       this.sendSuccess(res, result, 'User deactivated successfully');
     } catch (error) {
       this.handleControllerError(res, error, 'Failed to deactivate user', 400);
     }
   };
 
-  activateUser = async (req: AuthRequest, res: Response) => {
+  activateUser = async (req: UserRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id ?? '', 10);
       if (isNaN(id)) {
@@ -159,16 +156,16 @@ export class UserController extends BaseController {
         throw new ForbiddenError('Only admins can activate users');
       }
 
-      const result = await this.userService.activateUser(id);
+      const result: SafeUser = await this.userService.activateUser(id);
       this.sendSuccess(res, result, 'User activated successfully');
     } catch (error) {
       this.handleControllerError(res, error, 'Failed to activate user', 400);
     }
   };
 
-  deleteUser = async (req: AuthRequest, res: Response) => {
+  deleteUser = async (req: UserRequest, res: Response) => {
     try {
-      const { email } = req.body;
+      const { email }: EmailData = req.sanitizedBody ?? req.body;
       if (!email) {
         throw new ValidationError('Email is required');
       }
@@ -181,23 +178,23 @@ export class UserController extends BaseController {
         throw new ForbiddenError('You can only delete your own account or must be an admin');
       }
 
-      const result = await this.authService.deleteUser(email);
+      const result: SafeUser = await this.authService.deleteUser({ email });
       this.sendSuccess(res, result, 'User deleted successfully', 200);
     } catch (error) {
       this.handleControllerError(res, error, 'Failed to delete user', 400);
     }
   };
 
-  getUserStats = async (req: AuthRequest, res: Response) => {
+  getUserStats = async (req: UserRequest, res: Response) => {
     try {
       if (!req.user || req.user.role !== 'admin') {
         throw new ForbiddenError('Only admins can view user statistics');
       }
 
       const stats = {
-        totalUsers: await this.userService.getUsersByRole('user'),
-        totalEmployers: await this.userService.getUsersByRole('employer'),
-        totalAdmins: await this.userService.getUsersByRole('admin'),
+        totalUsers: await this.userService.getUsersByRole('user') as SafeUser[],
+        totalEmployers: await this.userService.getUsersByRole('employer') as SafeUser[],
+        totalAdmins: await this.userService.getUsersByRole('admin') as SafeUser[],
       };
 
       this.sendSuccess(res, {

@@ -12,7 +12,7 @@ router.use(sanitizeInput);
 // API version info
 router.get('/', (req, res) => {
   res.json({
-    message: 'Job Listing API',
+    message: 'Welcome to the Job Listing API',
     version: '1.0.0',
     status: 'active',
     timestamp: new Date().toISOString(),

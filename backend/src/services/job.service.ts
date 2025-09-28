@@ -5,6 +5,7 @@ import { BaseService } from './base.service';
 import { NewJob, NewJobApplication, Job, JobApplication } from '../db/schema/jobsDetails';
 import { NotFoundError, ForbiddenError, ConflictError, ValidationError } from '../utils/errors';
 import { SecurityUtils } from '../utils/security';
+import { AppError, ErrorCode } from '../utils/errors';
 
 export interface JobSearchFilters {
   searchTerm?: string;
@@ -70,7 +71,7 @@ export class JobService extends BaseService {
       const job = await this.jobRepository.findById(jobId);
       if (job) {
         await this.jobRepository.update(jobId, {
-          viewCount: job.viewCount + 1,
+          viewCount: (job as any).viewCount + 1,
         });
       }
     } catch (error) {
@@ -94,7 +95,7 @@ export class JobService extends BaseService {
       // Additional check for employers - they can only see their own organization's jobs
       if (requesterRole === 'employer') {
         const requester = await this.userRepository.findById(requesterId);
-        if (!requester || requester.organizationId !== employerId) {
+        if (!requester || (requester as any).organizationId !== employerId) {
           throw new ForbiddenError('You can only view jobs for your organization');
         }
       }
@@ -124,12 +125,12 @@ export class JobService extends BaseService {
         ...jobData,
         title: SecurityUtils.sanitizeInput(jobData.title),
         description: SecurityUtils.sanitizeInput(jobData.description),
-        location: SecurityUtils.sanitizeInput(jobData.location),
-        requiredSkills: jobData.requiredSkills ? this.processSkillsArray(jobData.requiredSkills) : null,
-        preferredSkills: jobData.preferredSkills ? this.processSkillsArray(jobData.preferredSkills) : null,
+        location: jobData.location ? SecurityUtils.sanitizeInput(jobData.location) : undefined,
+        requiredSkills: jobData.requiredSkills ? this.processSkillsArray(jobData.requiredSkills as any) : null,
+        preferredSkills: jobData.preferredSkills ? this.processSkillsArray(jobData.preferredSkills as any) : null,
       };
 
-      const jobId = await this.jobRepository.create(sanitizedData);
+      const jobId = await this.jobRepository.create(sanitizedData as any);
       return await this.getJobById(jobId);
     } catch (error) {
       this.handleError(error);
@@ -150,7 +151,7 @@ export class JobService extends BaseService {
         // Admin can update any job
       } else if (requesterRole === 'employer') {
         const requester = await this.userRepository.findById(requesterId);
-        if (!requester || requester.organizationId !== job.employerId) {
+        if (!requester || (requester as any).organizationId !== job.employerId) {
           throw new ForbiddenError('You can only update jobs for your organization');
         }
       } else {
@@ -195,7 +196,7 @@ export class JobService extends BaseService {
         // Admin can delete any job
       } else if (requesterRole === 'employer') {
         const requester = await this.userRepository.findById(requesterId);
-        if (!requester || requester.organizationId !== job.employerId) {
+        if (!requester || (requester as any).organizationId !== job.employerId) {
           throw new ForbiddenError('You can only delete jobs for your organization');
         }
       } else {
@@ -228,7 +229,7 @@ export class JobService extends BaseService {
 
       // Check if user has already applied
       const existingApplications = await this.jobRepository.findApplicationsByUser(applicationData.applicantId);
-      const hasApplied = existingApplications.some(app => app.job?.id === applicationData.jobId);
+      const hasApplied = existingApplications.items.some(app => app.job?.id === applicationData.jobId);
       
       if (hasApplied) {
         throw new ConflictError('You have already applied for this job');
@@ -240,14 +241,14 @@ export class JobService extends BaseService {
         coverLetter: applicationData.coverLetter ? 
           SecurityUtils.sanitizeInput(applicationData.coverLetter) : null,
         customAnswers: applicationData.customAnswers ? 
-          SecurityUtils.sanitizeInput(applicationData.customAnswers) : null,
+          SecurityUtils.sanitizeInput(applicationData.customAnswers as any) : null,
       };
 
-      const applicationId = await this.jobRepository.createApplication(sanitizedData);
+      const applicationId = await this.jobRepository.createApplication(sanitizedData as any);
 
       // Update job application count
       await this.jobRepository.update(applicationData.jobId, {
-        applicationCount: job.applicationCount + 1,
+        applicationCount: (job as any).applicationCount + 1,
       });
 
       return {
@@ -273,7 +274,7 @@ export class JobService extends BaseService {
         // Admin can view any job's applications
       } else if (requesterRole === 'employer') {
         const requester = await this.userRepository.findById(requesterId);
-        if (!requester || requester.organizationId !== job.employerId) {
+        if (!requester || (requester as any).organizationId !== job.employerId) {
           throw new ForbiddenError('You can only view applications for your organization jobs');
         }
       } else {
@@ -311,14 +312,14 @@ export class JobService extends BaseService {
         throw new NotFoundError('Application', applicationId);
       }
 
-      const job = await this.getJobById(application.jobId);
+      const job = await this.getJobById((application as any).jobId);
 
       // Authorization check
       if (requesterRole === 'admin') {
         // Admin can update any application
       } else if (requesterRole === 'employer') {
         const requester = await this.userRepository.findById(requesterId);
-        if (!requester || requester.organizationId !== job.employerId) {
+        if (!requester || (requester as any).organizationId !== job.employerId) {
           throw new ForbiddenError('You can only update applications for your organization jobs');
         }
       } else {
@@ -327,7 +328,7 @@ export class JobService extends BaseService {
 
       const updateData: any = { status };
       
-      if (status === 'reviewed' && !application.reviewedAt) {
+      if (status === 'reviewed' && !(application as any).reviewedAt) {
         updateData.reviewedAt = new Date();
         updateData.reviewedBy = requesterId;
       }
@@ -340,7 +341,7 @@ export class JobService extends BaseService {
         updateData.rating = Math.min(5, Math.max(1, additionalData.rating));
       }
 
-      const success = await this.jobRepository.updateApplicationStatus(applicationId, updateData);
+      const success = await this.jobRepository.updateApplicationStatus(applicationId, updateData as any);
       if (!success) {
         throw new AppError('Failed to update application status', 500, ErrorCode.DATABASE_ERROR);
       }
@@ -359,18 +360,18 @@ export class JobService extends BaseService {
       }
 
       // Check if user owns this application
-      if (application.applicantId !== userId) {
+      if ((application as any).applicantId !== userId) {
         throw new ForbiddenError('You can only withdraw your own applications');
       }
 
       // Check if application can be withdrawn
-      if (['hired', 'rejected'].includes(application.status)) {
+      if (['hired', 'rejected'].includes((application as any).status)) {
         throw new ValidationError('Cannot withdraw application with final status');
       }
 
       const success = await this.jobRepository.updateApplicationStatus(applicationId, {
         status: 'withdrawn',
-      });
+      } as any);
 
       if (!success) {
         throw new AppError('Failed to withdraw application', 500, ErrorCode.DATABASE_ERROR);
@@ -398,7 +399,8 @@ export class JobService extends BaseService {
         throw new NotFoundError('User', userId);
       }
 
-      const applications = await this.jobRepository.findApplicationsByUser(userId);
+      const applicationsResult = await this.jobRepository.findApplicationsByUser(userId);
+      const applications = applicationsResult.items;
       const recentApplications = applications.slice(0, 5);
 
       // Get application statistics
@@ -435,18 +437,18 @@ export class JobService extends BaseService {
       // Get job statistics
       const jobStats = {
         total: jobs.items.length,
-        active: jobs.items.filter(job => job.isActive).length,
-        inactive: jobs.items.filter(job => !job.isActive).length,
-        totalViews: jobs.items.reduce((sum, job) => sum + (job.viewCount || 0), 0),
-        totalApplications: jobs.items.reduce((sum, job) => sum + (job.applicationCount || 0), 0),
+        active: jobs.items.filter(job => (job as any).isActive).length,
+        inactive: jobs.items.filter(job => !(job as any).isActive).length,
+        totalViews: jobs.items.reduce((sum, job) => sum + ((job as any).viewCount || 0), 0),
+        totalApplications: jobs.items.reduce((sum, job) => sum + ((job as any).applicationCount || 0), 0),
       };
 
       // Get recent applications across all jobs
       const allApplications = await Promise.all(
-        jobs.items.map(job => this.jobRepository.findApplicationsByJob(job.id))
+        jobs.items.map(job => this.jobRepository.findApplicationsByJob((job as any).id))
       );
       
-      const flatApplications = allApplications.flat().sort(
+      const flatApplications = allApplications.flatMap(res => res.items).sort(
         (a, b) => new Date(b.application.appliedAt).getTime() - new Date(a.application.appliedAt).getTime()
       );
 
@@ -471,7 +473,7 @@ export class JobService extends BaseService {
 
       // Get recent activities
       const recentJobs = await this.jobRepository.findActiveJobs({ limit: 10 });
-      const recentApplications = await this.jobRepository.getRecentApplications({ limit: 20 });
+      const recentApplications = await (this.jobRepository as any).getRecentApplications({ limit: 20 });
 
       return {
         stats: {

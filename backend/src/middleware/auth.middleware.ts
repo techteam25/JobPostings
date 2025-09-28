@@ -1,11 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service';
-import { User } from '../types';
-
-interface AuthRequest extends Request {
-  userId?: number;
-  user?: User;
-}
+import { AuthRequest, TokenPayload } from '../db/interfaces/auth';
+import { SafeUser } from '../db/schema/users';
 
 export class AuthMiddleware {
   private authService: AuthService;
@@ -25,12 +21,13 @@ export class AuthMiddleware {
       }
 
       const token = authHeader.substring(7);
-      const decoded = this.authService.verifyToken(token);
+      const decoded: TokenPayload = this.authService.verifyToken(token);
       req.userId = decoded.userId;
+      req.sessionId = decoded.sessionId; // Assign sessionId if present in token
 
-      next();
+      return next();
     } catch (error) {
-      res.status(401).json({
+      return res.status(401).json({
         status: 'error',
         message: 'Invalid or expired token',
       });
@@ -49,7 +46,7 @@ export class AuthMiddleware {
 
         // Fetch user to check role
         const userService = new (await import('../services/user.service.js')).UserService();
-        const user = await userService.getUserById(req.userId);
+        const user: SafeUser = await userService.getUserById(req.userId);
         
         if (!roles.includes(user.role)) {
           return res.status(403).json({
@@ -59,13 +56,23 @@ export class AuthMiddleware {
         }
 
         req.user = user;
-        next();
+        return next();
       } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
           status: 'error',
           message: 'Error checking user permissions',
         });
       }
     };
+  };
+
+  requireActiveUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user || !req.user.isActive) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'User account is not active',
+      });
+    }
+    return next();
   };
 }

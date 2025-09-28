@@ -47,7 +47,7 @@ export const users = mysqlTable(
 
 export const userProfile = mysqlTable("user_profile", {
   id: int("id").primaryKey().autoincrement(),
-  userId: int("user_id").notNull(),
+  userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   profilePicture: varchar("profile_picture", { length: 500 }),
   bio: text("bio"),
   resumeUrl: varchar("resume_url", { length: 255 }),
@@ -103,8 +103,6 @@ export const insertUserProfileSchema = createInsertSchema(userProfile, {
   resumeUrl: z.string().url("Invalid resume URL").optional(),
   linkedinUrl: z.string().url("Invalid LinkedIn URL").optional(),
   portfolioUrl: z.string().url("Invalid portfolio URL").optional(),
-  phoneNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number").optional(),
-  zipCode: z.string().min(5, "Invalid zip code").max(10).optional(),
 });
 
 export const selectUserSchema = createSelectSchema(users);

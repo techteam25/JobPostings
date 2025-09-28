@@ -1,5 +1,5 @@
 import { eq, and, or, like, count } from 'drizzle-orm';
-import { users, userProfile, NewUser, NewUserProfile } from '../db/schema/users';
+import { users, userProfile, NewUser, NewUserProfile, SafeUser, UserProfile } from '../db/schema/users';
 import { BaseRepository } from './base.repository';
 import { db } from '../db/connection';
 import { DatabaseError } from '../utils/errors';
@@ -9,40 +9,96 @@ export class UserRepository extends BaseRepository<typeof users> {
     super(users);
   }
 
-  async findByEmail(email: string) {
+  async findByEmail(email: string): Promise<SafeUser | null> {
     try {
-      const result = await db.select().from(users).where(eq(users.email, email));
-      console.log('findByEmail result:', result);
+      const result = await db
+        .select({
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role,
+          organizationId: users.organizationId,
+          isEmailVerified: users.isEmailVerified,
+          isActive: users.isActive,
+          lastLoginAt: users.lastLoginAt,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        })
+        .from(users)
+        .where(eq(users.email, email));
       return result[0] || null;
     } catch (error) {
-      console.error('findByEmail error:', error);
-      throw new Error(`Failed query: select * from users where email = ? \nparams: ${email}`);
+      console.error('UserRepository.findByEmail error:', error);
+      throw new DatabaseError(`Failed to query user by email: ${email}`, error instanceof Error ? error : undefined);
     }
   }
 
-  async findByIdWithProfile(id: number) {
+  async findByIdWithProfile(id: number): Promise<{ users: SafeUser; userProfile: UserProfile | null } | null> {
     try {
       const result = await db
-        .select()
+        .select({
+          users: {
+            id: users.id,
+            email: users.email,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            role: users.role,
+            organizationId: users.organizationId,
+            isEmailVerified: users.isEmailVerified,
+            isActive: users.isActive,
+            lastLoginAt: users.lastLoginAt,
+            createdAt: users.createdAt,
+            updatedAt: users.updatedAt,
+          },
+          userProfile: {
+            id: userProfile.id,
+            userId: userProfile.userId,
+            profilePicture: userProfile.profilePicture,
+            bio: userProfile.bio,
+            resumeUrl: userProfile.resumeUrl,
+            linkedinUrl: userProfile.linkedinUrl,
+            portfolioUrl: userProfile.portfolioUrl,
+            phoneNumber: userProfile.phoneNumber,
+            address: userProfile.address,
+            city: userProfile.city,
+            state: userProfile.state,
+            country: userProfile.country,
+            zipCode: userProfile.zipCode,
+            createdAt: userProfile.createdAt,
+            updatedAt: userProfile.updatedAt,
+          },
+        })
         .from(users)
         .leftJoin(userProfile, eq(users.id, userProfile.userId))
         .where(eq(users.id, id));
-      console.log('findByIdWithProfile result:', result);
       return result[0] || null;
     } catch (error) {
-      console.error('findByIdWithProfile error:', error);
-      throw new Error(`Failed query: select * from users left join user_profile where users.id = ? \nparams: ${id}`);
+      console.error('UserRepository.findByIdWithProfile error:', error);
+      throw new DatabaseError(`Failed to query user with profile by id: ${id}`, error instanceof Error ? error : undefined);
     }
   }
 
-  async createWithProfile(userData: NewUser, profileData?: Partial<NewUserProfile>) {
+  async create(userData: NewUser): Promise<number> {
+    try {
+      const result = await db.insert(users).values(userData);
+      const userId = result[0].insertId;
+      if (!userId || isNaN(userId)) {
+        throw new DatabaseError(`Invalid insertId returned: ${result[0].insertId}`);
+      }
+      return userId;
+    } catch (error) {
+      console.error('UserRepository.create error:', error);
+      throw new DatabaseError(`Failed to create user with data: ${JSON.stringify(userData)}`, error instanceof Error ? error : undefined);
+    }
+  }
+
+  async createWithProfile(userData: NewUser, profileData?: Partial<NewUserProfile>): Promise<number> {
     try {
       return await db.transaction(async (tx) => {
         const userResult = await tx.insert(users).values(userData);
         const userId = userResult[0].insertId;
-        console.log('createWithProfile result:', userResult);
-        console.log('createWithProfile userId:', userId);
-        if (!userId) {
+        if (!userId || isNaN(userId)) {
           throw new DatabaseError(`Invalid insertId returned: ${userResult[0].insertId}`);
         }
 
@@ -56,12 +112,12 @@ export class UserRepository extends BaseRepository<typeof users> {
         return userId;
       });
     } catch (error) {
-      console.error('createWithProfile error:', error);
-      throw new Error(`Failed to create user with data: ${JSON.stringify(userData)}`);
+      console.error('UserRepository.createWithProfile error:', error);
+      throw new DatabaseError(`Failed to create user with data: ${JSON.stringify(userData)}`, error instanceof Error ? error : undefined);
     }
   }
 
-    async deleteUser(userId: number) {
+  async deleteUser(userId: number): Promise<void> {
     try {
       // Check if user exists
       const user = await db.select().from(users).where(eq(users.id, userId));
@@ -73,15 +129,13 @@ export class UserRepository extends BaseRepository<typeof users> {
       // If userProfile does not have ON DELETE CASCADE, delete profiles first
       await db.delete(userProfile).where(eq(userProfile.userId, userId));
       await db.delete(users).where(eq(users.id, userId));
-
-      console.log(`Deleted user with ID: ${userId}`);
     } catch (error) {
-      console.error('deleteUser error:', error);
-      throw new DatabaseError(`Failed to delete user with ID: ${userId}`);
+      console.error('UserRepository.deleteUser error:', error);
+      throw new DatabaseError(`Failed to delete user with ID: ${userId}`, error instanceof Error ? error : undefined);
     }
   }
 
-  async updateProfile(userId: number, profileData: Partial<NewUserProfile>) {
+  async updateProfile(userId: number, profileData: Partial<NewUserProfile>): Promise<void> {
     try {
       const existingProfile = await db
         .select()
@@ -89,27 +143,27 @@ export class UserRepository extends BaseRepository<typeof users> {
         .where(eq(userProfile.userId, userId));
 
       if (existingProfile.length > 0) {
-        return await db
+        await db
           .update(userProfile)
           .set(profileData)
           .where(eq(userProfile.userId, userId));
       } else {
-        return await db.insert(userProfile).values({
+        await db.insert(userProfile).values({
           ...profileData,
           userId,
         });
       }
     } catch (error) {
-      console.error('updateProfile error:', error);
-      throw new Error(`Failed to update profile for userId: ${userId}`);
+      console.error('UserRepository.updateProfile error:', error);
+      throw new DatabaseError(`Failed to update profile for userId: ${userId}`, error instanceof Error ? error : undefined);
     }
   }
 
   async searchUsers(
     searchTerm: string,
-    role: string | undefined,
+    role: 'user' | 'employer' | 'admin' | undefined,
     options: { page?: number; limit?: number } = {}
-  ) {
+  ): Promise<{ items: SafeUser[]; pagination: { total: number; page: number; limit: number; totalPages: number } }> {
     try {
       const { page = 1, limit = 10 } = options;
       const offset = (page - 1) * limit;
@@ -138,8 +192,12 @@ export class UserRepository extends BaseRepository<typeof users> {
           lastName: users.lastName,
           email: users.email,
           role: users.role,
+          organizationId: users.organizationId,
+          isEmailVerified: users.isEmailVerified,
           isActive: users.isActive,
+          lastLoginAt: users.lastLoginAt,
           createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
         })
         .from(users)
         .where(whereCondition)
@@ -153,26 +211,42 @@ export class UserRepository extends BaseRepository<typeof users> {
 
       const total = totalResult[0]?.count ?? 0;
 
-      const pagination = {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+      return {
+        items,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
       };
-
-      return { items, pagination };
     } catch (error) {
-      console.error('searchUsers error:', error);
-      throw new Error(`Failed to search users with term: ${searchTerm}`);
+      console.error('UserRepository.searchUsers error:', error);
+      throw new DatabaseError(`Failed to search users with term: ${searchTerm}`, error instanceof Error ? error : undefined);
     }
   }
 
-  async findByRole(role: (typeof users.role.enumValues)[number]) {
+  async findByRole(role: 'user' | 'employer' | 'admin'): Promise<SafeUser[]> {
     try {
-      return await db.select().from(this.table).where(eq(this.table.role, role));
+      return await db
+        .select({
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role,
+          organizationId: users.organizationId,
+          isEmailVerified: users.isEmailVerified,
+          isActive: users.isActive,
+          lastLoginAt: users.lastLoginAt,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        })
+        .from(users)
+        .where(eq(users.role, role));
     } catch (error) {
-      console.error(`Failed to fetch users by role: ${role}`, error);
-      throw new Error(`Failed to fetch users by role: ${role}`);
+      console.error(`UserRepository.findByRole error for role ${role}:`, error);
+      throw new DatabaseError(`Failed to fetch users by role: ${role}`, error instanceof Error ? error : undefined);
     }
   }
 }

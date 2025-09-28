@@ -1,4 +1,4 @@
-import { eq, and, or, like, desc, asc } from 'drizzle-orm';
+import { eq, and, or, like, desc, asc, SQL } from 'drizzle-orm';
 import { jobsDetails, jobApplications, NewJob, NewJobApplication } from '../db/schema/jobsDetails';
 import { users } from '../db/schema/users';
 import { organizations } from '../db/schema/organizations';
@@ -50,7 +50,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     const { searchTerm, jobType, location, experienceLevel, isRemote, page = 1, limit = 10 } = filters;
     const { offset } = buildPagination(page, limit);
 
-    let whereConditions = [eq(jobsDetails.isActive, true)];
+    let whereConditions: (SQL<unknown> | undefined)[] = [eq(jobsDetails.isActive, true)];
 
     if (searchTerm) {
       whereConditions.push(
@@ -62,7 +62,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     }
 
     if (jobType) {
-      whereConditions.push(eq(jobsDetails.jobType, jobType));
+      whereConditions.push(eq(jobsDetails.jobType, jobType as any));
     }
 
     if (location) {
@@ -70,14 +70,14 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     }
 
     if (experienceLevel) {
-      whereConditions.push(eq(jobsDetails.experienceLevel, experienceLevel));
+      whereConditions.push(eq(jobsDetails.experienceLevel, experienceLevel as any));
     }
 
     if (isRemote !== undefined) {
       whereConditions.push(eq(jobsDetails.isRemote, isRemote));
     }
 
-    const whereCondition = and(...whereConditions);
+    const whereCondition = and(...whereConditions.filter(c => c !== undefined) as SQL<unknown>[]);
 
     const items = await db
       .select({
@@ -147,11 +147,21 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
   // Job Applications
   async createApplication(applicationData: NewJobApplication) {
     const result = await db.insert(jobApplications).values(applicationData);
-    return result.insertId;
+    return (result as any).insertId;
   }
 
-  async findApplicationsByJob(jobId: number) {
-    return await db
+  async findApplicationsByJob(jobId: number, options: { page?: number; limit?: number, status?: string } = {}) {
+    const { page = 1, limit = 10, status } = options;
+    const { offset } = buildPagination(page, limit);
+
+    const whereConditions: (SQL<unknown> | undefined)[] = [eq(jobApplications.jobId, jobId)];
+    if (status) {
+      whereConditions.push(eq(jobApplications.status, status as any));
+    }
+
+    const where = and(...whereConditions.filter(c => c !== undefined) as SQL<unknown>[]);
+
+    const items = await db
       .select({
         application: jobApplications,
         applicant: {
@@ -163,12 +173,29 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       })
       .from(jobApplications)
       .leftJoin(users, eq(jobApplications.applicantId, users.id))
-      .where(eq(jobApplications.jobId, jobId))
-      .orderBy(desc(jobApplications.appliedAt));
+      .where(where)
+      .orderBy(desc(jobApplications.appliedAt))
+      .limit(limit)
+      .offset(offset);
+
+    const total = await countRecords(jobApplications, where);
+    const pagination = calculatePagination(total, page, limit);
+
+    return { items, pagination };
   }
 
-  async findApplicationsByUser(userId: number) {
-    return await db
+  async findApplicationsByUser(userId: number, options: { page?: number; limit?: number, status?: string } = {}) {
+    const { page = 1, limit = 10, status } = options;
+    const { offset } = buildPagination(page, limit);
+
+    const whereConditions: (SQL<unknown> | undefined)[] = [eq(jobApplications.applicantId, userId)];
+    if (status) {
+      whereConditions.push(eq(jobApplications.status, status as any));
+    }
+
+    const where = and(...whereConditions.filter(c => c !== undefined) as SQL<unknown>[]);
+
+    const items = await db
       .select({
         application: jobApplications,
         job: {
@@ -185,8 +212,15 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       .from(jobApplications)
       .leftJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
       .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
-      .where(eq(jobApplications.applicantId, userId))
-      .orderBy(desc(jobApplications.appliedAt));
+      .where(where)
+      .orderBy(desc(jobApplications.appliedAt))
+      .limit(limit)
+      .offset(offset);
+
+    const total = await countRecords(jobApplications, where);
+    const pagination = calculatePagination(total, page, limit);
+
+    return { items, pagination };
   }
 
   async updateApplicationStatus(applicationId: number, status: string, notes?: string) {
@@ -203,6 +237,6 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       .set(updateData)
       .where(eq(jobApplications.id, applicationId));
 
-    return result.affectedRows > 0;
+    return (result as any).affectedRows > 0;
   }
 }

@@ -46,11 +46,11 @@ export class JobController extends BaseController {
       } = req.query;
 
       const filters = {
-        searchTerm: search as string,
-        jobType: jobType as string,
-        location: location as string,
-        experienceLevel: experienceLevel as string,
-        compensationType: compensationType as string,
+        searchTerm: typeof search === 'string' ? search : undefined,
+        jobType: typeof jobType === 'string' ? jobType : undefined,
+        location: typeof location === 'string' ? location : undefined,
+        experienceLevel: typeof experienceLevel === 'string' ? experienceLevel : undefined,
+        compensationType: typeof compensationType === 'string' ? compensationType : undefined,
         isRemote: isRemote === 'true',
         salaryMin: salaryMin ? Number(salaryMin) : undefined,
         salaryMax: salaryMax ? Number(salaryMax) : undefined,

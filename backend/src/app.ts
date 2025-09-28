@@ -68,19 +68,7 @@ app.get('/health', async (req: Request, res: Response) => {
   }
 });
 
-// API routes
-app.get('/api', (req: Request, res: Response) => {
-  res.json({
-    message: 'Welcome to the Job Listing API',
-    version: '1.0.0',
-    endpoints: {
-      auth: '/api/auth',
-      users: '/api/users',
-      organizations: '/api/organizations',
-      jobs: '/api/jobs',
-    },
-  });
-});
+
 
 // Mount API routes
 app.use('/api', apiRoutes);
