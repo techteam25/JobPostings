@@ -45,8 +45,14 @@ export const jobsDetails = mysqlTable(
       "lead",
       "executive",
     ]).notNull(),
-    salaryMin: decimal("salary_min", { precision: 12, scale: 2 }),
-    salaryMax: decimal("salary_max", { precision: 12, scale: 2 }),
+    salaryMin: decimal("salary_min", {
+      precision: 12,
+      scale: 2,
+    }).$type<number>(),
+    salaryMax: decimal("salary_max", {
+      precision: 12,
+      scale: 2,
+    }).$type<number>(),
     currency: varchar("currency", { length: 3 }).default("USD"),
     isRemote: boolean("is_remote").default(false).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
@@ -71,12 +77,12 @@ export const jobsDetails = mysqlTable(
     foreignKey({
       columns: [table.employerId],
       foreignColumns: [organizations.id],
-      name: "fk_job_employer"
+      name: "fk_job_employer",
     }),
     foreignKey({
       columns: [table.postedById],
       foreignColumns: [users.id],
-      name: "fk_job_poster"
+      name: "fk_job_poster",
     }),
   ],
 );
@@ -96,7 +102,9 @@ export const jobApplications = mysqlTable(
       "rejected",
       "hired",
       "withdrawn",
-    ]).default("pending").notNull(),
+    ])
+      .default("pending")
+      .notNull(),
     coverLetter: text("cover_letter"),
     resumeUrl: varchar("resume_url", { length: 500 }),
     customAnswers: text("custom_answers"), // JSON for custom application questions
@@ -116,17 +124,17 @@ export const jobApplications = mysqlTable(
     foreignKey({
       columns: [table.jobId],
       foreignColumns: [jobsDetails.id],
-      name: "fk_application_job"
+      name: "fk_application_job",
     }),
     foreignKey({
       columns: [table.applicantId],
       foreignColumns: [users.id],
-      name: "fk_application_applicant"
+      name: "fk_application_applicant",
     }),
     foreignKey({
       columns: [table.reviewedBy],
       foreignColumns: [users.id],
-      name: "fk_application_reviewer"
+      name: "fk_application_reviewer",
     }),
   ],
 );
@@ -144,25 +152,35 @@ export const jobsRelations = relations(jobsDetails, ({ one, many }) => ({
   applications: many(jobApplications),
 }));
 
-export const jobApplicationsRelations = relations(jobApplications, ({ one }) => ({
-  job: one(jobsDetails, {
-    fields: [jobApplications.jobId],
-    references: [jobsDetails.id],
+export const jobApplicationsRelations = relations(
+  jobApplications,
+  ({ one }) => ({
+    job: one(jobsDetails, {
+      fields: [jobApplications.jobId],
+      references: [jobsDetails.id],
+    }),
+    applicant: one(users, {
+      fields: [jobApplications.applicantId],
+      references: [users.id],
+    }),
+    reviewer: one(users, {
+      fields: [jobApplications.reviewedBy],
+      references: [users.id],
+    }),
   }),
-  applicant: one(users, {
-    fields: [jobApplications.applicantId],
-    references: [users.id],
-  }),
-  reviewer: one(users, {
-    fields: [jobApplications.reviewedBy],
-    references: [users.id],
-  }),
-}));
+);
 
 // Validation schemas
 export const insertJobSchema = createInsertSchema(jobsDetails, {
-  title: z.string().min(5, "Title must be at least 5 characters").max(255).trim(),
-  description: z.string().min(50, "Description must be at least 50 characters").max(5000),
+  title: z
+    .string()
+    .min(5, "Title must be at least 5 characters")
+    .max(255)
+    .trim(),
+  description: z
+    .string()
+    .min(50, "Description must be at least 50 characters")
+    .max(5000),
   location: z.string().min(1, "Location is required").max(255).trim(),
   salaryMin: z.number().positive("Salary must be positive").optional(),
   salaryMax: z.number().positive("Salary must be positive").optional(),
@@ -172,18 +190,23 @@ export const insertJobSchema = createInsertSchema(jobsDetails, {
   employerId: z.number().int().positive("Employer ID is required"),
   postedById: z.number().int().positive("Posted by ID is required"),
 }).refine(
-  (data) => !data.salaryMax || !data.salaryMin || data.salaryMax >= data.salaryMin,
+  (data) =>
+    !data.salaryMax || !data.salaryMin || data.salaryMax >= data.salaryMin,
   {
     message: "Maximum salary must be greater than or equal to minimum salary",
     path: ["salaryMax"],
-  }
+  },
 );
 
 export const insertJobApplicationSchema = createInsertSchema(jobApplications, {
   jobId: z.number().int().positive("Job ID is required"),
   applicantId: z.number().int().positive("Applicant ID is required"),
-  coverLetter: z.string().min(50, "Cover letter must be at least 50 characters").max(2000).optional(),
-  resumeUrl: z.string().url("Invalid resume URL").optional(),
+  coverLetter: z
+    .string()
+    .min(50, "Cover letter must be at least 50 characters")
+    .max(2000)
+    .optional(),
+  resumeUrl: z.url("Invalid resume URL").optional(),
   customAnswers: z.string().optional(),
   rating: z.number().int().min(1).max(5).optional(),
 });
@@ -191,20 +214,22 @@ export const insertJobApplicationSchema = createInsertSchema(jobApplications, {
 export const selectJobSchema = createSelectSchema(jobsDetails);
 export const selectJobApplicationSchema = createSelectSchema(jobApplications);
 
-export const updateJobSchema = insertJobSchema.partial().omit({ 
-  id: true, 
-  createdAt: true, 
-  employerId: true, 
-  postedById: true 
+export const updateJobSchema = insertJobSchema.partial().omit({
+  id: true,
+  createdAt: true,
+  employerId: true,
+  postedById: true,
 });
 
-export const updateJobApplicationSchema = insertJobApplicationSchema.partial().omit({
-  id: true,
-  jobId: true,
-  applicantId: true,
-  appliedAt: true,
-  createdAt: true,
-});
+export const updateJobApplicationSchema = insertJobApplicationSchema
+  .partial()
+  .omit({
+    id: true,
+    jobId: true,
+    applicantId: true,
+    appliedAt: true,
+    createdAt: true,
+  });
 
 // Type exports
 export type Job = z.infer<typeof selectJobSchema>;
