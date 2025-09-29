@@ -1,30 +1,35 @@
-import { eq, like, or } from 'drizzle-orm';
-import { organizations, NewOrganization } from '../db/schema/organizations';
-import { BaseRepository } from './base.repository';
-import { db } from '../db/connection';
-import { buildPagination, countRecords, calculatePagination } from '../db/utils';
+import { eq, like, or } from "drizzle-orm";
+import { organizations } from "../db/schema";
+import { BaseRepository } from "./base.repository";
+import { db } from "../db/connection";
+import { calculatePagination, countRecords } from "../db/utils";
 
-export class OrganizationRepository extends BaseRepository<typeof organizations> {
+export class OrganizationRepository extends BaseRepository<
+  typeof organizations
+> {
   constructor() {
     super(organizations);
   }
 
   async findByName(name: string) {
-    const result = await db
+    const [result] = await db
       .select()
       .from(organizations)
       .where(eq(organizations.name, name));
-    return result[0] || null;
+    return result;
   }
 
-  async searchOrganizations(searchTerm: string, options: { page?: number; limit?: number } = {}) {
+  async searchOrganizations(
+    searchTerm: string,
+    options: { page?: number; limit?: number } = {},
+  ) {
     const { page = 1, limit = 10 } = options;
-    const { offset } = buildPagination(page, limit);
+    const offset = (page - 1) * limit;
 
     const searchCondition = or(
       like(organizations.name, `%${searchTerm}%`),
       like(organizations.city, `%${searchTerm}%`),
-      like(organizations.state, `%${searchTerm}%`)
+      like(organizations.state, `%${searchTerm}%`),
     );
 
     const items = await db
@@ -41,10 +46,9 @@ export class OrganizationRepository extends BaseRepository<typeof organizations>
   }
 
   async findByContact(contactId: number) {
-    const result = await db
+    return db
       .select()
       .from(organizations)
       .where(eq(organizations.contact, contactId));
-    return result;
   }
 }
