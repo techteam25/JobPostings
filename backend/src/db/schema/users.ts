@@ -16,7 +16,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations, sql } from "drizzle-orm";
+import { InferSelectModel, relations, sql } from "drizzle-orm";
 
 // Users table
 export const users = mysqlTable(
@@ -134,3 +134,8 @@ export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type UserProfile = z.infer<typeof selectUserProfileSchema>;
 export type NewUserProfile = z.infer<typeof insertUserProfileSchema>;
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
+
+// Get type with relations
+export type UserWithProfile = User & {
+  profile: InferSelectModel<typeof userProfile> | null;
+};
