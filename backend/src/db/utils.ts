@@ -1,6 +1,6 @@
-import { SQL, sql } from 'drizzle-orm';
-import { MySqlColumn, MySqlTransaction } from 'drizzle-orm/mysql-core';
-import { db } from './connection';
+import { count, ilike, sql, or, type SQL } from "drizzle-orm";
+import { MySqlColumn, MySqlTransaction } from "drizzle-orm/mysql-core";
+import { db } from "./connection";
 
 /**
  * Build pagination SQL with LIMIT and OFFSET
@@ -18,35 +18,32 @@ export function buildPagination(page: number = 1, limit: number = 10) {
  * Build search conditions for text fields
  */
 export function buildSearchCondition(
-  columns: MySqlColumn[], 
-  searchTerm: string
+  columns: MySqlColumn[],
+  searchTerm: string,
 ): SQL | undefined {
-  if (!searchTerm.trim()) return undefined;
-  
-  const conditions = columns.map(column => 
-    sql`${column} LIKE ${`%${searchTerm}%`}`
-  );
-  
-  return sql`(${sql.join(conditions, sql` OR `)})`;
+  const trimmed = searchTerm.trim();
+  if (!trimmed || columns.length === 0) return undefined;
+
+  const pattern = `%${trimmed}%`;
+
+  return or(...columns.map((col) => ilike(col, pattern)));
 }
 
 /**
  * Count total records for pagination
  */
 export async function countRecords(
-  table: any, 
-  whereCondition?: SQL
+  table: any,
+  whereCondition?: SQL,
 ): Promise<number> {
-  const query = db
-    .select({ count: sql<number>`COUNT(*)` })
-    .from(table);
-    
+  const query = db.select({ count: count() }).from(table);
+
   if (whereCondition) {
     query.where(whereCondition);
   }
-  
-  const result = await query;
-  return result[0]?.count || 0;
+
+  const [result] = await query;
+  return result?.count || 0;
 }
 
 /**
@@ -55,12 +52,12 @@ export async function countRecords(
 export function calculatePagination(
   totalRecords: number,
   currentPage: number,
-  limit: number
+  limit: number,
 ) {
   const totalPages = Math.ceil(totalRecords / limit);
   const hasNext = currentPage < totalPages;
   const hasPrevious = currentPage > 1;
-  
+
   return {
     total: totalRecords,
     page: currentPage,
@@ -84,50 +81,50 @@ export function handleDatabaseError(error: unknown): {
   if (error instanceof Error) {
     // MySQL specific error codes
     const mysqlError = error as any;
-    
+
     switch (mysqlError.code) {
-      case 'ER_DUP_ENTRY':
+      case "ER_DUP_ENTRY":
         return {
-          message: 'Record already exists',
-          code: 'DUPLICATE_ENTRY',
+          message: "Record already exists",
+          code: "DUPLICATE_ENTRY",
           statusCode: 409,
         };
-      case 'ER_NO_REFERENCED_ROW_2':
+      case "ER_NO_REFERENCED_ROW_2":
         return {
-          message: 'Referenced record does not exist',
-          code: 'FOREIGN_KEY_CONSTRAINT',
+          message: "Referenced record does not exist",
+          code: "FOREIGN_KEY_CONSTRAINT",
           statusCode: 400,
         };
-      case 'ER_ROW_IS_REFERENCED_2':
+      case "ER_ROW_IS_REFERENCED_2":
         return {
-          message: 'Cannot delete record as it is referenced by other records',
-          code: 'FOREIGN_KEY_CONSTRAINT',
+          message: "Cannot delete record as it is referenced by other records",
+          code: "FOREIGN_KEY_CONSTRAINT",
           statusCode: 409,
         };
-      case 'ER_DATA_TOO_LONG':
+      case "ER_DATA_TOO_LONG":
         return {
-          message: 'Data too long for field',
-          code: 'DATA_TOO_LONG',
+          message: "Data too long for field",
+          code: "DATA_TOO_LONG",
           statusCode: 400,
         };
-      case 'ER_BAD_NULL_ERROR':
+      case "ER_BAD_NULL_ERROR":
         return {
-          message: 'Required field cannot be null',
-          code: 'NULL_CONSTRAINT',
+          message: "Required field cannot be null",
+          code: "NULL_CONSTRAINT",
           statusCode: 400,
         };
       default:
         return {
-          message: error.message || 'Database operation failed',
-          code: mysqlError.code || 'DATABASE_ERROR',
+          message: error.message || "Database operation failed",
+          code: mysqlError.code || "DATABASE_ERROR",
           statusCode: 500,
         };
     }
   }
-  
+
   return {
-    message: 'Unknown database error',
-    code: 'UNKNOWN_ERROR',
+    message: "Unknown database error",
+    code: "UNKNOWN_ERROR",
     statusCode: 500,
   };
 }
@@ -136,13 +133,13 @@ export function handleDatabaseError(error: unknown): {
  * Transaction wrapper with automatic rollback on error
  */
 export async function withTransaction<T>(
-  callback: (tx: MySqlTransaction<any, any, any, any>) => Promise<T>
+  callback: (tx: MySqlTransaction<any, any, any, any>) => Promise<T>,
 ): Promise<T> {
   return await db.transaction(async (tx) => {
     try {
       return await callback(tx);
     } catch (error) {
-      console.error('Transaction failed:', error);
+      console.error("Transaction failed:", error);
       throw error;
     }
   });
