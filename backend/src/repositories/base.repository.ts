@@ -170,7 +170,7 @@ export class BaseRepository<T extends MySqlTable> {
     try {
       const result = await db.insert(this.table).values(data);
       // Note: MySQL doesn't return multiple insert IDs easily, so we return empty array
-      // You might need to implement this differently based on your specific needs
+      // Todo: You might need to implement this differently based on your specific needs
       return [];
     } catch (error) {
       throw new DatabaseError(
