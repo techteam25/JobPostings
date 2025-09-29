@@ -1,5 +1,5 @@
 import { SQL, sql } from 'drizzle-orm';
-import { MySqlColumn } from 'drizzle-orm/mysql-core';
+import { MySqlColumn, MySqlTransaction } from 'drizzle-orm/mysql-core';
 import { db } from './connection';
 
 /**
@@ -11,8 +11,6 @@ export function buildPagination(page: number = 1, limit: number = 10) {
     limit: sql`LIMIT ${limit}`,
     offset: sql`OFFSET ${offset}`,
     page,
-    limit,
-    offset,
   };
 }
 
@@ -138,7 +136,7 @@ export function handleDatabaseError(error: unknown): {
  * Transaction wrapper with automatic rollback on error
  */
 export async function withTransaction<T>(
-  callback: (tx: typeof db) => Promise<T>
+  callback: (tx: MySqlTransaction<any, any, any, any>) => Promise<T>
 ): Promise<T> {
   return await db.transaction(async (tx) => {
     try {

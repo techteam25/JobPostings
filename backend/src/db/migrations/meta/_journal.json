@@ -8,6 +8,41 @@
       "when": 1758153660745,
       "tag": "0000_bizarre_sage",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1758157313874,
+      "tag": "0001_big_nehzno",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1758158098820,
+      "tag": "0002_grey_hiroim",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1758675485352,
+      "tag": "0003_chief_thunderbolts",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1759017590347,
+      "tag": "0004_fluffy_firebrand",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1759019273211,
+      "tag": "0005_dapper_doorman",
+      "breakpoints": true
     }
   ]
 }

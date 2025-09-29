@@ -1,3 +1,9 @@
+import { organizations } from './organizations';
+import { sessions } from './sessions';
+import { auth } from './auth';
+import { educations } from './educations';
+import { workExperiences } from './workExperiences';
+import { userCertifications } from './certifications';
 import {
   mysqlTable,
   varchar,
@@ -11,9 +17,6 @@ import {
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
-import { organizations } from "./organizations";
-import { educations } from "./educations";
-import { auth } from "./auth";
 
 // Users table
 export const users = mysqlTable(
@@ -27,11 +30,10 @@ export const users = mysqlTable(
     role: mysqlEnum("role", ["user", "employer", "admin"])
       .default("user")
       .notNull(),
-    organizationId: int("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    organizationId: int("organization_id"),
     isEmailVerified: boolean("is_email_verified").default(false).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
+    lastLoginAt: timestamp("last_login_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },
@@ -45,73 +47,85 @@ export const users = mysqlTable(
 
 export const userProfile = mysqlTable("user_profile", {
   id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   profilePicture: varchar("profile_picture", { length: 500 }),
   bio: text("bio"),
-  userId: int("user_id").references(() => users.id, {
-    onDelete: "set null",
-  }),
-  resumeUrl: varchar("resume_url", { length: 255 }).notNull(),
+  resumeUrl: varchar("resume_url", { length: 255 }),
+  linkedinUrl: varchar("linkedin_url", { length: 255 }),
+  portfolioUrl: varchar("portfolio_url", { length: 255 }),
+  phoneNumber: varchar("phone_number", { length: 20 }),
+  address: varchar("address", { length: 255 }),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 100 }),
+  zipCode: varchar("zip_code", { length: 10 }),
+  country: varchar("country", { length: 100 }).default("US"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
 
 // Relations
 export const userRelations = relations(users, ({ one, many }) => ({
-  profile: one(userProfile),
-  employer: one(organizations, {
+  profile: one(userProfile, {
+    fields: [users.id],
+    references: [userProfile.userId],
+  }),
+  organization: one(organizations, {
     fields: [users.organizationId],
     references: [organizations.id],
   }),
-  authentication: many(auth),
+  sessions: many(sessions),
+  authProviders: many(auth),
 }));
 
 export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
-  profile: one(users, {
+  user: one(users, {
     fields: [userProfile.userId],
     references: [users.id],
   }),
   education: many(educations),
+  workExperiences: many(workExperiences),
+  certifications: many(userCertifications),
 }));
 
-// Zod schemas for validation
+// Zod schemas
 export const insertUserSchema = createInsertSchema(users, {
-  email: z.email("Invalid email format"),
-  firstName: z.string().min(1, "First name is required").max(100),
-  lastName: z.string().min(1, "Last name is required").max(100),
-  passwordHash: z.string().min(8, "Password must be at least 8 characters"),
+  email: z.string().email("Invalid email format").toLowerCase(),
+  firstName: z.string().min(1, "First name is required").max(100).trim(),
+  lastName: z.string().min(1, "Last name is required").max(100).trim(),
+  passwordHash: z.string().min(60, "Invalid password hash"),
+  role: z.enum(['user', 'employer', 'admin']).default('user'),
+  organizationId: z.number().int().positive().nullable().optional(),
 });
 
 export const insertUserProfileSchema = createInsertSchema(userProfile, {
-  profilePicture: z.email("Invalid email format"),
-  bio: z
-    .string()
-    .min(10, "User Bio cannot be less than 30 characters")
-    .max(500)
-    .optional(),
-  resumeUrl: z.url("Invalid resume URL").optional(),
+  userId: z.number().int().positive(),
+  bio: z.string().min(10, "Bio must be at least 10 characters").max(1000).optional(),
+  resumeUrl: z.string().url("Invalid resume URL").optional(),
+  linkedinUrl: z.string().url("Invalid LinkedIn URL").optional(),
+  portfolioUrl: z.string().url("Invalid portfolio URL").optional(),
 });
 
 export const selectUserSchema = createSelectSchema(users);
+export const selectUserProfileSchema = createSelectSchema(userProfile);
+
 export const updateUserSchema = insertUserSchema
   .partial()
-  .omit({ id: true, createdAt: true });
+  .omit({ id: true, createdAt: true, passwordHash: true });
 
-export const selectUserProfileSchema = createSelectSchema(userProfile);
 export const updateUserProfileSchema = insertUserProfileSchema
   .partial()
-  .omit({ id: true, createdAt: true });
+  .omit({ id: true, userId: true, createdAt: true });
 
-// Public user schema (without sensitive data)
-export const publicUserSchema = selectUserSchema.omit({
+// Safe user schema (without sensitive data)
+export const safeUserSchema = selectUserSchema.omit({
   passwordHash: true,
-  isEmailVerified: true,
 });
 
 // Type exports
 export type User = z.infer<typeof selectUserSchema>;
+export type SafeUser = z.infer<typeof safeUserSchema>;
 export type NewUser = z.infer<typeof insertUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
-export type PublicUser = z.infer<typeof publicUserSchema>;
 export type UserProfile = z.infer<typeof selectUserProfileSchema>;
 export type NewUserProfile = z.infer<typeof insertUserProfileSchema>;
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;

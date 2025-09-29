@@ -54,3 +54,5 @@ export const insertOrganizationSchema = createInsertSchema(organizations, {
 export const updateOrganizationSchema = insertOrganizationSchema
   .partial()
   .omit({ id: true, createdAt: true });
+
+export type NewOrganization = z.infer<typeof insertOrganizationSchema>;
