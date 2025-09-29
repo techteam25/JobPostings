@@ -1,12 +1,12 @@
-import { eq, and, gt } from 'drizzle-orm';
-import { sessions, NewSession, UpdateSession } from '../db/schema/sessions';
-import { BaseRepository } from './base.repository';
-import { db } from '../db/connection';
-import { AppError, ErrorCode, NotFoundError } from '../utils/errors';
+import { eq, and, gt } from "drizzle-orm";
+import { sessions, NewSession, UpdateSession } from "../db/schema";
+import { BaseRepository } from "./base.repository";
+import { db } from "../db/connection";
+import { AppError, ErrorCode } from "../utils/errors";
 
 export class SessionRepository extends BaseRepository<typeof sessions> {
   constructor() {
-    super(sessions, 'session');
+    super(sessions, "session");
   }
 
   async createSession(sessionData: NewSession): Promise<number> {
@@ -22,45 +22,45 @@ export class SessionRepository extends BaseRepository<typeof sessions> {
           and(
             eq(sessions.accessToken, accessToken),
             eq(sessions.isActive, true),
-            gt(sessions.expiresAt, new Date())
-          )
+            gt(sessions.expiresAt, new Date()),
+          ),
         )
         .limit(1);
-      
+
       return result[0] || null;
     } catch (error) {
       throw new AppError(
-        'Failed to find session by access token',
+        "Failed to find session by access token",
         500,
         ErrorCode.DATABASE_ERROR,
         true,
-        error
+        error,
       );
     }
   }
 
   async findByRefreshToken(refreshToken: string): Promise<any | null> {
     try {
-      const result = await db
+      const [result] = await db
         .select()
         .from(sessions)
         .where(
           and(
             eq(sessions.refreshToken, refreshToken),
             eq(sessions.isActive, true),
-            gt(sessions.refreshExpiresAt, new Date())
-          )
+            gt(sessions.refreshExpiresAt, new Date()),
+          ),
         )
         .limit(1);
-      
-      return result[0] || null;
+
+      return result;
     } catch (error) {
       throw new AppError(
-        'Failed to find session by refresh token',
+        "Failed to find session by refresh token",
         500,
         ErrorCode.DATABASE_ERROR,
         true,
-        error
+        error,
       );
     }
   }
@@ -71,7 +71,7 @@ export class SessionRepository extends BaseRepository<typeof sessions> {
 
   async deactivateSession(id: number): Promise<boolean> {
     return this.update(id, { isActive: false });
-  } 
+  }
 
   async deactivateAllUserSessions(userId: number): Promise<boolean> {
     try {
@@ -82,11 +82,11 @@ export class SessionRepository extends BaseRepository<typeof sessions> {
       return true;
     } catch (error) {
       throw new AppError(
-        'Failed to deactivate all user sessions',
+        "Failed to deactivate all user sessions",
         500,
         ErrorCode.DATABASE_ERROR,
         true,
-        error
+        error,
       );
     }
   }
