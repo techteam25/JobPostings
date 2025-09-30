@@ -1,7 +1,7 @@
-import { Response, NextFunction } from 'express';
-import { AuthService } from '../services/auth.service';
-import { AuthRequest, TokenPayload } from '../db/interfaces/auth';
-import { SafeUser } from '../db/schema/users';
+import { Response, NextFunction } from "express";
+import { AuthService } from "../services/auth.service";
+import { AuthRequest, TokenPayload } from "../db/interfaces/auth";
+import { UserService } from "../services/user.service";
 
 export class AuthMiddleware {
   private authService: AuthService;
@@ -10,13 +10,17 @@ export class AuthMiddleware {
     this.authService = new AuthService();
   }
 
-  authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  authenticate = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
         return res.status(401).json({
-          status: 'error',
-          message: 'No token provided',
+          status: "error",
+          message: "No token provided",
         });
       }
 
@@ -28,8 +32,8 @@ export class AuthMiddleware {
       return next();
     } catch (error) {
       return res.status(401).json({
-        status: 'error',
-        message: 'Invalid or expired token',
+        status: "error",
+        message: "Invalid or expired token",
       });
     }
   };
@@ -39,19 +43,19 @@ export class AuthMiddleware {
       try {
         if (!req.userId) {
           return res.status(401).json({
-            status: 'error',
-            message: 'Authentication required',
+            status: "error",
+            message: "Authentication required",
           });
         }
 
         // Fetch user to check role
-        const userService = new (await import('../services/user.service.js')).UserService();
-        const user: SafeUser = await userService.getUserById(req.userId);
-        
+        const userService = new UserService();
+        const { users: user } = await userService.getUserById(req.userId);
+
         if (!roles.includes(user.role)) {
           return res.status(403).json({
-            status: 'error',
-            message: 'Insufficient permissions',
+            status: "error",
+            message: "Insufficient permissions",
           });
         }
 
@@ -59,18 +63,22 @@ export class AuthMiddleware {
         return next();
       } catch (error) {
         return res.status(500).json({
-          status: 'error',
-          message: 'Error checking user permissions',
+          status: "error",
+          message: "Error checking user permissions",
         });
       }
     };
   };
 
-  requireActiveUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  requireActiveUser = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     if (!req.user || !req.user.isActive) {
       return res.status(403).json({
-        status: 'error',
-        message: 'User account is not active',
+        status: "error",
+        message: "User account is not active",
       });
     }
     return next();
