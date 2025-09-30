@@ -20,10 +20,11 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "eslint.config.mts"
   ],
   "exclude": [
     "node_modules",
