@@ -39,11 +39,10 @@ export class JobMatchingService extends BaseService {
       if (!user) {
         return this.handleError(new NotFoundError("User", userId));
       }
-      const { users, userProfile } = user;
 
       // Get user's application history to avoid recommending already applied jobs
       const userApplications = await this.jobRepository.findApplicationsByUser(
-        users.id,
+        user.id,
       );
 
       const appliedJobIds = userApplications.items
@@ -64,10 +63,7 @@ export class JobMatchingService extends BaseService {
       // Calculate match scores
       const jobScores = await Promise.all(
         availableJobs.map(async (item) => {
-          const score = await this.calculateJobMatchScore(
-            { ...users, profile: userProfile },
-            item.job,
-          );
+          const score = await this.calculateJobMatchScore(user, item.job);
           return {
             ...item,
             score: score.score,
@@ -252,11 +248,11 @@ export class JobMatchingService extends BaseService {
     // This would require implementing experience calculation from work history
     // For now, we'll use a simplified approach
     const userExperienceLevel = this.estimateUserExperienceLevel(user);
-    if (userExperienceLevel === job.experienceLevel) {
+    if (userExperienceLevel === job.experience) {
       score += 25;
-      matchReasons.push(`Experience level match: ${job.experienceLevel}`);
+      matchReasons.push(`Experience level match: ${job.experience}`);
     } else if (
-      this.isCompatibleExperienceLevel(userExperienceLevel, job.experienceLevel)
+      this.isCompatibleExperienceLevel(userExperienceLevel, job.experience!)
     ) {
       score += 15;
       matchReasons.push(`Compatible experience level`);
@@ -299,7 +295,7 @@ export class JobMatchingService extends BaseService {
     }
 
     // Same experience level (20 points)
-    if (job1.experienceLevel === job2.experienceLevel) {
+    if (job1.experience === job2.experience) {
       similarity += 20;
     }
 
