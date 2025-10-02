@@ -8,9 +8,10 @@ import {
   decimal,
   int,
   index,
+  check,
   foreignKey,
 } from "drizzle-orm/mysql-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./users";
@@ -38,13 +39,6 @@ export const jobsDetails = mysqlTable(
       "volunteer",
       "stipend",
     ]).notNull(),
-    experienceLevel: mysqlEnum("experience_level", [
-      "entry",
-      "mid",
-      "senior",
-      "lead",
-      "executive",
-    ]).notNull(),
     salaryMin: decimal("salary_min", {
       precision: 12,
       scale: 2,
@@ -53,23 +47,17 @@ export const jobsDetails = mysqlTable(
       precision: 12,
       scale: 2,
     }).$type<number>(),
-    currency: varchar("currency", { length: 3 }).default("USD"),
     isRemote: boolean("is_remote").default(false).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
     applicationDeadline: timestamp("application_deadline"),
-    requiredSkills: text("required_skills"), // JSON array of skills
-    preferredSkills: text("preferred_skills"), // JSON array of skills
-    benefits: text("benefits"),
+    skills: text("skills"), // JSON array of skills
+    experience: text("experience"), // JSON array of skills
     employerId: int("employer_id").notNull(),
-    postedById: int("posted_by_id").notNull(),
-    viewCount: int("view_count").default(0).notNull(),
-    applicationCount: int("application_count").default(0).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },
   (table) => [
     index("employer_idx").on(table.employerId),
-    index("posted_by_idx").on(table.postedById),
     index("job_type_idx").on(table.jobType),
     index("location_idx").on(table.location),
     index("active_idx").on(table.isActive),
@@ -78,11 +66,6 @@ export const jobsDetails = mysqlTable(
       columns: [table.employerId],
       foreignColumns: [organizations.id],
       name: "fk_job_employer",
-    }),
-    foreignKey({
-      columns: [table.postedById],
-      foreignColumns: [users.id],
-      name: "fk_job_poster",
     }),
   ],
 );
@@ -139,17 +122,40 @@ export const jobApplications = mysqlTable(
   ],
 );
 
+// Job Statistics table
+export const jobInsights = mysqlTable(
+  "job_insights",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    job: int("job_id")
+      .references(() => jobsDetails.id, { onDelete: "cascade" })
+      .notNull(),
+    organization: int("organization_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
+    viewCount: int("view_count").default(0),
+    applicationCount: int("application_count").default(0),
+  },
+  (table) => [
+    index("job_idx").on(table.job),
+    check(
+      "application_count_must_be_gt_0",
+      sql`(${table.applicationCount} >= 0`,
+    ), // avoid -ve value when performing application withdraw
+  ],
+);
+
 // Relations
 export const jobsRelations = relations(jobsDetails, ({ one, many }) => ({
   employer: one(organizations, {
     fields: [jobsDetails.employerId],
     references: [organizations.id],
   }),
-  postedBy: one(users, {
-    fields: [jobsDetails.postedById],
-    references: [users.id],
-  }),
   applications: many(jobApplications),
+  jobViews: one(jobInsights, {
+    fields: [jobsDetails.id],
+    references: [jobInsights.job],
+  }),
 }));
 
 export const jobApplicationsRelations = relations(
@@ -170,6 +176,17 @@ export const jobApplicationsRelations = relations(
   }),
 );
 
+export const jobInsightsRelations = relations(jobInsights, ({ one }) => ({
+  job: one(jobsDetails, {
+    fields: [jobInsights.job],
+    references: [jobsDetails.id],
+  }),
+  organization: one(organizations, {
+    fields: [jobInsights.organization],
+    references: [organizations.id],
+  }),
+}));
+
 // Validation schemas
 export const insertJobSchema = createInsertSchema(jobsDetails, {
   title: z
@@ -184,11 +201,7 @@ export const insertJobSchema = createInsertSchema(jobsDetails, {
   location: z.string().min(1, "Location is required").max(255).trim(),
   salaryMin: z.number().positive("Salary must be positive").optional(),
   salaryMax: z.number().positive("Salary must be positive").optional(),
-  requiredSkills: z.string().optional(),
-  preferredSkills: z.string().optional(),
-  benefits: z.string().max(2000).optional(),
   employerId: z.number().int().positive("Employer ID is required"),
-  postedById: z.number().int().positive("Posted by ID is required"),
 }).refine(
   (data) =>
     !data.salaryMax || !data.salaryMin || data.salaryMax >= data.salaryMin,
@@ -211,7 +224,15 @@ export const insertJobApplicationSchema = createInsertSchema(jobApplications, {
   rating: z.number().int().min(1).max(5).optional(),
 });
 
+export const insertJobInsightsSchema = createInsertSchema(jobInsights, {
+  viewCount: z.int().min(0, { error: "View Count cannot be less than 0" }),
+  applicationCount: z
+    .int()
+    .min(0, { error: "Application Count cannot be less than 0" }),
+});
+
 export const selectJobSchema = createSelectSchema(jobsDetails);
+export const selectJobInsightsSchema = createSelectSchema(jobInsights);
 export const selectJobApplicationSchema = createSelectSchema(jobApplications);
 
 export const updateJobSchema = insertJobSchema.partial().omit({
@@ -229,12 +250,21 @@ export const updateJobApplicationSchema = insertJobApplicationSchema
     applicantId: true,
     appliedAt: true,
     createdAt: true,
+    updatedAt: true,
+    reviewedAt: true,
+    reviewedBy: true,
   });
+
+export const updateJobInsightsSchema = insertJobInsightsSchema
+  .partial()
+  .omit({ id: true });
 
 // Type exports
 export type Job = z.infer<typeof selectJobSchema>;
+export type JobInsight = z.infer<typeof selectJobInsightsSchema>;
 export type NewJob = z.infer<typeof insertJobSchema>;
 export type UpdateJob = z.infer<typeof updateJobSchema>;
 export type JobApplication = z.infer<typeof selectJobApplicationSchema>;
 export type NewJobApplication = z.infer<typeof insertJobApplicationSchema>;
 export type UpdateJobApplication = z.infer<typeof updateJobApplicationSchema>;
+export type UpdateJobInsights = z.infer<typeof updateJobInsightsSchema>;
