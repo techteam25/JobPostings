@@ -24,7 +24,7 @@ const loginSchema = z.object({
 });
 
 const refreshTokenSchema = z.object({
-  refreshToken: z.string().nonempty().optional(),
+  refreshToken: z.string().nonempty(),
 });
 
 const changePasswordSchema = z.object({
@@ -37,6 +37,10 @@ const changePasswordSchema = z.object({
       "Password must contain uppercase, lowercase, number, and special character",
     )
     .nonempty(),
+});
+
+const profileIdParamSchema = z.object({
+  profileId: z.coerce.number("profileId is required"),
 });
 
 export const registerUserSchema = z.object({
@@ -62,3 +66,8 @@ export const changeUserPasswordSchema = z.object({
   params: z.object({}).strict(),
   query: z.object({}).strict(),
 });
+
+export type RegisterUserSchema = z.infer<typeof registerUserSchema>;
+export type UserLoginSchema = z.infer<typeof userLoginSchema>;
+export type ChangeUserPasswordSchema = z.infer<typeof changeUserPasswordSchema>;
+export type UserRefreshTokenSchema = z.infer<typeof userRefreshTokenSchema>;
