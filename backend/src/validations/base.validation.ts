@@ -3,9 +3,20 @@ import { z } from "zod";
 export const searchParams = z.object({
   body: z.object({}).strict(),
   query: z.object({
-    page: z.string().optional().default("1").transform(Number),
-    limit: z.string().optional().default("10").transform(Number),
+    page: z.string().optional().default("1").transform(Number).optional(),
+    limit: z.string().optional().default("10").transform(Number).optional(),
     sortBy: z.string().optional(),
+    status: z
+      .enum([
+        "pending",
+        "reviewed",
+        "shortlisted",
+        "interviewing",
+        "rejected",
+        "hired",
+        "withdrawn",
+      ])
+      .optional(),
     order: z
       .string()
       .optional()
@@ -16,3 +27,5 @@ export const searchParams = z.object({
   }),
   params: z.object({}).strict(),
 });
+
+export type SearchParams = z.infer<typeof searchParams>;
