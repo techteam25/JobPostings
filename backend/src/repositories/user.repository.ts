@@ -1,10 +1,10 @@
-import { eq, and, or, like, count } from "drizzle-orm";
+import { and, count, eq, like, or } from "drizzle-orm";
 import {
-  users,
-  userProfile,
   NewUser,
   NewUserProfile,
   User,
+  userProfile,
+  users,
 } from "../db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "../db/connection";
@@ -15,25 +15,24 @@ export class UserRepository extends BaseRepository<typeof users> {
     super(users);
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: string): Promise<User | undefined> {
     try {
-      const result = await db
-        .select({
-          id: users.id,
-          email: users.email,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          role: users.role,
-          organizationId: users.organizationId,
-          isEmailVerified: users.isEmailVerified,
-          isActive: users.isActive,
-          lastLoginAt: users.lastLoginAt,
-          createdAt: users.createdAt,
-          updatedAt: users.updatedAt,
-        })
-        .from(users)
-        .where(eq(users.email, email));
-      return result[0] || null;
+      return await db.query.users.findFirst({
+        columns: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          organizationId: true,
+          isEmailVerified: true,
+          isActive: true,
+          lastLoginAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        where: eq(users.email, email),
+      });
     } catch (error) {
       throw new DatabaseError(
         `Failed to query user by email: ${email}`,
@@ -44,43 +43,25 @@ export class UserRepository extends BaseRepository<typeof users> {
 
   async findByIdWithProfile(id: number) {
     try {
-      const [result] = await db
-        .select({
-          users: {
-            id: users.id,
-            email: users.email,
-            firstName: users.firstName,
-            lastName: users.lastName,
-            role: users.role,
-            organizationId: users.organizationId,
-            isEmailVerified: users.isEmailVerified,
-            isActive: users.isActive,
-            lastLoginAt: users.lastLoginAt,
-            createdAt: users.createdAt,
-            updatedAt: users.updatedAt,
-          },
-          userProfile: {
-            id: userProfile.id,
-            userId: userProfile.userId,
-            profilePicture: userProfile.profilePicture,
-            bio: userProfile.bio,
-            resumeUrl: userProfile.resumeUrl,
-            linkedinUrl: userProfile.linkedinUrl,
-            portfolioUrl: userProfile.portfolioUrl,
-            phoneNumber: userProfile.phoneNumber,
-            address: userProfile.address,
-            city: userProfile.city,
-            state: userProfile.state,
-            country: userProfile.country,
-            zipCode: userProfile.zipCode,
-            createdAt: userProfile.createdAt,
-            updatedAt: userProfile.updatedAt,
-          },
-        })
-        .from(users)
-        .leftJoin(userProfile, eq(users.id, userProfile.userId))
-        .where(eq(users.id, id));
-      return result;
+      return await db.query.users.findFirst({
+        where: eq(users.id, id),
+        with: {
+          profile: true,
+        },
+        columns: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          organizationId: true,
+          isEmailVerified: true,
+          isActive: true,
+          lastLoginAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
     } catch (error) {
       throw new DatabaseError(
         `Failed to query user with profile by id: ${id}`,
@@ -89,7 +70,33 @@ export class UserRepository extends BaseRepository<typeof users> {
     }
   }
 
-  async create(userData: NewUser): Promise<number> {
+  async findUserById(id: number) {
+    try {
+      return await db.query.users.findFirst({
+        where: eq(users.id, id),
+        columns: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          organizationId: true,
+          isEmailVerified: true,
+          isActive: true,
+          lastLoginAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to query user with profile by id: ${id}`,
+        error instanceof Error ? error : undefined,
+      );
+    }
+  }
+
+  async createUser(userData: NewUser): Promise<number> {
     const [userId] = await db.insert(users).values(userData).$returningId();
     if (!userId || isNaN(userId.id)) {
       throw new DatabaseError(`Invalid insertId returned: ${userId?.id}`);

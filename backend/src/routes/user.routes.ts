@@ -3,11 +3,10 @@ import { UserController } from "../controllers/user.controller";
 import { AuthMiddleware } from "../middleware/auth.middleware";
 import validate from "../middleware/validation.middleware";
 import {
-  updateUserSchema,
-  updateProfileSchema,
   userParamsSchema,
   changePasswordSchema,
 } from "../validations/user.validation";
+import { updateUserSchema } from "../db/schema";
 
 const router = Router();
 const userController = new UserController();
@@ -20,7 +19,7 @@ router.use(authMiddleware.authenticate);
 router.get("/me", userController.getCurrentUser);
 router.put(
   "/me/profile",
-  validate(updateProfileSchema),
+  validate(updateUserSchema),
   userController.updateProfile,
 );
 router.post(
