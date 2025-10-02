@@ -3,10 +3,10 @@ import { UserController } from "../controllers/user.controller";
 import { AuthMiddleware } from "../middleware/auth.middleware";
 import validate from "../middleware/validation.middleware";
 import {
-  userParamsSchema,
-  changePasswordSchema,
+  getUserSchema,
+  changeUserPasswordSchema,
+  updateUserPayloadSchema,
 } from "../validations/user.validation";
-import { updateUserSchema } from "../db/schema";
 
 const router = Router();
 const userController = new UserController();
@@ -19,12 +19,12 @@ router.use(authMiddleware.authenticate);
 router.get("/me", userController.getCurrentUser);
 router.put(
   "/me/profile",
-  validate(updateUserSchema),
+  validate(updateUserPayloadSchema),
   userController.updateProfile,
 );
 router.post(
   "/me/change-password",
-  validate(changePasswordSchema),
+  validate(changeUserPasswordSchema),
   userController.changePassword,
 );
 
@@ -42,33 +42,32 @@ router.get(
 );
 
 // User management routes (admin or self)
-router.get("/:id", validate(userParamsSchema), userController.getUserById);
+router.get("/:id", validate(getUserSchema), userController.getUserById);
 
 router.put(
   "/:id",
-  validate(userParamsSchema),
-  validate(updateUserSchema),
+  validate(updateUserPayloadSchema),
   userController.updateUser,
 );
 
 // Admin-only user activation/deactivation
 router.patch(
   "/:id/deactivate",
-  validate(userParamsSchema),
+  validate(getUserSchema),
   authMiddleware.requireRole(["admin"]),
   userController.deactivateUser,
 );
 
 router.patch(
   "/:id/activate",
-  validate(userParamsSchema),
+  validate(getUserSchema),
   authMiddleware.requireRole(["admin"]),
   userController.activateUser,
 );
 
 router.delete(
   "/:id",
-  validate(userParamsSchema),
+  validate(getUserSchema),
   authMiddleware.requireRole(["admin"]),
   userController.deleteUser,
 );

@@ -1,11 +1,20 @@
-import { Response } from 'express';
-import { UserService } from '../services/user.service';
-import { AuthService } from '../services/auth.service';
-import { BaseController } from './base.controller';
-import { ValidationError, ForbiddenError, NotFoundError } from '../utils/errors';
-import { SafeUser, UpdateUser, UpdateUserProfile } from '../db/schema/users';
-import { ChangePasswordData, EmailData } from '../db/interfaces/common';
-import { UserRequest } from '../db/interfaces/users';
+import { Request, Response } from "express";
+import { UserService } from "../services/user.service";
+import { AuthService } from "../services/auth.service";
+import { BaseController } from "./base.controller";
+import {
+  ValidationError,
+  ForbiddenError,
+  NotFoundError,
+} from "../utils/errors";
+import { UpdateUser, UpdateUserProfile } from "../db/schema";
+import { ChangePasswordData } from "../db/interfaces/common";
+import { SearchParams } from "../validations/base.validation";
+import {
+  ChangePasswordSchema,
+  GetUserSchema,
+  UserEmailSchema,
+} from "../validations/user.validation";
 
 export class UserController extends BaseController {
   private userService: UserService;
@@ -17,194 +26,196 @@ export class UserController extends BaseController {
     this.authService = new AuthService();
   }
 
-  getAllUsers = async (req: UserRequest, res: Response) => {
+  getAllUsers = async (
+    req: Request<{}, {}, {}, SearchParams["query"]>,
+    res: Response,
+  ) => {
     try {
-      const { page, limit } = this.extractPaginationParams(req);
-      const { search } = this.extractSearchParams(req);
-      const role = req.query.role as string | undefined;
+      const { page, limit, search } = req.query;
 
       const result = await this.userService.getAllUsers({
         page,
         limit,
         searchTerm: search,
-        role,
+        role: req.user?.role,
       });
 
-      this.sendPaginatedResponse(res, result.items as SafeUser[], result.pagination, 'Users retrieved successfully');
-    } catch (error) {
-      this.handleControllerError(res, error, 'Failed to retrieve users', 500);
-    }
-  };
-
-  getUserById = async (req: UserRequest, res: Response) => {
-    try {
-      const id = parseInt(req.params.id ?? '', 10);
-      if (isNaN(id)) {
-        throw new ValidationError('Invalid user ID');
-      }
-
-      const user: SafeUser | null = await this.userService.getUserById(id);
-      if (!user) {
-        throw new NotFoundError('User not found');
-      }
-
-      this.sendSuccess(res, user, 'User retrieved successfully');
-    } catch (error) {
-      this.handleControllerError(res, error, 'Failed to retrieve user', 404);
-    }
-  };
-
-  updateUser = async (req: UserRequest, res: Response) => {
-    try {
-      const id = parseInt(req.params.id ?? '', 10);
-      if (isNaN(id)) {
-        throw new ValidationError('Invalid user ID');
-      }
-
-      if (!req.user) {
-        throw new ValidationError('User not authenticated');
-      }
-
-      if (req.user.role !== 'admin' && req.user.id !== id) {
-        throw new ForbiddenError('You can only update your own account');
-      }
-
-      const updateData: UpdateUser = req.sanitizedBody ?? req.body;
-      const user: SafeUser = await this.userService.updateUser(
-        id,
-        updateData,
-        req.user.id,
-        req.user.role
+      this.sendPaginatedResponse(
+        res,
+        result.items,
+        result.pagination,
+        "Users retrieved successfully",
       );
-
-      this.sendSuccess(res, user, 'User updated successfully');
     } catch (error) {
-      this.handleControllerError(res, error, 'Failed to update user', 400);
+      this.handleControllerError(res, error, "Failed to retrieve users", 500);
     }
   };
 
-  updateProfile = async (req: UserRequest, res: Response) => {
-    try {
-      if (!req.userId) {
-        throw new ValidationError('User not authenticated');
-      }
+  getUserById = async (
+    req: Request<GetUserSchema["params"]>,
+    res: Response,
+  ) => {
+    const id = Number(req.params.id);
 
-      const profileData: UpdateUserProfile = req.sanitizedBody ?? req.body;
-      const user: SafeUser = await this.userService.updateUserProfile(req.userId, profileData);
-      this.sendSuccess(res, user, 'Profile updated successfully');
-    } catch (error) {
-      this.handleControllerError(res, error, 'Failed to update profile', 400);
+    const user = await this.userService.getUserById(id);
+    if (!user) {
+      return this.handleControllerError(
+        res,
+        new NotFoundError("User not found"),
+      );
     }
+
+    return this.sendSuccess(res, user, "User retrieved successfully");
   };
 
-  changePassword = async (req: UserRequest, res: Response) => {
-    try {
-      if (!req.userId) {
-        throw new ValidationError('User not authenticated');
-      }
-
-      const { currentPassword, newPassword }: ChangePasswordData = req.sanitizedBody ?? req.body;
-      if (!currentPassword || !newPassword) {
-        throw new ValidationError('Current password and new password are required');
-      }
-
-      await this.userService.changePassword(req.userId, currentPassword, newPassword);
-      this.sendSuccess(res, null, 'Password changed successfully');
-    } catch (error) {
-      this.handleControllerError(res, error, 'Failed to change password', 400);
+  updateUser = async (
+    req: Request<GetUserSchema["params"], {}, UpdateUser>,
+    res: Response,
+  ) => {
+    const id = Number(req.params.id);
+    if (!id) {
+      return this.handleControllerError(
+        res,
+        new NotFoundError("User not found"),
+      );
     }
+
+    if (!req.user) {
+      return this.handleControllerError(
+        res,
+        new ValidationError("User not authenticated"),
+      );
+    }
+
+    if (req.user.role !== "admin" && req.user.id !== id) {
+      return this.handleControllerError(
+        res,
+        new ForbiddenError("You can only update your own account"),
+      );
+    }
+
+    const updateData = req.body;
+    const user = await this.userService.updateUser(
+      id,
+      updateData,
+      req.user.id,
+      req.user.role,
+    );
+
+    return this.sendSuccess(res, user, "User updated successfully");
   };
 
-  getCurrentUser = async (req: UserRequest, res: Response) => {
-    try {
-      if (!req.user) {
-        throw new ValidationError('User not authenticated');
-      }
-
-      this.sendSuccess(res, req.user, 'Current user retrieved successfully');
-    } catch (error) {
-      this.handleControllerError(res, error, 'Failed to retrieve current user', 401);
+  updateProfile = async (
+    req: Request<GetUserSchema["params"], {}, UpdateUserProfile>,
+    res: Response,
+  ) => {
+    if (!req.userId) {
+      return this.handleControllerError(
+        res,
+        new ValidationError("User not authenticated"),
+      );
     }
+
+    const profileData = req.body;
+    const user = await this.userService.updateUserProfile(
+      req.userId,
+      profileData,
+    );
+    return this.sendSuccess(res, user, "Profile updated successfully");
   };
 
-  deactivateUser = async (req: UserRequest, res: Response) => {
-    try {
-      const id = parseInt(req.params.id ?? '', 10);
-      if (isNaN(id)) {
-        throw new ValidationError('Invalid user ID');
-      }
-
-      if (!req.user || req.user.role !== 'admin') {
-        throw new ForbiddenError('Only admins can deactivate users');
-      }
-
-      const result: SafeUser = await this.userService.deactivateUser(id, req.user.id);
-      this.sendSuccess(res, result, 'User deactivated successfully');
-    } catch (error) {
-      this.handleControllerError(res, error, 'Failed to deactivate user', 400);
+  changePassword = async (
+    req: Request<{}, {}, ChangePasswordSchema["body"]>,
+    res: Response,
+  ) => {
+    if (!req.userId) {
+      return this.handleControllerError(
+        res,
+        new ValidationError("User not authenticated"),
+      );
     }
+
+    const { currentPassword, newPassword }: ChangePasswordData = req.body;
+
+    await this.userService.changePassword(
+      req.userId,
+      currentPassword,
+      newPassword,
+    );
+    return this.sendSuccess(res, null, "Password changed successfully");
   };
 
-  activateUser = async (req: UserRequest, res: Response) => {
-    try {
-      const id = parseInt(req.params.id ?? '', 10);
-      if (isNaN(id)) {
-        throw new ValidationError('Invalid user ID');
-      }
-
-      if (!req.user || req.user.role !== 'admin') {
-        throw new ForbiddenError('Only admins can activate users');
-      }
-
-      const result: SafeUser = await this.userService.activateUser(id);
-      this.sendSuccess(res, result, 'User activated successfully');
-    } catch (error) {
-      this.handleControllerError(res, error, 'Failed to activate user', 400);
+  getCurrentUser = async (req: Request, res: Response) => {
+    if (!req.userId) {
+      return this.handleControllerError(
+        res,
+        new ValidationError("User not authenticated"),
+      );
     }
+
+    return this.sendSuccess(
+      res,
+      req.user,
+      "Current user retrieved successfully",
+    );
   };
 
-  deleteUser = async (req: UserRequest, res: Response) => {
-    try {
-      const { email }: EmailData = req.sanitizedBody ?? req.body;
-      if (!email) {
-        throw new ValidationError('Email is required');
-      }
+  deactivateUser = async (
+    req: Request<GetUserSchema["params"]>,
+    res: Response,
+  ) => {
+    const id = Number(req.params.id);
 
-      if (!req.user) {
-        throw new ValidationError('User not authenticated');
-      }
-
-      if (req.user.role !== 'admin' && req.user.email !== email) {
-        throw new ForbiddenError('You can only delete your own account or must be an admin');
-      }
-
-      const result: SafeUser = await this.authService.deleteUser({ email });
-      this.sendSuccess(res, result, 'User deleted successfully', 200);
-    } catch (error) {
-      this.handleControllerError(res, error, 'Failed to delete user', 400);
-    }
+    const result = await this.userService.deactivateUser(id, req.user!.id);
+    return this.sendSuccess(res, result, "User deactivated successfully");
   };
 
-  getUserStats = async (req: UserRequest, res: Response) => {
-    try {
-      if (!req.user || req.user.role !== 'admin') {
-        throw new ForbiddenError('Only admins can view user statistics');
-      }
+  activateUser = async (
+    req: Request<GetUserSchema["params"]>,
+    res: Response,
+  ) => {
+    const id = Number(req.params.id);
 
-      const stats = {
-        totalUsers: await this.userService.getUsersByRole('user') as SafeUser[],
-        totalEmployers: await this.userService.getUsersByRole('employer') as SafeUser[],
-        totalAdmins: await this.userService.getUsersByRole('admin') as SafeUser[],
-      };
+    const result = await this.userService.activateUser(id);
+    return this.sendSuccess(res, result, "User activated successfully");
+  };
 
-      this.sendSuccess(res, {
+  deleteUser = async (
+    req: Request<{}, {}, UserEmailSchema["body"]>,
+    res: Response,
+  ) => {
+    const { email } = req.body;
+
+    if (!req.user) {
+      return this.handleControllerError(
+        res,
+        new ValidationError("User not authenticated"),
+      );
+    }
+
+    const result = await this.authService.deleteUser({ email });
+    return this.sendSuccess(res, result, "User deleted successfully", 200);
+  };
+
+  getUserStats = async (_: Request, res: Response) => {
+    const stats = {
+      totalUsers: await this.userService.getUsersByRole("user"),
+      totalEmployers: await this.userService.getUsersByRole("employer"),
+      totalAdmins: await this.userService.getUsersByRole("admin"),
+    };
+
+    return this.sendSuccess(
+      res,
+      {
         users: stats.totalUsers.length,
         employers: stats.totalEmployers.length,
         admins: stats.totalAdmins.length,
-        total: stats.totalUsers.length + stats.totalEmployers.length + stats.totalAdmins.length,
-      }, 'User statistics retrieved successfully');
-    } catch (error) {
-      this.handleControllerError(res, error, 'Failed to retrieve user statistics', 400);
-    }
+        total:
+          stats.totalUsers.length +
+          stats.totalEmployers.length +
+          stats.totalAdmins.length,
+      },
+      "User statistics retrieved successfully",
+    );
   };
 }
