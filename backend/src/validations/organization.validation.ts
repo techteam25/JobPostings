@@ -17,7 +17,7 @@ const organizationPayloadSchema = z.object({
 });
 
 const organizationIdParamSchema = z.object({
-  organizationId: z.coerce.number("organizationId is required"),
+  organizationId: z.string().regex(/^\d+$/, "organizationId is required"),
 });
 
 export const createOrganizationSchema = z.object({
@@ -43,3 +43,5 @@ export const deleteOrganizationSchema = z.object({
   query: z.object({}).strict(),
   params: organizationIdParamSchema,
 });
+
+export type GetOrganizationSchema = z.infer<typeof getOrganizationSchema>;
