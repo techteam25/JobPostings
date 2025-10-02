@@ -94,7 +94,6 @@ export const insertUserSchema = createInsertSchema(users, {
   email: z.email("Invalid email format").toLowerCase(),
   firstName: z.string().min(1, "First name is required").max(100).trim(),
   lastName: z.string().min(1, "Last name is required").max(100).trim(),
-  passwordHash: z.string().min(60, "Invalid password hash"),
   role: z.enum(["user", "employer", "admin"]).default("user"),
   organizationId: z.number().int().positive().nullable().optional(),
 });
@@ -123,9 +122,6 @@ export const updateUserSchema = insertUserSchema
 export const updateUserProfileSchema = insertUserProfileSchema
   .partial()
   .omit({ id: true, userId: true, createdAt: true });
-
-// Safe user schema (without sensitive data)
-export const safeUserSchema = selectUserSchema;
 
 // Type exports
 export type User = z.infer<typeof selectUserSchema>;
