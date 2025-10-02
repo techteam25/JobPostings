@@ -6,6 +6,7 @@ export const searchParams = z.object({
     page: z.string().optional().default("1").transform(Number).optional(),
     limit: z.string().optional().default("10").transform(Number).optional(),
     sortBy: z.string().optional(),
+    search: z.string().optional(),
     status: z
       .enum([
         "pending",
