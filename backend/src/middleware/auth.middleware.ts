@@ -1,20 +1,17 @@
-import { Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 import { AuthService } from "../services/auth.service";
-import { AuthRequest, TokenPayload } from "../db/interfaces/auth";
 import { UserService } from "../services/user.service";
 
 export class AuthMiddleware {
   private authService: AuthService;
+  private userService: UserService;
 
   constructor() {
     this.authService = new AuthService();
+    this.userService = new UserService();
   }
 
-  authenticate = async (
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction,
-  ) => {
+  authenticate = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -25,7 +22,11 @@ export class AuthMiddleware {
       }
 
       const token = authHeader.substring(7);
-      const decoded: TokenPayload = this.authService.verifyToken(token);
+      const decoded = this.authService.verifyToken(token);
+
+      const { users } = await this.userService.getUserById(decoded.userId);
+
+      req.user = users;
       req.userId = decoded.userId;
       req.sessionId = decoded.sessionId; // Assign sessionId if present in token
 
@@ -39,7 +40,7 @@ export class AuthMiddleware {
   };
 
   requireRole = (roles: string[]) => {
-    return async (req: AuthRequest, res: Response, next: NextFunction) => {
+    return async (req: Request, res: Response, next: NextFunction) => {
       try {
         if (!req.userId) {
           return res.status(401).json({
@@ -71,7 +72,7 @@ export class AuthMiddleware {
   };
 
   requireActiveUser = async (
-    req: AuthRequest,
+    req: Request,
     res: Response,
     next: NextFunction,
   ) => {

@@ -5,8 +5,8 @@ import { UserRepository } from "../repositories/user.repository";
 import { SessionRepository } from "../repositories/session.repository";
 import { BaseService } from "./base.service";
 import { env } from "../config/env";
-import { NewUser, User } from "../db/schema";
-import { AuthSession, TokenPayload } from "../db/interfaces/auth";
+import { NewUser, Session, User } from "../db/schema";
+import { TokenPayload } from "../db/interfaces/auth";
 import { ChangePasswordData, EmailData } from "../db/interfaces/common";
 import {
   ValidationError,
@@ -15,15 +15,10 @@ import {
   DatabaseError,
   NotFoundError,
 } from "../utils/errors";
-
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface RegisterData extends Omit<NewUser, "passwordHash"> {
-  password: string;
-}
+import {
+  RegisterUserSchema,
+  UserLoginSchema,
+} from "../validations/auth.validation";
 
 export interface AuthTokens {
   accessToken: string;
@@ -45,7 +40,7 @@ export class AuthService extends BaseService {
   }
 
   async register(
-    userData: RegisterData,
+    userData: RegisterUserSchema["body"],
     userAgent?: string,
     ipAddress?: string,
   ): Promise<{ user: User; tokens: AuthTokens }> {
@@ -72,7 +67,7 @@ export class AuthService extends BaseService {
 
     // Create user
     const { password, ...userDataWithoutPassword } = userData;
-    const userId = await this.userRepository.create({
+    const userId = await this.userRepository.createUser({
       ...userDataWithoutPassword,
       passwordHash,
     });
@@ -85,9 +80,9 @@ export class AuthService extends BaseService {
     // Create session and generate tokens
     const tokens = await this.createSession(userId, userAgent, ipAddress);
 
-    // Get created user with profile
-    const userResult = await this.userRepository.findByIdWithProfile(userId);
-    if (!userResult) {
+    // Get created user
+    const user = await this.userRepository.findUserById(userId);
+    if (!user) {
       return this.handleError(
         new DatabaseError(
           `Failed to retrieve newly created user with ID ${userId}`,
@@ -95,24 +90,10 @@ export class AuthService extends BaseService {
       );
     }
 
-    const user: User = {
-      id: userResult.users.id,
-      email: userResult.users.email,
-      firstName: userResult.users.firstName,
-      lastName: userResult.users.lastName,
-      role: userResult.users.role,
-      organizationId: userResult.users.organizationId,
-      isEmailVerified: userResult.users.isEmailVerified,
-      isActive: userResult.users.isActive,
-      lastLoginAt: userResult.users.lastLoginAt,
-      createdAt: userResult.users.createdAt,
-      updatedAt: userResult.users.updatedAt,
-    };
-
     return { user, tokens };
   }
 
-  async deleteUser({ email }: EmailData): Promise<User> {
+  async deleteUser({ email }: EmailData): Promise<boolean> {
     // Find user by email
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
@@ -122,19 +103,7 @@ export class AuthService extends BaseService {
     // Delete user (sessions and auth records are deleted via ON DELETE CASCADE)
     await this.userRepository.deleteUser(user.id);
 
-    return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      organizationId: user.organizationId,
-      isEmailVerified: user.isEmailVerified,
-      isActive: user.isActive,
-      lastLoginAt: user.lastLoginAt,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
+    return true;
   }
 
   async changePassword(
@@ -185,7 +154,7 @@ export class AuthService extends BaseService {
   }
 
   async login(
-    credentials: LoginCredentials,
+    credentials: UserLoginSchema["body"],
     userAgent?: string,
     ipAddress?: string,
   ): Promise<{ user: User; tokens: AuthTokens }> {
@@ -248,7 +217,7 @@ export class AuthService extends BaseService {
     refreshToken: string,
     userAgent?: string,
     ipAddress?: string,
-  ): Promise<AuthSession> {
+  ): Promise<Session> {
     if (!refreshToken) {
       return this.handleError(new ValidationError("Refresh token is required"));
     }
@@ -266,7 +235,7 @@ export class AuthService extends BaseService {
     const userResult = await this.userRepository.findByIdWithProfile(
       session.userId,
     );
-    if (!userResult || !userResult.users.isActive) {
+    if (!userResult || !userResult.isActive) {
       await this.sessionRepository.deactivateSession(session.id);
       return this.handleError(
         new UnauthorizedError("User account is inactive"),

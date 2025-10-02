@@ -31,13 +31,17 @@ router.post(
 // Protected routes
 router.post("/logout", authMiddleware.authenticate, authController.logout);
 
-router.post(
-  "/logout-all",
-  authMiddleware.authenticate,
-  authController.logoutAll,
-);
+// router.post(
+//   "/logout-all",
+//   authMiddleware.authenticate,
+//   authController.logoutAll,
+// );
 
-router.get("/profile", authMiddleware.authenticate, authController.getProfile);
+router.get(
+  "/profile/:profileId",
+  authMiddleware.authenticate,
+  authController.getProfile,
+);
 
 router.post(
   "/change-password",
