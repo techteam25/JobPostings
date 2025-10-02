@@ -26,7 +26,10 @@ const createJobPayloadSchema = z
     salaryMax: z.number().positive().optional(),
     currency: z.string().length(3).default("USD"),
     isRemote: z.boolean().default(false),
-    applicationDeadline: z.iso.datetime().optional(),
+    applicationDeadline: z.iso
+      .datetime()
+      .transform((str) => new Date(str))
+      .optional(),
     requiredSkills: z.string().optional(),
     preferredSkills: z.string().optional(),
     benefits: z.string().max(2000).optional(),
@@ -51,7 +54,7 @@ const createJobPayloadSchema = z
   );
 
 const jobIdParamSchema = z.object({
-  jobId: z.coerce.number("jobId is required"),
+  jobId: z.string().regex(/^\d+$/, "jobId must be a valid number"),
 });
 
 export const createJobSchema = z.object({
@@ -77,3 +80,8 @@ export const deleteJobSchema = z.object({
   params: jobIdParamSchema,
   query: z.object({}).strict(),
 });
+
+export type CreateJobSchema = z.infer<typeof createJobSchema>;
+export type GetJobSchema = z.infer<typeof getJobSchema>;
+export type UpdateJobSchema = z.infer<typeof updateJobSchema>;
+export type DeleteJobSchema = z.infer<typeof deleteJobSchema>;
