@@ -2,7 +2,13 @@ import { JobRepository } from "../repositories/job.repository";
 import { UserRepository } from "../repositories/user.repository";
 import { OrganizationRepository } from "../repositories/organization.repository";
 import { BaseService } from "./base.service";
-import { NewJob, NewJobApplication, Job, UpdateJob } from "../db/schema";
+import {
+  NewJob,
+  NewJobApplication,
+  Job,
+  UpdateJob,
+  UpdateJobApplication,
+} from "../db/schema";
 import {
   NotFoundError,
   ForbiddenError,
@@ -11,6 +17,7 @@ import {
 } from "../utils/errors";
 import { SecurityUtils } from "../utils/security";
 import { AppError, ErrorCode } from "../utils/errors";
+import { JobInsightsRepository } from "../repositories/jobInsights.repository";
 
 export interface JobSearchFilters {
   searchTerm?: string;
@@ -35,12 +42,14 @@ export class JobService extends BaseService {
   private jobRepository: JobRepository;
   private userRepository: UserRepository;
   private organizationRepository: OrganizationRepository;
+  private jobInsightsRepository: JobInsightsRepository;
 
   constructor() {
     super();
     this.jobRepository = new JobRepository();
     this.userRepository = new UserRepository();
     this.organizationRepository = new OrganizationRepository();
+    this.jobInsightsRepository = new JobInsightsRepository();
   }
 
   async getAllActiveJobs(options: { page?: number; limit?: number } = {}) {
@@ -69,11 +78,10 @@ export class JobService extends BaseService {
 
   async incrementJobViews(jobId: number): Promise<void> {
     const job = await this.jobRepository.findById(jobId);
-    if (job) {
-      await this.jobRepository.update(jobId, {
-        viewCount: job.viewCount + 1,
-      });
+    if (!job) {
+      return this.handleError(new NotFoundError("Job", jobId));
     }
+    await this.jobInsightsRepository.incrementJobViews(jobId);
   }
 
   async getJobsByEmployer(
@@ -114,9 +122,9 @@ export class JobService extends BaseService {
     }
 
     // Validate posted by user exists
-    const poster = await this.userRepository.findById(jobData.postedById);
+    const poster = await this.userRepository.findById(jobData.employerId);
     if (!poster) {
-      return this.handleError(new NotFoundError("User", jobData.postedById));
+      return this.handleError(new NotFoundError("User", jobData.employerId));
     }
 
     // Sanitize and process job data
@@ -125,11 +133,8 @@ export class JobService extends BaseService {
       title: SecurityUtils.sanitizeInput(jobData.title),
       description: SecurityUtils.sanitizeInput(jobData.description),
       location: SecurityUtils.sanitizeInput(jobData.location),
-      requiredSkills: jobData.requiredSkills
-        ? this.processSkillsArray(jobData.requiredSkills)
-        : null,
-      preferredSkills: jobData.preferredSkills
-        ? this.processSkillsArray(jobData.preferredSkills)
+      requiredSkills: jobData.skills
+        ? this.processSkillsArray(jobData.skills)
         : null,
     };
 
@@ -277,9 +282,9 @@ export class JobService extends BaseService {
       await this.jobRepository.createApplication(sanitizedData);
 
     // Update job application count
-    await this.jobRepository.update(applicationData.jobId, {
-      applicationCount: (job as any).applicationCount + 1,
-    });
+    await this.jobInsightsRepository.incrementJobApplications(
+      applicationData.jobId,
+    );
 
     return {
       applicationId,
@@ -328,10 +333,9 @@ export class JobService extends BaseService {
 
   async updateApplicationStatus(
     applicationId: number,
-    status: string,
+    data: UpdateJobApplication,
     requesterId: number,
     requesterRole: string,
-    additionalData?: { notes?: string; rating?: number },
   ): Promise<{ message: string }> {
     // Get application details
     const [application] =
@@ -363,24 +367,24 @@ export class JobService extends BaseService {
       );
     }
 
-    const updateData: any = { status };
-
-    if (status === "reviewed" && !application?.application?.reviewedAt) {
-      updateData.reviewedAt = new Date();
-      updateData.reviewedBy = requesterId;
-    }
-
-    if (additionalData?.notes) {
-      updateData.notes = SecurityUtils.sanitizeInput(additionalData.notes);
-    }
-
-    if (additionalData?.rating) {
-      updateData.rating = Math.min(5, Math.max(1, additionalData.rating));
-    }
+    // const updateData: any = { status };
+    //
+    // if (status === "reviewed" && !application?.application?.reviewedAt) {
+    //   updateData.reviewedAt = new Date();
+    //   updateData.reviewedBy = requesterId;
+    // }
+    //
+    // if (additionalData?.notes) {
+    //   updateData.notes = SecurityUtils.sanitizeInput(additionalData.notes);
+    // }
+    //
+    // if (additionalData?.rating) {
+    //   updateData.rating = Math.min(5, Math.max(1, additionalData.rating));
+    // }
 
     const success = await this.jobRepository.updateApplicationStatus(
       applicationId,
-      updateData as any,
+      data,
     );
     if (!success) {
       return this.handleError(
@@ -500,6 +504,10 @@ export class JobService extends BaseService {
     const jobs = await this.jobRepository.findJobsByEmployer(organizationId, {
       limit: 1000,
     });
+    const jobInsights =
+      await this.jobInsightsRepository.getJobInsightByOrganizationId(
+        organizationId,
+      );
     const recentJobs = jobs.items.slice(0, 5);
 
     // Get job statistics
@@ -508,11 +516,11 @@ export class JobService extends BaseService {
       active: jobs.items.filter((job) => job.isActive).length,
       inactive: jobs.items.filter((job) => !job.isActive).length,
       totalViews: jobs.items.reduce(
-        (sum, job) => sum + (job.viewCount || 0),
+        (sum, job) => sum + (jobInsights?.viewCount || 0),
         0,
       ),
       totalApplications: jobs.items.reduce(
-        (sum, job) => sum + (job.applicationCount || 0),
+        (sum, job) => sum + (jobInsights?.applicationCount || 0),
         0,
       ),
     };

@@ -4,6 +4,7 @@ import {
   jobsDetails,
   NewJobApplication,
   organizations,
+  UpdateJobApplication,
   users,
 } from "../db/schema";
 import { BaseRepository } from "./base.repository";
@@ -86,11 +87,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       whereConditions.push(like(jobsDetails.location, `%${location}%`));
     }
 
-    if (experienceLevel) {
-      whereConditions.push(
-        eq(jobsDetails.experienceLevel, experienceLevel as any),
-      );
-    }
+    // if (experienceLevel) {
+    //   whereConditions.push(
+    //     eq(jobsDetails.experienceLevel, experienceLevel as any),
+    //   );
+    // }
 
     if (isRemote !== undefined) {
       whereConditions.push(eq(jobsDetails.isRemote, isRemote));
@@ -261,16 +262,15 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
 
   async updateApplicationStatus(
     applicationId: number,
-    status: string,
-    notes?: string,
+    updateData: UpdateJobApplication,
   ) {
-    const updateData: any = { status };
-    if (status === "reviewed") {
-      updateData.reviewedAt = new Date();
-    }
-    if (notes) {
-      updateData.notes = notes;
-    }
+    // const updateData: any = { status };
+    // if (status === "reviewed") {
+    //   updateData.reviewedAt = new Date();
+    // }
+    // if (notes) {
+    //   updateData.notes = notes;
+    // }
 
     const result = await db
       .update(jobApplications)

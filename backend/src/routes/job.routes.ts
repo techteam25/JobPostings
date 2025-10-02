@@ -18,7 +18,7 @@ const authMiddleware = new AuthMiddleware();
 // Public routes
 router.get("/", jobController.getAllJobs);
 router.get("/search", validate(searchParams), jobController.searchJobs);
-router.get("/stats", jobController.getJobStats);
+// router.get("/stats", jobController.getJobStats);
 router.get("/:id", validate(getJobSchema), jobController.getJobById);
 router.get(
   "/:id/similar",
@@ -107,10 +107,10 @@ router.get(
 );
 
 // Dashboard routes
-router.get(
-  "/dashboard/data",
-  authMiddleware.requireActiveUser,
-  jobController.getDashboardData,
-);
+// router.get(
+//   "/dashboard/data",
+//   authMiddleware.requireActiveUser,
+//   jobController.getDashboardData,
+// );
 
 export default router;
