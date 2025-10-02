@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const jobApplicationPayload = z.object({
-  jobId: z.coerce.number(),
+  applicationId: z.coerce.number(),
   applicantId: z.coerce.number(),
   coverLetter: z
     .string()
@@ -13,8 +13,10 @@ const jobApplicationPayload = z.object({
   notes: z.string().max(5000).optional(),
 });
 
-const jobApplicationIdParamSchema = z.object({
-  jobId: z.coerce.number("jobApplicationId is required"),
+const applicationIdParamSchema = z.object({
+  applicationId: z
+    .string()
+    .regex(/^\d+$/, "applicationId must be a valid number"),
 });
 
 export const jobApplicationSchema = z.object({
@@ -27,18 +29,20 @@ export const updateApplicationStatusSchema = z.object({
   body: jobApplicationPayload
     .partial()
     .omit({ jobId: true, applicantId: true }),
-  params: jobApplicationIdParamSchema,
+  params: applicationIdParamSchema,
   query: z.object({}).strict(),
 });
 
 export const getJobApplicationSchema = z.object({
   body: z.object({}).strict(),
-  params: jobApplicationIdParamSchema,
+  params: applicationIdParamSchema,
   query: z.object({}).strict(),
 });
 
 export const deleteJobApplicationSchema = z.object({
   body: z.object({}).strict(),
-  params: jobApplicationIdParamSchema,
+  params: applicationIdParamSchema,
   query: z.object({}).strict(),
 });
+
+export type GetJobApplicationSchema = z.infer<typeof getJobApplicationSchema>;
