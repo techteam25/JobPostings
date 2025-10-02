@@ -1,5 +1,11 @@
 import { eq, and, gt } from "drizzle-orm";
-import { sessions, NewSession, UpdateSession } from "../db/schema";
+import {
+  sessions,
+  NewSession,
+  UpdateSession,
+  Session,
+  users,
+} from "../db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "../db/connection";
 import { AppError, ErrorCode } from "../utils/errors";
@@ -13,11 +19,15 @@ export class SessionRepository extends BaseRepository<typeof sessions> {
     return this.create(sessionData);
   }
 
-  async findByAccessToken(accessToken: string): Promise<any | null> {
+  async findByAccessToken(
+    accessToken: string,
+    userId: number,
+  ): Promise<Session | undefined> {
     try {
-      const result = await db
+      const [result] = await db
         .select()
         .from(sessions)
+        .innerJoin(users, eq(sessions.userId, userId))
         .where(
           and(
             eq(sessions.accessToken, accessToken),
@@ -27,7 +37,7 @@ export class SessionRepository extends BaseRepository<typeof sessions> {
         )
         .limit(1);
 
-      return result[0] || null;
+      return result?.sessions;
     } catch (error) {
       throw new AppError(
         "Failed to find session by access token",
