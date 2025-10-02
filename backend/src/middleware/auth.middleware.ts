@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
 import { UserService } from "../services/user.service";
 
@@ -24,9 +24,7 @@ export class AuthMiddleware {
       const token = authHeader.substring(7);
       const decoded = this.authService.verifyToken(token);
 
-      const { users } = await this.userService.getUserById(decoded.userId);
-
-      req.user = users;
+      req.user = await this.userService.getUserById(decoded.userId);
       req.userId = decoded.userId;
       req.sessionId = decoded.sessionId; // Assign sessionId if present in token
 
@@ -51,7 +49,7 @@ export class AuthMiddleware {
 
         // Fetch user to check role
         const userService = new UserService();
-        const { users: user } = await userService.getUserById(req.userId);
+        const user = await userService.getUserById(req.userId);
 
         if (!roles.includes(user.role)) {
           return res.status(403).json({
