@@ -2,7 +2,6 @@
   "version": "7",
   "dialect": "mysql",
   "entries": [
-
     {
       "idx": 5,
       "version": "5",
@@ -15,6 +14,20 @@
       "version": "5",
       "when": 1759154585682,
       "tag": "0006_happy_karen_page",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1759933221758,
+      "tag": "0007_high_proteus",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1759934935709,
+      "tag": "0008_perpetual_tiger_shark",
       "breakpoints": true
     }
   ]
