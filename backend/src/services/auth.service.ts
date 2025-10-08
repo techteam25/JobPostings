@@ -1,24 +1,25 @@
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { UserRepository } from "../repositories/user.repository";
-import { SessionRepository } from "../repositories/session.repository";
+import jwt from "jsonwebtoken";
+
 import { BaseService } from "./base.service";
-import { env } from "../config/env";
-import { NewUser, Session, User } from "../db/schema";
-import { TokenPayload } from "../db/interfaces/auth";
-import { ChangePasswordData, EmailData } from "../db/interfaces/common";
+import { ChangePasswordData, EmailData } from "@/db/interfaces/common";
+import { env } from "@/config/env";
+import { SessionRepository } from "@/repositories/session.repository";
+import { Session, User } from "@/db/schema";
+import { TokenPayload } from "@/db/interfaces/auth";
+import { UserRepository } from "@/repositories/user.repository";
 import {
   ValidationError,
   UnauthorizedError,
   ConflictError,
   DatabaseError,
   NotFoundError,
-} from "../utils/errors";
+} from "@/utils/errors";
 import {
   RegisterUserSchema,
   UserLoginSchema,
-} from "../validations/auth.validation";
+} from "@/validations/auth.validation";
 
 export interface AuthTokens {
   accessToken: string;
@@ -157,36 +158,23 @@ export class AuthService extends BaseService {
     credentials: UserLoginSchema["body"],
     userAgent?: string,
     ipAddress?: string,
-  ): Promise<{ user: User; tokens: AuthTokens }> {
+  ): Promise<{ tokens: AuthTokens }> {
     const { email, password } = credentials;
 
     // Find user by email (include passwordHash for verification)
-    const user = (await this.userRepository.findByEmail(email)) as unknown as {
-      id: number;
-      email: string;
-      firstName: string;
-      lastName: string;
-      role: "user" | "employer" | "admin";
-      passwordHash: string;
-      organizationId: number | null;
-      isEmailVerified: boolean;
-      isActive: boolean;
-      lastLoginAt: Date | null;
-      createdAt: Date;
-      updatedAt: Date;
-    };
+    const user = await this.userRepository.findByEmailWithPassword(email);
     if (!user) {
-      return this.handleError(new UnauthorizedError("Invalid credentials"));
+      throw new UnauthorizedError("Invalid credentials");
     }
 
     if (!user.isActive) {
-      return this.handleError(new UnauthorizedError("Account is deactivated"));
+      throw new UnauthorizedError("Account is deactivated");
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
-      return this.handleError(new UnauthorizedError("Invalid credentials"));
+      throw new UnauthorizedError("Invalid credentials");
     }
 
     // Update last login
@@ -195,22 +183,7 @@ export class AuthService extends BaseService {
     // Create session and generate tokens
     const tokens = await this.createSession(user.id, userAgent, ipAddress);
 
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        organizationId: user.organizationId,
-        isEmailVerified: user.isEmailVerified,
-        isActive: user.isActive,
-        lastLoginAt: user.lastLoginAt,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
-      tokens,
-    };
+    return { tokens };
   }
 
   async refreshToken(
@@ -299,15 +272,9 @@ export class AuthService extends BaseService {
   }
 
   private generateTokens(userId: number): AuthTokens {
-    if (!env.JWT_SECRET) {
-      return this.handleError(new Error("JWT_SECRET is not configured"));
-    }
-
-    const accessToken = jwt.sign(
-      { userId, type: "access", iat: Math.floor(Date.now() / 1000) },
-      env.JWT_SECRET,
-      { expiresIn: this.accessTokenExpiry },
-    );
+    const accessToken = jwt.sign({ userId, iat: Date.now() }, env.JWT_SECRET, {
+      expiresIn: this.accessTokenExpiry,
+    });
 
     const refreshToken = this.generateSecureToken();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
