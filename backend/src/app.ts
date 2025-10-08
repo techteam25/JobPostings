@@ -3,6 +3,8 @@ import type { Application, Request, Response, NextFunction } from "express";
 import { rateLimit } from "express-rate-limit";
 
 import pinoHttp from "pino-http";
+import swaggerJsdoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
 
 import { checkDatabaseConnection } from "./db/connection";
 import { env } from "./config/env";
@@ -39,6 +41,32 @@ const apiLimiter = rateLimit({
   // Redis store configuration
   store,
 });
+
+// Swagger definition
+const swaggerOptions = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Express API Documentation",
+      version: "1.0.0",
+      description: "A simple Express API with Swagger documentation",
+      contact: {
+        name: "API Support",
+        email: "support@example.com",
+      },
+    },
+    servers: [
+      {
+        url: `http://${env.HOST}:${env.PORT}`,
+        description: "Development server",
+      },
+    ],
+  },
+  // Path to the API routes where JSDoc comments are
+  apis: ["./routes/*.ts"],
+};
+const swaggerDocs = swaggerJsdoc(swaggerOptions);
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Attach pino HTTP logger middleware
 app.use(pinoHttp({ logger }));
@@ -82,6 +110,58 @@ if (env.NODE_ENV === "development") {
 }
 
 // Health check route
+/*
+ * @swagger
+ *  /health:
+ *    get:
+ *      summary: Health check endpoint
+ *      description: Returns the health status of the server and database
+ *      responses:
+ *        '200':
+ *          description: Server and database are healthy
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                  message:
+ *                    type: string
+ *                  timestamp:
+ *                    type: string
+ *                  environment:
+ *                    type: string
+ *                  database:
+ *                    type: object
+ *                    properties:
+ *                      connected:
+ *                        type: boolean
+ *                      host:
+ *                        type: string
+ *                      port:
+ *                        type: string
+ *                      name:
+ *                        type: string
+ *                  version:
+ *                    type: string
+ *        '503':
+ *          description: Server or database is unhealthy
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                  message:
+ *                    type: string
+ *                  timestamp:
+ *                    type: string
+ *                  error:
+ *                    type: string
+ *
+ */
 app.get("/health", async (_: Request, res: Response) => {
   try {
     const isDatabaseHealthy = await checkDatabaseConnection();
