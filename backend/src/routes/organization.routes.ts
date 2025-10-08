@@ -1,13 +1,13 @@
 import { Router } from "express";
-import { OrganizationController } from "../controllers/organization.controller";
-import { AuthMiddleware } from "../middleware/auth.middleware";
+import { OrganizationController } from "@/controllers/organization.controller";
+import { AuthMiddleware } from "@/middleware/auth.middleware";
 import validate from "../middleware/validation.middleware";
 import {
   createOrganizationSchema,
   updateOrganizationSchema,
   getOrganizationSchema,
   deleteOrganizationSchema,
-} from "../validations/organization.validation";
+} from "@/validations/organization.validation";
 
 const router = Router();
 const organizationController = new OrganizationController();
