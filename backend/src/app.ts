@@ -1,6 +1,7 @@
 import express from "express";
 import type { Application, Request, Response, NextFunction } from "express";
 import { rateLimit } from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
 
 import pinoHttp from "pino-http";
 import swaggerJsdoc from "swagger-jsdoc";
@@ -12,7 +13,8 @@ import { errorHandler } from "./middleware/error.middleware";
 
 import apiRoutes from "./routes";
 import logger from "@/logger";
-import { store } from "@/config/redis";
+import { redisClient } from "@/config/redis";
+import authRoutes from "@/routes/auth.routes";
 
 // Create Express application
 const app: Application = express();
@@ -29,17 +31,22 @@ const globalLimiter = rateLimit({
   skipFailedRequests: false, // Count failed requests too
 
   // Redis store configuration
-  store,
+  store: new RedisStore({
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
+  }),
 });
 
-const apiLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  limit: 30, // 30 requests per minute
-  standardHeaders: true,
-  legacyHeaders: false,
-
+// Limiter for auth routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 5, // Only 5 login attempts per 15 minutes
+  skipSuccessfulRequests: true, // Don't count successful logins
+  skipFailedRequests: false, // Count failed attempts
+  message: "Too many login attempts, please try again later.",
   // Redis store configuration
-  store,
+  store: new RedisStore({
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
+  }),
 });
 
 // Swagger definition
@@ -72,7 +79,7 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use(pinoHttp({ logger }));
 
 // Rate limiting middleware
-app.use(globalLimiter); // All routes
+// app.use(globalLimiter); // All routes
 
 // Basic middleware
 app.use(express.json({ limit: "10mb" }));
@@ -192,7 +199,8 @@ app.get("/health", async (_: Request, res: Response) => {
 });
 
 // Mount API routes
-app.use("/api", apiLimiter, apiRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api", globalLimiter, apiRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
