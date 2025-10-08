@@ -9,6 +9,19 @@ export class UserRepository extends BaseRepository<typeof users> {
     super(users);
   }
 
+  async findByEmailWithPassword(email: string) {
+    try {
+      return await db.query.users.findFirst({
+        where: eq(users.email, email),
+      });
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to query user by email: ${email}`,
+        error instanceof Error ? error : undefined,
+      );
+    }
+  }
+
   async findByEmail(email: string): Promise<User | undefined> {
     try {
       return await db.query.users.findFirst({
