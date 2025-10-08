@@ -1,13 +1,39 @@
 // API Response types
+import { Response } from "express";
+
 export interface ApiResponse<T = any> {
-  status: 'success' | 'error';
+  status: "success" | "error";
   message: string;
   data?: T;
   timestamp: string;
 }
 
+export interface SuccessResponse<T = any> {
+  success: true;
+  message: string;
+  data: T;
+  timestamp?: string;
+}
+
+export interface PaginatedResponse<T = any> {
+  success: true;
+  message: string;
+  data: T[];
+  pagination: PaginationMeta;
+  timestamp?: string;
+}
+
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}
+
+export interface SearchParams {
+  search?: string;
+}
+
 export interface ErrorResponse {
-  status: 'error';
+  status: "error";
   message: string;
   error?: string;
   timestamp: string;
@@ -19,7 +45,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'user' | 'employer' | 'admin';
+  role: "user" | "employer" | "admin";
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
