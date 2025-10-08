@@ -53,12 +53,7 @@ const validate =
       };
 
       // Parse and validate the request data
-      const parsed = schema.parse(validationData);
-
-      // Attach validated data back to request (type-safe and sanitized)
-      req.body = parsed.body;
-      req.query = parsed.query;
-      req.params = parsed.params;
+      schema.parse(validationData);
 
       next();
     } catch (error) {
@@ -74,19 +69,19 @@ const validate =
 
         res.status(400).json(errorResponse);
         return;
+      } else if (error instanceof Error) {
+        // Handle unexpected errors
+        const errorResponse: ErrorResponse = {
+          success: false,
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "An unexpected error occurred during validation",
+            details: [{ message: error.message, field: "" }],
+          },
+        };
+
+        res.status(500).json(errorResponse);
       }
-
-      // Handle unexpected errors
-      const errorResponse: ErrorResponse = {
-        success: false,
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "An unexpected error occurred during validation",
-          details: [],
-        },
-      };
-
-      res.status(500).json(errorResponse);
     }
   };
 
