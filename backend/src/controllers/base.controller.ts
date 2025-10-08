@@ -1,41 +1,20 @@
 // controllers/base.controller.ts
 import { Request, Response } from "express";
-import { AppError, ErrorCode, createErrorResponse } from "@/utils/errors";
-
-export interface SuccessResponse<T = any> {
-  success: true;
-  message: string;
-  data: T;
-  timestamp?: string;
-}
-
-export interface PaginationMeta {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-  nextPage: number | null;
-  previousPage: number | null;
-}
-
-export interface PaginatedResponse<T = any> {
-  success: true;
-  message: string;
-  data: T[];
-  pagination: PaginationMeta;
-  timestamp?: string;
-}
-
-export interface PaginationParams {
-  page: number;
-  limit: number;
-}
-
-export interface SearchParams {
-  search?: string;
-}
+import {
+  AppError,
+  ErrorCode,
+  createErrorResponse,
+  ValidationError,
+  UnauthorizedError,
+} from "@/utils/errors";
+import logger from "@/logger";
+import {
+  PaginatedResponse,
+  PaginationMeta,
+  PaginationParams,
+  SearchParams,
+  SuccessResponse,
+} from "@/types";
 
 export class BaseController {
   protected sendSuccess<T>(
@@ -99,18 +78,22 @@ export class BaseController {
 
   protected handleControllerError(
     res: Response,
-    error: any,
+    error: unknown,
     defaultMessage: string = "Operation failed",
     defaultStatusCode: number = 500,
   ): Response {
-    console.error("Controller Error:", error);
+    logger.error(error, "Controller Error:");
 
     if (error instanceof AppError) {
       return this.sendError(res, error, process.env.NODE_ENV === "development");
     }
 
+    if (error instanceof UnauthorizedError) {
+      return this.sendError(res, error, process.env.NODE_ENV === "development");
+    }
+
     // Handle validation errors from external libraries
-    if (error.name === "ValidationError" || error.name === "ZodError") {
+    if (error instanceof ValidationError) {
       const validationError = new AppError(
         error.message || "Validation failed",
         400,
@@ -127,8 +110,10 @@ export class BaseController {
 
     // Handle database errors
     if (
-      error.code &&
-      (error.code.includes("ER_") || error.code.includes("SQLITE_"))
+      error instanceof Error &&
+      "code" in error &&
+      typeof error.code === "string" &&
+      error.code.startsWith("ER_")
     ) {
       const dbError = new AppError(
         "Database operation failed",
