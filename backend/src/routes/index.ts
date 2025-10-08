@@ -7,7 +7,7 @@ import organizationRoutes from "./organization.routes";
 const router = Router();
 
 // Mount route modules
-router.use("/auth", authRoutes);
+// router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 router.use("/jobs", jobRoutes);
 router.use("/organizations", organizationRoutes);
