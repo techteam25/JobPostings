@@ -10,6 +10,8 @@ import {
   UserLoginSchema,
   UserRefreshTokenSchema,
 } from "@/validations/auth.validation";
+import { ApiResponse, AuthTokens } from "@/types";
+import { User } from "@/db/schema";
 
 export class AuthController extends BaseController {
   private authService: AuthService;
@@ -23,7 +25,7 @@ export class AuthController extends BaseController {
 
   register = async (
     req: Request<{}, {}, RegisterUserSchema["body"]>,
-    res: Response,
+    res: Response<ApiResponse<{ user: User; tokens: AuthTokens }>>,
   ) => {
     try {
       const userData = req.body;
@@ -35,20 +37,27 @@ export class AuthController extends BaseController {
         userAgent,
         ipAddress,
       );
-      this.sendSuccess(
-        res,
-        { user: result.user, ...result.tokens },
-        "User registered successfully",
-        201,
-      );
+
+      return res.status(201).json({
+        success: true,
+        message: "User registered successfully",
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      this.handleControllerError(res, error, "Registration failed", 400);
+      return res.status(400).json({
+        success: false,
+        status: "error",
+        message: "Registration failed",
+        error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
   login = async (
     req: Request<{}, {}, UserLoginSchema["body"]>,
-    res: Response,
+    res: Response<ApiResponse<{ tokens: AuthTokens }>>,
   ) => {
     try {
       const credentials = req.body;
@@ -60,21 +69,36 @@ export class AuthController extends BaseController {
         userAgent,
         ipAddress,
       );
-      this.sendSuccess(res, tokens, "Login successful");
+
+      return res.json({
+        success: true,
+        message: "Login successful",
+        data: { tokens },
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      this.handleControllerError(res, error, "Login failed", 401);
+      return res.status(401).json({
+        success: false,
+        status: "error",
+        message: "Login failed",
+        error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
   changePassword = async (
     req: Request<{}, {}, ChangeUserPasswordSchema["body"]>,
-    res: Response,
+    res: Response<ApiResponse<void>>,
   ) => {
     if (!req.userId) {
-      return this.handleControllerError(
-        res,
-        new AppError("User not authenticated", 401, ErrorCode.UNAUTHORIZED),
-      );
+      return res.status(401).json({
+        success: false,
+        status: "error",
+        message: "User not authenticated",
+        error: "UNAUTHORIZED",
+        timestamp: new Date().toISOString(),
+      });
     }
     const { currentPassword, newPassword } = req.body;
 
@@ -82,7 +106,13 @@ export class AuthController extends BaseController {
       currentPassword,
       newPassword,
     });
-    return this.sendSuccess(res, null, "Password changed successfully");
+    return res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+      timestamp: new Date().toISOString(),
+    });
+
+    // return this.sendSuccess(res, null, "Password changed successfully");
   };
 
   refreshToken = async (
