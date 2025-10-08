@@ -1,7 +1,8 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { env, isDevelopment } from "../config/env";
+import { env, isDevelopment } from "@/config/env";
 import * as schema from "./schema";
+import logger from "@/logger";
 
 // Create MySQL connection
 const connection = mysql.createPool({
@@ -25,7 +26,7 @@ export async function checkDatabaseConnection(): Promise<boolean> {
     const [result] = await connection.execute("SELECT 1 as healthy");
     return Array.isArray(result) && result.length > 0;
   } catch (error) {
-    console.error("Database connection failed:", error);
+    logger.error(`Database connection failed:, ${error}`);
     return false;
   }
 }
@@ -34,9 +35,9 @@ export async function checkDatabaseConnection(): Promise<boolean> {
 export async function closeDatabaseConnection(): Promise<void> {
   try {
     await connection.end();
-    console.log("📊 Database connection closed");
+    logger.info("📊 Database connection closed");
   } catch (error) {
-    console.error("Error closing database connection:", error);
+    logger.error(error, "Error closing database connection");
   }
 }
 
