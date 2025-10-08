@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import { AuthService } from "../services/auth.service";
-import { UserService } from "../services/user.service";
+import { AuthService } from "@/services/auth.service";
+import { UserService } from "@/services/user.service";
 
 export class AuthMiddleware {
   private authService: AuthService;
