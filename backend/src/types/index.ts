@@ -1,76 +1,63 @@
 // API Response types
-import { Response } from "express";
 
-export interface ApiResponse<T = any> {
-  status: "success" | "error";
-  message: string;
-  data?: T;
-  timestamp: string;
-}
+import { z } from "zod";
 
-export interface SuccessResponse<T = any> {
-  success: true;
-  message: string;
-  data: T;
-  timestamp?: string;
-}
+const successResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  timestamp: z.string().optional(),
+});
 
-export interface PaginatedResponse<T = any> {
-  success: true;
-  message: string;
-  data: T[];
-  pagination: PaginationMeta;
-  timestamp?: string;
-}
+const errorResponseSchema = z.object({
+  success: z.literal(false),
+  status: z.literal("error"),
+  message: z.string(),
+  error: z.string().optional(),
+  timestamp: z.string(),
+});
 
-export interface PaginationParams {
-  page: number;
-  limit: number;
-}
+const paginationMetaSchema = z.object({
+  total: z.number(),
+  page: z.number(),
+  limit: z.number(),
+  totalPages: z.number(),
+  hasNext: z.boolean(),
+  hasPrevious: z.boolean(),
+  nextPage: z.number().nullable(),
+  previousPage: z.number().nullable(),
+});
 
-export interface SearchParams {
-  search?: string;
-}
+export const paginationParamsSchema = z.object({
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(10),
+});
 
-export interface ErrorResponse {
-  status: "error";
-  message: string;
-  error?: string;
-  timestamp: string;
-}
+const paginatedResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+  successResponseSchema.extend({
+    data: dataSchema,
+    pagination: paginationMetaSchema,
+  });
 
-// Example User type
-export interface User {
-  id: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: "user" | "employer" | "admin";
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+const authTokens = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+  expiresAt: z.date(),
+  refreshExpiresAt: z.date(),
+});
 
-// Request body types
-export interface CreateUserRequest {
-  name: string;
-  email: string;
-}
+/* API Response Types */
+export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
-// Authenticated request type
-export interface AuthRequest extends Request {
-  userId?: number;
-  sessionId?: number;
-  user?: User;
-}
+export type ApiResponse<T> =
+  | (T extends void
+      ? z.infer<typeof successResponseSchema>
+      : z.infer<typeof successResponseSchema> & { data: T })
+  | z.infer<typeof errorResponseSchema>;
 
-export interface PaginationMeta {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-  nextPage: number | null;
-  previousPage: number | null;
-}
+export type PaginatedResponse<T> = z.infer<
+  ReturnType<typeof paginatedResponseSchema<z.ZodType<T>>>
+>;
+export type PaginationParamsSchema = z.infer<typeof paginationParamsSchema>;
+
+export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
+export type AuthTokens = z.infer<typeof authTokens>;
