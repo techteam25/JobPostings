@@ -1,19 +1,15 @@
 import bcrypt from "bcrypt";
-import { UserRepository } from "../repositories/user.repository";
+import { UserRepository } from "@/repositories/user.repository";
 import { BaseService } from "./base.service";
 import {
   users,
   type NewUserProfile,
   type UpdateUser,
   type User,
-} from "../db/schema";
-import {
-  NotFoundError,
-  ValidationError,
-  ForbiddenError,
-} from "../utils/errors";
-import { PaginationMeta } from "../types";
-import { db } from "../db/connection";
+} from "@/db/schema";
+import { NotFoundError, ValidationError, ForbiddenError } from "@/utils/errors";
+import { PaginationMeta } from "@/types";
+import { db } from "@/db/connection";
 import { count, sql } from "drizzle-orm";
 
 interface UserSearchOptions {
