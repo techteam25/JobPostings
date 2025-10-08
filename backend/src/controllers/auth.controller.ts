@@ -55,16 +55,12 @@ export class AuthController extends BaseController {
       const userAgent = req.headers["user-agent"] ?? "";
       const ipAddress = req.ip ?? req.socket.remoteAddress ?? "";
 
-      const result = await this.authService.login(
+      const { tokens } = await this.authService.login(
         credentials,
         userAgent,
         ipAddress,
       );
-      this.sendSuccess(
-        res,
-        { user: result.user, ...result.tokens },
-        "Login successful",
-      );
+      this.sendSuccess(res, tokens, "Login successful");
     } catch (error) {
       this.handleControllerError(res, error, "Login failed", 401);
     }
