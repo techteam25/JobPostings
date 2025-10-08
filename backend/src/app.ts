@@ -109,11 +109,14 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Request logging middleware (development only)
 if (env.NODE_ENV === "development") {
   app.use((req: Request, _: Response, next: NextFunction) => {
-    console.log(`${req.method} ${req.path}`, {
-      body: req.body,
-      query: req.query,
-      params: req.params,
-    });
+    logger.info(
+      {
+        body: req.body,
+        query: req.query,
+        params: req.params,
+      },
+      `${req.method} ${req.path}`,
+    );
     next();
   });
 }
