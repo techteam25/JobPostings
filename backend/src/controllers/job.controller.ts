@@ -1,18 +1,18 @@
 import { Request, Response } from "express";
-import { JobService } from "../services/job.service";
-import { JobMatchingService } from "../services/job-matching.service";
+import { JobService } from "@/services/job.service";
+import { JobMatchingService } from "@/services/job-matching.service";
 import { BaseController } from "./base.controller";
-import { ForbiddenError, AppError, ErrorCode } from "../utils/errors";
+import { ForbiddenError, AppError, ErrorCode } from "@/utils/errors";
 import {
   CreateJobSchema,
   DeleteJobSchema,
   GetJobSchema,
   UpdateJobSchema,
-} from "../validations/job.validation";
-import { GetOrganizationSchema } from "../validations/organization.validation";
-import { SearchParams } from "../validations/base.validation";
-import { GetJobApplicationSchema } from "../validations/jobApplications.validation";
-import { UpdateJobApplication } from "../db/schema";
+} from "@/validations/job.validation";
+import { GetOrganizationSchema } from "@/validations/organization.validation";
+import { SearchParams } from "@/validations/base.validation";
+import { GetJobApplicationSchema } from "@/validations/jobApplications.validation";
+import { UpdateJobApplication } from "@/db/schema";
 
 export class JobController extends BaseController {
   private jobService: JobService;
