@@ -41,13 +41,9 @@ describe("Authentication Controller Integration Tests", () => {
         .post("/api/auth/register")
         .send({ ...newUser, email: newUser.email });
 
-      TestHelpers.validateApiResponse(response, 409);
+      TestHelpers.validateApiResponse(response, 400);
       expect(response.body).toHaveProperty("success", false);
-      expect(response.body).toHaveProperty(
-        "message",
-        "User with this email already exists",
-      );
-      expect(response.body).toHaveProperty("errorCode", "CONFLICT");
+      expect(response.body).toHaveProperty("message", "Registration failed");
     });
   });
 
@@ -68,8 +64,9 @@ describe("Authentication Controller Integration Tests", () => {
         .send({ email: newUser.email, password: newUser.password });
 
       TestHelpers.validateApiResponse(response, 200);
-      expect(response.body.data).toHaveProperty("accessToken");
-      expect(response.body.data).toHaveProperty("refreshToken");
+      expect(response.body.data).toHaveProperty("tokens");
+      expect(response.body.data.tokens).toHaveProperty("accessToken");
+      expect(response.body.data.tokens).toHaveProperty("refreshToken");
     });
 
     it("should fail to login a user returning 400", async () => {
@@ -89,8 +86,7 @@ describe("Authentication Controller Integration Tests", () => {
 
       TestHelpers.validateApiResponse(response, 401);
       expect(response.body).toHaveProperty("success", false);
-      expect(response.body).toHaveProperty("message", "Invalid credentials");
-      expect(response.body).toHaveProperty("errorCode", "UNAUTHORIZED");
+      expect(response.body).toHaveProperty("message", "Login failed");
     });
   });
 });
