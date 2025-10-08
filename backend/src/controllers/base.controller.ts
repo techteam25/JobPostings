@@ -8,13 +8,7 @@ import {
   UnauthorizedError,
 } from "@/utils/errors";
 import logger from "@/logger";
-import {
-  PaginatedResponse,
-  PaginationMeta,
-  PaginationParams,
-  SearchParams,
-  SuccessResponse,
-} from "@/types";
+import { PaginatedResponse, PaginationMeta, ApiResponse } from "@/types";
 
 export class BaseController {
   protected sendSuccess<T>(
@@ -23,7 +17,7 @@ export class BaseController {
     message: string = "Operation successful",
     statusCode: number = 200,
   ): Response {
-    const response: SuccessResponse<T> = {
+    const response = {
       success: true,
       message,
       data,
@@ -40,7 +34,7 @@ export class BaseController {
     message: string = "Data retrieved successfully",
     statusCode: number = 200,
   ): Response {
-    const response: PaginatedResponse<T> = {
+    const response = {
       success: true,
       message,
       data,
@@ -60,7 +54,7 @@ export class BaseController {
     return res.status(error.statusCode).json(response);
   }
 
-  protected extractPaginationParams(req: Request): PaginationParams {
+  protected extractPaginationParams(req: Request) {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(
       1,
@@ -68,12 +62,6 @@ export class BaseController {
     );
 
     return { page, limit };
-  }
-
-  protected extractSearchParams(req: Request): SearchParams {
-    return {
-      search: (req.query.search as string) || undefined,
-    };
   }
 
   protected handleControllerError(
@@ -143,33 +131,6 @@ export class BaseController {
       genericError,
       process.env.NODE_ENV === "development",
     );
-  }
-
-  protected validateId(id: string, resourceName: string = "Resource"): number {
-    const numericId = parseInt(id);
-    if (isNaN(numericId) || numericId <= 0) {
-      throw new AppError(
-        `Invalid ${resourceName.toLowerCase()} ID`,
-        400,
-        ErrorCode.VALIDATION_ERROR,
-      );
-    }
-    return numericId;
-  }
-
-  protected validateRequiredFields(data: any, requiredFields: string[]): void {
-    const missingFields = requiredFields.filter(
-      (field) =>
-        data[field] === undefined || data[field] === null || data[field] === "",
-    );
-
-    if (missingFields.length > 0) {
-      throw new AppError(
-        `Missing required fields: ${missingFields.join(", ")}`,
-        400,
-        ErrorCode.VALIDATION_ERROR,
-      );
-    }
   }
 
   protected sanitizeOutput(
