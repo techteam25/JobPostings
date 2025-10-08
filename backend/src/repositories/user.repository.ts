@@ -1,14 +1,8 @@
 import { and, count, eq, like, or } from "drizzle-orm";
-import {
-  NewUser,
-  NewUserProfile,
-  User,
-  userProfile,
-  users,
-} from "../db/schema";
+import { NewUser, NewUserProfile, User, userProfile, users } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
-import { db } from "../db/connection";
-import { DatabaseError } from "../utils/errors";
+import { db } from "@/db/connection";
+import { DatabaseError } from "@/utils/errors";
 
 export class UserRepository extends BaseRepository<typeof users> {
   constructor() {
