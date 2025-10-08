@@ -1,6 +1,6 @@
 // controllers/base.controller.ts
 import { Request, Response } from "express";
-import { AppError, ErrorCode, createErrorResponse } from "../utils/errors";
+import { AppError, ErrorCode, createErrorResponse } from "@/utils/errors";
 
 export interface SuccessResponse<T = any> {
   success: true;
