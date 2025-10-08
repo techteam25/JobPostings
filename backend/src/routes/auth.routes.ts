@@ -18,7 +18,7 @@ const authMiddleware = new AuthMiddleware();
 
 /**
  * @swagger
- * /register:
+ * /api/auth/register:
  *   post:
  *     summary: Register a new user
  *     requestBody:
@@ -43,7 +43,7 @@ router.post(
 
 /**
  * @swagger
- * /login:
+ * /api/auth/login:
  *   post:
  *     summary: Login user
  *     requestBody:
@@ -62,7 +62,7 @@ router.post("/login", validate(userLoginSchema), authController.login);
 
 /**
  * @swagger
- * /refresh-token:
+ * /api/auth/refresh-token:
  *   post:
  *     summary: Refresh authentication token
  *     requestBody:
@@ -89,7 +89,7 @@ router.post(
 
 /**
  * @swagger
- * /logout:
+ * /api/auth/logout:
  *   post:
  *     summary: Logout user
  *     security:
@@ -112,7 +112,7 @@ router.post("/logout", authMiddleware.authenticate, authController.logout);
 
 /**
  * @swagger
- * /profile/{profileId}:
+ * /api/auth/profile/{profileId}:
  *   get:
  *     summary: Get user profile by ID
  *     parameters:
@@ -141,7 +141,7 @@ router.get(
 
 /**
  * @swagger
- * /change-password:
+ * /api/auth/change-password:
  *   post:
  *     summary: Change user password
  *     security:
