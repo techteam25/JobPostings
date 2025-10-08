@@ -1,15 +1,15 @@
 import { Request, Response } from "express";
-import { AuthService } from "../services/auth.service";
-import { SessionRepository } from "../repositories/session.repository";
+import { AuthService } from "@/services/auth.service";
+import { SessionRepository } from "@/repositories/session.repository";
 import { BaseController } from "./base.controller";
-import { AppError, ErrorCode } from "../utils/errors";
-import { ResetPasswordData } from "../db/interfaces/auth";
+import { AppError, ErrorCode } from "@/utils/errors";
+import { ResetPasswordData } from "@/db/interfaces/auth";
 import {
   ChangeUserPasswordSchema,
   RegisterUserSchema,
   UserLoginSchema,
   UserRefreshTokenSchema,
-} from "../validations/auth.validation";
+} from "@/validations/auth.validation";
 
 export class AuthController extends BaseController {
   private authService: AuthService;
