@@ -20,13 +20,7 @@ import {
   RegisterUserSchema,
   UserLoginSchema,
 } from "@/validations/auth.validation";
-
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: Date;
-  refreshExpiresAt: Date;
-}
+import { AuthTokens } from "@/types";
 
 export class AuthService extends BaseService {
   private userRepository: UserRepository;
@@ -79,10 +73,11 @@ export class AuthService extends BaseService {
     }
 
     // Create session and generate tokens
-    const tokens = await this.createSession(userId, userAgent, ipAddress);
+    const [tokens, user] = await Promise.all([
+      this.createSession(userId, userAgent, ipAddress),
+      this.userRepository.findUserById(userId),
+    ]);
 
-    // Get created user
-    const user = await this.userRepository.findUserById(userId);
     if (!user) {
       return this.handleError(
         new DatabaseError(
