@@ -1,4 +1,5 @@
-import { User } from "../db/schema";
+import { User } from "@/db/schema";
+import { Logger } from "pino";
 
 declare global {
   namespace Express {
@@ -6,6 +7,7 @@ declare global {
       userId?: number;
       sessionId?: number;
       user?: User;
+      log: Logger;
     }
   }
 }
