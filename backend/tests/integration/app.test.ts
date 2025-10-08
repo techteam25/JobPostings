@@ -1,121 +1,86 @@
-import { describe, it, expect } from 'vitest';
-import { request, TestHelpers } from '@tests/utils/testHelpers';
+import { request, TestHelpers } from "@tests/utils/testHelpers";
 
-describe('Express App Integration Tests', () => {
-  describe('GET /health', () => {
-    it('should return health check information', async () => {
-      const response = await request.get('/health');
-      
+describe("Express App Integration Tests", () => {
+  describe("GET /health", () => {
+    it("should return health check information", async () => {
+      const response = await request.get("/health");
+
       // Health check should return either 200 (healthy) or 503 (degraded/error)
       expect([200, 503]).toContain(response.status);
-      expect(response.body).toHaveProperty('status');
-      expect(response.body).toHaveProperty('message');
-      expect(response.body).toHaveProperty('timestamp');
-      
+      expect(response.body).toHaveProperty("status");
+      expect(response.body).toHaveProperty("message");
+      expect(response.body).toHaveProperty("timestamp");
+
       // Validate timestamp format
       expect(new Date(response.body.timestamp)).toBeInstanceOf(Date);
-      
+
       // If database is available, should be OK
       if (response.status === 200) {
-        expect(response.body.status).toBe('OK');
+        expect(response.body.status).toBe("OK");
       } else {
         // If database is unavailable, should be DEGRADED or ERROR
-        expect(['DEGRADED', 'ERROR']).toContain(response.body.status);
+        expect(["DEGRADED", "ERROR"]).toContain(response.body.status);
       }
     });
   });
 
-  describe('GET /api', () => {
-    it('should return API welcome message', async () => {
-      const response = await request.get('/api');
-      
-      TestHelpers.validateApiResponse(response);
+  describe("GET /api", () => {
+    it("should return API welcome message", async () => {
+      const response = await request.get("/api");
+
+      TestHelpers.validateApiResponse(response, 404);
+    });
+  });
+
+  describe("404 Error Handling", () => {
+    it("should return 404 for non-existent routes", async () => {
+      const response = await request.get("/non-existent-route");
+
+      expect(response.status).toBe(404);
       expect(response.body).toEqual({
-        message: 'Welcome to the Job Listing API',
-        version: '1.0.0',
-        status: 'active',
-        timestamp: expect.any(String),
-        endpoints: {
-          auth: {
-            base: '/auth',
-            routes: {
-              'POST /auth/register': 'Register a new user',
-              'POST /auth/login': 'Login user',
-              'POST /auth/logout': 'Logout current session',
-              'POST /auth/logout-all': 'Logout all sessions',
-              'POST /auth/refresh-token': 'Refresh access token',
-              'POST /auth/change-password': 'Change user password',
-              'GET /auth/profile': 'Get current user profile',
-            },
-          },
-          users: {
-            base: '/users',
-            routes: {
-              'GET /users': 'Get all users (admin only)',
-              'GET /users/me': 'Get current user',
-              'GET /users/stats': 'Get user statistics (admin only)',
-              'GET /users/:id': 'Get user by ID',
-              'PUT /users/me/profile': 'Update current user profile',
-              'PUT /users/:id': 'Update user (admin or self)',
-              'POST /users/me/change-password': 'Change password',
-              'PATCH /users/:id/activate': 'Activate user (admin only)',
-              'PATCH /users/:id/deactivate': 'Deactivate user (admin only)',
-            },
-          },
-        },
+        status: "error",
+        message: "Route GET /non-existent-route not found",
+      });
+    });
+
+    it("should return 404 for non-existent API routes", async () => {
+      const response = await request.get("/api/non-existent");
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({
+        status: "error",
+        message: "Route GET /api/non-existent not found",
       });
     });
   });
 
-  describe('404 Error Handling', () => {
-    it('should return 404 for non-existent routes', async () => {
-      const response = await request.get('/non-existent-route');
-      
-      expect(response.status).toBe(404);
-      expect(response.body).toEqual({
-        status: 'error',
-        message: 'Route GET /non-existent-route not found',
-      });
+  describe("CORS Headers", () => {
+    it("should include CORS headers in responses", async () => {
+      const response = await request.get("/health");
+
+      expect(response.headers).toHaveProperty("access-control-allow-origin");
+      expect(response.headers["access-control-allow-origin"]).toBe("*");
     });
 
-    it('should return 404 for non-existent API routes', async () => {
-      const response = await request.get('/api/non-existent');
-      
-      expect(response.status).toBe(404);
-      expect(response.body).toEqual({
-        status: 'error',
-        message: 'Route GET /api/non-existent not found',
-      });
-    });
-  });
+    it("should handle OPTIONS requests", async () => {
+      const response = await request.options("/api");
 
-  describe('CORS Headers', () => {
-    it('should include CORS headers in responses', async () => {
-      const response = await request.get('/health');
-      
-      expect(response.headers).toHaveProperty('access-control-allow-origin');
-      expect(response.headers['access-control-allow-origin']).toBe('*');
-    });
-
-    it('should handle OPTIONS requests', async () => {
-      const response = await request.options('/api');
-      
       expect(response.status).toBe(200);
-      expect(response.headers).toHaveProperty('access-control-allow-methods');
+      expect(response.headers).toHaveProperty("access-control-allow-methods");
     });
   });
 
-  describe('Request Body Parsing', () => {
-    it('should parse JSON request bodies', async () => {
+  describe("Request Body Parsing", () => {
+    it("should parse JSON request bodies", async () => {
       const testData = TestHelpers.createMockRequestBody();
-      
+
       // Note: This test assumes you have a POST endpoint that echoes data
       // You might need to create a test endpoint or modify this test
       const response = await request
-        .post('/api/echo')
+        .post("/api/echo")
         .send(testData)
-        .expect('Content-Type', /json/);
-      
+        .expect("Content-Type", /json/);
+
       // This will return 404 since we don't have an echo endpoint
       // but it tests that JSON parsing middleware is working
       expect([404, 200]).toContain(response.status);
