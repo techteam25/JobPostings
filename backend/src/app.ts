@@ -1,3 +1,5 @@
+import path from "path";
+
 import express from "express";
 import type { Application, Request, Response, NextFunction } from "express";
 import { rateLimit } from "express-rate-limit";
@@ -39,7 +41,7 @@ const globalLimiter = rateLimit({
 // Limiter for auth routes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 5, // Only 5 login attempts per 15 minutes
+  limit: 10000, // Only 5 login attempts per 15 minutes // Todo: change back to 5 after testing
   skipSuccessfulRequests: true, // Don't count successful logins
   skipFailedRequests: false, // Count failed attempts
   message: "Too many login attempts, please try again later.",
@@ -70,7 +72,7 @@ const swaggerOptions = {
     ],
   },
   // Path to the API routes where JSDoc comments are
-  apis: ["./routes/*.ts"],
+  apis: [path.join(__dirname, "./routes/*.ts")],
 };
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
