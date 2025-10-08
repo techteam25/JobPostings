@@ -41,7 +41,7 @@ const globalLimiter = rateLimit({
 // Limiter for auth routes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 10000, // Only 5 login attempts per 15 minutes // Todo: change back to 5 after testing
+  limit: 5, // Only 5 login attempts per 15 minutes
   skipSuccessfulRequests: true, // Don't count successful logins
   skipFailedRequests: false, // Count failed attempts
   message: "Too many login attempts, please try again later.",
