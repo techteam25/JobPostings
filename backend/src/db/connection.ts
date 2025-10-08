@@ -23,7 +23,7 @@ export const db = drizzle(connection, {
 // Database health check
 export async function checkDatabaseConnection(): Promise<boolean> {
   try {
-    const [result] = await connection.execute("SELECT 1 as healthy");
+    const result = await connection.execute("SELECT 1 as healthy");
     return Array.isArray(result) && result.length > 0;
   } catch (error) {
     logger.error(`Database connection failed:, ${error}`);
