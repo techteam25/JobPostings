@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 import { db } from "@/db/connection";
 import { organizations, jobsDetails, users } from "@/db/schema";
 import { sql } from "drizzle-orm";
