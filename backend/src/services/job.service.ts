@@ -115,8 +115,9 @@ export class JobService extends BaseService {
       title: SecurityUtils.sanitizeInput(jobData.title),
       description: SecurityUtils.sanitizeInput(jobData.description),
       location: SecurityUtils.sanitizeInput(jobData.location),
-      requiredSkills: jobData.skills
-        ? this.processSkillsArray(jobData.skills)
+      skills: jobData.skills ? this.processSkillsArray(jobData.skills) : null,
+      experience: jobData.experience
+        ? SecurityUtils.sanitizeInput(jobData.experience)
         : null,
     };
 
@@ -548,20 +549,11 @@ export class JobService extends BaseService {
 
   private processSkillsArray(skills: string): string {
     try {
-      // If it's already a JSON string, validate it
-      if (skills.startsWith("[") || skills.startsWith("{")) {
-        JSON.parse(skills);
-        return skills;
-      }
-
-      // If it's a comma-separated string, convert to JSON array
-      const skillsArray = skills
-        .split(",")
-        .map((skill) => skill.trim())
-        .filter(Boolean);
-      return JSON.stringify(skillsArray);
-    } catch (error) {
-      // If JSON parsing fails, treat as comma-separated string
+      // Validate if it's a JSON string
+      JSON.parse(skills);
+      return skills;
+    } catch {
+      // Convert comma-separated string to JSON array
       const skillsArray = skills
         .split(",")
         .map((skill) => skill.trim())
