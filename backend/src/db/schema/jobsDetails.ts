@@ -15,7 +15,7 @@ import { relations, sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./users";
-import { organizations } from "./organizations";
+import { Organization, organizations } from "./organizations";
 
 // Jobs table
 export const jobsDetails = mysqlTable(
@@ -31,7 +31,6 @@ export const jobsDetails = mysqlTable(
       "contract",
       "volunteer",
       "internship",
-      "short-term-trip",
     ]).notNull(),
     compensationType: mysqlEnum("compensation_type", [
       "paid",
@@ -268,3 +267,7 @@ export type JobApplication = z.infer<typeof selectJobApplicationSchema>;
 export type NewJobApplication = z.infer<typeof insertJobApplicationSchema>;
 export type UpdateJobApplication = z.infer<typeof updateJobApplicationSchema>;
 export type UpdateJobInsights = z.infer<typeof updateJobInsightsSchema>;
+export type JobWithEmployer = {
+  job: Job;
+  employer: Pick<Organization, "id" | "name" | "city" | "state"> | null;
+}[];
