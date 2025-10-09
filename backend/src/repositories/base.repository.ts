@@ -1,29 +1,16 @@
 import { eq, desc, SQL } from "drizzle-orm";
-import { MySqlTable } from "drizzle-orm/mysql-core";
-import { db } from "../db/connection";
-import { DatabaseError } from "../utils/errors";
-import { countRecords, calculatePagination } from "../db/utils";
+import { MySqlTable, MySqlColumn } from "drizzle-orm/mysql-core";
+import { db } from "@/db/connection";
+import { DatabaseError } from "@/utils/errors";
+import { countRecords, calculatePagination } from "@/db/utils";
+import { PaginationMeta } from "@/types";
 
-export interface PaginationOptions {
-  page?: number;
-  limit?: number;
-}
+type TableWithId<T extends MySqlTable> = T & {
+  id: MySqlColumn;
+  createdAt: MySqlColumn;
+};
 
-export interface PaginationResult<T> {
-  items: T[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrevious: boolean;
-    nextPage: number | null;
-    previousPage: number | null;
-  };
-}
-
-export class BaseRepository<T extends MySqlTable> {
+export class BaseRepository<T extends TableWithId<MySqlTable>> {
   protected table: T;
   protected resourceName: string;
 
@@ -46,7 +33,7 @@ export class BaseRepository<T extends MySqlTable> {
       const result = await db
         .select()
         .from(this.table)
-        .where(eq((this.table as any).id, id))
+        .where(eq(this.table.id, id))
         .limit(1);
 
       return result[0] || null;
@@ -59,8 +46,11 @@ export class BaseRepository<T extends MySqlTable> {
   }
 
   async findAll(
-    options: PaginationOptions = {},
-  ): Promise<PaginationResult<T["$inferSelect"]>> {
+    options: Partial<Pick<PaginationMeta, "limit" | "page">> = {
+      limit: 10,
+      page: 1,
+    },
+  ): Promise<{ items: T["$inferSelect"][]; pagination: PaginationMeta }> {
     try {
       const { page = 1, limit = 10 } = options;
       const offset = (page - 1) * limit;
@@ -70,7 +60,7 @@ export class BaseRepository<T extends MySqlTable> {
         .from(this.table)
         .limit(limit)
         .offset(offset)
-        .orderBy(desc((this.table as any).createdAt));
+        .orderBy(desc(this.table.createdAt));
 
       const total = await countRecords(this.table);
       const pagination = calculatePagination(total, page, limit);
@@ -86,8 +76,8 @@ export class BaseRepository<T extends MySqlTable> {
 
   async findByCondition(
     condition: SQL,
-    options: PaginationOptions = {},
-  ): Promise<PaginationResult<any>> {
+    options: Pick<PaginationMeta, "limit" | "page"> = { limit: 10, page: 1 },
+  ): Promise<{ items: T["$inferSelect"][]; pagination: PaginationMeta }> {
     try {
       const { page = 1, limit = 10 } = options;
       const offset = (page - 1) * limit;
@@ -98,7 +88,7 @@ export class BaseRepository<T extends MySqlTable> {
         .where(condition)
         .limit(limit)
         .offset(offset)
-        .orderBy(desc((this.table as any).createdAt));
+        .orderBy(desc(this.table.createdAt));
 
       const total = await countRecords(this.table, condition);
       const pagination = calculatePagination(total, page, limit);
@@ -120,7 +110,7 @@ export class BaseRepository<T extends MySqlTable> {
           ...data,
           updatedAt: new Date(),
         })
-        .where(eq((this.table as any).id, id));
+        .where(eq(this.table.id, id));
 
       return result[0].affectedRows > 0;
     } catch (error) {
@@ -130,123 +120,11 @@ export class BaseRepository<T extends MySqlTable> {
 
   async delete(id: number): Promise<boolean> {
     try {
-      const result = await db
-        .delete(this.table)
-        .where(eq((this.table as any).id, id));
+      const result = await db.delete(this.table).where(eq(this.table.id, id));
 
       return result[0].affectedRows > 0;
     } catch (error) {
       throw new DatabaseError(`Failed to delete ${this.resourceName}`, error);
-    }
-  }
-
-  async exists(id: number): Promise<boolean> {
-    try {
-      const result = await db
-        .select({ id: (this.table as any).id })
-        .from(this.table)
-        .where(eq((this.table as any).id, id))
-        .limit(1);
-
-      return result.length > 0;
-    } catch (error) {
-      throw new DatabaseError(
-        `Failed to check if ${this.resourceName} exists`,
-        error,
-      );
-    }
-  }
-
-  async count(condition?: SQL): Promise<number> {
-    try {
-      return await countRecords(this.table, condition);
-    } catch (error) {
-      throw new DatabaseError(`Failed to count ${this.resourceName}`, error);
-    }
-  }
-
-  // Helper method for batch operations
-  async createMany(data: T["$inferInsert"][]): Promise<number[]> {
-    try {
-      const result = await db.insert(this.table).values(data);
-      // Note: MySQL doesn't return multiple insert IDs easily, so we return empty array
-      // Todo: You might need to implement this differently based on your specific needs
-      return [];
-    } catch (error) {
-      throw new DatabaseError(
-        `Failed to create multiple ${this.resourceName}`,
-        error,
-      );
-    }
-  }
-
-  // Helper method for updating multiple records
-  async updateMany(
-    condition: SQL,
-    data: Partial<T["$inferInsert"]>,
-  ): Promise<number> {
-    try {
-      const result = await db
-        .update(this.table)
-        .set({
-          ...data,
-          updatedAt: new Date(),
-        })
-        .where(condition);
-
-      return result[0].affectedRows;
-    } catch (error) {
-      throw new DatabaseError(
-        `Failed to update multiple ${this.resourceName}`,
-        error,
-      );
-    }
-  }
-
-  // Helper method for deleting multiple records
-  async deleteMany(condition: SQL): Promise<number> {
-    try {
-      const result = await db.delete(this.table).where(condition);
-
-      return result[0].affectedRows;
-    } catch (error) {
-      throw new DatabaseError(
-        `Failed to delete multiple ${this.resourceName}`,
-        error,
-      );
-    }
-  }
-
-  // Helper method for finding the first record matching a condition
-  async findFirst(condition: SQL): Promise<any | null> {
-    try {
-      const result = await db
-        .select()
-        .from(this.table)
-        .where(condition)
-        .limit(1);
-
-      return result[0] || null;
-    } catch (error) {
-      throw new DatabaseError(`Failed to find ${this.resourceName}`, error);
-    }
-  }
-
-  // Helper method for checking if a record with condition exists
-  async existsByCondition(condition: SQL): Promise<boolean> {
-    try {
-      const result = await db
-        .select({ id: (this.table as any).id })
-        .from(this.table)
-        .where(condition)
-        .limit(1);
-
-      return result.length > 0;
-    } catch (error) {
-      throw new DatabaseError(
-        `Failed to check ${this.resourceName} existence`,
-        error,
-      );
     }
   }
 }
