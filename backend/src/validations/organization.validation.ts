@@ -45,3 +45,6 @@ export const deleteOrganizationSchema = z.object({
 });
 
 export type GetOrganizationSchema = z.infer<typeof getOrganizationSchema>;
+export type CreateOrganizationSchema = z.infer<typeof createOrganizationSchema>;
+export type UpdateOrganizationSchema = z.infer<typeof updateOrganizationSchema>;
+export type DeleteOrganizationSchema = z.infer<typeof deleteOrganizationSchema>;
