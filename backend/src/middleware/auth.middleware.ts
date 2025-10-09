@@ -2,13 +2,12 @@ import { NextFunction, Request, Response } from "express";
 import { AuthService } from "@/services/auth.service";
 import { UserService } from "@/services/user.service";
 import logger from "@/logger";
+import { SecurityUtils } from "@/utils/security";
 
 export class AuthMiddleware {
-  private authService: AuthService;
   private userService: UserService;
 
   constructor() {
-    this.authService = new AuthService();
     this.userService = new UserService();
   }
 
@@ -28,11 +27,10 @@ export class AuthMiddleware {
       }
 
       const token = authHeader.substring(7);
-      const decoded = this.authService.verifyToken(token);
+      const decoded = SecurityUtils.verifyAccessToken(token);
 
       req.user = await this.userService.getUserById(decoded.userId);
       req.userId = decoded.userId;
-      req.sessionId = decoded.sessionId; // Assign sessionId if present in token
 
       return next();
     } catch (error) {
