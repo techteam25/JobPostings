@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { AuthService } from "@/services/auth.service";
 import { UserService } from "@/services/user.service";
+import logger from "@/logger";
 
 export class AuthMiddleware {
   private authService: AuthService;
@@ -15,9 +16,14 @@ export class AuthMiddleware {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        res.header(
+          "WWW-Authenticate",
+          `Bearer realm=${req.originalUrl} charset="UTF-8"`,
+        );
+
         return res.status(401).json({
           status: "error",
-          message: "No token provided",
+          message: "Authentication required",
         });
       }
 
@@ -30,6 +36,7 @@ export class AuthMiddleware {
 
       return next();
     } catch (error) {
+      logger.error(error);
       return res.status(401).json({
         status: "error",
         message: "Invalid or expired token",
