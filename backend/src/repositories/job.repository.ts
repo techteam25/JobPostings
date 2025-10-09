@@ -6,10 +6,10 @@ import {
   organizations,
   UpdateJobApplication,
   users,
-} from "../db/schema";
+} from "@/db/schema";
 import { BaseRepository } from "./base.repository";
-import { db } from "../db/connection";
-import { calculatePagination, countRecords } from "../db/utils";
+import { db } from "@/db/connection";
+import { calculatePagination, countRecords } from "@/db/utils";
 
 export class JobRepository extends BaseRepository<typeof jobsDetails> {
   constructor() {
