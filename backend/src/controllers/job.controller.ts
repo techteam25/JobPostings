@@ -96,7 +96,7 @@ export class JobController extends BaseController {
 
   getJobById = async (req: Request<GetJobSchema["params"]>, res: Response) => {
     try {
-      const jobId = Number(req.params.jobId);
+      const jobId = parseInt(req.params.jobId);
 
       const job = await this.jobService.getJobById(jobId);
 
