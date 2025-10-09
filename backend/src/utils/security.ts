@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { env } from "@/config/env";
 import { AppError, ErrorCode, UnauthorizedError } from "./errors";
 import { TokenPayload } from "@/db/interfaces/auth";
+import sanitize from "sanitize-html";
 
 export class SecurityUtils {
   private static readonly SALT_ROUNDS = 12;
@@ -68,17 +69,14 @@ export class SecurityUtils {
 
   static verifyRefreshToken(token: string): {
     userId: number;
-    sessionId: number;
   } {
     try {
-      const decoded = jwt.verify(
+      const { userId } = jwt.verify(
         token,
-        env.JWT_REFRESH_SECRET || env.JWT_SECRET,
-      ) as any;
-      if (decoded.type !== "refresh") {
-        throw new UnauthorizedError("Invalid token type");
-      }
-      return { userId: decoded.userId, sessionId: decoded.sessionId };
+        env.JWT_REFRESH_SECRET,
+      ) as TokenPayload;
+
+      return { userId };
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
         throw new AppError(
@@ -92,22 +90,6 @@ export class SecurityUtils {
   }
 
   static sanitizeInput(input: string): string {
-    return input.trim().replace(/[<>"'&]/g, "");
-  }
-
-  static isStrongPassword(password: string): boolean {
-    // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
-    const strongPasswordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    return strongPasswordRegex.test(password);
-  }
-
-  static generateSlug(text: string): string {
-    return text
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, "")
-      .replace(/[\s_-]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+    return sanitize(input);
   }
 }
