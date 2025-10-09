@@ -337,29 +337,6 @@ export class JobService extends BaseService {
       return this.handleError(new NotFoundError("Application", applicationId));
     }
 
-    // Authorization check
-    if (requesterRole === "admin") {
-      // Admin can update any application
-    } else if (requesterRole === "employer") {
-      const requester = application?.user;
-      if (
-        !requester ||
-        requester?.organizationId !== application?.job?.employerId
-      ) {
-        return this.handleError(
-          new ForbiddenError(
-            "You can only update applications for your organization jobs",
-          ),
-        );
-      }
-    } else {
-      return this.handleError(
-        new ForbiddenError(
-          "Only employers and admins can update application status",
-        ),
-      );
-    }
-
     // const updateData: any = { status };
     //
     // if (status === "reviewed" && !application?.application?.reviewedAt) {
@@ -445,101 +422,101 @@ export class JobService extends BaseService {
   //   }
   // }
 
-  async getUserDashboard(userId: number) {
-    const user = await this.userRepository.findByIdWithProfile(userId);
-    if (!user) {
-      return this.handleError(new NotFoundError("User", userId));
-    }
+  // async getUserDashboard(userId: number) {
+  //   const user = await this.userRepository.findByIdWithProfile(userId);
+  //   if (!user) {
+  //     return this.handleError(new NotFoundError("User", userId));
+  //   }
+  //
+  //   const applicationsResult =
+  //     await this.jobRepository.findApplicationsByUser(userId);
+  //   const applications = applicationsResult.items;
+  //   const recentApplications = applications.slice(0, 5);
+  //
+  //   // Get application statistics
+  //   const applicationStats = {
+  //     total: applications.length,
+  //     pending: applications.filter(
+  //       (app) => app.application.status === "pending",
+  //     ).length,
+  //     reviewed: applications.filter(
+  //       (app) => app.application.status === "reviewed",
+  //     ).length,
+  //     shortlisted: applications.filter(
+  //       (app) => app.application.status === "shortlisted",
+  //     ).length,
+  //     interviewing: applications.filter(
+  //       (app) => app.application.status === "interviewing",
+  //     ).length,
+  //     hired: applications.filter((app) => app.application.status === "hired")
+  //       .length,
+  //     rejected: applications.filter(
+  //       (app) => app.application.status === "rejected",
+  //     ).length,
+  //   };
+  //
+  //   return {
+  //     user,
+  //     applications: recentApplications,
+  //     stats: applicationStats,
+  //   };
+  // }
 
-    const applicationsResult =
-      await this.jobRepository.findApplicationsByUser(userId);
-    const applications = applicationsResult.items;
-    const recentApplications = applications.slice(0, 5);
-
-    // Get application statistics
-    const applicationStats = {
-      total: applications.length,
-      pending: applications.filter(
-        (app) => app.application.status === "pending",
-      ).length,
-      reviewed: applications.filter(
-        (app) => app.application.status === "reviewed",
-      ).length,
-      shortlisted: applications.filter(
-        (app) => app.application.status === "shortlisted",
-      ).length,
-      interviewing: applications.filter(
-        (app) => app.application.status === "interviewing",
-      ).length,
-      hired: applications.filter((app) => app.application.status === "hired")
-        .length,
-      rejected: applications.filter(
-        (app) => app.application.status === "rejected",
-      ).length,
-    };
-
-    return {
-      user,
-      applications: recentApplications,
-      stats: applicationStats,
-    };
-  }
-
-  async getEmployerDashboard(organizationId: number) {
-    const organization =
-      await this.organizationRepository.findById(organizationId);
-    if (!organization) {
-      return this.handleError(
-        new NotFoundError("Organization", organizationId),
-      );
-    }
-
-    const jobs = await this.jobRepository.findJobsByEmployer(organizationId, {
-      limit: 1000,
-    });
-    const jobInsights =
-      await this.jobInsightsRepository.getJobInsightByOrganizationId(
-        organizationId,
-      );
-    const recentJobs = jobs.items.slice(0, 5);
-
-    // Get job statistics
-    const jobStats = {
-      total: jobs.items.length,
-      active: jobs.items.filter((job) => job.isActive).length,
-      inactive: jobs.items.filter((job) => !job.isActive).length,
-      totalViews: jobs.items.reduce(
-        (sum, job) => sum + (jobInsights?.viewCount || 0),
-        0,
-      ),
-      totalApplications: jobs.items.reduce(
-        (sum, job) => sum + (jobInsights?.applicationCount || 0),
-        0,
-      ),
-    };
-
-    // Get recent applications across all jobs
-    const allApplications = await Promise.all(
-      jobs.items.map((job) => this.jobRepository.findApplicationsByJob(job.id)),
-    );
-
-    const flatApplications = allApplications
-      .flatMap((res) => res.items)
-      .sort(
-        (a, b) =>
-          new Date(b.application.appliedAt).getTime() -
-          new Date(a.application.appliedAt).getTime(),
-      );
-
-    const recentApplications = flatApplications.slice(0, 10);
-
-    return {
-      organization,
-      jobs: recentJobs,
-      applications: recentApplications,
-      stats: jobStats,
-    };
-  }
+  // async getEmployerDashboard(organizationId: number) {
+  //   const organization =
+  //     await this.organizationRepository.findById(organizationId);
+  //   if (!organization) {
+  //     return this.handleError(
+  //       new NotFoundError("Organization", organizationId),
+  //     );
+  //   }
+  //
+  //   const jobs = await this.jobRepository.findJobsByEmployer(organizationId, {
+  //     limit: 1000,
+  //   });
+  //   const jobInsights =
+  //     await this.jobInsightsRepository.getJobInsightByOrganizationId(
+  //       organizationId,
+  //     );
+  //   const recentJobs = jobs.items.slice(0, 5);
+  //
+  //   // Get job statistics
+  //   const jobStats = {
+  //     total: jobs.items.length,
+  //     active: jobs.items.filter((job) => job.isActive).length,
+  //     inactive: jobs.items.filter((job) => !job.isActive).length,
+  //     totalViews: jobs.items.reduce(
+  //       (sum, job) => sum + (jobInsights?.viewCount || 0),
+  //       0,
+  //     ),
+  //     totalApplications: jobs.items.reduce(
+  //       (sum, job) => sum + (jobInsights?.applicationCount || 0),
+  //       0,
+  //     ),
+  //   };
+  //
+  //   // Get recent applications across all jobs
+  //   const allApplications = await Promise.all(
+  //     jobs.items.map((job) => this.jobRepository.findApplicationsByJob(job.id)),
+  //   );
+  //
+  //   const flatApplications = allApplications
+  //     .flatMap((res) => res.items)
+  //     .sort(
+  //       (a, b) =>
+  //         new Date(b.application.appliedAt).getTime() -
+  //         new Date(a.application.appliedAt).getTime(),
+  //     );
+  //
+  //   const recentApplications = flatApplications.slice(0, 10);
+  //
+  //   return {
+  //     organization,
+  //     jobs: recentJobs,
+  //     applications: recentApplications,
+  //     stats: jobStats,
+  //   };
+  // }
 
   // async getAdminDashboard() {
   //   try {
@@ -568,29 +545,6 @@ export class JobService extends BaseService {
   //     this.handleError(error);
   //   }
   // }
-
-  private async getUserCounts() {
-    const allUsers = await this.userRepository.findAll({ limit: 10000 });
-    const users = allUsers.items;
-
-    return {
-      total: users.length,
-      active: users.filter((user) => user.isActive).length,
-      inactive: users.filter((user) => !user.isActive).length,
-      byRole: {
-        users: users.filter((user) => user.role === "user").length,
-        employers: users.filter((user) => user.role === "employer").length,
-        admins: users.filter((user) => user.role === "admin").length,
-      },
-    };
-  }
-
-  private async getOrganizationCounts() {
-    const allOrgs = await this.organizationRepository.findAll({ limit: 10000 });
-    return {
-      total: allOrgs.items.length,
-    };
-  }
 
   private processSkillsArray(skills: string): string {
     try {
