@@ -1,6 +1,6 @@
-import { JobRepository } from "../repositories/job.repository";
-import { UserRepository } from "../repositories/user.repository";
-import { OrganizationRepository } from "../repositories/organization.repository";
+import { JobRepository } from "@/repositories/job.repository";
+import { UserRepository } from "@/repositories/user.repository";
+import { OrganizationRepository } from "@/repositories/organization.repository";
 import { BaseService } from "./base.service";
 import {
   NewJob,
@@ -8,35 +8,17 @@ import {
   Job,
   UpdateJob,
   UpdateJobApplication,
-} from "../db/schema";
+} from "@/db/schema";
 import {
   NotFoundError,
   ForbiddenError,
   ConflictError,
   ValidationError,
-} from "../utils/errors";
-import { SecurityUtils } from "../utils/security";
-import { AppError, ErrorCode } from "../utils/errors";
-import { JobInsightsRepository } from "../repositories/jobInsights.repository";
-
-export interface JobSearchFilters {
-  searchTerm?: string;
-  jobType?: string;
-  location?: string;
-  experienceLevel?: string;
-  compensationType?: string;
-  isRemote?: boolean;
-  salaryMin?: number;
-  salaryMax?: number;
-  page?: number;
-  limit?: number;
-}
-
-export interface ApplicationFilters {
-  page?: number;
-  limit?: number;
-  status?: string;
-}
+} from "@/utils/errors";
+import { SecurityUtils } from "@/utils/security";
+import { AppError, ErrorCode } from "@/utils/errors";
+import { JobInsightsRepository } from "@/repositories/jobInsights.repository";
+import { SearchParams } from "@/validations/base.validation";
 
 export class JobService extends BaseService {
   private jobRepository: JobRepository;
@@ -60,7 +42,7 @@ export class JobService extends BaseService {
     }
   }
 
-  async searchJobs(filters: JobSearchFilters) {
+  async searchJobs(filters: SearchParams["query"]) {
     try {
       return await this.jobRepository.searchJobs(filters);
     } catch (error) {
@@ -294,7 +276,7 @@ export class JobService extends BaseService {
 
   async getJobApplications(
     jobId: number,
-    options: ApplicationFilters = {},
+    { page, limit, status }: SearchParams["query"],
     requesterId: number,
     requesterRole: string,
   ) {
@@ -320,12 +302,23 @@ export class JobService extends BaseService {
       );
     }
 
-    return await this.jobRepository.findApplicationsByJob(jobId, options);
+    return await this.jobRepository.findApplicationsByJob(jobId, {
+      page,
+      limit,
+      status,
+    });
   }
 
-  async getUserApplications(userId: number, options: ApplicationFilters = {}) {
+  async getUserApplications(
+    userId: number,
+    { page, limit, status }: SearchParams["query"],
+  ) {
     try {
-      return await this.jobRepository.findApplicationsByUser(userId, options);
+      return await this.jobRepository.findApplicationsByUser(userId, {
+        page,
+        limit,
+        status,
+      });
     } catch (error) {
       this.handleError(error);
     }
