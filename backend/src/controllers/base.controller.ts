@@ -8,7 +8,7 @@ import {
   UnauthorizedError,
 } from "@/utils/errors";
 import logger from "@/logger";
-import { PaginatedResponse, PaginationMeta, ApiResponse } from "@/types";
+import { PaginationMeta } from "@/types";
 
 export class BaseController {
   protected sendSuccess<T>(
