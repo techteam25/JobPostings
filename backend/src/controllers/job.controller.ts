@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+
 import { JobService } from "@/services/job.service";
 import { JobMatchingService } from "@/services/job-matching.service";
 import { BaseController } from "./base.controller";
@@ -12,7 +13,8 @@ import {
 import { GetOrganizationSchema } from "@/validations/organization.validation";
 import { SearchParams } from "@/validations/base.validation";
 import { GetJobApplicationSchema } from "@/validations/jobApplications.validation";
-import { UpdateJobApplication } from "@/db/schema";
+import { JobWithEmployer, UpdateJobApplication } from "@/db/schema";
+import { PaginatedResponse } from "@/types";
 
 export class JobController extends BaseController {
   private jobService: JobService;
@@ -26,20 +28,30 @@ export class JobController extends BaseController {
 
   getAllJobs = async (
     req: Request<{}, {}, {}, SearchParams["query"]>,
-    res: Response,
+    res: Response<PaginatedResponse<JobWithEmployer>>,
   ) => {
     try {
       const { page, limit } = req.query;
-      const result = await this.jobService.getAllActiveJobs({ page, limit });
+      const { items, pagination } = await this.jobService.getAllActiveJobs({
+        page,
+        limit,
+      });
 
-      this.sendPaginatedResponse(
-        res,
-        result.items,
-        result.pagination,
-        "Jobs retrieved successfully",
-      );
+      return res.json({
+        success: true,
+        data: items,
+        pagination,
+        message: "Jobs retrieved successfully",
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      this.handleControllerError(res, error, "Failed to retrieve jobs");
+      return res.status(500).json({
+        success: false,
+        message: "Failed to retrieve jobs",
+        error: (error as Error).message,
+        status: "error",
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
@@ -48,35 +60,29 @@ export class JobController extends BaseController {
     res: Response,
   ) => {
     try {
-      const { page, limit, status } = req.query;
-      // const {
-      //   search,
-      //   jobType,
-      //   location,
-      //   experienceLevel,
-      //   compensationType,
-      //   isRemote,
-      //   salaryMin,
-      //   salaryMax,
-      // } = req.query;
-
-      const filters = {
-        // searchTerm: typeof search === "string" ? search : undefined,
-        // jobType: typeof jobType === "string" ? jobType : undefined,
-        // location: typeof location === "string" ? location : undefined,
-        // experienceLevel:
-        //   typeof experienceLevel === "string" ? experienceLevel : undefined,
-        // compensationType:
-        //   typeof compensationType === "string" ? compensationType : undefined,
-        // isRemote: isRemote === "true",
-        // salaryMin: salaryMin ? Number(salaryMin) : undefined,
-        // salaryMax: salaryMax ? Number(salaryMax) : undefined,
+      const {
         page,
         limit,
+        q,
+        jobType,
+        sortBy,
+        location,
+        isRemote,
+        order,
         status,
-      };
+      } = req.query;
 
-      const result = await this.jobService.searchJobs(filters);
+      const result = await this.jobService.searchJobs({
+        page,
+        limit,
+        q,
+        jobType,
+        sortBy,
+        location,
+        isRemote,
+        order,
+        status,
+      });
       this.sendPaginatedResponse(
         res,
         result.items,
