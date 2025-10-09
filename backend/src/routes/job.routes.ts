@@ -1,22 +1,22 @@
 import { Router } from "express";
-import { JobController } from "../controllers/job.controller";
-import { AuthMiddleware } from "../middleware/auth.middleware";
+import { JobController } from "@/controllers/job.controller";
+import { AuthMiddleware } from "@/middleware/auth.middleware";
 import validate from "../middleware/validation.middleware";
 import {
   createJobSchema,
   updateJobSchema,
   getJobSchema,
   deleteJobSchema,
-} from "../validations/job.validation";
-import { searchParams } from "../validations/base.validation";
-import { updateApplicationStatusSchema } from "../validations/jobApplications.validation";
+} from "@/validations/job.validation";
+import { searchParams } from "@/validations/base.validation";
+import { updateApplicationStatusSchema } from "@/validations/jobApplications.validation";
 
 const router = Router();
 const jobController = new JobController();
 const authMiddleware = new AuthMiddleware();
 
 // Public routes
-router.get("/", jobController.getAllJobs);
+router.get("/", validate(searchParams), jobController.getAllJobs);
 router.get("/search", validate(searchParams), jobController.searchJobs);
 // router.get("/stats", jobController.getJobStats);
 router.get("/:id", validate(getJobSchema), jobController.getJobById);
