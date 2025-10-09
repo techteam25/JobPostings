@@ -36,15 +36,6 @@ export class AuthService extends BaseService {
     userAgent?: string,
     ipAddress?: string,
   ): Promise<{ user: User; tokens: AuthTokens }> {
-    // Validate input
-    this.validateInput(userData, [
-      "email",
-      "password",
-      "firstName",
-      "lastName",
-      "role",
-    ]);
-
     // Check if user already exists
     const existingUser = await this.userRepository.findByEmail(userData.email);
     if (existingUser) {
