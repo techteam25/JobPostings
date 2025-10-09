@@ -1,6 +1,7 @@
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { seedAdminUser, seedJobs, seedOrganizations } from "@tests/utils/seed";
 import { AuthTokens } from "@/types";
+import { expect } from "vitest";
 
 describe("Job Controller Integration Tests", () => {
   describe("GET /jobs", () => {
@@ -118,6 +119,122 @@ describe("Job Controller Integration Tests", () => {
       expect(response.body).toHaveProperty(
         "message",
         "Job created successfully",
+      );
+    });
+
+    it("should return 400 for invalid job creation payload", async () => {
+      const invalidJob = {
+        title: "SWE", // Too short
+        description: "Short desc", // Too short
+        location: "", // Required field
+        jobType: "unknown-type", // Invalid enum value
+        compensationType: "paid",
+        experience: "mid",
+        salaryMin: -5000, // Invalid negative salary
+        salaryMax: 3000, // Max less than min
+        currency: "US", // Invalid length
+        isRemote: false,
+        applicationDeadline: "invalid-date", // Invalid date format
+        skills: "JavaScript, TypeScript, Node.js",
+        employerId: 9999, // Assuming this org does not exist
+      };
+
+      const response = await request
+        .post("/api/jobs")
+        .set("Authorization", `Bearer ${userResponse.data.tokens.accessToken}`)
+        .send(invalidJob);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.error).toHaveProperty("code", "VALIDATION_ERROR");
+      expect(response.body.error).toHaveProperty(
+        "message",
+        "Request validation failed",
+      );
+      expect(response.body.error).toHaveProperty("details");
+      expect(Array.isArray(response.body.error.details)).toBe(true);
+      expect(response.body.error.details.length).toBeGreaterThan(0);
+    });
+
+    it("should return 401 when creating a job without authentication", async () => {
+      const newJob = {
+        title: "Software Engineer",
+        description:
+          "We are looking for a skilled Software Engineer to join our team. The ideal candidate will have experience in building high-quality applications.",
+        location: "New York, NY",
+        jobType: "full-time",
+        compensationType: "paid",
+        experience: "mid",
+        salaryMin: 60000.0,
+        salaryMax: 90000.0,
+        currency: "USD",
+        isRemote: false,
+        applicationDeadline: new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 30 days from now
+        skills: "JavaScript, TypeScript, Node.js",
+        employerId: 1, // Assuming organization with ID 1 exists
+      };
+
+      const response = await request.post("/api/jobs").send(newJob);
+
+      TestHelpers.validateApiResponse(response, 401);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Authentication required",
+      );
+      expect(response.body).toHaveProperty("status", "error");
+    });
+
+    it("should return 403 when a non-admin user attempts to create a job", async () => {
+      // Seed a regular user
+      await request.post("/api/auth/register").send({
+        name: "Regular User",
+        email: "regular@example.com",
+        password: "Password@123",
+        firstName: "Regular",
+        lastName: "User",
+        role: "user",
+        organizationId: 1,
+      });
+
+      const loginResponse = await request.post("/api/auth/login").send({
+        email: "regular@example.com",
+        password: "Password@123",
+      });
+
+      const newJob = {
+        title: "Software Engineer",
+        description:
+          "We are looking for a skilled Software Engineer to join our team. The ideal candidate will have experience in building high-quality applications.",
+        location: "New York, NY",
+        jobType: "full-time",
+        compensationType: "paid",
+        experience: "mid",
+        salaryMin: 60000.0,
+        salaryMax: 90000.0,
+        currency: "USD",
+        isRemote: false,
+        applicationDeadline: new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 30 days from now
+        skills: "JavaScript, TypeScript, Node.js",
+        employerId: 1, // Assuming organization with ID 1 exists
+      };
+
+      const response = await request
+        .post("/api/jobs")
+        .set(
+          "Authorization",
+          `Bearer ${loginResponse.body.data.tokens.accessToken}`,
+        )
+        .send(newJob);
+
+      TestHelpers.validateApiResponse(response, 403);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Insufficient permissions",
       );
     });
   });
