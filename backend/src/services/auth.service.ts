@@ -288,21 +288,7 @@ export class AuthService extends BaseService {
   }
 
   verifyToken(token: string): TokenPayload {
-    if (!env.JWT_SECRET) {
-      return this.handleError(new Error("JWT_SECRET is not configured"));
-    }
-
-    const decoded = jwt.verify(token, env.JWT_SECRET) as {
-      userId: number;
-      sessionId?: number;
-      type: string;
-      iat?: number;
-      exp?: number;
-    };
-
-    if (decoded.type !== "access") {
-      return this.handleError(new UnauthorizedError("Invalid token type"));
-    }
+    const decoded = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
 
     return {
       userId: decoded.userId,
