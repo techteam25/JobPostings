@@ -23,5 +23,20 @@ describe("Job Controller Integration Tests", () => {
         "Jobs retrieved successfully",
       );
     });
+
+    it("should retrieve a single job by ID returning 200", async () => {
+      const response = await request.get("/api/jobs/1");
+
+      TestHelpers.validateApiResponse(response, 200);
+      expect(response.body.data).toHaveProperty("id", 1);
+      expect(response.body.data).toHaveProperty("title");
+      expect(response.body.data).toHaveProperty("description");
+      expect(response.body.data).toHaveProperty("location");
+      expect(response.body.data).toHaveProperty("employerId");
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job retrieved successfully",
+      );
+    });
   });
 });
