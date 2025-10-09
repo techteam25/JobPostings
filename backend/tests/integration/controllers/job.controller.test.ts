@@ -1,7 +1,6 @@
-import { beforeEach } from "vitest";
-
 import { request, TestHelpers } from "@tests/utils/testHelpers";
-import { seedJobs } from "@tests/utils/seed";
+import { seedAdminUser, seedJobs, seedOrganizations } from "@tests/utils/seed";
+import { AuthTokens } from "@/types";
 
 describe("Job Controller Integration Tests", () => {
   describe("GET /jobs", () => {
@@ -36,6 +35,89 @@ describe("Job Controller Integration Tests", () => {
       expect(response.body).toHaveProperty(
         "message",
         "Job retrieved successfully",
+      );
+    });
+  });
+
+  describe("POST /jobs", () => {
+    let userResponse: { data: { tokens: AuthTokens } };
+
+    beforeEach(async () => {
+      await seedOrganizations();
+      await seedAdminUser();
+
+      const response = await request
+        .post("/api/auth/login")
+        .send({ email: "admin@example.com", password: "Password@123" });
+
+      userResponse = response.body;
+    });
+
+    it("should create a single job returning 200", async () => {
+      const newJob = {
+        title: "Software Engineer",
+        description:
+          "We are looking for a skilled Software Engineer to join our team. The ideal candidate will have experience in building high-quality applications.",
+        location: "New York, NY",
+        jobType: "full-time",
+        compensationType: "paid",
+        experience: "mid",
+        salaryMin: 60000.0,
+        salaryMax: 90000.0,
+        currency: "USD",
+        isRemote: false,
+        applicationDeadline: new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000,
+        ).toISOString(), // 30 days from now
+        skills: "JavaScript, TypeScript, Node.js",
+        employerId: 1, // Assuming organization with ID 1 exists
+      };
+
+      const response = await request
+        .post("/api/jobs")
+        .set("Authorization", `Bearer ${userResponse.data.tokens.accessToken}`)
+        .send(newJob);
+
+      TestHelpers.validateApiResponse(response, 201);
+
+      expect(response.body.data).toHaveProperty("id");
+      expect(response.body.data).toHaveProperty("title", newJob.title);
+      expect(response.body.data).toHaveProperty(
+        "description",
+        newJob.description,
+      );
+
+      expect(response.body.data).toHaveProperty("location", newJob.location);
+      expect(response.body.data).toHaveProperty("jobType", newJob.jobType);
+      expect(response.body.data).toHaveProperty(
+        "compensationType",
+        newJob.compensationType,
+      );
+      expect(response.body.data).toHaveProperty(
+        "experience",
+        newJob.experience,
+      );
+
+      expect(response.body.data).toHaveProperty(
+        "salaryMin",
+        newJob.salaryMin.toFixed(2),
+      );
+      expect(response.body.data).toHaveProperty(
+        "salaryMax",
+        newJob.salaryMax.toFixed(2),
+      );
+      expect(response.body.data).toHaveProperty("isRemote", newJob.isRemote);
+
+      expect(JSON.parse(response.body.data.skills)).toEqual(
+        newJob.skills.split(",").map((skill) => skill.trim()),
+      );
+      expect(response.body.data).toHaveProperty(
+        "employerId",
+        newJob.employerId,
+      );
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job created successfully",
       );
     });
   });
