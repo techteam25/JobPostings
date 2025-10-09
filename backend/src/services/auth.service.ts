@@ -1,5 +1,3 @@
-import bcrypt from "bcrypt";
-import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
 import { BaseService } from "./base.service";
@@ -21,12 +19,11 @@ import {
   UserLoginSchema,
 } from "@/validations/auth.validation";
 import { AuthTokens } from "@/types";
+import { SecurityUtils } from "@/utils/security";
 
 export class AuthService extends BaseService {
   private userRepository: UserRepository;
   private sessionRepository: SessionRepository;
-  private readonly accessTokenExpiry = "24h";
-  private readonly refreshTokenExpiry = "7d";
 
   constructor() {
     super();
@@ -57,8 +54,7 @@ export class AuthService extends BaseService {
     }
 
     // Hash password
-    const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(userData.password, saltRounds);
+    const passwordHash = await SecurityUtils.hashPassword(userData.password);
 
     // Create user
     const { password, ...userDataWithoutPassword } = userData;
@@ -111,14 +107,17 @@ export class AuthService extends BaseService {
       return this.handleError(new NotFoundError("User not found"));
     }
 
-    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    const isValid = await SecurityUtils.verifyPassword(
+      currentPassword,
+      user.passwordHash,
+    );
     if (!isValid) {
       return this.handleError(
         new ValidationError("Current password is incorrect"),
       );
     }
 
-    const newHash = await bcrypt.hash(newPassword, 12);
+    const newHash = await SecurityUtils.hashPassword(newPassword);
     await this.userRepository.update(userId, { passwordHash: newHash });
   }
 
@@ -129,7 +128,7 @@ export class AuthService extends BaseService {
     }
 
     // Generate reset token
-    const resetToken = this.generateSecureToken();
+    const resetToken = SecurityUtils.generateSecureToken();
     // TODO: Implement token storage and email sending logic
     // For example, store resetToken in a password_resets table and send email
     console.log(`Password reset token for ${email}: ${resetToken}`);
@@ -145,7 +144,7 @@ export class AuthService extends BaseService {
       );
     }
 
-    const newHash = await bcrypt.hash(newPassword, 12);
+    const newHash = await SecurityUtils.hashPassword(newPassword);
     await this.userRepository.update(userId, { passwordHash: newHash });
   }
 
@@ -167,7 +166,10 @@ export class AuthService extends BaseService {
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    const isPasswordValid = await SecurityUtils.verifyPassword(
+      password,
+      user.passwordHash,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedError("Invalid credentials");
     }
@@ -267,11 +269,9 @@ export class AuthService extends BaseService {
   }
 
   private generateTokens(userId: number): AuthTokens {
-    const accessToken = jwt.sign({ userId, iat: Date.now() }, env.JWT_SECRET, {
-      expiresIn: this.accessTokenExpiry,
-    });
+    const accessToken = SecurityUtils.generateAccessToken(userId);
 
-    const refreshToken = this.generateSecureToken();
+    const refreshToken = SecurityUtils.generateRefreshToken(userId);
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     const refreshExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
@@ -283,16 +283,11 @@ export class AuthService extends BaseService {
     };
   }
 
-  private generateSecureToken(): string {
-    return crypto.randomBytes(64).toString("hex");
-  }
-
   verifyToken(token: string): TokenPayload {
     const decoded = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
 
     return {
       userId: decoded.userId,
-      sessionId: decoded.sessionId,
       iat: decoded.iat,
       exp: decoded.exp,
     };
