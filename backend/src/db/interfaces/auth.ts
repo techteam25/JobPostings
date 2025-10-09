@@ -9,7 +9,6 @@ export interface ResetPasswordData {
 
 export interface TokenPayload {
   userId: number;
-  sessionId?: number;
   iat?: number;
   exp?: number;
 }
