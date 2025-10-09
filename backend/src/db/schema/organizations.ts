@@ -58,3 +58,4 @@ export const updateOrganizationSchema = insertOrganizationSchema
   .omit({ id: true, createdAt: true });
 
 export type NewOrganization = z.infer<typeof insertOrganizationSchema>;
+export type Organization = z.infer<typeof selectOrganizationSchema>;
