@@ -19,9 +19,9 @@ const authMiddleware = new AuthMiddleware();
 router.get("/", validate(searchParams), jobController.getAllJobs);
 router.get("/search", validate(searchParams), jobController.searchJobs);
 // router.get("/stats", jobController.getJobStats);
-router.get("/:id", validate(getJobSchema), jobController.getJobById);
+router.get("/:jobId", validate(getJobSchema), jobController.getJobById);
 router.get(
-  "/:id/similar",
+  "/:jobId/similar",
   validate(getJobSchema),
   jobController.getSimilarJobs,
 );
@@ -71,14 +71,14 @@ router.post(
 );
 
 router.put(
-  "/:id",
+  "/:jobId",
   authMiddleware.requireRole(["employer", "admin"]),
   validate(updateJobSchema),
   jobController.updateJob,
 );
 
 router.delete(
-  "/:id",
+  "/:jobId",
   authMiddleware.requireRole(["employer", "admin"]),
   validate(deleteJobSchema),
   jobController.deleteJob,
