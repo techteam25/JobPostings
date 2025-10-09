@@ -1,7 +1,7 @@
-import { OrganizationRepository } from "../repositories/organization.repository";
+import { OrganizationRepository } from "@/repositories/organization.repository";
 import { BaseService } from "./base.service";
-import { NewOrganization } from "../db/schema";
-import { ConflictError, NotFoundError } from "../utils/errors";
+import { NewOrganization } from "@/db/schema";
+import { ConflictError, NotFoundError } from "@/utils/errors";
 
 export class OrganizationService extends BaseService {
   private organizationRepository: OrganizationRepository;
