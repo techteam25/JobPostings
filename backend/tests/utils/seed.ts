@@ -117,3 +117,33 @@ export const seedJobs = async () => {
     logger.error(`Error seeding jobs:, ${error}`);
   }
 };
+
+export const seedAdminUser = async () => {
+  const { faker } = await import("@faker-js/faker");
+
+  const bcrypt = await import("bcrypt");
+  const hashedPassword = await bcrypt.hash("Password@123", 12);
+
+  try {
+    await db.transaction(async (t) => {
+      await t.delete(users);
+
+      // Reset auto-increment counters
+      await t.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+
+      await t.insert(users).values({
+        email: "admin@example.com",
+        firstName: faker.person.firstName(),
+        lastName: faker.person.lastName(),
+        passwordHash: hashedPassword,
+        role: "admin",
+        organizationId: 1,
+        isEmailVerified: true,
+        isActive: true,
+        lastLoginAt: new Date(),
+      });
+    });
+  } catch (error) {
+    console.error(error);
+  }
+};
