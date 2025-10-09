@@ -20,7 +20,7 @@ const createJobPayloadSchema = z
       "internship",
     ]),
     compensationType: z.enum(["paid", "missionary", "volunteer", "stipend"]),
-    experienceLevel: z.enum(["entry", "mid", "senior", "lead", "executive"]),
+    experience: z.string(),
     salaryMin: z.number().positive().optional(),
     salaryMax: z.number().positive().optional(),
     currency: z.string().length(3).default("USD"),
@@ -29,9 +29,7 @@ const createJobPayloadSchema = z
       .datetime()
       .transform((str) => new Date(str))
       .optional(),
-    requiredSkills: z.string().optional(),
-    preferredSkills: z.string().optional(),
-    benefits: z.string().max(2000).optional(),
+    skills: z.string().optional(),
     employerId: z.number().int().positive().optional(),
   })
   .refine(
