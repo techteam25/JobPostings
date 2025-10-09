@@ -1,12 +1,16 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { env } from "../config/env";
+
+import { env } from "@/config/env";
 import { AppError, ErrorCode, UnauthorizedError } from "./errors";
+import { TokenPayload } from "@/db/interfaces/auth";
 
 export class SecurityUtils {
   private static readonly SALT_ROUNDS = 12;
   private static readonly TOKEN_LENGTH = 32;
+  private static readonly accessTokenExpiry = "24h";
+  private static readonly refreshTokenExpiry = "7d";
 
   static async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, this.SALT_ROUNDS);
@@ -23,46 +27,33 @@ export class SecurityUtils {
     return crypto.randomBytes(this.TOKEN_LENGTH).toString("hex");
   }
 
-  static generateAccessToken(payload: {
-    userId: number;
-    sessionId: number;
-  }): string {
+  static generateAccessToken(userId: number): string {
     return jwt.sign(
       {
-        ...payload,
-        type: "access",
-        iat: Math.floor(Date.now() / 1000),
+        userId,
+        iat: Date.now(),
       },
       env.JWT_SECRET,
-      { expiresIn: "15m" }, // Short-lived access token
+      { expiresIn: this.accessTokenExpiry }, // Short-lived access token
     );
   }
 
-  static generateRefreshToken(payload: {
-    userId: number;
-    sessionId: number;
-  }): string {
+  static generateRefreshToken(userId: number): string {
     return jwt.sign(
       {
-        ...payload,
-        type: "refresh",
-        iat: Math.floor(Date.now() / 1000),
+        userId,
+        iat: Date.now(),
       },
-      env.JWT_REFRESH_SECRET || env.JWT_SECRET,
-      { expiresIn: "7d" }, // Longer-lived refresh token
+      env.JWT_REFRESH_SECRET,
+      { expiresIn: this.refreshTokenExpiry }, // Longer-lived refresh token
     );
   }
 
-  static verifyAccessToken(token: string): {
-    userId: number;
-    sessionId: number;
-  } {
+  static verifyAccessToken(token: string) {
     try {
-      const decoded = jwt.verify(token, env.JWT_SECRET) as any;
-      if (decoded.type !== "access") {
-        throw new UnauthorizedError("Invalid token type");
-      }
-      return { userId: decoded.userId, sessionId: decoded.sessionId };
+      const decoded = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
+
+      return { userId: decoded.userId };
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
         throw new AppError(
@@ -71,7 +62,7 @@ export class SecurityUtils {
           ErrorCode.TOKEN_EXPIRED,
         );
       }
-      throw new UnauthorizedError("Invalid access token");
+      throw error;
     }
   }
 
