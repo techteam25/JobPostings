@@ -13,8 +13,8 @@ import {
 import { GetOrganizationSchema } from "@/validations/organization.validation";
 import { SearchParams } from "@/validations/base.validation";
 import { GetJobApplicationSchema } from "@/validations/jobApplications.validation";
-import { JobWithEmployer, UpdateJobApplication } from "@/db/schema";
-import { PaginatedResponse } from "@/types";
+import { Job, JobWithEmployer, UpdateJobApplication } from "@/db/schema";
+import { ApiResponse, PaginatedResponse } from "@/types";
 
 export class JobController extends BaseController {
   private jobService: JobService;
@@ -94,7 +94,10 @@ export class JobController extends BaseController {
     }
   };
 
-  getJobById = async (req: Request<GetJobSchema["params"]>, res: Response) => {
+  getJobById = async (
+    req: Request<GetJobSchema["params"]>,
+    res: Response<ApiResponse<Job>>,
+  ) => {
     try {
       const jobId = parseInt(req.params.jobId);
 
@@ -103,9 +106,20 @@ export class JobController extends BaseController {
       // Increment view count
       await this.jobService.incrementJobViews(jobId);
 
-      this.sendSuccess(res, job, "Job retrieved successfully");
+      return res.json({
+        success: true,
+        data: job,
+        message: "Job retrieved successfully",
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      this.handleControllerError(res, error, "Failed to retrieve job");
+      return res.status(500).json({
+        success: false,
+        message: "Failed to retrieve job",
+        error: (error as Error).message,
+        status: "error",
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
@@ -166,11 +180,16 @@ export class JobController extends BaseController {
         ...req.body,
         employerId: req.user?.organizationId!,
         postedById: req.userId!,
+        applicationDeadline: req.body.applicationDeadline
+          ? new Date(req.body.applicationDeadline)
+          : null,
       };
 
       const job = await this.jobService.createJob(jobData);
+
       this.sendSuccess(res, job, "Job created successfully", 201);
     } catch (error) {
+      // console.log(error);
       this.handleControllerError(res, error, "Failed to create job", 400);
     }
   };
