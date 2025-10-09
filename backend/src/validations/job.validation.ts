@@ -18,7 +18,6 @@ const createJobPayloadSchema = z
       "contract",
       "volunteer",
       "internship",
-      "short-term-trip",
     ]),
     compensationType: z.enum(["paid", "missionary", "volunteer", "stipend"]),
     experienceLevel: z.enum(["entry", "mid", "senior", "lead", "executive"]),
