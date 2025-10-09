@@ -1,5 +1,4 @@
-import { NextFunction, Request, Response } from "express";
-import { AuthService } from "@/services/auth.service";
+import type { NextFunction, Request, Response } from "express";
 import { UserService } from "@/services/user.service";
 import logger from "@/logger";
 import { SecurityUtils } from "@/utils/security";
