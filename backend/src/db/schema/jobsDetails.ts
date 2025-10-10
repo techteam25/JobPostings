@@ -89,12 +89,9 @@ export const jobApplications = mysqlTable(
       .notNull(),
     coverLetter: text("cover_letter"),
     resumeUrl: varchar("resume_url", { length: 500 }),
-    customAnswers: text("custom_answers"), // JSON for custom application questions
     appliedAt: timestamp("applied_at").defaultNow().notNull(),
     reviewedAt: timestamp("reviewed_at"),
-    reviewedBy: int("reviewed_by"),
     notes: text("notes"),
-    rating: int("rating"), // 1-5 rating by employer
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },
@@ -112,11 +109,6 @@ export const jobApplications = mysqlTable(
       columns: [table.applicantId],
       foreignColumns: [users.id],
       name: "fk_application_applicant",
-    }),
-    foreignKey({
-      columns: [table.reviewedBy],
-      foreignColumns: [users.id],
-      name: "fk_application_reviewer",
     }),
   ],
 );
@@ -168,10 +160,6 @@ export const jobApplicationsRelations = relations(
       fields: [jobApplications.applicantId],
       references: [users.id],
     }),
-    reviewer: one(users, {
-      fields: [jobApplications.reviewedBy],
-      references: [users.id],
-    }),
   }),
 );
 
@@ -219,8 +207,6 @@ export const insertJobApplicationSchema = createInsertSchema(jobApplications, {
     .max(2000)
     .optional(),
   resumeUrl: z.url("Invalid resume URL").optional(),
-  customAnswers: z.string().optional(),
-  rating: z.number().int().min(1).max(5).optional(),
 });
 
 export const insertJobInsightsSchema = createInsertSchema(jobInsights, {
