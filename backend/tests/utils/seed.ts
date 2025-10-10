@@ -20,39 +20,76 @@ enum compensationTypeEnum {
   STIPEND = "stipend",
 }
 
+export const seedUser = async () => {
+  const { faker } = await import("@faker-js/faker");
+  const bcrypt = await import("bcrypt");
+
+  const hashedPassword = await bcrypt.hash("Password@123", 12);
+
+  await db.transaction(async (trx) => {
+    await trx.delete(users);
+
+    // Reset auto-increment counters
+    await trx.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+
+    await trx.insert(users).values({
+      email: "normal.user@example.com",
+      passwordHash: hashedPassword,
+      firstName: faker.person.firstName(),
+      lastName: faker.person.lastName(),
+      role: "user",
+    });
+  });
+};
+
 export const seedUsers = async () => {
   const { faker } = await import("@faker-js/faker");
   const bcrypt = await import("bcrypt");
 
   const hashedPassword = await bcrypt.hash("Password@123", 12);
 
-  await db.insert(users).values(
-    Array.from({ length: 5 }).map((_, index) => ({
-      id: index + 1,
-      email: faker.internet.email(),
-      passwordHash: hashedPassword,
-      firstName: faker.person.firstName(),
-      lastName: faker.person.lastName(),
-      role: "user" as const,
-    })),
-  );
+  await db.transaction(async (trx) => {
+    await trx.delete(users);
+
+    // Reset auto-increment counters
+    await trx.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+
+    await trx.insert(users).values(
+      Array.from({ length: 5 }).map((_, index) => ({
+        id: index + 1,
+        email: faker.internet.email(),
+        passwordHash: hashedPassword,
+        firstName: faker.person.firstName(),
+        lastName: faker.person.lastName(),
+        role: "user" as const,
+      })),
+    );
+  });
 };
 
 export const seedOrganizations = async () => {
   const { faker } = await import("@faker-js/faker");
-  await db.insert(organizations).values(
-    Array.from({ length: 3 }).map(() => ({
-      name: faker.company.name(),
-      streetAddress: faker.location.streetAddress(),
-      city: faker.location.city(),
-      state: faker.location.state(),
-      zipCode: faker.location.zipCode("#####"),
-      phone: faker.phone.number({ style: "international" }),
-      contact: 1,
-      url: faker.internet.url(),
-      mission: faker.lorem.sentence(),
-    })),
-  );
+
+  await db.transaction(async (trx) => {
+    await trx.delete(organizations);
+
+    // Reset auto-increment counters
+    await trx.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
+
+    await trx.insert(organizations).values(
+      Array.from({ length: 3 }).map(() => ({
+        name: faker.company.name(),
+        streetAddress: faker.location.streetAddress(),
+        city: faker.location.city(),
+        state: faker.location.state(),
+        zipCode: faker.location.zipCode("#####"),
+        phone: faker.phone.number({ style: "international" }),
+        contact: 1,
+        url: faker.internet.url(),
+        mission: faker.lorem.sentence(),
+      })),
+    );
+  });
 };
 
 export const seedJobs = async () => {
