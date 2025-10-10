@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { AuthService } from "@/services/auth.service";
 import { SessionRepository } from "@/repositories/session.repository";
 import { BaseController } from "./base.controller";
-import { AppError, ErrorCode } from "@/utils/errors";
 import { ResetPasswordData } from "@/db/interfaces/auth";
 import {
   ChangeUserPasswordSchema,
