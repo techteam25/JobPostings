@@ -41,7 +41,7 @@ export const seedUsers = async () => {
 export const seedOrganizations = async () => {
   const { faker } = await import("@faker-js/faker");
   await db.insert(organizations).values(
-    Array.from({ length: 5 }).map(() => ({
+    Array.from({ length: 3 }).map(() => ({
       name: faker.company.name(),
       streetAddress: faker.location.streetAddress(),
       city: faker.location.city(),
@@ -60,6 +60,7 @@ export const seedJobs = async () => {
 
   try {
     await db.transaction(async (t) => {
+      await t.delete(users);
       await t.delete(organizations);
       await t.delete(jobsDetails);
 
@@ -114,7 +115,7 @@ export const seedJobs = async () => {
       );
     });
   } catch (error) {
-    logger.error(`Error seeding jobs:, ${error}`);
+    logger.error(`Error seeding jobs:, ${JSON.stringify(error, null, 2)}`);
   }
 };
 
