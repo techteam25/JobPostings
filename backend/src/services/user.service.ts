@@ -113,8 +113,7 @@ export class UserService extends BaseService {
       return this.handleError(new NotFoundError("User", userId));
     }
 
-    await this.userRepository.updateProfile(userId, profileData);
-    return await this.getUserById(userId);
+    return await this.userRepository.updateProfile(userId, profileData);
   }
 
   async changePassword(
