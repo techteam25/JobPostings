@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/swagger/registry";
 
 const createJobPayloadSchema = z
   .object({
