@@ -126,6 +126,8 @@ export const jobInsights = mysqlTable(
       .notNull(),
     viewCount: int("view_count").default(0),
     applicationCount: int("application_count").default(0),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },
   (table) => [
     index("job_idx").on(table.job),
