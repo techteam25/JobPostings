@@ -243,9 +243,8 @@ describe("Job Controller Integration Tests", () => {
     let userResponse: { data: { tokens: AuthTokens } };
 
     beforeEach(async () => {
-      await seedOrganizations();
-      await seedAdminUser();
       await seedJobs();
+      await seedAdminUser();
 
       const response = await request
         .post("/api/auth/login")
