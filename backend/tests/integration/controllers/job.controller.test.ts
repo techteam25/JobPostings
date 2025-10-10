@@ -238,4 +238,86 @@ describe("Job Controller Integration Tests", () => {
       );
     });
   });
+
+  describe("PUT /jobs/:jobId", () => {
+    let userResponse: { data: { tokens: AuthTokens } };
+
+    beforeEach(async () => {
+      await seedOrganizations();
+      await seedAdminUser();
+      await seedJobs();
+
+      const response = await request
+        .post("/api/auth/login")
+        .send({ email: "admin@example.com", password: "Password@123" });
+
+      userResponse = response.body;
+    });
+
+    it("should update a job returning 200", async () => {
+      const updatedJob = {
+        title: "Updated Software Engineer",
+        description:
+          "Updated description with more than fifty characters to pass validation.",
+      };
+      const response = await request
+        .put("/api/jobs/1")
+        .set("Authorization", `Bearer ${userResponse.data.tokens.accessToken}`)
+        .send(updatedJob);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body.data).toHaveProperty("id", 1);
+      expect(response.body.data).toHaveProperty("title", updatedJob.title);
+      expect(response.body.data).toHaveProperty(
+        "description",
+        updatedJob.description,
+      );
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job updated successfully",
+      );
+    });
+  });
+
+  describe("DELETE /jobs/:jobId", () => {
+    let userResponse: { data: { tokens: AuthTokens } };
+
+    beforeEach(async () => {
+      await seedJobs();
+      await seedAdminUser();
+
+      const response = await request
+        .post("/api/auth/login")
+        .send({ email: "admin@example.com", password: "Password@123" });
+
+      userResponse = response.body;
+    });
+
+    it("should delete a job returning 200", async () => {
+      const response = await request
+        .delete("/api/jobs/1")
+        .set("Authorization", `Bearer ${userResponse.data.tokens.accessToken}`);
+
+      TestHelpers.validateApiResponse(response, 200);
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job deleted successfully",
+      );
+
+      // Verify the job is actually deleted
+      const getResponse = await request.get("/api/jobs/1");
+
+      TestHelpers.validateApiResponse(getResponse, 404);
+      expect(getResponse.body).toHaveProperty(
+        "error",
+        "Job with ID 1 not found",
+      );
+      expect(getResponse.body).toHaveProperty(
+        "message",
+        "Failed to retrieve job",
+      );
+    });
+  });
 });
