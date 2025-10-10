@@ -20,7 +20,7 @@ enum compensationTypeEnum {
   STIPEND = "stipend",
 }
 
-export const seedUser = async () => {
+export const seedUser = async (isActive: boolean = true) => {
   const { faker } = await import("@faker-js/faker");
   const bcrypt = await import("bcrypt");
 
@@ -38,6 +38,7 @@ export const seedUser = async () => {
       firstName: faker.person.firstName(),
       lastName: faker.person.lastName(),
       role: "user",
+      isActive,
     });
   });
 };
