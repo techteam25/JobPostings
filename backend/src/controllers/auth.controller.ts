@@ -179,16 +179,6 @@ export class AuthController extends BaseController {
   //   }
   // };
 
-  getProfile = async (req: Request, res: Response) => {
-    if (!req.user) {
-      return this.handleControllerError(
-        res,
-        new AppError("User not found in request", 404, ErrorCode.NOT_FOUND),
-      );
-    }
-    return this.sendSuccess(res, req.user, "Profile retrieved successfully");
-  };
-
   forgotPassword = async (req: Request, res: Response) => {
     try {
       const { email } = req.body;
