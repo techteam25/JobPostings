@@ -10,8 +10,8 @@ describe("Organization Controller Integration Tests", async () => {
     const { faker } = await import("@faker-js/faker");
 
     // Clear organizations table before each test
-    await db.delete(organizations);
     await db.delete(users);
+    await db.delete(organizations);
 
     await db.insert(organizations).values({
       id: 1,
