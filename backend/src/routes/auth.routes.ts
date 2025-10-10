@@ -1,24 +1,27 @@
 import { Router } from "express";
-import { OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
 
 import { AuthController } from "@/controllers/auth.controller";
+
 import { AuthMiddleware } from "@/middleware/auth.middleware";
 import validate from "@/middleware/validation.middleware";
+
 import {
   registerUserSchema,
   userLoginSchema,
   userRefreshTokenSchema,
   changeUserPasswordSchema,
 } from "@/validations/auth.validation";
+import { registry } from "@/swagger/registry";
 
 const router = Router();
-const authRegistry = new OpenAPIRegistry();
 
 const authController = new AuthController();
 const authMiddleware = new AuthMiddleware();
 
 // Public routes
-authRegistry.registerPath({
+
+// Registration Route
+registry.registerPath({
   method: "post",
   path: "/api/auth/register",
   summary: "Register a new user",
@@ -86,7 +89,8 @@ router.post(
   authController.register,
 );
 
-authRegistry.registerPath({
+// Login Route
+registry.registerPath({
   method: "post",
   path: "/api/auth/login",
   summary: "Login user",
@@ -146,7 +150,8 @@ authRegistry.registerPath({
 });
 router.post("/login", validate(userLoginSchema), authController.login);
 
-authRegistry.registerPath({
+// Refresh Token Route
+registry.registerPath({
   method: "post",
   path: "/api/auth/refresh-token",
   summary: "Refresh authentication token",
@@ -232,7 +237,8 @@ router.post(
 
 // Protected routes
 
-authRegistry.registerPath({
+// Logout Route
+registry.registerPath({
   method: "post",
   path: "/api/auth/logout",
   summary: "Logout user",
@@ -304,7 +310,8 @@ router.post("/logout", authMiddleware.authenticate, authController.logout);
 //   authController.logoutAll,
 // );
 
-authRegistry.registerPath({
+// Change Password Route
+registry.registerPath({
   method: "post",
   path: "/api/auth/change-password",
   summary: "Change user password",
@@ -384,5 +391,4 @@ router.post(
   authController.changePassword,
 );
 
-export { authRegistry };
 export default router;
