@@ -103,22 +103,41 @@ export class UserController extends BaseController {
   };
 
   updateProfile = async (
-    req: Request<GetUserSchema["params"], {}, UpdateUserProfile>,
-    res: Response,
+    req: Request<{}, {}, UpdateUserProfile>,
+    res: Response<ApiResponse<UserWithProfile>>,
   ) => {
-    if (!req.userId) {
-      return this.handleControllerError(
-        res,
-        new ValidationError("User not authenticated"),
+    try {
+      const profileData = req.body;
+      const user = await this.userService.updateUserProfile(
+        req.userId!,
+        profileData,
       );
-    }
 
-    const profileData = req.body;
-    const user = await this.userService.updateUserProfile(
-      req.userId,
-      profileData,
-    );
-    return this.sendSuccess(res, user, "Profile updated successfully");
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          status: "error",
+          message: "Failed to update user profile",
+          error: "INTERNAL_SERVER_ERROR",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: user,
+        message: "User profile updated",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        message: "Failed to update user profile",
+        error: error instanceof Error ? error.message : "INTERNAL_SERVER_ERROR",
+        timestamp: new Date().toISOString(),
+      });
+    }
   };
 
   changePassword = async (
