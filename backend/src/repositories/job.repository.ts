@@ -80,18 +80,26 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     }
 
     if (jobType) {
-      whereConditions.push(eq(jobsDetails.jobType, jobType as any));
+      whereConditions.push(
+        eq(
+          jobsDetails.jobType,
+          jobType as
+            | "full-time"
+            | "part-time"
+            | "contract"
+            | "volunteer"
+            | "internship",
+        ),
+      );
     }
 
     if (location) {
       whereConditions.push(like(jobsDetails.location, `%${location}%`));
     }
 
-    // if (experienceLevel) {
-    //   whereConditions.push(
-    //     eq(jobsDetails.experienceLevel, experienceLevel as any),
-    //   );
-    // }
+    if (experienceLevel) {
+      whereConditions.push(eq(jobsDetails.experience, experienceLevel));
+    }
 
     if (isRemote !== undefined) {
       whereConditions.push(eq(jobsDetails.isRemote, isRemote));
@@ -202,7 +210,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
         },
       })
       .from(jobApplications)
-      .leftJoin(users, eq(jobApplications.applicantId, users.id))
+      .innerJoin(users, eq(jobApplications.applicantId, users.id))
       .where(where)
       .orderBy(desc(jobApplications.appliedAt))
       .limit(limit)
@@ -302,7 +310,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       })
       .from(jobApplications)
       .where(eq(jobApplications.id, applicationId))
-      .leftJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
-      .leftJoin(users, eq(jobApplications.applicantId, users.id));
+      .innerJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
+      .innerJoin(users, eq(jobApplications.applicantId, users.id));
   }
 }
