@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { updateUserSchema } from "../db/schema";
+import { updateUserSchema } from "@/db/schema";
 
 const userParamsSchema = z.object({
   id: z.string().regex(/^\d+$/, "Invalid user ID format"),
@@ -61,7 +61,7 @@ export const changeUserPasswordSchema = z.object({
 
 export const updateUserPayloadSchema = z.object({
   body: updateUserSchema,
-  params: userParamsSchema,
+  params: z.object({}).strict(),
   query: z.object({}).strict(),
 });
 
