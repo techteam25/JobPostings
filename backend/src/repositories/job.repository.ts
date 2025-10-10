@@ -1,6 +1,7 @@
-import { and, desc, eq, like, or, SQL } from "drizzle-orm";
+import { and, desc, eq, like, or, sql, SQL } from "drizzle-orm";
 import {
   jobApplications,
+  jobInsights,
   jobsDetails,
   NewJobApplication,
   organizations,
@@ -10,6 +11,7 @@ import {
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
 import { calculatePagination, countRecords } from "@/db/utils";
+import { withDbErrorHandling } from "@/db/dbErrorHandler";
 
 export class JobRepository extends BaseRepository<typeof jobsDetails> {
   constructor() {
@@ -20,22 +22,25 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     const { page = 1, limit = 10 } = options;
     const offset = (page - 1) * limit;
 
-    const items = await db
-      .select({
-        job: jobsDetails,
-        employer: {
-          id: organizations.id,
-          name: organizations.name,
-          city: organizations.city,
-          state: organizations.state,
-        },
-      })
-      .from(jobsDetails)
-      .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
-      .where(eq(jobsDetails.isActive, true))
-      .orderBy(desc(jobsDetails.createdAt))
-      .limit(limit)
-      .offset(offset);
+    const items = await withDbErrorHandling(
+      async () =>
+        await db
+          .select({
+            job: jobsDetails,
+            employer: {
+              id: organizations.id,
+              name: organizations.name,
+              city: organizations.city,
+              state: organizations.state,
+            },
+          })
+          .from(jobsDetails)
+          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
+          .where(eq(jobsDetails.isActive, true))
+          .orderBy(desc(jobsDetails.createdAt))
+          .limit(limit)
+          .offset(offset),
+    );
 
     const total = await countRecords(
       jobsDetails,
@@ -109,22 +114,25 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[]),
     );
 
-    const items = await db
-      .select({
-        job: jobsDetails,
-        employer: {
-          id: organizations.id,
-          name: organizations.name,
-          city: organizations.city,
-          state: organizations.state,
-        },
-      })
-      .from(jobsDetails)
-      .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
-      .where(whereCondition)
-      .orderBy(desc(jobsDetails.createdAt))
-      .limit(limit)
-      .offset(offset);
+    const items = await withDbErrorHandling(
+      async () =>
+        await db
+          .select({
+            job: jobsDetails,
+            employer: {
+              id: organizations.id,
+              name: organizations.name,
+              city: organizations.city,
+              state: organizations.state,
+            },
+          })
+          .from(jobsDetails)
+          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
+          .where(whereCondition)
+          .orderBy(desc(jobsDetails.createdAt))
+          .limit(limit)
+          .offset(offset),
+    );
 
     const total = await countRecords(jobsDetails, whereCondition);
     const pagination = calculatePagination(total, page, limit);
@@ -141,13 +149,16 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
 
     const whereCondition = eq(jobsDetails.employerId, employerId);
 
-    const items = await db
-      .select()
-      .from(jobsDetails)
-      .where(whereCondition)
-      .orderBy(desc(jobsDetails.createdAt))
-      .limit(limit)
-      .offset(offset);
+    const items = await withDbErrorHandling(
+      async () =>
+        await db
+          .select()
+          .from(jobsDetails)
+          .where(whereCondition)
+          .orderBy(desc(jobsDetails.createdAt))
+          .limit(limit)
+          .offset(offset),
+    );
 
     const total = await countRecords(jobsDetails, whereCondition);
     const pagination = calculatePagination(total, page, limit);
@@ -156,29 +167,45 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
   }
 
   async findJobWithApplications(jobId: number) {
-    return db
-      .select({
-        job: jobsDetails,
-        employer: organizations,
-        applications: jobApplications,
-        applicant: {
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          email: users.email,
-        },
-      })
-      .from(jobsDetails)
-      .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
-      .leftJoin(jobApplications, eq(jobsDetails.id, jobApplications.jobId))
-      .leftJoin(users, eq(jobApplications.applicantId, users.id))
-      .where(eq(jobsDetails.id, jobId));
+    return withDbErrorHandling(
+      async () =>
+        await db
+          .select({
+            job: jobsDetails,
+            employer: organizations,
+            applications: jobApplications,
+            applicant: {
+              id: users.id,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              email: users.email,
+            },
+          })
+          .from(jobsDetails)
+          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
+          .leftJoin(jobApplications, eq(jobsDetails.id, jobApplications.jobId))
+          .leftJoin(users, eq(jobApplications.applicantId, users.id))
+          .where(eq(jobsDetails.id, jobId)),
+    );
   }
 
   // Job Applications
   async createApplication(applicationData: NewJobApplication) {
-    const result = await db.insert(jobApplications).values(applicationData);
-    return (result as any).insertId;
+    const result = await withDbErrorHandling(async () =>
+      db.transaction(async (transaction) => {
+        const [applicationId] = await transaction
+          .insert(jobApplications)
+          .values(applicationData)
+          .$returningId();
+
+        await transaction.update(jobInsights).set({
+          viewCount: sql`(${jobInsights.applicationCount} + 1)`,
+        });
+
+        return applicationId;
+      }),
+    );
+    return result?.id;
   }
 
   async findApplicationsByJob(
@@ -199,22 +226,25 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[]),
     );
 
-    const items = await db
-      .select({
-        application: jobApplications,
-        applicant: {
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          email: users.email,
-        },
-      })
-      .from(jobApplications)
-      .innerJoin(users, eq(jobApplications.applicantId, users.id))
-      .where(where)
-      .orderBy(desc(jobApplications.appliedAt))
-      .limit(limit)
-      .offset(offset);
+    const items = await withDbErrorHandling(
+      async () =>
+        await db
+          .select({
+            application: jobApplications,
+            applicant: {
+              id: users.id,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              email: users.email,
+            },
+          })
+          .from(jobApplications)
+          .innerJoin(users, eq(jobApplications.applicantId, users.id))
+          .where(where)
+          .orderBy(desc(jobApplications.appliedAt))
+          .limit(limit)
+          .offset(offset),
+    );
 
     const total = await countRecords(jobApplications, where);
     const pagination = calculatePagination(total, page, limit);
@@ -240,27 +270,30 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[]),
     );
 
-    const items = await db
-      .select({
-        application: jobApplications,
-        job: {
-          id: jobsDetails.id,
-          title: jobsDetails.title,
-          location: jobsDetails.location,
-          jobType: jobsDetails.jobType,
-        },
-        employer: {
-          id: organizations.id,
-          name: organizations.name,
-        },
-      })
-      .from(jobApplications)
-      .leftJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
-      .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
-      .where(where)
-      .orderBy(desc(jobApplications.appliedAt))
-      .limit(limit)
-      .offset(offset);
+    const items = await withDbErrorHandling(
+      async () =>
+        await db
+          .select({
+            application: jobApplications,
+            job: {
+              id: jobsDetails.id,
+              title: jobsDetails.title,
+              location: jobsDetails.location,
+              jobType: jobsDetails.jobType,
+            },
+            employer: {
+              id: organizations.id,
+              name: organizations.name,
+            },
+          })
+          .from(jobApplications)
+          .leftJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
+          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
+          .where(where)
+          .orderBy(desc(jobApplications.appliedAt))
+          .limit(limit)
+          .offset(offset),
+    );
 
     const total = await countRecords(jobApplications, where);
     const pagination = calculatePagination(total, page, limit);
@@ -280,37 +313,43 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     //   updateData.notes = notes;
     // }
 
-    const result = await db
-      .update(jobApplications)
-      .set(updateData)
-      .where(eq(jobApplications.id, applicationId));
+    const result = await withDbErrorHandling(
+      async () =>
+        await db
+          .update(jobApplications)
+          .set(updateData)
+          .where(eq(jobApplications.id, applicationId)),
+    );
 
     return (result as any).affectedRows > 0;
   }
 
   async findApplicationById(applicationId: number) {
-    return db
-      .select({
-        application: {
-          id: jobApplications.id,
-          jobId: jobApplications.jobId,
-          reviewedAt: jobApplications.reviewedAt,
-        },
-        job: {
-          id: jobsDetails.id,
-          title: jobsDetails.title,
-          location: jobsDetails.location,
-          jobType: jobsDetails.jobType,
-          employerId: jobsDetails.employerId,
-        },
-        user: {
-          id: users.id,
-          organizationId: users.organizationId,
-        },
-      })
-      .from(jobApplications)
-      .where(eq(jobApplications.id, applicationId))
-      .innerJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
-      .innerJoin(users, eq(jobApplications.applicantId, users.id));
+    return withDbErrorHandling(
+      async () =>
+        await db
+          .select({
+            application: {
+              id: jobApplications.id,
+              jobId: jobApplications.jobId,
+              reviewedAt: jobApplications.reviewedAt,
+            },
+            job: {
+              id: jobsDetails.id,
+              title: jobsDetails.title,
+              location: jobsDetails.location,
+              jobType: jobsDetails.jobType,
+              employerId: jobsDetails.employerId,
+            },
+            user: {
+              id: users.id,
+              organizationId: users.organizationId,
+            },
+          })
+          .from(jobApplications)
+          .where(eq(jobApplications.id, applicationId))
+          .innerJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
+          .innerJoin(users, eq(jobApplications.applicantId, users.id)),
+    );
   }
 }
