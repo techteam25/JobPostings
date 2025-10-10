@@ -68,7 +68,7 @@ export const seedJobs = async () => {
       await t.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
       await t.execute(sql`ALTER TABLE job_details AUTO_INCREMENT = 1`);
 
-      const ids = await t
+      await t
         .insert(organizations)
         .values(
           Array.from({ length: 5 }).map(() => ({
@@ -84,8 +84,6 @@ export const seedJobs = async () => {
           })),
         )
         .$returningId();
-
-      const orgIds = ids.map((org) => org.id);
 
       await t.insert(jobsDetails).values(
         Array.from({ length: 3 }).map(() => ({
