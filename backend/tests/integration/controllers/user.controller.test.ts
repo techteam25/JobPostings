@@ -49,5 +49,17 @@ describe("User Controller Integration Tests", () => {
       );
       expect(response.body).toHaveProperty("error", "UNAUTHORIZED");
     });
+
+    it("should fail to retrieve current user with invalid token returning 401", async () => {
+      const response = await request
+        .get("/api/users/me")
+        .set("Authorization", `Bearer invalid-token`);
+
+      TestHelpers.validateApiResponse(response, 401);
+
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body).toHaveProperty("message", "Invalid token");
+      expect(response.body).toHaveProperty("error", "UNAUTHORIZED");
+    });
   });
 });
