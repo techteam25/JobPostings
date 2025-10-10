@@ -1,4 +1,5 @@
 import { request, TestHelpers } from "@tests/utils/testHelpers";
+import { seedUser } from "@tests/utils/seed";
 
 describe("Authentication Controller Integration Tests", () => {
   describe("POST /register", () => {
@@ -87,6 +88,21 @@ describe("Authentication Controller Integration Tests", () => {
       TestHelpers.validateApiResponse(response, 401);
       expect(response.body).toHaveProperty("success", false);
       expect(response.body).toHaveProperty("message", "Login failed");
+    });
+
+    it("should fail to retrieve deactivated user returning 403", async () => {
+      await seedUser(false); // Seed an inactive user
+
+      const response = await request.post("/api/auth/login").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+
+      TestHelpers.validateApiResponse(response, 401);
+
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body).toHaveProperty("message", "Login failed");
+      expect(response.body).toHaveProperty("error", "Account is deactivated");
     });
   });
 });
