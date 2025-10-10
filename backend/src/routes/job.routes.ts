@@ -1,6 +1,10 @@
 import { Router } from "express";
+
 import { JobController } from "@/controllers/job.controller";
+import { selectJobSchema } from "@/db/schema";
+
 import { AuthMiddleware } from "@/middleware/auth.middleware";
+
 import validate from "../middleware/validation.middleware";
 import {
   createJobSchema,
@@ -11,9 +15,15 @@ import {
 import { searchParams } from "@/validations/base.validation";
 import { updateApplicationStatusSchema } from "@/validations/jobApplications.validation";
 
+import { registry } from "@/swagger/registry";
+
+import { apiResponseSchema, errorResponseSchema } from "@/types";
+
 const router = Router();
 const jobController = new JobController();
 const authMiddleware = new AuthMiddleware();
+
+const jobResponseSchema = apiResponseSchema(selectJobSchema);
 
 // Public routes
 router.get("/", validate(searchParams), jobController.getAllJobs);
@@ -63,6 +73,55 @@ router.get(
   jobController.getMyJobs,
 );
 
+registry.registerPath({
+  method: "post",
+  path: "/api/jobs",
+  summary: "Create a new job posting",
+  tags: ["Jobs"],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createJobSchema.shape["body"],
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Job created successfully",
+      content: {
+        "application/json": {
+          schema: jobResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
 router.post(
   "/",
   authMiddleware.requireRole(["employer", "admin"]),
