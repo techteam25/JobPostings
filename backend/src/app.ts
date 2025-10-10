@@ -12,11 +12,13 @@ import swaggerUi from "swagger-ui-express";
 import { checkDatabaseConnection } from "./db/connection";
 import { env } from "./config/env";
 import { errorHandler } from "./middleware/error.middleware";
+import { registry } from "@/routes/auth.routes";
 
 import apiRoutes from "./routes";
 import logger from "@/logger";
 import { redisClient } from "@/config/redis";
 import authRoutes from "@/routes/auth.routes";
+import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
 
 // Create Express application
 const app: Application = express();
@@ -51,31 +53,19 @@ const authLimiter = rateLimit({
   }),
 });
 
-// Swagger definition
-const swaggerOptions = {
-  definition: {
-    openapi: "3.0.0",
-    info: {
-      title: "Express API Documentation",
-      version: "1.0.0",
-      description: "A simple Express API with Swagger documentation",
-      contact: {
-        name: "API Support",
-        email: "support@example.com",
-      },
-    },
-    servers: [
-      {
-        url: `http://${env.HOST}:${env.PORT}`,
-        description: "Development server",
-      },
-    ],
+// Generate the OpenAPI document
+const generator = new OpenApiGeneratorV3(registry.definitions);
+const swaggerOptions = generator.generateDocument({
+  openapi: "3.0.0",
+  info: {
+    title: "Express API Documentation",
+    version: "1.0.0",
+    description: "Job Postings API with Swagger documentation",
   },
-  // Path to the API routes where JSDoc comments are
-  apis: [path.join(__dirname, "./routes/*.ts")],
-};
-const swaggerDocs = swaggerJsdoc(swaggerOptions);
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+  servers: [{ url: `http://${env.HOST}:${env.PORT}` }],
+});
+
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerOptions));
 
 // Attach pino HTTP logger middleware
 app.use(pinoHttp({ logger }));
