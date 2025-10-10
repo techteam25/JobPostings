@@ -1,8 +1,9 @@
-import { eq, like, or } from "drizzle-orm";
+import { count, eq, like, or } from "drizzle-orm";
 import { organizations } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
 import { calculatePagination, countRecords } from "@/db/utils";
+import { withDbErrorHandling } from "@/db/dbErrorHandler";
 
 export class OrganizationRepository extends BaseRepository<
   typeof organizations
@@ -12,10 +13,13 @@ export class OrganizationRepository extends BaseRepository<
   }
 
   async findByName(name: string) {
-    const [result] = await db
-      .select()
-      .from(organizations)
-      .where(eq(organizations.name, name));
+    const [result] = await withDbErrorHandling(
+      async () =>
+        await db
+          .select()
+          .from(organizations)
+          .where(eq(organizations.name, name)),
+    );
     return result;
   }
 
@@ -32,36 +36,49 @@ export class OrganizationRepository extends BaseRepository<
       like(organizations.state, `%${searchTerm}%`),
     );
 
-    const items = await db
-      .select()
-      .from(organizations)
-      .where(searchCondition)
-      .limit(limit)
-      .offset(offset);
+    const [items, total] = await withDbErrorHandling(
+      async () =>
+        await db.transaction(async (tx) => {
+          const items = await tx
+            .select()
+            .from(organizations)
+            .where(searchCondition)
+            .limit(limit)
+            .offset(offset);
 
-    const total = await countRecords(organizations, searchCondition);
+          const [total] = await tx
+            .select({ count: count() })
+            .from(organizations)
+            .where(searchCondition);
+
+          return [items, total?.count || 0];
+        }),
+    );
     const pagination = calculatePagination(total, page, limit);
 
     return { items, pagination };
   }
 
   async findByContact(contactId: number) {
-    return await db.query.organizations.findFirst({
-      where: eq(organizations.contact, contactId),
-      with: {
-        contact: {
-          columns: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            role: true,
-            organizationId: true,
-            isEmailVerified: true,
-            isActive: true,
+    return await withDbErrorHandling(
+      async () =>
+        await db.query.organizations.findFirst({
+          where: eq(organizations.contact, contactId),
+          with: {
+            contact: {
+              columns: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+                organizationId: true,
+                isEmailVerified: true,
+                isActive: true,
+              },
+            },
           },
-        },
-      },
-    });
+        }),
+    );
   }
 }
