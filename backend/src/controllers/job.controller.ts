@@ -3,7 +3,12 @@ import { Request, Response } from "express";
 import { JobService } from "@/services/job.service";
 import { JobMatchingService } from "@/services/job-matching.service";
 import { BaseController } from "./base.controller";
-import { ForbiddenError, AppError, ErrorCode } from "@/utils/errors";
+import {
+  ForbiddenError,
+  AppError,
+  ErrorCode,
+  NotFoundError,
+} from "@/utils/errors";
 import {
   CreateJobSchema,
   DeleteJobSchema,
@@ -113,6 +118,15 @@ export class JobController extends BaseController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
+      if (error instanceof NotFoundError) {
+        return res.status(404).json({
+          success: false,
+          message: "Failed to retrieve job",
+          error: error.message,
+          status: "error",
+          timestamp: new Date().toISOString(),
+        });
+      }
       return res.status(500).json({
         success: false,
         message: "Failed to retrieve job",
@@ -173,7 +187,7 @@ export class JobController extends BaseController {
 
   createJob = async (
     req: Request<{}, {}, CreateJobSchema["body"]>,
-    res: Response,
+    res: Response<ApiResponse<Job>>,
   ) => {
     try {
       const jobData = {
@@ -187,19 +201,29 @@ export class JobController extends BaseController {
 
       const job = await this.jobService.createJob(jobData);
 
-      this.sendSuccess(res, job, "Job created successfully", 201);
+      return res.status(201).json({
+        success: true,
+        data: job,
+        message: "Job created successfully",
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      // console.log(error);
-      this.handleControllerError(res, error, "Failed to create job", 400);
+      return res.status(400).json({
+        success: false,
+        message: "Failed to create job",
+        error: (error as Error).message,
+        status: "error",
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
   updateJob = async (
     req: Request<UpdateJobSchema["params"], {}, UpdateJobSchema["body"]>,
-    res: Response,
+    res: Response<ApiResponse<Job>>,
   ) => {
     try {
-      const jobId = Number(req.params.jobId);
+      const jobId = parseInt(req.params.jobId);
       const updateData = req.body;
 
       // Authorization check is handled in service
@@ -209,23 +233,44 @@ export class JobController extends BaseController {
         req.userId!,
         req.user!.role,
       );
-      this.sendSuccess(res, job, "Job updated successfully");
+      return res.status(200).json({
+        success: true,
+        data: job,
+        message: "Job updated successfully",
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      this.handleControllerError(res, error, "Failed to update job");
+      return res.status(400).json({
+        success: false,
+        message: "Failed to update job",
+        error: (error as Error).message,
+        status: "error",
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
   deleteJob = async (
     req: Request<DeleteJobSchema["params"]>,
-    res: Response,
+    res: Response<ApiResponse<void>>,
   ) => {
     try {
-      const jobId = Number(req.params.jobId);
+      const jobId = parseInt(req.params.jobId);
 
       await this.jobService.deleteJob(jobId, req.userId!, req.user!.role);
-      this.sendSuccess(res, null, "Job deleted successfully");
-    } catch (error) {
-      this.handleControllerError(res, error, "Failed to delete job");
+      return res.json({
+        success: true,
+        message: "Job deleted successfully",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: unknown) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to delete job",
+        error: (error as Error).message,
+        status: "error",
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
