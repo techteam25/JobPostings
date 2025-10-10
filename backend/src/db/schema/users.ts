@@ -30,7 +30,9 @@ export const users = mysqlTable(
     role: mysqlEnum("role", ["user", "employer", "admin"])
       .default("user")
       .notNull(),
-    organizationId: int("organization_id"),
+    organizationId: int("organization_id").references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
     isEmailVerified: boolean("is_email_verified").default(false).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
     lastLoginAt: timestamp("last_login_at"),
