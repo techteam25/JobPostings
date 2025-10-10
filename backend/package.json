@@ -57,6 +57,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^8.1.0",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.2.2",
     "drizzle-orm": "^0.44.5",
