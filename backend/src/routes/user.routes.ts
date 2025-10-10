@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { UserController } from "../controllers/user.controller";
-import { AuthMiddleware } from "../middleware/auth.middleware";
+import { UserController } from "@/controllers/user.controller";
+import { AuthMiddleware } from "@/middleware/auth.middleware";
 import validate from "../middleware/validation.middleware";
 import {
   getUserSchema,
   changeUserPasswordSchema,
   updateUserPayloadSchema,
-} from "../validations/user.validation";
+} from "@/validations/user.validation";
 
 const router = Router();
 const userController = new UserController();
