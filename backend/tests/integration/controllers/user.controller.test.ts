@@ -1,5 +1,8 @@
+// noinspection DuplicatedCode
+
 import { request, TestHelpers } from "@tests/utils/testHelpers";
-import { seedUser } from "@tests/utils/seed";
+import { seedUser, seedUserProfile } from "@tests/utils/seed";
+import { userProfileFixture } from "@tests/utils/fixtures";
 
 describe("User Controller Integration Tests", () => {
   describe("GET /users", () => {
@@ -60,6 +63,81 @@ describe("User Controller Integration Tests", () => {
       expect(response.body).toHaveProperty("success", false);
       expect(response.body).toHaveProperty("message", "Invalid token");
       expect(response.body).toHaveProperty("error", "UNAUTHORIZED");
+    });
+  });
+
+  describe("POST and PUT /users/me/profile", () => {
+    describe("POST /users/me/profile", () => {
+      beforeEach(async () => {
+        await seedUser();
+      });
+
+      it("should create user profile returning 200", async () => {
+        const loginRes = await request.post("/api/auth/login").send({
+          email: "normal.user@example.com",
+          password: "Password@123",
+        });
+
+        const data = loginRes.body.data;
+
+        const profileData = await userProfileFixture();
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Authorization", `Bearer ${data.tokens.accessToken}`)
+          .send(profileData);
+
+        TestHelpers.validateApiResponse(response, 200);
+
+        expect(response.body).toHaveProperty("success", true);
+        expect(response.body).toHaveProperty("message", "User profile updated");
+        expect(response.body.data).toHaveProperty("id", 1);
+        expect(response.body.data).toHaveProperty("profile");
+        expect(response.body.data.profile).toHaveProperty("userId", 1);
+        expect(response.body.data.profile).toHaveProperty(
+          "profilePicture",
+          profileData.profilePicture,
+        );
+        expect(response.body.data.profile).toHaveProperty(
+          "bio",
+          profileData.bio,
+        );
+        expect(response.body.data.profile).toHaveProperty(
+          "profilePicture",
+          profileData.profilePicture,
+        );
+        expect(response.body.data.profile).toHaveProperty(
+          "address",
+          profileData.address,
+        );
+        expect(response.body.data.profile).toHaveProperty(
+          "linkedinUrl",
+          profileData.linkedinUrl,
+        );
+      });
+
+      it("should update user profile returning 200", async () => {
+        await seedUserProfile();
+        const loginRes = await request.post("/api/auth/login").send({
+          email: "normal.user@example.com",
+          password: "Password@123",
+        });
+
+        const data = loginRes.body.data;
+
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Authorization", `Bearer ${data.tokens.accessToken}`)
+          .send({ bio: "Updated bio" });
+
+        TestHelpers.validateApiResponse(response, 200);
+
+        expect(response.body).toHaveProperty("success", true);
+        expect(response.body).toHaveProperty("message", "User profile updated");
+        expect(response.body.data).toHaveProperty("id", 1);
+        expect(response.body.data).toHaveProperty("profile");
+        expect(response.body.data.profile).toHaveProperty("userId", 1);
+        expect(response.body.data.profile).toHaveProperty("bio", "Updated bio");
+      });
     });
   });
 });
