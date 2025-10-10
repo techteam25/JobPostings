@@ -1,6 +1,6 @@
 import { BaseRepository } from "./base.repository";
-import { jobInsights, UpdateJobInsights } from "../db/schema";
-import { db } from "../db/connection";
+import { jobInsights } from "@/db/schema";
+import { db } from "@/db/connection";
 import { eq, sql } from "drizzle-orm";
 
 export class JobInsightsRepository extends BaseRepository<typeof jobInsights> {
@@ -10,14 +10,20 @@ export class JobInsightsRepository extends BaseRepository<typeof jobInsights> {
   async getJobInsights() {}
 
   async incrementJobViews(jobId: number) {
-    const result = await db.update(jobInsights).set({
-      viewCount: sql`(${jobInsights.viewCount} + 1)`,
-    });
+    await db
+      .update(jobInsights)
+      .set({
+        viewCount: sql`(${jobInsights.viewCount} + 1)`,
+      })
+      .where(eq(jobInsights.job, jobId));
   }
   async incrementJobApplications(jobId: number) {
-    const result = await db.update(jobInsights).set({
-      viewCount: sql`(${jobInsights.applicationCount} + 1)`,
-    });
+    await db
+      .update(jobInsights)
+      .set({
+        viewCount: sql`(${jobInsights.applicationCount} + 1)`,
+      })
+      .where(eq(jobInsights.job, jobId));
   }
 
   async getJobInsightByOrganizationId(organizationId: number) {
