@@ -1,8 +1,8 @@
 import { eq, like, or } from "drizzle-orm";
-import { organizations } from "../db/schema";
+import { organizations } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
-import { db } from "../db/connection";
-import { calculatePagination, countRecords } from "../db/utils";
+import { db } from "@/db/connection";
+import { calculatePagination, countRecords } from "@/db/utils";
 
 export class OrganizationRepository extends BaseRepository<
   typeof organizations
@@ -46,9 +46,22 @@ export class OrganizationRepository extends BaseRepository<
   }
 
   async findByContact(contactId: number) {
-    return db
-      .select()
-      .from(organizations)
-      .where(eq(organizations.contact, contactId));
+    return await db.query.organizations.findFirst({
+      where: eq(organizations.contact, contactId),
+      with: {
+        contact: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+            organizationId: true,
+            isEmailVerified: true,
+            isActive: true,
+          },
+        },
+      },
+    });
   }
 }
