@@ -5,10 +5,11 @@ import {
   UpdateSession,
   Session,
   users,
-} from "../db/schema";
+} from "@/db/schema";
 import { BaseRepository } from "./base.repository";
-import { db } from "../db/connection";
-import { AppError, ErrorCode } from "../utils/errors";
+import { db } from "@/db/connection";
+import { AppError, ErrorCode } from "@/utils/errors";
+import { withDbErrorHandling } from "@/db/dbErrorHandler";
 
 export class SessionRepository extends BaseRepository<typeof sessions> {
   constructor() {
@@ -24,18 +25,21 @@ export class SessionRepository extends BaseRepository<typeof sessions> {
     userId: number,
   ): Promise<Session | undefined> {
     try {
-      const [result] = await db
-        .select()
-        .from(sessions)
-        .innerJoin(users, eq(sessions.userId, userId))
-        .where(
-          and(
-            eq(sessions.accessToken, accessToken),
-            eq(sessions.isActive, true),
-            gt(sessions.expiresAt, new Date()),
-          ),
-        )
-        .limit(1);
+      const [result] = await withDbErrorHandling(
+        async () =>
+          await db
+            .select()
+            .from(sessions)
+            .innerJoin(users, eq(sessions.userId, userId))
+            .where(
+              and(
+                eq(sessions.accessToken, accessToken),
+                eq(sessions.isActive, true),
+                gt(sessions.expiresAt, new Date()),
+              ),
+            )
+            .limit(1),
+      );
 
       return result?.sessions;
     } catch (error) {
@@ -51,17 +55,20 @@ export class SessionRepository extends BaseRepository<typeof sessions> {
 
   async findByRefreshToken(refreshToken: string): Promise<any | null> {
     try {
-      const [result] = await db
-        .select()
-        .from(sessions)
-        .where(
-          and(
-            eq(sessions.refreshToken, refreshToken),
-            eq(sessions.isActive, true),
-            gt(sessions.refreshExpiresAt, new Date()),
-          ),
-        )
-        .limit(1);
+      const [result] = await withDbErrorHandling(
+        async () =>
+          await db
+            .select()
+            .from(sessions)
+            .where(
+              and(
+                eq(sessions.refreshToken, refreshToken),
+                eq(sessions.isActive, true),
+                gt(sessions.refreshExpiresAt, new Date()),
+              ),
+            )
+            .limit(1),
+      );
 
       return result;
     } catch (error) {
@@ -81,23 +88,5 @@ export class SessionRepository extends BaseRepository<typeof sessions> {
 
   async deactivateSession(id: number): Promise<boolean> {
     return this.update(id, { isActive: false });
-  }
-
-  async deactivateAllUserSessions(userId: number): Promise<boolean> {
-    try {
-      await db
-        .update(sessions)
-        .set({ isActive: false })
-        .where(eq(sessions.userId, userId));
-      return true;
-    } catch (error) {
-      throw new AppError(
-        "Failed to deactivate all user sessions",
-        500,
-        ErrorCode.DATABASE_ERROR,
-        true,
-        error,
-      );
-    }
   }
 }
