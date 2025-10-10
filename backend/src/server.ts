@@ -25,6 +25,9 @@ async function startServer() {
         `📊 Health check available at http://${env.HOST}:${env.PORT}/health`,
       );
       logger.info(`🔗 API available at http://${env.HOST}:${env.PORT}/api`);
+      logger.info(
+        `📚 API Documentation available at http://${env.HOST}:${env.PORT}/docs`,
+      );
 
       if (isDevelopment) {
         logger.info(`🎯 Environment: ${env.NODE_ENV}`);
