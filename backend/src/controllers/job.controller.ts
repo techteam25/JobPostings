@@ -231,7 +231,6 @@ export class JobController extends BaseController {
         jobId,
         updateData,
         req.userId!,
-        req.user!.role,
       );
       return res.status(200).json({
         success: true,
@@ -257,7 +256,7 @@ export class JobController extends BaseController {
     try {
       const jobId = parseInt(req.params.jobId);
 
-      await this.jobService.deleteJob(jobId, req.userId!, req.user!.role);
+      await this.jobService.deleteJob(jobId, req.userId!);
       return res.json({
         success: true,
         message: "Job deleted successfully",
@@ -292,7 +291,6 @@ export class JobController extends BaseController {
         organizationId,
         { page, limit },
         req.userId!,
-        req.user!.role,
       );
 
       this.sendPaginatedResponse(
@@ -331,7 +329,6 @@ export class JobController extends BaseController {
       organizationId,
       { page, limit },
       req.userId!,
-      req.user!.role,
     );
 
     return this.sendPaginatedResponse(
@@ -378,7 +375,6 @@ export class JobController extends BaseController {
         jobId,
         { page, limit, status },
         req.userId!,
-        req.user!.role,
       );
 
       this.sendPaginatedResponse(
@@ -429,7 +425,6 @@ export class JobController extends BaseController {
         applicationId,
         payload,
         req.userId!,
-        req.user!.role,
       );
 
       this.sendSuccess(res, result, "Application status updated successfully");
