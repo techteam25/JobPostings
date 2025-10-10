@@ -1,7 +1,6 @@
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { seedAdminUser, seedJobs, seedOrganizations } from "@tests/utils/seed";
 import { AuthTokens } from "@/types";
-import { expect } from "vitest";
 
 describe("Job Controller Integration Tests", () => {
   describe("GET /jobs", () => {
