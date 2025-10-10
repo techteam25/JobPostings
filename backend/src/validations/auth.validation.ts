@@ -97,7 +97,7 @@ const profileIdParamSchema = z
       example: 1,
     }),
   })
-  .openapi("Profile");
+  .openapi("ProfileParam");
 
 export const registerUserSchema = z.object({
   body: registerSchema,
