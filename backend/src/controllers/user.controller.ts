@@ -3,7 +3,7 @@ import { UserService } from "@/services/user.service";
 import { AuthService } from "@/services/auth.service";
 import { BaseController } from "./base.controller";
 import { ValidationError, ForbiddenError, NotFoundError } from "@/utils/errors";
-import { UpdateUser, UpdateUserProfile } from "@/db/schema";
+import { UpdateUser, UpdateUserProfile, UserWithProfile } from "@/db/schema";
 import { ChangePasswordData } from "@/db/interfaces/common";
 import { SearchParams } from "@/validations/base.validation";
 import {
@@ -11,6 +11,7 @@ import {
   GetUserSchema,
   UserEmailSchema,
 } from "@/validations/user.validation";
+import { ApiResponse } from "@/types";
 
 export class UserController extends BaseController {
   private userService: UserService;
@@ -141,19 +142,28 @@ export class UserController extends BaseController {
     return this.sendSuccess(res, null, "Password changed successfully");
   };
 
-  getCurrentUser = async (req: Request, res: Response) => {
+  getCurrentUser = async (
+    req: Request,
+    res: Response<ApiResponse<UserWithProfile>>,
+  ) => {
     if (!req.userId) {
-      return this.handleControllerError(
-        res,
-        new ValidationError("User not authenticated"),
-      );
+      return res.status(401).json({
+        success: false,
+        status: "error",
+        message: "User not authenticated",
+        error: "UNAUTHORIZED",
+        timestamp: new Date().toISOString(),
+      });
     }
 
-    return this.sendSuccess(
-      res,
-      req.user,
-      "Current user retrieved successfully",
-    );
+    const user = await this.userService.getUserById(req.userId);
+
+    return res.json({
+      success: true,
+      data: user,
+      message: "Current user retrieved successfully",
+      timestamp: new Date().toISOString(),
+    });
   };
 
   deactivateUser = async (
