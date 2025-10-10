@@ -1,20 +1,16 @@
 import { Request, Response } from "express";
-import { UserService } from "../services/user.service";
-import { AuthService } from "../services/auth.service";
+import { UserService } from "@/services/user.service";
+import { AuthService } from "@/services/auth.service";
 import { BaseController } from "./base.controller";
-import {
-  ValidationError,
-  ForbiddenError,
-  NotFoundError,
-} from "../utils/errors";
-import { UpdateUser, UpdateUserProfile } from "../db/schema";
-import { ChangePasswordData } from "../db/interfaces/common";
-import { SearchParams } from "../validations/base.validation";
+import { ValidationError, ForbiddenError, NotFoundError } from "@/utils/errors";
+import { UpdateUser, UpdateUserProfile } from "@/db/schema";
+import { ChangePasswordData } from "@/db/interfaces/common";
+import { SearchParams } from "@/validations/base.validation";
 import {
   ChangePasswordSchema,
   GetUserSchema,
   UserEmailSchema,
-} from "../validations/user.validation";
+} from "@/validations/user.validation";
 
 export class UserController extends BaseController {
   private userService: UserService;
@@ -31,12 +27,12 @@ export class UserController extends BaseController {
     res: Response,
   ) => {
     try {
-      const { page, limit, search } = req.query;
+      const { page, limit, q } = req.query;
 
       const result = await this.userService.getAllUsers({
         page,
         limit,
-        searchTerm: search,
+        searchTerm: q,
         role: req.user?.role,
       });
 
