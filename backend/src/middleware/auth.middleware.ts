@@ -42,7 +42,7 @@ export class AuthMiddleware {
         return res.status(403).json({
           success: false,
           status: "error",
-          message: "User account is not active",
+          message: "User account is deactivated",
           error: "FORBIDDEN",
           timestamp: new Date().toISOString(),
         });
@@ -58,7 +58,7 @@ export class AuthMiddleware {
       return res.status(401).json({
         success: false,
         status: "error",
-        message: "Invalid or expired token",
+        message: "Invalid token",
         error: "UNAUTHORIZED",
         timestamp: new Date().toISOString(),
       });
