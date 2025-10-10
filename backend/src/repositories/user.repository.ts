@@ -154,27 +154,45 @@ export class UserRepository extends BaseRepository<typeof users> {
     await db.delete(users).where(eq(users.id, user.id));
   }
 
-  async updateProfile(
-    userId: number,
-    profileData: Partial<NewUserProfile>,
-  ): Promise<void> {
+  async updateProfile(userId: number, profileData: Partial<NewUserProfile>) {
     try {
-      const existingProfile = await db
-        .select()
-        .from(userProfile)
-        .where(eq(userProfile.userId, userId));
-
-      if (existingProfile.length > 0) {
-        await db
-          .update(userProfile)
-          .set(profileData)
+      return await db.transaction(async (tx) => {
+        const existingProfile = await tx
+          .select()
+          .from(userProfile)
           .where(eq(userProfile.userId, userId));
-      } else {
-        await db.insert(userProfile).values({
-          ...profileData,
-          userId,
+
+        if (existingProfile.length > 0) {
+          await tx
+            .update(userProfile)
+            .set(profileData)
+            .where(eq(userProfile.userId, userId));
+        } else {
+          await tx.insert(userProfile).values({
+            ...profileData,
+            userId,
+          });
+        }
+        return await tx.query.users.findFirst({
+          where: eq(users.id, userId),
+          with: {
+            profile: true,
+          },
+          columns: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            organizationId: true,
+            isEmailVerified: true,
+            isActive: true,
+            lastLoginAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
         });
-      }
+      });
     } catch (error) {
       throw new DatabaseError(
         `Failed to update profile for userId: ${userId}`,
