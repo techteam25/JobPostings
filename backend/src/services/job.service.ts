@@ -188,6 +188,7 @@ export class JobService extends BaseService {
 
     // Check if job has applications - if so, prevent deletion
     const applications = await this.jobRepository.findApplicationsByJob(id);
+
     if (applications.items.length > 0) {
       throw new ForbiddenError("Cannot delete job with existing applications");
     }
@@ -227,7 +228,7 @@ export class JobService extends BaseService {
       );
     const hasApplied = existingApplications.items.some(
       (app) => app.job?.id === applicationData.jobId,
-    );
+    ); // Todo: Refactor to use a direct query
 
     if (hasApplied) {
       return this.handleError(
@@ -241,18 +242,20 @@ export class JobService extends BaseService {
       coverLetter: SecurityUtils.sanitizeInput(
         applicationData.coverLetter ?? "",
       ),
-      customAnswers: SecurityUtils.sanitizeInput(
-        applicationData.customAnswers ?? "",
-      ),
     };
 
     const applicationId =
       await this.jobRepository.createApplication(sanitizedData);
 
-    // Update job application count
-    await this.jobInsightsRepository.incrementJobApplications(
-      applicationData.jobId,
-    );
+    if (!applicationId) {
+      return this.handleError(
+        new AppError(
+          "Failed to submit application",
+          500,
+          ErrorCode.DATABASE_ERROR,
+        ),
+      );
+    }
 
     return {
       applicationId,
