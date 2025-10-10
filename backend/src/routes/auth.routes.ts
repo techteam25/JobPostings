@@ -12,13 +12,13 @@ import {
 } from "@/validations/auth.validation";
 
 const router = Router();
-const registry = new OpenAPIRegistry();
+const authRegistry = new OpenAPIRegistry();
 
 const authController = new AuthController();
 const authMiddleware = new AuthMiddleware();
 
 // Public routes
-registry.registerPath({
+authRegistry.registerPath({
   method: "post",
   path: "/api/auth/register",
   summary: "Register a new user",
@@ -27,7 +27,7 @@ registry.registerPath({
     body: {
       content: {
         "application/json": {
-          schema: registerUserSchema,
+          schema: registerUserSchema.shape["body"],
         },
       },
     },
@@ -35,9 +35,45 @@ registry.registerPath({
   responses: {
     201: {
       description: "User registered successfully",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              message: {
+                type: "string",
+                example: "User registered successfully",
+              },
+              data: {
+                type: "object",
+                properties: {
+                  user: { type: "object" }, // Simplified for brevity
+                  tokens: { type: "object" }, // Simplified for brevity
+                },
+              },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
     },
     400: {
       description: "Validation error",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "Registration failed" },
+              error: { type: "string", example: "Detailed error message" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
     },
     429: {
       description: "Too many login attempts",
@@ -50,7 +86,7 @@ router.post(
   authController.register,
 );
 
-registry.registerPath({
+authRegistry.registerPath({
   method: "post",
   path: "/api/auth/login",
   summary: "Login user",
@@ -59,7 +95,7 @@ registry.registerPath({
     body: {
       content: {
         "application/json": {
-          schema: userLoginSchema,
+          schema: userLoginSchema.shape["body"],
         },
       },
     },
@@ -67,15 +103,50 @@ registry.registerPath({
   responses: {
     200: {
       description: "Login successful",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              message: { type: "string", example: "Login successful" },
+              data: {
+                type: "object",
+                properties: {
+                  tokens: { type: "object" }, // Simplified for brevity
+                },
+              },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
     },
     400: {
       description: "Invalid credentials",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "Login failed" },
+              error: { type: "string", example: "Detailed error message" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    429: {
+      description: "Too many login attempts",
     },
   },
 });
 router.post("/login", validate(userLoginSchema), authController.login);
 
-registry.registerPath({
+authRegistry.registerPath({
   method: "post",
   path: "/api/auth/refresh-token",
   summary: "Refresh authentication token",
@@ -84,7 +155,7 @@ registry.registerPath({
     body: {
       content: {
         "application/json": {
-          schema: userRefreshTokenSchema,
+          schema: userRefreshTokenSchema.shape["body"],
         },
       },
     },
@@ -92,9 +163,61 @@ registry.registerPath({
   responses: {
     200: {
       description: "Token refreshed successfully",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              message: {
+                type: "string",
+                example: "Token refreshed successfully",
+              },
+              data: {
+                type: "object",
+                properties: {
+                  tokens: { type: "object" }, // Simplified for brevity
+                },
+              },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
     },
     400: {
       description: "Invalid refresh token",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "Token refresh failed" },
+              error: { type: "string", example: "Detailed error message" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "User not authenticated" },
+              error: { type: "string", example: "UNAUTHORIZED" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
     },
     429: {
       description: "Too many login attempts",
@@ -109,7 +232,7 @@ router.post(
 
 // Protected routes
 
-registry.registerPath({
+authRegistry.registerPath({
   method: "post",
   path: "/api/auth/logout",
   summary: "Logout user",
@@ -118,9 +241,55 @@ registry.registerPath({
   responses: {
     200: {
       description: "Logout successful",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              message: { type: "string", example: "Logout successful" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
     },
     401: {
       description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "User not authenticated" },
+              error: { type: "string", example: "UNAUTHORIZED" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    403: {
+      description: "Forbidden - User account is not active",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: {
+                type: "string",
+                example: "User account is not active",
+              },
+              error: { type: "string", example: "FORBIDDEN" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
     },
     429: {
       description: "Too many attempts",
@@ -135,7 +304,7 @@ router.post("/logout", authMiddleware.authenticate, authController.logout);
 //   authController.logoutAll,
 // );
 
-registry.registerPath({
+authRegistry.registerPath({
   method: "get",
   path: "/api/auth/profile/{profileId}",
   summary: "Get user profile by ID",
@@ -154,12 +323,90 @@ registry.registerPath({
   responses: {
     200: {
       description: "Profile data",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              message: { type: "string", example: "Profile retrieved" },
+              data: { type: "object" }, // Simplified for brevity
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "Invalid profile ID" },
+              error: { type: "string", example: "Detailed error message" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
     },
     401: {
       description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "User not authenticated" },
+              error: { type: "string", example: "UNAUTHORIZED" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    403: {
+      description: "Forbidden - User account is not active",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: {
+                type: "string",
+                example: "User account is not active",
+              },
+              error: { type: "string", example: "FORBIDDEN" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
     },
     404: {
       description: "Profile not found",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "Profile not found" },
+              error: { type: "string", example: "NOT_FOUND" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
     },
     429: {
       description: "Too many attempts",
@@ -172,7 +419,7 @@ router.get(
   authController.getProfile,
 );
 
-registry.registerPath({
+authRegistry.registerPath({
   method: "post",
   path: "/api/auth/change-password",
   summary: "Change user password",
@@ -182,7 +429,7 @@ registry.registerPath({
     body: {
       content: {
         "application/json": {
-          schema: changeUserPasswordSchema,
+          schema: changeUserPasswordSchema.shape["body"],
         },
       },
     },
@@ -190,12 +437,55 @@ registry.registerPath({
   responses: {
     200: {
       description: "Password changed successfully",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              message: {
+                type: "string",
+                example: "Password changed successfully",
+              },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
     },
     400: {
       description: "Validation error",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "Password change failed" },
+              error: { type: "string", example: "Detailed error message" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
     },
     401: {
       description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "User not authenticated" },
+              error: { type: "string", example: "UNAUTHORIZED" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
     },
     429: {
       description: "Too many attempts",
@@ -209,5 +499,5 @@ router.post(
   authController.changePassword,
 );
 
-export { registry };
+export { authRegistry };
 export default router;
