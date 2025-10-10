@@ -1,10 +1,9 @@
-import { JobRepository } from "../repositories/job.repository";
-import { UserRepository } from "../repositories/user.repository";
+import { JobRepository } from "@/repositories/job.repository";
+import { UserRepository } from "@/repositories/user.repository";
 import { BaseService } from "./base.service";
-import { Job, userProfile, UserWithProfile } from "../db/schema";
-import { User } from "../db/schema";
-import { NotFoundError, ValidationError } from "../utils/errors";
-import { PaginationResult } from "../repositories/base.repository";
+import { Job, userProfile, UserWithProfile } from "@/db/schema";
+import { User } from "@/db/schema";
+import { NotFoundError, ValidationError } from "@/utils/errors";
 
 interface JobMatchScore {
   job: Job;
@@ -30,7 +29,7 @@ export class JobMatchingService extends BaseService {
   async getRecommendedJobs(
     userId: number,
     options: { page?: number; limit?: number } = {},
-  ): Promise<PaginationResult<JobMatchScore>> {
+  ) {
     try {
       const { page = 1, limit = 10 } = options;
 
@@ -133,9 +132,7 @@ export class JobMatchingService extends BaseService {
   async findCandidatesForJob(
     jobId: number,
     options: { page?: number; limit?: number } = {},
-  ): Promise<
-    PaginationResult<{ user: User; score: number; matchReasons: string[] }>
-  > {
+  ) {
     try {
       const { page = 1, limit = 10 } = options;
 
