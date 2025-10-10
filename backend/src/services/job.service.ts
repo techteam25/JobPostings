@@ -1,5 +1,4 @@
 import { JobRepository } from "@/repositories/job.repository";
-import { UserRepository } from "@/repositories/user.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { BaseService } from "./base.service";
 import {
@@ -22,14 +21,12 @@ import { SearchParams } from "@/validations/base.validation";
 
 export class JobService extends BaseService {
   private jobRepository: JobRepository;
-  private userRepository: UserRepository;
   private organizationRepository: OrganizationRepository;
   private jobInsightsRepository: JobInsightsRepository;
 
   constructor() {
     super();
     this.jobRepository = new JobRepository();
-    this.userRepository = new UserRepository();
     this.organizationRepository = new OrganizationRepository();
     this.jobInsightsRepository = new JobInsightsRepository();
   }
@@ -71,23 +68,20 @@ export class JobService extends BaseService {
     employerId: number,
     options: { page?: number; limit?: number } = {},
     requesterId: number,
-    requesterRole: string,
   ) {
-    // Authorization check
-    if (requesterRole !== "admin" && requesterRole !== "employer") {
+    // Additional check for employers - they can only see their own organization's jobs
+    const organization =
+      await this.organizationRepository.findByContact(requesterId);
+    if (!organization) {
       return this.handleError(
-        new ForbiddenError("Only employers and admins can view employer jobs"),
+        new ForbiddenError("You do not belong to any organization"),
       );
     }
 
-    // Additional check for employers - they can only see their own organization's jobs
-    if (requesterRole === "employer") {
-      const requester = await this.userRepository.findById(requesterId);
-      if (!requester || (requester as any).organizationId !== employerId) {
-        return this.handleError(
-          new ForbiddenError("You can only view jobs for your organization"),
-        );
-      }
+    if (organization.id !== employerId) {
+      return this.handleError(
+        new ForbiddenError("You can only view jobs for your organization"),
+      );
     }
 
     return await this.jobRepository.findJobsByEmployer(employerId, options);
@@ -98,16 +92,11 @@ export class JobService extends BaseService {
     const employer = await this.organizationRepository.findById(
       jobData.employerId,
     );
+
     if (!employer) {
       return this.handleError(
         new NotFoundError("Organization", jobData.employerId),
       );
-    }
-
-    // Validate posted by user exists
-    const poster = await this.userRepository.findById(jobData.employerId);
-    if (!poster) {
-      return this.handleError(new NotFoundError("User", jobData.employerId));
     }
 
     // Sanitize and process job data
@@ -130,51 +119,43 @@ export class JobService extends BaseService {
     id: number,
     updateData: UpdateJob,
     requesterId: number,
-    requesterRole: string,
   ): Promise<Job> {
     const job = await this.getJobById(id);
 
-    // Authorization check
-    if (requesterRole === "admin") {
-      // Admin can update any job
-    } else if (requesterRole === "employer") {
-      const requester = await this.userRepository.findById(requesterId);
-      if (!requester || (requester as any).organizationId !== job.employerId) {
-        this.handleError(
-          new ForbiddenError("You can only update jobs for your organization"),
-        );
-      }
-    } else {
-      this.handleError(
-        new ForbiddenError("Only employers and admins can update jobs"),
+    if (!job) {
+      throw new NotFoundError("Job", id);
+    }
+
+    // Authorization check - only admin or employer who posted the job can update
+    const organization =
+      await this.organizationRepository.findByContact(requesterId);
+
+    if (!organization) {
+      throw new ForbiddenError("You do not belong to any organization");
+    }
+
+    if (job.employerId !== organization.id) {
+      throw new ForbiddenError(
+        "You can only update jobs posted by your organization",
       );
     }
 
     // Sanitize update data
-    const sanitizedData: any = { ...updateData };
-    if (sanitizedData.title) {
-      sanitizedData.title = SecurityUtils.sanitizeInput(sanitizedData.title);
-    }
-    if (sanitizedData.description) {
-      sanitizedData.description = SecurityUtils.sanitizeInput(
-        sanitizedData.description,
-      );
-    }
-    if (sanitizedData.location) {
-      sanitizedData.location = SecurityUtils.sanitizeInput(
-        sanitizedData.location,
-      );
-    }
-    if (sanitizedData.requiredSkills) {
-      sanitizedData.requiredSkills = this.processSkillsArray(
-        sanitizedData.requiredSkills,
-      );
-    }
-    if (sanitizedData.preferredSkills) {
-      sanitizedData.preferredSkills = this.processSkillsArray(
-        sanitizedData.preferredSkills,
-      );
-    }
+    const sanitizedData = {
+      ...updateData,
+      title: updateData.title
+        ? SecurityUtils.sanitizeInput(updateData.title)
+        : undefined,
+      description: updateData.description
+        ? SecurityUtils.sanitizeInput(updateData.description)
+        : undefined,
+      location: updateData.location
+        ? SecurityUtils.sanitizeInput(updateData.location)
+        : undefined,
+      requiredSkills: updateData.skills
+        ? this.processSkillsArray(updateData.skills)
+        : undefined,
+    };
 
     const success = await this.jobRepository.update(id, sanitizedData);
     if (!success) {
@@ -184,18 +165,33 @@ export class JobService extends BaseService {
     return await this.getJobById(id);
   }
 
-  async deleteJob(
-    id: number,
-    requesterId: number,
-    requesterRole: string,
-  ): Promise<void> {
+  async deleteJob(id: number, requesterId: number): Promise<void> {
     const job = await this.getJobById(id);
 
     if (!job) {
       throw new NotFoundError("Job", id);
     }
 
-    // Soft delete by deactivating
+    // Authorization check - only admin or employer who posted the job can delete
+    const organization =
+      await this.organizationRepository.findByContact(requesterId);
+
+    if (!organization) {
+      throw new ForbiddenError("You do not belong to any organization");
+    }
+
+    if (job.employerId !== organization.id) {
+      throw new ForbiddenError(
+        "You can only delete jobs posted by your organization",
+      );
+    }
+
+    // Check if job has applications - if so, prevent deletion
+    const applications = await this.jobRepository.findApplicationsByJob(id);
+    if (applications.items.length > 0) {
+      throw new ForbiddenError("Cannot delete job with existing applications");
+    }
+
     const success = await this.jobRepository.delete(id);
     if (!success) {
       throw new AppError("Failed to delete job", 500, ErrorCode.DATABASE_ERROR);
@@ -268,26 +264,23 @@ export class JobService extends BaseService {
     jobId: number,
     { page, limit, status }: SearchParams["query"],
     requesterId: number,
-    requesterRole: string,
   ) {
-    const job = await this.getJobById(jobId);
+    // Authorization check - only admin or employer who posted the job can view applications
+    const [job, organization] = await Promise.all([
+      this.getJobById(jobId),
+      this.organizationRepository.findByContact(requesterId),
+    ]);
 
-    // Authorization check
-    if (requesterRole === "admin") {
-      // Admin can view any job's applications
-    } else if (requesterRole === "employer") {
-      const requester = await this.userRepository.findById(requesterId);
-      if (!requester || (requester as any).organizationId !== job.employerId) {
-        return this.handleError(
-          new ForbiddenError(
-            "You can only view applications for your organization jobs",
-          ),
-        );
-      }
-    } else {
+    if (!organization) {
+      return this.handleError(
+        new ForbiddenError("You do not belong to any organization"),
+      );
+    }
+
+    if (job.employerId !== organization.id) {
       return this.handleError(
         new ForbiddenError(
-          "Only employers and admins can view job applications",
+          "You can only view applications for jobs posted by your organization",
         ),
       );
     }
@@ -318,13 +311,33 @@ export class JobService extends BaseService {
     applicationId: number,
     data: UpdateJobApplication,
     requesterId: number,
-    requesterRole: string,
   ): Promise<{ message: string }> {
     // Get application details
     const [application] =
       await this.jobRepository.findApplicationById(applicationId);
+
     if (!application) {
       return this.handleError(new NotFoundError("Application", applicationId));
+    }
+
+    // Authorization check - only admin or employer who posted the job can delete
+    const [job, organization] = await Promise.all([
+      this.getJobById(application.job.id),
+      this.organizationRepository.findByContact(requesterId),
+    ]);
+
+    if (!organization) {
+      return this.handleError(
+        new ForbiddenError("You do not belong to any organization"),
+      );
+    }
+
+    if (organization.id !== job.employerId) {
+      return this.handleError(
+        new ForbiddenError(
+          "You can only update applications for jobs posted by your organization",
+        ),
+      );
     }
 
     // const updateData: any = { status };
