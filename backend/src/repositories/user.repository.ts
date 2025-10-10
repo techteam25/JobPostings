@@ -117,13 +117,15 @@ export class UserRepository extends BaseRepository<typeof users> {
   ): Promise<number> {
     try {
       return await db.transaction(async (tx) => {
-        const userResult = await tx.insert(users).values(userData);
-        const userId = userResult[0].insertId;
-        if (!userId || isNaN(userId)) {
+        const [res] = await tx.insert(users).values(userData).$returningId();
+
+        if (!res) {
           throw new DatabaseError(
-            `Invalid insertId returned: ${userResult[0].insertId}`,
+            `Failed to insert user with data: ${JSON.stringify(userData)}`,
           );
         }
+
+        const userId = res.id;
 
         if (profileData) {
           await tx.insert(userProfile).values({
