@@ -8,7 +8,7 @@ const successResponseSchema = z.object({
   timestamp: z.string().optional(),
 });
 
-const errorResponseSchema = z.object({
+export const errorResponseSchema = z.object({
   success: z.literal(false),
   status: z.literal("error"),
   message: z.string(),
@@ -40,6 +40,13 @@ const authTokens = z.object({
   expiresAt: z.date(),
   refreshExpiresAt: z.date(),
 });
+
+export const apiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+  z.object({
+    success: z.boolean(),
+    message: z.string(),
+    data: dataSchema,
+  });
 
 /* API Response Types */
 
