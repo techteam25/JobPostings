@@ -36,7 +36,20 @@ export class AuthMiddleware {
       const token = authHeader.substring(7);
       const decoded = SecurityUtils.verifyAccessToken(token);
 
-      req.user = await this.userService.getUserById(decoded.userId);
+      const user = await this.userService.getUserById(decoded.userId);
+
+      if (!user.isActive) {
+        return res.status(403).json({
+          success: false,
+          status: "error",
+          message: "User account is not active",
+          error: "FORBIDDEN",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      // Attach user info to request object
+      req.user = user;
       req.userId = decoded.userId;
 
       return next();
