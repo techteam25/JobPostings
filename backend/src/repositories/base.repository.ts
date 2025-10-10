@@ -1,9 +1,10 @@
-import { eq, desc, SQL } from "drizzle-orm";
+import { eq, desc, SQL, count } from "drizzle-orm";
 import { MySqlTable, MySqlColumn } from "drizzle-orm/mysql-core";
 import { db } from "@/db/connection";
 import { DatabaseError } from "@/utils/errors";
-import { countRecords, calculatePagination } from "@/db/utils";
+import { calculatePagination } from "@/db/utils";
 import { PaginationMeta } from "@/types";
+import { withDbErrorHandling } from "@/db/dbErrorHandler";
 
 type TableWithId<T extends MySqlTable> = T & {
   id: MySqlColumn;
@@ -21,7 +22,9 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
 
   async create(data: T["$inferInsert"]): Promise<number> {
     try {
-      const result = await db.insert(this.table).values(data);
+      const result = await withDbErrorHandling(
+        async () => await db.insert(this.table).values(data),
+      );
       return result[0].insertId;
     } catch (error) {
       throw new DatabaseError(`Failed to create ${this.resourceName}`, error);
@@ -30,11 +33,14 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
 
   async findById(id: number): Promise<T["$inferSelect"] | null> {
     try {
-      const result = await db
-        .select()
-        .from(this.table)
-        .where(eq(this.table.id, id))
-        .limit(1);
+      const result = await withDbErrorHandling(
+        async () =>
+          await db
+            .select()
+            .from(this.table)
+            .where(eq(this.table.id, id))
+            .limit(1),
+      );
 
       return result[0] || null;
     } catch (error) {
@@ -51,26 +57,33 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
       page: 1,
     },
   ): Promise<{ items: T["$inferSelect"][]; pagination: PaginationMeta }> {
+    const { page = 1, limit = 10 } = options;
+    const offset = (page - 1) * limit;
+
     try {
-      const { page = 1, limit = 10 } = options;
-      const offset = (page - 1) * limit;
+      const [items, total] = await withDbErrorHandling(
+        async () =>
+          await db.transaction(async (tx) => {
+            const results = await tx
+              .select()
+              .from(this.table)
+              .limit(limit)
+              .offset(offset)
+              .orderBy(desc(this.table.createdAt));
 
-      const items = await db
-        .select()
-        .from(this.table)
-        .limit(limit)
-        .offset(offset)
-        .orderBy(desc(this.table.createdAt));
+            const [total] = await tx
+              .select({ count: count() })
+              .from(this.table);
 
-      const total = await countRecords(this.table);
+            return [results, total?.count || 0];
+          }),
+      );
+
       const pagination = calculatePagination(total, page, limit);
 
       return { items, pagination };
     } catch (error) {
-      throw new DatabaseError(
-        `Failed to retrieve ${this.resourceName} list`,
-        error,
-      );
+      throw new DatabaseError(`Failed to find all ${this.resourceName}`, error);
     }
   }
 
@@ -82,15 +95,25 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
       const { page = 1, limit = 10 } = options;
       const offset = (page - 1) * limit;
 
-      const items = await db
-        .select()
-        .from(this.table)
-        .where(condition)
-        .limit(limit)
-        .offset(offset)
-        .orderBy(desc(this.table.createdAt));
+      const [items, total] = await withDbErrorHandling(
+        async () =>
+          await db.transaction(async (tx) => {
+            const results = await tx
+              .select()
+              .from(this.table)
+              .where(condition)
+              .limit(limit)
+              .offset(offset)
+              .orderBy(desc(this.table.createdAt));
 
-      const total = await countRecords(this.table, condition);
+            const [total] = await tx
+              .select({ count: count() })
+              .from(this.table);
+
+            return [results, total?.count || 0];
+          }),
+      );
+
       const pagination = calculatePagination(total, page, limit);
 
       return { items, pagination };
@@ -104,13 +127,16 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
 
   async update(id: number, data: Partial<T["$inferInsert"]>): Promise<boolean> {
     try {
-      const result = await db
-        .update(this.table)
-        .set({
-          ...data,
-          updatedAt: new Date(),
-        })
-        .where(eq(this.table.id, id));
+      const result = await withDbErrorHandling(
+        async () =>
+          await db
+            .update(this.table)
+            .set({
+              ...data,
+              updatedAt: new Date(),
+            })
+            .where(eq(this.table.id, id)),
+      );
 
       return result[0].affectedRows > 0;
     } catch (error) {
@@ -120,7 +146,9 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
 
   async delete(id: number): Promise<boolean> {
     try {
-      const result = await db.delete(this.table).where(eq(this.table.id, id));
+      const result = await withDbErrorHandling(
+        async () => await db.delete(this.table).where(eq(this.table.id, id)),
+      );
 
       return result[0].affectedRows > 0;
     } catch (error) {
