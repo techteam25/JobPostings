@@ -1,18 +1,15 @@
-import path from "path";
-
 import express from "express";
 import type { Application, Request, Response, NextFunction } from "express";
 import { rateLimit } from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
 
 import pinoHttp from "pino-http";
-import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 
 import { checkDatabaseConnection } from "./db/connection";
 import { env } from "./config/env";
 import { errorHandler } from "./middleware/error.middleware";
-import { registry } from "@/routes/auth.routes";
+import { authRegistry } from "@/routes/auth.routes";
 
 import apiRoutes from "./routes";
 import logger from "@/logger";
@@ -54,7 +51,7 @@ const authLimiter = rateLimit({
 });
 
 // Generate the OpenAPI document
-const generator = new OpenApiGeneratorV3(registry.definitions);
+const generator = new OpenApiGeneratorV3(authRegistry.definitions);
 const swaggerOptions = generator.generateDocument({
   openapi: "3.0.0",
   info: {
