@@ -110,7 +110,7 @@ export const seedJobs = async () => {
               "AWS",
             ]),
           ),
-          employerId: faker.helpers.arrayElement(orgIds),
+          employerId: 1, // faker.helpers.arrayElement(orgIds),
         })),
       );
     });
