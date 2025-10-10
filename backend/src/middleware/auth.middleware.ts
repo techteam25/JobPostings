@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { UserService } from "@/services/user.service";
 import logger from "@/logger";
 import { SecurityUtils } from "@/utils/security";
+import { ApiResponse } from "@/types";
 
 export class AuthMiddleware {
   private userService: UserService;
@@ -10,7 +11,11 @@ export class AuthMiddleware {
     this.userService = new UserService();
   }
 
-  authenticate = async (req: Request, res: Response, next: NextFunction) => {
+  authenticate = async (
+    req: Request,
+    res: Response<ApiResponse<void>>,
+    next: NextFunction,
+  ) => {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -20,8 +25,11 @@ export class AuthMiddleware {
         );
 
         return res.status(401).json({
+          success: false,
           status: "error",
           message: "Authentication required",
+          error: "UNAUTHORIZED",
+          timestamp: new Date().toISOString(),
         });
       }
 
@@ -35,8 +43,11 @@ export class AuthMiddleware {
     } catch (error) {
       logger.error(error);
       return res.status(401).json({
+        success: false,
         status: "error",
         message: "Invalid or expired token",
+        error: "UNAUTHORIZED",
+        timestamp: new Date().toISOString(),
       });
     }
   };
