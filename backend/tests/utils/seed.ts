@@ -1,9 +1,10 @@
 // noinspection JSUnusedGlobalSymbols
 
 import { db } from "@/db/connection";
-import { organizations, jobsDetails, users } from "@/db/schema";
+import { organizations, jobsDetails, users, userProfile } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import logger from "@/logger";
+import { userProfileFixture } from "@tests/utils/fixtures";
 
 enum jobTypeEnum {
   FULL_TIME = "full-time",
@@ -182,5 +183,47 @@ export const seedAdminUser = async () => {
     });
   } catch (error) {
     console.error(error);
+  }
+};
+
+export const seedUserProfile = async () => {
+  const bcrypt = await import("bcrypt");
+  const { faker } = await import("@faker-js/faker");
+
+  const userProfileData = await userProfileFixture();
+  const hashedPassword = await bcrypt.hash("Password@123", 12);
+
+  try {
+    await db.transaction(async (trx) => {
+      await trx.delete(users);
+
+      await trx.execute(sql`ALTER TABLE user_profile AUTO_INCREMENT = 1`);
+      await trx.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+
+      const [userId] = await trx
+        .insert(users)
+        .values({
+          email: "normal.user@example.com",
+          passwordHash: hashedPassword,
+          firstName: faker.person.firstName(),
+          lastName: faker.person.lastName(),
+          role: "user",
+          isActive: true,
+        })
+        .$returningId();
+
+      if (!userId || isNaN(userId.id)) {
+        throw new Error(`Invalid insertId returned: ${userId?.id}`);
+      }
+
+      await trx.insert(userProfile).values({
+        ...userProfileData,
+        userId: userId.id,
+      });
+    });
+  } catch (error) {
+    console.error(
+      `Error seeding user profile:, ${JSON.stringify(error, null, 2)}`,
+    );
   }
 };
