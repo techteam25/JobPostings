@@ -52,6 +52,7 @@ export class JobService extends BaseService {
 
   async getJobById(id: number): Promise<Job> {
     const job = await this.jobRepository.findById(id);
+
     if (!job) {
       return this.handleError(new NotFoundError("Job", id));
     }
@@ -190,20 +191,8 @@ export class JobService extends BaseService {
   ): Promise<void> {
     const job = await this.getJobById(id);
 
-    // Authorization check (same as update)
-    if (requesterRole === "admin") {
-      // Admin can delete any job
-    } else if (requesterRole === "employer") {
-      const requester = await this.userRepository.findById(requesterId);
-      if (!requester || (requester as any).organizationId !== job.employerId) {
-        return this.handleError(
-          new ForbiddenError("You can only delete jobs for your organization"),
-        );
-      }
-    } else {
-      return this.handleError(
-        new ForbiddenError("Only employers and admins can delete jobs"),
-      );
+    if (!job) {
+      throw new NotFoundError("Job", id);
     }
 
     // Soft delete by deactivating
