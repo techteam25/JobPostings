@@ -222,13 +222,10 @@ export class JobService extends BaseService {
     }
 
     // Check if user has already applied
-    const existingApplications =
-      await this.jobRepository.findApplicationsByUser(
-        applicationData.applicantId,
-      );
-    const hasApplied = existingApplications.items.some(
-      (app) => app.job?.id === applicationData.jobId,
-    ); // Todo: Refactor to use a direct query
+    const hasApplied = await this.jobRepository.hasUserAppliedToJob(
+      applicationData.applicantId,
+      applicationData.jobId,
+    );
 
     if (hasApplied) {
       return this.handleError(
