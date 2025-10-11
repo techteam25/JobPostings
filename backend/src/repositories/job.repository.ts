@@ -254,7 +254,18 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
 
   async findApplicationsByUser(
     userId: number,
-    options: { page?: number; limit?: number; status?: string } = {},
+    options: {
+      page?: number;
+      limit?: number;
+      status?:
+        | "pending"
+        | "reviewed"
+        | "shortlisted"
+        | "interviewing"
+        | "rejected"
+        | "hired"
+        | "withdrawn";
+    } = {},
   ) {
     const { page = 1, limit = 10, status } = options;
     const offset = (page - 1) * limit;
@@ -263,7 +274,19 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       eq(jobApplications.applicantId, userId),
     ];
     if (status) {
-      whereConditions.push(eq(jobApplications.status, status as any));
+      whereConditions.push(
+        eq(
+          jobApplications.status,
+          status as
+            | "pending"
+            | "reviewed"
+            | "shortlisted"
+            | "interviewing"
+            | "rejected"
+            | "hired"
+            | "withdrawn",
+        ),
+      );
     }
 
     const where = and(
@@ -350,6 +373,23 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .where(eq(jobApplications.id, applicationId))
           .innerJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
           .innerJoin(users, eq(jobApplications.applicantId, users.id)),
+    );
+  }
+
+  async hasUserAppliedToJob(userId: number, jobId: number) {
+    return await withDbErrorHandling(
+      async () =>
+        await db
+          .select({ exists: sql`SELECT 1` })
+          .from(jobApplications)
+          .where(
+            and(
+              eq(jobApplications.applicantId, userId),
+              eq(jobApplications.jobId, jobId),
+            ),
+          )
+          .limit(1)
+          .then((result) => result.length > 0),
     );
   }
 }
