@@ -17,7 +17,11 @@ import { updateApplicationStatusSchema } from "@/validations/jobApplications.val
 
 import { registry, z } from "@/swagger/registry";
 
-import { apiResponseSchema, errorResponseSchema } from "@/types";
+import {
+  apiResponseSchema,
+  errorResponseSchema,
+  paginationMetaSchema,
+} from "@/types";
 
 const router = Router();
 const jobController = new JobController();
@@ -52,7 +56,9 @@ registry.registerPath({
                 }),
               })
               .array(),
-          ),
+          ).extend({
+            pagination: paginationMetaSchema,
+          }),
         },
       },
     },

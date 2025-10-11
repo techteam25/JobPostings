@@ -16,7 +16,7 @@ export const errorResponseSchema = z.object({
   timestamp: z.string(),
 });
 
-const paginationMetaSchema = z.object({
+export const paginationMetaSchema = z.object({
   total: z.number(),
   page: z.number(),
   limit: z.number(),

@@ -10,13 +10,22 @@ import {
 } from "@/validations/organization.validation";
 import { registry, z } from "@/swagger/registry";
 import { selectOrganizationSchema } from "@/db/schema";
-import { apiResponseSchema, errorResponseSchema } from "@/types";
+import {
+  apiResponseSchema,
+  errorResponseSchema,
+  paginationMetaSchema,
+} from "@/types";
 
 const router = Router();
 const organizationController = new OrganizationController();
 const authMiddleware = new AuthMiddleware();
 
 const organizationResponse = apiResponseSchema(selectOrganizationSchema);
+const paginatedOrganizationResponse = apiResponseSchema(
+  selectOrganizationSchema.array(),
+).extend({
+  pagination: paginationMetaSchema,
+});
 
 // Public routes
 
@@ -30,7 +39,7 @@ registry.registerPath({
       description: "List of organizations",
       content: {
         "application/json": {
-          schema: organizationResponse,
+          schema: paginatedOrganizationResponse,
         },
       },
     },
