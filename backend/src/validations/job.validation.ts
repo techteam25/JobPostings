@@ -23,7 +23,6 @@ const createJobPayloadSchema = z
     experience: z.string(),
     salaryMin: z.number().positive().optional(),
     salaryMax: z.number().positive().optional(),
-    currency: z.string().length(3).default("USD"),
     isRemote: z.boolean().default(false),
     applicationDeadline: z.iso
       .datetime()
