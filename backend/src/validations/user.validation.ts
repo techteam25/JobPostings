@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/swagger/registry";
 import { updateUserSchema } from "@/db/schema";
 
 const userParamsSchema = z.object({
