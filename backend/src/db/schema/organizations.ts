@@ -10,6 +10,7 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./users";
+import { jobInsights } from "./jobsDetails";
 
 export const organizations = mysqlTable(
   "organizations",
@@ -38,6 +39,7 @@ export const organizations = mysqlTable(
 // Relations
 export const organizationRelations = relations(organizations, ({ many }) => ({
   contact: many(users),
+  jobInsights: many(jobInsights),
 }));
 
 // Zod schemas for validation
@@ -56,3 +58,4 @@ export const updateOrganizationSchema = insertOrganizationSchema
   .omit({ id: true, createdAt: true });
 
 export type NewOrganization = z.infer<typeof insertOrganizationSchema>;
+export type Organization = z.infer<typeof selectOrganizationSchema>;

@@ -1,50 +1,66 @@
 // API Response types
-export interface ApiResponse<T = any> {
-  status: 'success' | 'error';
-  message: string;
-  data?: T;
-  timestamp: string;
-}
 
-export interface ErrorResponse {
-  status: 'error';
-  message: string;
-  error?: string;
-  timestamp: string;
-}
+import { z } from "zod";
 
-// Example User type
-export interface User {
-  id: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: 'user' | 'employer' | 'admin';
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+const successResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  timestamp: z.string().optional(),
+});
 
-// Request body types
-export interface CreateUserRequest {
-  name: string;
-  email: string;
-}
+export const errorResponseSchema = z.object({
+  success: z.literal(false),
+  status: z.literal("error"),
+  message: z.string(),
+  error: z.string().optional(),
+  timestamp: z.string(),
+});
 
-// Authenticated request type
-export interface AuthRequest extends Request {
-  userId?: number;
-  sessionId?: number;
-  user?: User;
-}
+export const paginationMetaSchema = z.object({
+  total: z.number(),
+  page: z.number(),
+  limit: z.number(),
+  totalPages: z.number(),
+  hasNext: z.boolean(),
+  hasPrevious: z.boolean(),
+  nextPage: z.number().nullable(),
+  previousPage: z.number().nullable(),
+});
 
-export interface PaginationMeta {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-  nextPage: number | null;
-  previousPage: number | null;
-}
+const paginatedResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  timestamp: z.string().optional(),
+  pagination: paginationMetaSchema,
+});
+
+const authTokens = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+  expiresAt: z.date(),
+  refreshExpiresAt: z.date(),
+});
+
+export const apiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+  z.object({
+    success: z.boolean(),
+    message: z.string(),
+    data: dataSchema,
+  });
+
+/* API Response Types */
+
+export type ApiResponse<T> =
+  | (T extends void
+      ? z.infer<typeof successResponseSchema>
+      : z.infer<typeof successResponseSchema> & { data: T })
+  | z.infer<typeof errorResponseSchema>;
+
+export type PaginatedResponse<T> =
+  | (T extends void
+      ? z.infer<typeof paginatedResponseSchema>
+      : z.infer<typeof paginatedResponseSchema> & { data: T })
+  | z.infer<typeof errorResponseSchema>;
+
+export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
+export type AuthTokens = z.infer<typeof authTokens>;

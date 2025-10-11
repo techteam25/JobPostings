@@ -1,169 +1,88 @@
 import { Request, Response, NextFunction } from "express";
-import { z, ZodError } from "zod";
-import { ValidationError } from "../utils/errors";
+import { ZodObject, ZodError } from "zod";
 
-// Extend Request interface to include sanitized properties
-interface SanitizedRequest extends Request {
-  sanitizedBody?: any;
-  sanitizedQuery?: any;
-  sanitizedParams?: any;
+/**
+ * Validation error response structure
+ */
+interface ValidationError {
+  field: string;
+  message: string;
 }
 
-interface ValidationSchemas {
-  body?: z.ZodSchema<any>;
-  query?: z.ZodSchema<any>;
-  params?: z.ZodSchema<any>;
+/**
+ * Standardized error response
+ */
+interface ErrorResponse {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    details: ValidationError[];
+  };
 }
 
-export const validateRequest = (
-  schemas: ValidationSchemas | z.ZodSchema<any>
-) => {
-  return (req: SanitizedRequest, res: Response, next: NextFunction) => {
+/**
+ * Formats Zod validation errors into a standardized structure
+ */
+const formatZodErrors = (error: ZodError): ValidationError[] => {
+  return error.issues.map((err) => ({
+    field: err.path.join("."),
+    message: err.message,
+  }));
+};
+
+/**
+ * Validates incoming request data against a Zod schema
+ *
+ * @param schema - Zod schema that defines the expected structure for body, query, and params
+ * @returns Express middleware function
+ */
+const validate =
+  (schema: ZodObject<any, any>) =>
+  (
+    req: Request<unknown, unknown, unknown, unknown>,
+    res: Response,
+    next: NextFunction,
+  ): void => {
     try {
-      console.log("validateRequest input:", {
-        sanitizedBody: req.sanitizedBody,
-        body: req.body,
-      });
+      // Explicitly construct the validation object with all required properties
+      const validationData = {
+        body: req.body ?? {},
+        query: req.query ?? {},
+        params: req.params ?? {},
+      };
 
-      // Handle single schema
-      if ("_def" in schemas) {
-        const bodySchema = schemas as z.ZodSchema<any>;
-        const dataToValidate = req.sanitizedBody ?? req.body;
-        console.log("Validating single schema with:", dataToValidate);
-        req.sanitizedBody = bodySchema.parse(dataToValidate);
-        return next();
-      }
+      // Parse and validate the request data
+      schema.parse(validationData);
 
-      // Handle multiple schemas
-      const { body, query, params } = schemas as ValidationSchemas;
-      const errors: { field: string; message: string; code: string }[] = [];
-
-      if (body) {
-        try {
-          const dataToValidate = req.sanitizedBody ?? req.body;
-          console.log("Validating body schema with:", dataToValidate);
-          req.sanitizedBody = body.parse(dataToValidate);
-        } catch (e) {
-          if (e instanceof ZodError) {
-            errors.push(
-              ...e.issues.map((err) => ({
-                field: err.path.join("."),
-                message: err.message,
-                code: err.code,
-              }))
-            );
-          }
-        }
-      }
-
-      if (query) {
-        try {
-          const dataToValidate = req.sanitizedQuery ?? req.query;
-          req.sanitizedQuery = query.parse(dataToValidate);
-        } catch (e) {
-          if (e instanceof ZodError) {
-            errors.push(
-              ...e.issues.map((err) => ({
-                field: err.path.join("."),
-                message: err.message,
-                code: err.code,
-              }))
-            );
-          }
-        }
-      }
-
-      if (params) {
-        try {
-          const dataToValidate = req.sanitizedParams ?? req.params;
-          req.sanitizedParams = params.parse(dataToValidate);
-        } catch (e) {
-          if (e instanceof ZodError) {
-            errors.push(
-              ...e.issues.map((err) => ({
-                field: err.path.join("."),
-                message: err.message,
-                code: err.code,
-              }))
-            );
-          }
-        }
-      }
-
-      if (errors.length > 0) {
-        console.log("Validation errors:", errors);
-        return res.status(400).json({
-          status: "error",
-          message: "Validation failed",
-          errors,
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      console.log("After validation:", { sanitizedBody: req.sanitizedBody });
       next();
     } catch (error) {
-      console.error("Validation error:", error);
-      if (error instanceof ValidationError) {
-        return res.status(400).json({
-          status: "error",
-          message: error.message,
-          timestamp: new Date().toISOString(),
-        });
-      }
+      if (error instanceof ZodError) {
+        const errorResponse: ErrorResponse = {
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Request validation failed",
+            details: formatZodErrors(error),
+          },
+        };
 
-      return res.status(500).json({
-        status: "error",
-        message: "Internal validation error",
-        timestamp: new Date().toISOString(),
-      });
+        res.status(400).json(errorResponse);
+        return;
+      } else if (error instanceof Error) {
+        // Handle unexpected errors
+        const errorResponse: ErrorResponse = {
+          success: false,
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "An unexpected error occurred during validation",
+            details: [{ message: error.message, field: "" }],
+          },
+        };
+
+        res.status(500).json(errorResponse);
+      }
     }
   };
-};
 
-export const validateBody = (schema: z.ZodSchema<any>) =>
-  validateRequest({ body: schema });
-export const validateQuery = (schema: z.ZodSchema<any>) =>
-  validateRequest({ query: schema });
-export const validateParams = (schema: z.ZodSchema<any>) =>
-  validateRequest({ params: schema });
-
-export const sanitizeInput = (
-  req: SanitizedRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  console.log("Before sanitization:", {
-    body: req.body,
-    query: req.query,
-    params: req.params,
-  });
-  const sanitize = (obj: any): any => {
-    if (typeof obj === "string") {
-      return obj.trim();
-    }
-    if (Array.isArray(obj)) {
-      return obj.map(sanitize);
-    }
-    if (obj && typeof obj === "object") {
-      const sanitized: any = {};
-      for (const [key, value] of Object.entries(obj)) {
-        sanitized[key] = sanitize(value);
-      }
-      return sanitized;
-    }
-    return obj;
-  };
-
-  // Store sanitized data in custom properties
-  req.sanitizedBody = sanitize(req.body);
-  req.sanitizedQuery = sanitize(req.query);
-  req.sanitizedParams = sanitize(req.params);
-
-  console.log("After sanitization:", {
-    sanitizedBody: req.sanitizedBody,
-    sanitizedQuery: req.sanitizedQuery,
-    sanitizedParams: req.sanitizedParams,
-  });
-  next();
-};
+export default validate;

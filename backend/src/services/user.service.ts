@@ -1,29 +1,22 @@
 import bcrypt from "bcrypt";
-import { UserRepository } from "../repositories/user.repository";
+import { UserRepository } from "@/repositories/user.repository";
 import { BaseService } from "./base.service";
-import { NewUserProfile, UpdateUser } from "../db/schema/users";
 import {
-  NotFoundError,
-  ValidationError,
-  ForbiddenError,
-} from "../utils/errors";
-import { PaginationMeta } from "../types";
-import { db } from "../db/connection";
-import { users } from "../db/schema/users";
+  users,
+  type NewUserProfile,
+  type UpdateUser,
+  type User,
+} from "@/db/schema";
+import { NotFoundError, ValidationError, ForbiddenError } from "@/utils/errors";
+import { PaginationMeta } from "@/types";
+import { db } from "@/db/connection";
 import { count, sql } from "drizzle-orm";
-
-interface GetAllUsersOptions {
-  page?: number;
-  limit?: number;
-  searchTerm?: string;
-  role?: string;
-}
 
 interface UserSearchOptions {
   page?: number;
   limit?: number;
   searchTerm?: string;
-  role?: string;
+  role?: User["role"];
 }
 
 export class UserService extends BaseService {
@@ -35,188 +28,162 @@ export class UserService extends BaseService {
   }
 
   async getAllUsers(options: UserSearchOptions) {
-    try {
-      const { page = 1, limit = 10, searchTerm, role } = options;
-      const result = await this.userRepository.searchUsers(
-        searchTerm || "",
-        role,
-        {
-          page,
-          limit,
-        }
-      );
-      return {
-        items: result.items,
-        pagination: result.pagination as PaginationMeta, // Ensure type consistency
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
+    const { page = 1, limit = 10, searchTerm, role } = options;
+    const result = await this.userRepository.searchUsers(
+      searchTerm || "",
+      role,
+      {
+        page,
+        limit,
+      },
+    );
+    return {
+      items: result.items,
+      pagination: result.pagination as PaginationMeta, // Ensure type consistency
+    };
   }
 
   async getUserById(id: number) {
-    try {
-      const user = await this.userRepository.findByIdWithProfile(id);
-      if (!user) {
-        throw new NotFoundError("User", id);
-      }
-
-      // Remove sensitive data
-      const { users: userData, user_profile: profileData } = user;
-      const { passwordHash, ...safeUserData } = userData;
-
-      return {
-        ...safeUserData,
-        profile: profileData,
-      };
-    } catch (error) {
-      this.handleError(error);
+    const user = await this.userRepository.findByIdWithProfile(id);
+    if (!user) {
+      return this.handleError(new NotFoundError("User", id));
     }
+
+    return user;
   }
 
   async updateUser(
     id: number,
     updateData: UpdateUser,
     requestingUserId: number,
-    requestingUserRole: string
+    requestingUserRole: string,
   ) {
-    try {
-      // Check if user exists
-      const existingUser = await this.userRepository.findById(id);
-      if (!existingUser) {
-        throw new NotFoundError("User", id);
-      }
-
-      // Permission checks
-      const isAdmin = requestingUserRole === "admin";
-      const isSelfUpdate = requestingUserId === id;
-
-      if (!isAdmin && !isSelfUpdate) {
-        throw new ForbiddenError("You can only update your own profile");
-      }
-
-      // Non-admins cannot change certain fields
-      if (
-        !isAdmin &&
-        (updateData.role || updateData.organizationId !== undefined)
-      ) {
-        throw new ForbiddenError(
-          "Insufficient permissions to modify role or organization"
-        );
-      }
-
-      // Validate email uniqueness if email is being updated
-      if (updateData.email && updateData.email !== existingUser.email) {
-        const emailExists = await this.userRepository.findByEmail(
-          updateData.email
-        );
-        if (emailExists) {
-          throw new ValidationError("Email is already in use");
-        }
-      }
-
-      const success = await this.userRepository.update(id, updateData);
-      if (!success) {
-        throw new Error("Failed to update user");
-      }
-
-      return await this.getUserById(id);
-    } catch (error) {
-      this.handleError(error);
+    // Check if user exists
+    const existingUser = await this.userRepository.findById(id);
+    if (!existingUser) {
+      return this.handleError(new NotFoundError("User", id));
     }
+
+    // Permission checks
+    const isAdmin = requestingUserRole === "admin";
+    const isSelfUpdate = requestingUserId === id;
+
+    if (!isAdmin && !isSelfUpdate) {
+      return this.handleError(
+        new ForbiddenError("You can only update your own profile"),
+      );
+    }
+
+    // Non-admins cannot change certain fields
+    if (
+      !isAdmin &&
+      (updateData.role || updateData.organizationId !== undefined)
+    ) {
+      return this.handleError(
+        new ForbiddenError(
+          "Insufficient permissions to modify role or organization",
+        ),
+      );
+    }
+
+    // Validate email uniqueness if email is being updated
+    if (updateData.email && updateData.email !== existingUser.email) {
+      const emailExists = await this.userRepository.findByEmail(
+        updateData.email,
+      );
+      if (emailExists) {
+        return this.handleError(new ValidationError("Email is already in use"));
+      }
+    }
+
+    const success = await this.userRepository.update(id, updateData);
+    if (!success) {
+      return this.handleError(new Error("Failed to update user"));
+    }
+
+    return await this.getUserById(id);
   }
 
   async updateUserProfile(
     userId: number,
-    profileData: Partial<NewUserProfile>
+    profileData: Partial<NewUserProfile>,
   ) {
-    try {
-      const user = await this.userRepository.findById(userId);
-      if (!user) {
-        throw new NotFoundError("User", userId);
-      }
-
-      await this.userRepository.updateProfile(userId, profileData);
-      return await this.getUserById(userId);
-    } catch (error) {
-      this.handleError(error);
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      return this.handleError(new NotFoundError("User", userId));
     }
+
+    return await this.userRepository.updateProfile(userId, profileData);
   }
 
   async changePassword(
     userId: number,
     currentPassword: string,
-    newPassword: string
+    newPassword: string,
   ) {
-    try {
-      const user = await this.userRepository.findById(userId);
-      if (!user) {
-        throw new NotFoundError("User", userId);
-      }
-
-      const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
-      if (!isValid) {
-        throw new ValidationError("Current password is incorrect");
-      }
-
-      const newHash = await bcrypt.hash(newPassword, 12);
-      await this.userRepository.update(userId, { passwordHash: newHash });
-
-      return { message: "Password changed successfully" };
-    } catch (error) {
-      this.handleError(error);
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      return this.handleError(new NotFoundError("User", userId));
     }
+
+    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValid) {
+      return this.handleError(
+        new ValidationError("Current password is incorrect"),
+      );
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await this.userRepository.update(userId, { passwordHash: newHash });
+
+    return { message: "Password changed successfully" };
   }
 
   async deactivateUser(id: number, requestingUserId: number) {
-    try {
-      if (id === requestingUserId) {
-        throw new ValidationError("You cannot deactivate your own account");
-      }
-
-      const user = await this.userRepository.findById(id);
-      if (!user) {
-        throw new NotFoundError("User", id);
-      }
-
-      if (!user.isActive) {
-        throw new ValidationError("User is already deactivated");
-      }
-
-      const success = await this.userRepository.update(id, { isActive: false });
-      if (!success) {
-        throw new Error("Failed to deactivate user");
-      }
-
-      return await this.getUserById(id);
-    } catch (error) {
-      this.handleError(error);
+    if (id === requestingUserId) {
+      return this.handleError(
+        new ValidationError("You cannot deactivate your own account"),
+      );
     }
+
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      return this.handleError(new NotFoundError("User", id));
+    }
+
+    if (!user.isActive) {
+      return this.handleError(
+        new ValidationError("User is already deactivated"),
+      );
+    }
+
+    const success = await this.userRepository.update(id, { isActive: false });
+    if (!success) {
+      return this.handleError(new Error("Failed to deactivate user"));
+    }
+
+    return await this.getUserById(id);
   }
 
   async activateUser(id: number) {
-    try {
-      const user = await this.userRepository.findById(id);
-      if (!user) {
-        throw new NotFoundError("User", id);
-      }
-
-      if (user.isActive) {
-        throw new ValidationError("User is already active");
-      }
-
-      const success = await this.userRepository.update(id, { isActive: true });
-      if (!success) {
-        throw new Error("Failed to activate user");
-      }
-
-      return await this.getUserById(id);
-    } catch (error) {
-      this.handleError(error);
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      return this.handleError(new NotFoundError("User", id));
     }
+
+    if (user.isActive) {
+      return this.handleError(new ValidationError("User is already active"));
+    }
+
+    const success = await this.userRepository.update(id, { isActive: true });
+    if (!success) {
+      return this.handleError(new Error("Failed to activate user"));
+    }
+
+    return await this.getUserById(id);
   }
 
-  async getUsersByRole(role: string) {
+  async getUsersByRole(role: User["role"]) {
     try {
       return await this.userRepository.findByRole(role);
     } catch (error) {
@@ -231,7 +198,7 @@ export class UserService extends BaseService {
         .select({
           users: count(sql`CASE WHEN ${users.role} = 'user' THEN 1 END`),
           employers: count(
-            sql`CASE WHEN ${users.role} = 'employer' THEN 1 END`
+            sql`CASE WHEN ${users.role} = 'employer' THEN 1 END`,
           ),
           admins: count(sql`CASE WHEN ${users.role} = 'admin' THEN 1 END`),
           total: count(),

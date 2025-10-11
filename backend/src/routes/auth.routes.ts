@@ -1,80 +1,394 @@
-import { Router } from 'express';
-import { AuthController } from '../controllers/auth.controller';
-import { validateBody } from '../middleware/validation.middleware';
-import { AuthMiddleware } from '../middleware/auth.middleware';
-import { RateLimitMiddleware } from '../middleware/rate-limit.middleware';
-import { 
-  registerSchema, 
-  loginSchema, 
-  refreshTokenSchema, 
-  changePasswordSchema 
-} from '../validations/auth.validation';
+import { Router } from "express";
+
+import { AuthController } from "@/controllers/auth.controller";
+
+import { AuthMiddleware } from "@/middleware/auth.middleware";
+import validate from "@/middleware/validation.middleware";
+
+import {
+  registerUserSchema,
+  userLoginSchema,
+  userRefreshTokenSchema,
+  changeUserPasswordSchema,
+} from "@/validations/auth.validation";
+import { registry } from "@/swagger/registry";
 
 const router = Router();
+
 const authController = new AuthController();
 const authMiddleware = new AuthMiddleware();
 
-let rateLimiter: RateLimitMiddleware;
-let authRateLimit: any;
-let refreshRateLimit: any;
-
-try {
-  rateLimiter = new RateLimitMiddleware();
-  
-  authRateLimit = rateLimiter.createRateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    maxRequests: 5, // 5 attempts per window
-    keyGenerator: (req: any) => req.ip + '-auth',
-  });
-
-  refreshRateLimit = rateLimiter.createRateLimit({
-    windowMs: 5 * 60 * 1000, // 5 minutes
-    maxRequests: 10, // 10 refresh attempts per window
-  });
-} catch (error) {
-  authRateLimit = (req: any, res: any, next: any) => next();
-  refreshRateLimit = (req: any, res: any, next: any) => next();
-}
-
 // Public routes
-router.post('/register', 
-  authRateLimit,
-  validateBody(registerSchema), // Use schema directly
-  authController.register
+
+// Registration Route
+registry.registerPath({
+  method: "post",
+  path: "/api/auth/register",
+  summary: "Register a new user",
+  tags: ["Auth"],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: registerUserSchema.shape["body"],
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "User registered successfully",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              message: {
+                type: "string",
+                example: "User registered successfully",
+              },
+              data: {
+                type: "object",
+                properties: {
+                  user: { type: "object" }, // Simplified for brevity
+                  tokens: { type: "object" }, // Simplified for brevity
+                },
+              },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "Registration failed" },
+              error: { type: "string", example: "Detailed error message" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    429: {
+      description: "Too many login attempts",
+    },
+  },
+});
+router.post(
+  "/register",
+  validate(registerUserSchema), // Use schema directly
+  authController.register,
 );
 
-router.post('/login', 
-  authRateLimit,
-  validateBody(loginSchema), 
-  authController.login
-);
+// Login Route
+registry.registerPath({
+  method: "post",
+  path: "/api/auth/login",
+  summary: "Login user",
+  tags: ["Auth"],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: userLoginSchema.shape["body"],
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Login successful",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              message: { type: "string", example: "Login successful" },
+              data: {
+                type: "object",
+                properties: {
+                  tokens: { type: "object" }, // Simplified for brevity
+                },
+              },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    400: {
+      description: "Invalid credentials",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "Login failed" },
+              error: { type: "string", example: "Detailed error message" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    429: {
+      description: "Too many login attempts",
+    },
+  },
+});
+router.post("/login", validate(userLoginSchema), authController.login);
 
-router.post('/refresh-token',
-  refreshRateLimit,
-  validateBody(refreshTokenSchema),
-  authController.refreshToken
+// Refresh Token Route
+registry.registerPath({
+  method: "post",
+  path: "/api/auth/refresh-token",
+  summary: "Refresh authentication token",
+  tags: ["Auth"],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: userRefreshTokenSchema.shape["body"],
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Token refreshed successfully",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              message: {
+                type: "string",
+                example: "Token refreshed successfully",
+              },
+              data: {
+                type: "object",
+                properties: {
+                  tokens: { type: "object" }, // Simplified for brevity
+                },
+              },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    400: {
+      description: "Invalid refresh token",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "Token refresh failed" },
+              error: { type: "string", example: "Detailed error message" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "User not authenticated" },
+              error: { type: "string", example: "UNAUTHORIZED" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    429: {
+      description: "Too many login attempts",
+    },
+  },
+});
+router.post(
+  "/refresh-token",
+  validate(userRefreshTokenSchema),
+  authController.refreshToken,
 );
 
 // Protected routes
-router.post('/logout', 
-  authMiddleware.authenticate, 
-  authController.logout
-);
 
-router.post('/logout-all',
-  authMiddleware.authenticate,
-  authController.logoutAll
-);
+// Logout Route
+registry.registerPath({
+  method: "post",
+  path: "/api/auth/logout",
+  summary: "Logout user",
+  tags: ["Auth"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: "Logout successful",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              message: { type: "string", example: "Logout successful" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "User not authenticated" },
+              error: { type: "string", example: "UNAUTHORIZED" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    403: {
+      description: "Forbidden - User account is not active",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: {
+                type: "string",
+                example: "User account is not active",
+              },
+              error: { type: "string", example: "FORBIDDEN" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    429: {
+      description: "Too many attempts",
+    },
+  },
+});
+router.post("/logout", authMiddleware.authenticate, authController.logout);
 
-router.get('/profile',
-  authMiddleware.authenticate,
-  authController.getProfile
-);
+// router.post(
+//   "/logout-all",
+//   authMiddleware.authenticate,
+//   authController.logoutAll,
+// );
 
-router.post('/change-password',
+// Change Password Route
+registry.registerPath({
+  method: "post",
+  path: "/api/auth/change-password",
+  summary: "Change user password",
+  tags: ["Auth"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: changeUserPasswordSchema.shape["body"],
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Password changed successfully",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: true },
+              message: {
+                type: "string",
+                example: "Password changed successfully",
+              },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "Password change failed" },
+              error: { type: "string", example: "Detailed error message" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean", example: false },
+              status: { type: "string", example: "error" },
+              message: { type: "string", example: "User not authenticated" },
+              error: { type: "string", example: "UNAUTHORIZED" },
+              timestamp: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+    },
+    429: {
+      description: "Too many attempts",
+    },
+  },
+});
+router.post(
+  "/change-password",
   authMiddleware.authenticate,
-  validateBody(changePasswordSchema),
-  authController.changePassword
+  validate(changeUserPasswordSchema),
+  authController.changePassword,
 );
 
 export default router;

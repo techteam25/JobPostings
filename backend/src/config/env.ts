@@ -1,6 +1,13 @@
 import { z } from "zod";
 import "dotenv/config";
 
+enum LogLevel {
+  ERROR = "error",
+  WARN = "warn",
+  INFO = "info",
+  DEBUG = "debug",
+}
+
 // Define the schema for environment variables
 const envSchema = z.object({
   // Server configuration
@@ -9,7 +16,7 @@ const envSchema = z.object({
     .default("development"),
   PORT: z
     .string()
-    .default("3000")  // Changed from 3306 to 3000
+    .default("3000") // Changed from 3306 to 3000
     .transform((val) => parseInt(val, 10)),
   HOST: z.string().default("localhost"),
 
@@ -25,6 +32,15 @@ const envSchema = z.object({
 
   // JWT Secret - now required
   JWT_SECRET: z.string().min(32, "JWT secret must be at least 32 characters"),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(32, "JWT REFRESH secret must be at least 32 characters"),
+
+  // Logger Configuration
+  LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
+
+  // redis configuration
+  REDIS_URL: z.url({ error: "REDIS_URL must be a valid URL" }),
 });
 
 // Type inference from the schema
@@ -56,6 +72,9 @@ function validateEnv(): Env {
           DB_USER: process.env.DB_USER || "",
           DB_PASSWORD: process.env.DB_PASSWORD || "",
           JWT_SECRET: process.env.JWT_SECRET || "",
+          JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || "",
+          LOG_LEVEL: (process.env.LOG_LEVEL as LogLevel) || "info",
+          REDIS_URL: process.env.REDIS_URL || "redis://localhost:6379",
         };
       }
 

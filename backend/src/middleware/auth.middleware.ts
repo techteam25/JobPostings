@@ -1,57 +1,88 @@
-import { Response, NextFunction } from 'express';
-import { AuthService } from '../services/auth.service';
-import { AuthRequest, TokenPayload } from '../db/interfaces/auth';
-import { SafeUser } from '../db/schema/users';
+import type { NextFunction, Request, Response } from "express";
+import { UserService } from "@/services/user.service";
+import logger from "@/logger";
+import { SecurityUtils } from "@/utils/security";
+import { ApiResponse } from "@/types";
 
 export class AuthMiddleware {
-  private authService: AuthService;
+  private userService: UserService;
 
   constructor() {
-    this.authService = new AuthService();
+    this.userService = new UserService();
   }
 
-  authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  authenticate = async (
+    req: Request,
+    res: Response<ApiResponse<void>>,
+    next: NextFunction,
+  ) => {
     try {
       const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        res.header(
+          "WWW-Authenticate",
+          `Bearer realm=${req.originalUrl} charset="UTF-8"`,
+        );
+
         return res.status(401).json({
-          status: 'error',
-          message: 'No token provided',
+          success: false,
+          status: "error",
+          message: "Authentication required",
+          error: "UNAUTHORIZED",
+          timestamp: new Date().toISOString(),
         });
       }
 
       const token = authHeader.substring(7);
-      const decoded: TokenPayload = this.authService.verifyToken(token);
+      const decoded = SecurityUtils.verifyAccessToken(token);
+
+      const user = await this.userService.getUserById(decoded.userId);
+
+      if (!user.isActive) {
+        return res.status(403).json({
+          success: false,
+          status: "error",
+          message: "User account is deactivated",
+          error: "FORBIDDEN",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      // Attach user info to request object
+      req.user = user;
       req.userId = decoded.userId;
-      req.sessionId = decoded.sessionId; // Assign sessionId if present in token
 
       return next();
     } catch (error) {
+      logger.error(error);
       return res.status(401).json({
-        status: 'error',
-        message: 'Invalid or expired token',
+        success: false,
+        status: "error",
+        message: "Invalid token",
+        error: "UNAUTHORIZED",
+        timestamp: new Date().toISOString(),
       });
     }
   };
 
   requireRole = (roles: string[]) => {
-    return async (req: AuthRequest, res: Response, next: NextFunction) => {
+    return async (req: Request, res: Response, next: NextFunction) => {
       try {
         if (!req.userId) {
           return res.status(401).json({
-            status: 'error',
-            message: 'Authentication required',
+            status: "error",
+            message: "Authentication required",
           });
         }
 
         // Fetch user to check role
-        const userService = new (await import('../services/user.service.js')).UserService();
-        const user: SafeUser = await userService.getUserById(req.userId);
-        
+        const userService = new UserService();
+        const user = await userService.getUserById(req.userId);
+
         if (!roles.includes(user.role)) {
           return res.status(403).json({
-            status: 'error',
-            message: 'Insufficient permissions',
+            status: "error",
+            message: "Insufficient permissions",
           });
         }
 
@@ -59,18 +90,22 @@ export class AuthMiddleware {
         return next();
       } catch (error) {
         return res.status(500).json({
-          status: 'error',
-          message: 'Error checking user permissions',
+          status: "error",
+          message: "Error checking user permissions",
         });
       }
     };
   };
 
-  requireActiveUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  requireActiveUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
     if (!req.user || !req.user.isActive) {
       return res.status(403).json({
-        status: 'error',
-        message: 'User account is not active',
+        status: "error",
+        message: "User account is not active",
       });
     }
     return next();

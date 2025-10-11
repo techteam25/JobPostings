@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "aedd1dfb-61ae-4444-939d-6d2389eb72f0",
-  "prevId": "65b857bf-1f63-4a9b-a100-b70fcebc9c05",
+  "id": "f5bb482e-5cae-4bf7-ae57-325bbe259f05",
+  "prevId": "93ddad1d-468f-4f86-b35e-46e65faf59ec",
   "tables": {
     "auth": {
       "name": "auth",
@@ -312,7 +312,7 @@
           "name": "resume_url",
           "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "linkedin_url": {
@@ -328,6 +328,49 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "phone_number": {
+          "name": "phone_number",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "address": {
+          "name": "address",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "city": {
+          "name": "city",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "zip_code": {
+          "name": "zip_code",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "country": {
+          "name": "country",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'US'"
         },
         "created_at": {
           "name": "created_at",
@@ -815,6 +858,100 @@
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
+    "job_insights": {
+      "name": "job_insights",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "job_id": {
+          "name": "job_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "view_count": {
+          "name": "view_count",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 0
+        },
+        "application_count": {
+          "name": "application_count",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "job_idx": {
+          "name": "job_idx",
+          "columns": [
+            "job_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "job_insights_job_id_job_details_id_fk": {
+          "name": "job_insights_job_id_job_details_id_fk",
+          "tableFrom": "job_insights",
+          "tableTo": "job_details",
+          "columnsFrom": [
+            "job_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "job_insights_organization_id_organizations_id_fk": {
+          "name": "job_insights_organization_id_organizations_id_fk",
+          "tableFrom": "job_insights",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "job_insights_id": {
+          "name": "job_insights_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {
+        "application_count_must_be_gt_0": {
+          "name": "application_count_must_be_gt_0",
+          "value": "(`job_insights`.`application_count` >= 0"
+        }
+      }
+    },
     "job_details": {
       "name": "job_details",
       "columns": {
@@ -860,13 +997,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "experience_level": {
-          "name": "experience_level",
-          "type": "enum('entry','mid','senior','lead','executive')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "salary_min": {
           "name": "salary_min",
           "type": "decimal(12,2)",
@@ -880,14 +1010,6 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
-        },
-        "currency": {
-          "name": "currency",
-          "type": "varchar(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": "'USD'"
         },
         "is_remote": {
           "name": "is_remote",
@@ -912,22 +1034,15 @@
           "notNull": false,
           "autoincrement": false
         },
-        "required_skills": {
-          "name": "required_skills",
+        "skills": {
+          "name": "skills",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "preferred_skills": {
-          "name": "preferred_skills",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "benefits": {
-          "name": "benefits",
+        "experience": {
+          "name": "experience",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -939,29 +1054,6 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "posted_by_id": {
-          "name": "posted_by_id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "view_count": {
-          "name": "view_count",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "application_count": {
-          "name": "application_count",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         },
         "created_at": {
           "name": "created_at",
@@ -986,13 +1078,6 @@
           "name": "employer_idx",
           "columns": [
             "employer_id"
-          ],
-          "isUnique": false
-        },
-        "posted_by_idx": {
-          "name": "posted_by_idx",
-          "columns": [
-            "posted_by_id"
           ],
           "isUnique": false
         },
@@ -1032,19 +1117,6 @@
           "tableTo": "organizations",
           "columnsFrom": [
             "employer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "fk_job_poster": {
-          "name": "fk_job_poster",
-          "tableFrom": "job_details",
-          "tableTo": "users",
-          "columnsFrom": [
-            "posted_by_id"
           ],
           "columnsTo": [
             "id"

@@ -1,7 +1,14 @@
-import { Request, Response } from 'express';
-import { OrganizationService } from '../services/organization.service';
-import { BaseController } from './base.controller';
-import { AppError, ErrorCode } from '../utils/errors';
+import { Request, Response } from "express";
+import { OrganizationService } from "@/services/organization.service";
+import { BaseController } from "./base.controller";
+import {
+  CreateOrganizationSchema,
+  DeleteOrganizationSchema,
+  GetOrganizationSchema,
+  UpdateOrganizationSchema,
+} from "@/validations/organization.validation";
+import { ApiResponse, PaginatedResponse } from "@/types";
+import { Organization } from "@/db/schema";
 
 export class OrganizationController extends BaseController {
   private organizationService: OrganizationService;
@@ -11,7 +18,10 @@ export class OrganizationController extends BaseController {
     this.organizationService = new OrganizationService();
   }
 
-  getAllOrganizations = async (req: Request, res: Response) => {
+  getAllOrganizations = async (
+    req: Request,
+    res: Response<PaginatedResponse<Organization[]>>,
+  ) => {
     try {
       const { page, limit, search } = req.query;
       const options = {
@@ -20,60 +30,140 @@ export class OrganizationController extends BaseController {
         searchTerm: search as string,
       };
 
-      const result = await this.organizationService.getAllOrganizations(options);
-      this.sendPaginatedResponse(res, result.items, result.pagination, 'Organizations retrieved successfully');
+      const { items, pagination } =
+        await this.organizationService.getAllOrganizations(options);
+
+      return res.json({
+        success: true,
+        message: "Organizations retrieved successfully",
+        data: items,
+        pagination,
+      });
     } catch (error) {
-      this.handleControllerError(res, error, 'Failed to retrieve organizations');
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        message: "Failed to retrieve organizations",
+        error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
-  getOrganizationById = async (req: Request, res: Response) => {
+  getOrganizationById = async (
+    req: Request<GetOrganizationSchema["params"]>,
+    res: Response<ApiResponse<Organization>>,
+  ) => {
     try {
-      if (!req.params.id) {
-        throw new AppError('Organization ID is required', 400, ErrorCode.VALIDATION_ERROR);
-      }
-      const id = parseInt(req.params.id);
-      const organization = await this.organizationService.getOrganizationById(id);
-      this.sendSuccess(res, organization, 'Organization retrieved successfully');
+      const id = parseInt(req.params.organizationId);
+      const organization =
+        await this.organizationService.getOrganizationById(id);
+
+      return res.json({
+        success: true,
+        message: "Organization retrieved successfully",
+        data: organization,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      this.handleControllerError(res, error, 'Failed to retrieve organization');
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        message: "Failed to retrieve organization",
+        error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
-  createOrganization = async (req: Request, res: Response) => {
+  createOrganization = async (
+    req: Request<{}, {}, CreateOrganizationSchema["body"]>,
+    res: Response<ApiResponse<Organization>>,
+  ) => {
     try {
       const organizationData = req.body;
-      const organization = await this.organizationService.createOrganization(organizationData);
-      this.sendSuccess(res, organization, 'Organization created successfully', 201);
+      const organization =
+        await this.organizationService.createOrganization(organizationData);
+
+      return res.status(201).json({
+        success: true,
+        message: "Organization created successfully",
+        data: organization,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      this.handleControllerError(res, error, 'Failed to create organization', 400);
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        message: "Failed to create organization",
+        error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
-  updateOrganization = async (req: Request, res: Response) => {
+  updateOrganization = async (
+    req: Request<
+      UpdateOrganizationSchema["params"],
+      {},
+      UpdateOrganizationSchema["body"]
+    >,
+    res: Response<ApiResponse<Organization>>,
+  ) => {
     try {
-      if (!req.params.id) {
-        throw new AppError('Organization ID is required', 400, ErrorCode.VALIDATION_ERROR);
-      }
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.organizationId);
       const updateData = req.body;
-      const organization = await this.organizationService.updateOrganization(id, updateData);
-      this.sendSuccess(res, organization, 'Organization updated successfully');
+      const organization = await this.organizationService.updateOrganization(
+        id,
+        updateData,
+      );
+
+      if (!organization) {
+        return res.status(400).json({
+          success: false,
+          status: "error",
+          message: "Failed to update organization",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: "Organization updated successfully",
+        data: organization,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      this.handleControllerError(res, error, 'Failed to update organization');
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        message: "Failed to update organization",
+        error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
-  deleteOrganization = async (req: Request, res: Response) => {
+  deleteOrganization = async (
+    req: Request<DeleteOrganizationSchema["params"]>,
+    res: Response<ApiResponse<void>>,
+  ) => {
     try {
-      if (!req.params.id) {
-        throw new AppError('Organization ID is required', 400, ErrorCode.VALIDATION_ERROR);
-      }
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.organizationId);
       const result = await this.organizationService.deleteOrganization(id);
-      this.sendSuccess(res, result, 'Organization deleted successfully');
+      return res.json({
+        success: true,
+        message: result.message,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      this.handleControllerError(res, error, 'Failed to delete organization');
+      return res.status(500).json({
+        success: false,
+        message: "Failed to delete organization",
+        status: "error",
+        error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 }

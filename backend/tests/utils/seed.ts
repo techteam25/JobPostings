@@ -1,0 +1,229 @@
+// noinspection JSUnusedGlobalSymbols
+
+import { db } from "@/db/connection";
+import { organizations, jobsDetails, users, userProfile } from "@/db/schema";
+import { sql } from "drizzle-orm";
+import logger from "@/logger";
+import { userProfileFixture } from "@tests/utils/fixtures";
+
+enum jobTypeEnum {
+  FULL_TIME = "full-time",
+  PART_TIME = "part-time",
+  CONTRACT = "contract",
+  VOLUNTEER = "volunteer",
+  INTERNSHIP = "internship",
+}
+
+enum compensationTypeEnum {
+  PAID = "paid",
+  MISSIONARY = "missionary",
+  VOLUNTEER = "volunteer",
+  STIPEND = "stipend",
+}
+
+export const seedUser = async (isActive: boolean = true) => {
+  const { faker } = await import("@faker-js/faker");
+  const bcrypt = await import("bcrypt");
+
+  const hashedPassword = await bcrypt.hash("Password@123", 12);
+
+  await db.transaction(async (trx) => {
+    await trx.delete(users);
+
+    // Reset auto-increment counters
+    await trx.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+
+    await trx.insert(users).values({
+      email: "normal.user@example.com",
+      passwordHash: hashedPassword,
+      firstName: faker.person.firstName(),
+      lastName: faker.person.lastName(),
+      role: "user",
+      isActive,
+    });
+  });
+};
+
+export const seedUsers = async () => {
+  const { faker } = await import("@faker-js/faker");
+  const bcrypt = await import("bcrypt");
+
+  const hashedPassword = await bcrypt.hash("Password@123", 12);
+
+  await db.transaction(async (trx) => {
+    await trx.delete(users);
+
+    // Reset auto-increment counters
+    await trx.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+
+    await trx.insert(users).values(
+      Array.from({ length: 5 }).map((_, index) => ({
+        id: index + 1,
+        email: faker.internet.email(),
+        passwordHash: hashedPassword,
+        firstName: faker.person.firstName(),
+        lastName: faker.person.lastName(),
+        role: "user" as const,
+      })),
+    );
+  });
+};
+
+export const seedOrganizations = async () => {
+  const { faker } = await import("@faker-js/faker");
+
+  await db.transaction(async (trx) => {
+    await trx.delete(organizations);
+
+    // Reset auto-increment counters
+    await trx.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
+
+    await trx.insert(organizations).values(
+      Array.from({ length: 3 }).map(() => ({
+        name: faker.company.name(),
+        streetAddress: faker.location.streetAddress(),
+        city: faker.location.city(),
+        state: faker.location.state(),
+        zipCode: faker.location.zipCode("#####"),
+        phone: faker.phone.number({ style: "international" }),
+        contact: 1,
+        url: faker.internet.url(),
+        mission: faker.lorem.sentence(),
+      })),
+    );
+  });
+};
+
+export const seedJobs = async () => {
+  const { faker } = await import("@faker-js/faker");
+
+  try {
+    await db.transaction(async (t) => {
+      await t.delete(users);
+      await t.delete(organizations);
+      await t.delete(jobsDetails);
+
+      // Reset auto-increment counters
+      await t.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
+      await t.execute(sql`ALTER TABLE job_details AUTO_INCREMENT = 1`);
+
+      await t
+        .insert(organizations)
+        .values(
+          Array.from({ length: 5 }).map(() => ({
+            name: faker.company.name(),
+            streetAddress: faker.location.streetAddress(),
+            city: faker.location.city(),
+            state: faker.location.state(),
+            zipCode: faker.location.zipCode("#####"),
+            phone: faker.phone.number({ style: "international" }),
+            contact: 1,
+            url: faker.internet.url(),
+            mission: faker.lorem.sentence(),
+          })),
+        )
+        .$returningId();
+
+      await t.insert(jobsDetails).values(
+        Array.from({ length: 3 }).map(() => ({
+          title: faker.lorem.words(5),
+          description: faker.lorem.paragraph(1),
+          location: faker.location.city(),
+          jobType: faker.helpers.enumValue(jobTypeEnum),
+          compensationType: faker.helpers.enumValue(compensationTypeEnum),
+          salaryMin: faker.number.int({ min: 30000, max: 100000 }),
+          salaryMax: faker.number.int({ min: 100001, max: 200000 }),
+          isRemote: faker.datatype.boolean(),
+          isActive: true,
+          applicationDeadline: faker.date.future(),
+          skills: JSON.stringify(
+            faker.helpers.arrayElements([
+              "JavaScript",
+              "TypeScript",
+              "Node.js",
+              "React",
+              "SQL",
+              "NoSQL",
+              "AWS",
+            ]),
+          ),
+          employerId: 1, // faker.helpers.arrayElement(orgIds),
+        })),
+      );
+    });
+  } catch (error) {
+    logger.error(`Error seeding jobs:, ${JSON.stringify(error, null, 2)}`);
+  }
+};
+
+export const seedAdminUser = async () => {
+  const { faker } = await import("@faker-js/faker");
+
+  const bcrypt = await import("bcrypt");
+  const hashedPassword = await bcrypt.hash("Password@123", 12);
+
+  try {
+    await db.transaction(async (t) => {
+      await t.delete(users);
+
+      // Reset auto-increment counters
+      await t.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+
+      await t.insert(users).values({
+        email: "admin@example.com",
+        firstName: faker.person.firstName(),
+        lastName: faker.person.lastName(),
+        passwordHash: hashedPassword,
+        role: "admin",
+        organizationId: 1,
+        isEmailVerified: true,
+        isActive: true,
+        lastLoginAt: new Date(),
+      });
+    });
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const seedUserProfile = async () => {
+  const bcrypt = await import("bcrypt");
+  const { faker } = await import("@faker-js/faker");
+
+  const userProfileData = await userProfileFixture();
+  const hashedPassword = await bcrypt.hash("Password@123", 12);
+
+  try {
+    await db.transaction(async (trx) => {
+      await trx.delete(users);
+
+      await trx.execute(sql`ALTER TABLE user_profile AUTO_INCREMENT = 1`);
+      await trx.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+
+      const [userId] = await trx
+        .insert(users)
+        .values({
+          email: "normal.user@example.com",
+          passwordHash: hashedPassword,
+          firstName: faker.person.firstName(),
+          lastName: faker.person.lastName(),
+          role: "user",
+          isActive: true,
+        })
+        .$returningId();
+
+      if (!userId || isNaN(userId.id)) {
+        throw new Error(`Invalid insertId returned: ${userId?.id}`);
+      }
+
+      await trx.insert(userProfile).values({
+        ...userProfileData,
+        userId: userId.id,
+      });
+    });
+  } catch (error) {
+    console.error(
+      `Error seeding user profile:, ${JSON.stringify(error, null, 2)}`,
+    );
+  }
+};

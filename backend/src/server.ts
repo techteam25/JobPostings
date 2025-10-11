@@ -4,6 +4,7 @@ import {
   checkDatabaseConnection,
   closeDatabaseConnection,
 } from "./db/connection";
+import logger from "@/logger";
 
 // Check database connection before starting server
 async function startServer() {
@@ -11,45 +12,48 @@ async function startServer() {
     // Check database connection
     const isDbConnected = await checkDatabaseConnection();
     if (!isDbConnected) {
-      console.error("❌ Failed to connect to database");
+      logger.error("❌ Failed to connect to database");
       process.exit(1);
     }
 
-    console.log("✅ Database connection successful");
+    logger.info("✅ Database connection successful");
 
     // Start the server
     return app.listen(env.PORT, () => {
-      console.log(`🚀 Server is running on http://${env.HOST}:${env.PORT}`);
-      console.log(
+      logger.info(`🚀 Server is running on http://${env.HOST}:${env.PORT}`);
+      logger.info(
         `📊 Health check available at http://${env.HOST}:${env.PORT}/health`,
       );
-      console.log(`🔗 API available at http://${env.HOST}:${env.PORT}/api`);
+      logger.info(`🔗 API available at http://${env.HOST}:${env.PORT}/api`);
+      logger.info(
+        `📚 API Documentation available at http://${env.HOST}:${env.PORT}/docs`,
+      );
 
       if (isDevelopment) {
-        console.log(`🎯 Environment: ${env.NODE_ENV}`);
-        console.log(
+        logger.info(`🎯 Environment: ${env.NODE_ENV}`);
+        logger.info(
           `💾 Database: ${env.DB_NAME} on ${env.DB_HOST}:${env.DB_PORT}`,
         );
       }
     });
   } catch (error) {
-    console.error("❌ Failed to start server:", error);
+    logger.error(error, "❌ Failed to start server:");
     process.exit(1);
   }
 }
 
 // Start the server
-startServer();
+startServer().catch(logger.error);
 
 // Graceful shutdown
 process.on("SIGINT", async () => {
-  console.log("\n🛑 Shutting down server gracefully...");
+  logger.info("\n🛑 Shutting down server gracefully...");
   await closeDatabaseConnection();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
-  console.log("\n🛑 Shutting down server gracefully...");
+  logger.info("\n🛑 Shutting down server gracefully...");
   await closeDatabaseConnection();
   process.exit(0);
 });

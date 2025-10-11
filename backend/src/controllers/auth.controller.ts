@@ -1,17 +1,16 @@
-import { Response } from "express";
-import {
-  AuthService,
-  LoginCredentials,
-  RegisterData,
-} from "../services/auth.service";
-import { SessionRepository } from "../repositories/session.repository";
+import { Request, Response } from "express";
+import { AuthService } from "@/services/auth.service";
+import { SessionRepository } from "@/repositories/session.repository";
 import { BaseController } from "./base.controller";
-import { and, eq } from "drizzle-orm";
-import { sessions } from "../db/schema/sessions";
-import { AppError, ErrorCode } from "../utils/errors";
-import { SafeUser, UpdateUserProfile } from "../db/schema/users";
-import { ChangePasswordData, EmailData } from "../db/interfaces/common";
-import { AuthRequest, AuthSession,  RefreshTokenData, ResetPasswordData } from "../db/interfaces/auth";
+import { ResetPasswordData } from "@/db/interfaces/auth";
+import {
+  ChangeUserPasswordSchema,
+  RegisterUserSchema,
+  UserLoginSchema,
+  UserRefreshTokenSchema,
+} from "@/validations/auth.validation";
+import { ApiResponse, AuthTokens } from "@/types";
+import { User } from "@/db/schema";
 
 export class AuthController extends BaseController {
   private authService: AuthService;
@@ -23,64 +22,131 @@ export class AuthController extends BaseController {
     this.sessionRepository = new SessionRepository();
   }
 
-  register = async (req: AuthRequest, res: Response) => {
+  register = async (
+    req: Request<{}, {}, RegisterUserSchema["body"]>,
+    res: Response<ApiResponse<{ user: User; tokens: AuthTokens }>>,
+  ) => {
     try {
-      const userData: RegisterData = req.sanitizedBody ?? req.body;
+      const userData = req.body;
+      const userAgent = req.headers["user-agent"] ?? "";
+      const ipAddress = req.ip ?? "";
+
+      const result = await this.authService.register(
+        userData,
+        userAgent,
+        ipAddress,
+      );
+
+      return res.status(201).json({
+        success: true,
+        message: "User registered successfully",
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        status: "error",
+        message: "Registration failed",
+        error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  };
+
+  login = async (
+    req: Request<{}, {}, UserLoginSchema["body"]>,
+    res: Response<ApiResponse<{ tokens: AuthTokens }>>,
+  ) => {
+    try {
+      const credentials = req.body;
       const userAgent = req.headers["user-agent"] ?? "";
       const ipAddress = req.ip ?? req.socket.remoteAddress ?? "";
-      
-      const result = await this.authService.register(userData, userAgent, ipAddress);
-      this.sendSuccess(res, { user: result.user, ...result.tokens }, "User registered successfully", 201);
+
+      const { tokens } = await this.authService.login(
+        credentials,
+        userAgent,
+        ipAddress,
+      );
+
+      return res.json({
+        success: true,
+        message: "Login successful",
+        data: { tokens },
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      this.handleControllerError(res, error, "Registration failed", 400);
+      return res.status(401).json({
+        success: false,
+        status: "error",
+        message: "Login failed",
+        error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 
-  login = async (req: AuthRequest, res: Response) => {
+  changePassword = async (
+    req: Request<{}, {}, ChangeUserPasswordSchema["body"]>,
+    res: Response<ApiResponse<void>>,
+  ) => {
+    if (!req.userId) {
+      return res.status(401).json({
+        success: false,
+        status: "error",
+        message: "User not authenticated",
+        error: "UNAUTHORIZED",
+        timestamp: new Date().toISOString(),
+      });
+    }
+    const { currentPassword, newPassword } = req.body;
+
+    await this.authService.changePassword(req.userId, {
+      currentPassword,
+      newPassword,
+    });
+    return res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+      timestamp: new Date().toISOString(),
+    });
+
+    // return this.sendSuccess(res, null, "Password changed successfully");
+  };
+
+  refreshToken = async (
+    req: Request<{}, {}, UserRefreshTokenSchema["body"]>,
+    res: Response,
+  ) => {
     try {
-      const credentials: LoginCredentials = req.sanitizedBody ?? req.body;
+      const { refreshToken } = req.body;
       const userAgent = req.headers["user-agent"] ?? "";
-      const ipAddress = req.ip ?? req.socket.remoteAddress ?? "";
-      
-      const result = await this.authService.login(credentials, userAgent, ipAddress);
-      this.sendSuccess(res, { user: result.user, ...result.tokens }, "Login successful");
+      const ipAddress = req.ip ?? "";
+
+      const session = await this.authService.refreshToken(
+        refreshToken,
+        userAgent,
+        ipAddress,
+      );
+      return this.sendSuccess(res, session, "Token refreshed successfully");
     } catch (error) {
-      this.handleControllerError(res, error, "Login failed", 401);
+      return this.handleControllerError(
+        res,
+        error,
+        "Token refresh failed",
+        401,
+      );
     }
   };
 
-  changePassword = async (req: AuthRequest, res: Response) => {
-    try {
-      if (!req.userId) {
-        throw new AppError("User not authenticated", 401, ErrorCode.UNAUTHORIZED);
-      }
-      const { currentPassword, newPassword }: ChangePasswordData = req.sanitizedBody ?? req.body;
-      
-      await this.authService.changePassword(req.userId, { currentPassword, newPassword });
-      this.sendSuccess(res, null, "Password changed successfully");
-    } catch (error) {
-      this.handleControllerError(res, error, "Password change failed", 400);
-    }
-  };
-
-  refreshToken = async (req: AuthRequest, res: Response) => {
-    try {
-      const { refreshToken }: RefreshTokenData = req.sanitizedBody ?? req.body;
-      const userAgent = req.headers["user-agent"] ?? "";
-      const ipAddress = req.ip ?? req.socket.remoteAddress ?? "";
-      
-      const session: AuthSession = await this.authService.refreshToken(refreshToken, userAgent, ipAddress);
-      this.sendSuccess(res, session, "Token refreshed successfully");
-    } catch (error) {
-      this.handleControllerError(res, error, "Token refresh failed", 401);
-    }
-  };
-
-  logout = async (req: AuthRequest, res: Response) => {
+  logout = async (req: Request, res: Response) => {
     try {
       const token = req.headers.authorization?.substring(7);
       if (token) {
-        const session: AuthSession | null = await this.sessionRepository.findByAccessToken(token);
+        const session = await this.sessionRepository.findByAccessToken(
+          token,
+          req.userId!,
+        );
         if (session) {
           await this.sessionRepository.deactivateSession(session.id);
         }
@@ -91,50 +157,45 @@ export class AuthController extends BaseController {
     }
   };
 
-  logoutAll = async (req: AuthRequest, res: Response) => {
-    try {
-      if (!req.userId) {
-        throw new AppError("User not authenticated", 401, ErrorCode.UNAUTHORIZED);
-      }
-      const condition = and(
-        eq(sessions.userId, req.userId),
-        eq(sessions.isActive, true)
-      );
+  // logoutAll = async (req: AuthRequest, res: Response) => {
+  //   try {
+  //     if (!req.userId) {
+  //       throw new AppError(
+  //         "User not authenticated",
+  //         401,
+  //         ErrorCode.UNAUTHORIZED,
+  //       );
+  //     }
+  //     const condition = and(  <--- // This should be in the repository
+  //       eq(sessions.userId, req.userId),
+  //       eq(sessions.isActive, true),
+  //     );
+  //
+  //     await this.sessionRepository.updateMany(condition!, { isActive: false }); <--- // This should be in the repository
+  //     this.sendSuccess(res, null, "All sessions logged out");
+  //   } catch (error) {
+  //     this.handleControllerError(res, error, "Logout failed", 500);
+  //   }
+  // };
 
-      await this.sessionRepository.updateMany(
-        condition!,
-        { isActive: false }
-      );
-      this.sendSuccess(res, null, "All sessions logged out");
-    } catch (error) {
-      this.handleControllerError(res, error, "Logout failed", 500);
-    }
-  };
-
-  getProfile = async (req: AuthRequest, res: Response) => {
+  forgotPassword = async (req: Request, res: Response) => {
     try {
-      if (!req.user) {
-        throw new AppError("User not found in request", 404, ErrorCode.NOT_FOUND);
-      }
-      this.sendSuccess(res, req.user, "Profile retrieved successfully");
-    } catch (error) {
-      this.handleControllerError(res, error, "Failed to retrieve profile", 500);
-    }
-  };
-
-  forgotPassword = async (req: AuthRequest, res: Response) => {
-    try {
-      const { email }: EmailData = req.sanitizedBody ?? req.body;
+      const { email } = req.body;
       await this.authService.forgotPassword({ email });
       this.sendSuccess(res, null, "Password reset email sent");
     } catch (error) {
-      this.handleControllerError(res, error, "Failed to send password reset email", 400);
+      this.handleControllerError(
+        res,
+        error,
+        "Failed to send password reset email",
+        400,
+      );
     }
   };
 
-  resetPassword = async (req: AuthRequest, res: Response) => {
+  resetPassword = async (req: Request, res: Response) => {
     try {
-      const { token, newPassword }: ResetPasswordData = req.sanitizedBody ?? req.body;
+      const { token, newPassword }: ResetPasswordData = req.body;
       await this.authService.resetPassword({ token, newPassword });
       this.sendSuccess(res, null, "Password reset successfully");
     } catch (error) {
