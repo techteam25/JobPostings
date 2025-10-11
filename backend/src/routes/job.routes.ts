@@ -1,7 +1,7 @@
 import { Router } from "express";
 
 import { JobController } from "@/controllers/job.controller";
-import { selectJobSchema } from "@/db/schema";
+import { selectJobSchema, selectOrganizationSchema } from "@/db/schema";
 
 import { AuthMiddleware } from "@/middleware/auth.middleware";
 
@@ -15,7 +15,7 @@ import {
 import { searchParams } from "@/validations/base.validation";
 import { updateApplicationStatusSchema } from "@/validations/jobApplications.validation";
 
-import { registry } from "@/swagger/registry";
+import { registry, z } from "@/swagger/registry";
 
 import { apiResponseSchema, errorResponseSchema } from "@/types";
 
@@ -26,9 +26,101 @@ const authMiddleware = new AuthMiddleware();
 const jobResponseSchema = apiResponseSchema(selectJobSchema);
 
 // Public routes
+
+registry.registerPath({
+  method: "get",
+  path: "/api/jobs",
+  summary: "Get all job postings with optional filters",
+  tags: ["Jobs"],
+  request: {
+    query: searchParams.shape["query"],
+  },
+  responses: {
+    200: {
+      description: "List of job postings",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z
+              .object({
+                job: selectJobSchema,
+                employer: selectOrganizationSchema.pick({
+                  id: true,
+                  name: true,
+                  city: true,
+                  state: true,
+                }),
+              })
+              .array(),
+          ),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
 router.get("/", validate(searchParams), jobController.getAllJobs);
 router.get("/search", validate(searchParams), jobController.searchJobs);
 // router.get("/stats", jobController.getJobStats);
+
+registry.registerPath({
+  method: "get",
+  path: "/api/jobs/{jobId}",
+  summary: "Get job posting by ID",
+  tags: ["Jobs"],
+  request: {
+    params: getJobSchema.shape["params"],
+  },
+  responses: {
+    200: {
+      description: "Job details",
+      content: {
+        "application/json": {
+          schema: jobResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Job not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
 router.get("/:jobId", validate(getJobSchema), jobController.getJobById);
 router.get(
   "/:jobId/similar",
@@ -129,6 +221,64 @@ router.post(
   jobController.createJob,
 );
 
+registry.registerPath({
+  method: "put",
+  path: "/api/jobs/{jobId}",
+  summary: "Update an existing job posting",
+  tags: ["Jobs"],
+  request: {
+    params: updateJobSchema.shape["params"],
+    body: {
+      content: {
+        "application/json": {
+          schema: updateJobSchema.shape["body"],
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Job updated successfully",
+      content: {
+        "application/json": {
+          schema: jobResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Job not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
 router.put(
   "/:jobId",
   authMiddleware.requireRole(["employer", "admin"]),
@@ -136,6 +286,61 @@ router.put(
   jobController.updateJob,
 );
 
+registry.registerPath({
+  method: "delete",
+  path: "/api/jobs/{jobId}",
+  summary: "Delete a job posting",
+  tags: ["Jobs"],
+  request: {
+    params: deleteJobSchema.shape["params"],
+  },
+  responses: {
+    200: {
+      description: "Job deleted successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.object({
+              message: z.string(),
+            }),
+          ),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Job not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
 router.delete(
   "/:jobId",
   authMiddleware.requireRole(["employer", "admin"]),
