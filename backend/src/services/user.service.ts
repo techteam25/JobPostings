@@ -5,7 +5,7 @@ import {
   users,
   type UpdateUser,
   type User,
-  UserWithProfile,
+  UpdateUserProfile,
 } from "@/db/schema";
 import { NotFoundError, ValidationError, ForbiddenError } from "@/utils/errors";
 import { PaginationMeta } from "@/types";
@@ -104,10 +104,7 @@ export class UserService extends BaseService {
     return await this.getUserById(id);
   }
 
-  async updateUserProfile(
-    userId: number,
-    profileData: Partial<UserWithProfile>,
-  ) {
+  async updateUserProfile(userId: number, profileData: UpdateUserProfile) {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       return this.handleError(new NotFoundError("User", userId));
