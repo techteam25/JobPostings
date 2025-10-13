@@ -32,7 +32,7 @@ export class SecurityUtils {
     return jwt.sign(
       {
         userId,
-        iat: Date.now(),
+        iat: Math.floor(Date.now() / 1000),
       },
       env.JWT_SECRET,
       { expiresIn: this.accessTokenExpiry }, // Short-lived access token
@@ -43,7 +43,7 @@ export class SecurityUtils {
     return jwt.sign(
       {
         userId,
-        iat: Date.now(),
+        iat: Math.floor(Date.now() / 1000),
       },
       env.JWT_REFRESH_SECRET,
       { expiresIn: this.refreshTokenExpiry }, // Longer-lived refresh token
