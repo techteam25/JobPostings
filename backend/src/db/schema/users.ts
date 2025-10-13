@@ -1,15 +1,15 @@
 import { organizations } from "./organizations";
 import { sessions } from "./sessions";
 import { auth } from "./auth";
-import { Education, educations, updateEducationsSchema } from "./educations";
+import { Education, educations, insertEducationsSchema } from "./educations";
 import {
-  updateWorkExperiencesSchema,
+  insertWorkExperiencesSchema,
   WorkExperience,
   workExperiences,
 } from "./workExperiences";
 import {
   Certification,
-  updateCertificationsSchema,
+  insertCertificationsSchema,
   userCertifications,
 } from "./certifications";
 import {
@@ -129,14 +129,11 @@ export const updateUserSchema = insertUserSchema
   .partial()
   .omit({ id: true, createdAt: true, passwordHash: true, updatedAt: true });
 
-export const updateUserProfileSchema = insertUserProfileSchema
-  .partial()
-  .omit({ id: true, userId: true, createdAt: true })
-  .extend({
-    educations: updateEducationsSchema.array().optional(),
-    workExperiences: updateWorkExperiencesSchema.array().optional(),
-    certifications: z.array(updateCertificationsSchema).optional(),
-  });
+export const updateUserProfileSchema = insertUserProfileSchema.extend({
+  educations: insertEducationsSchema.array(),
+  workExperiences: insertWorkExperiencesSchema.array(),
+  certifications: z.array(insertCertificationsSchema),
+});
 
 // Type exports
 export type User = z.infer<typeof selectUserSchema>;
