@@ -1,9 +1,17 @@
 import { organizations } from "./organizations";
 import { sessions } from "./sessions";
 import { auth } from "./auth";
-import { educations } from "./educations";
-import { workExperiences } from "./workExperiences";
-import { userCertifications } from "./certifications";
+import { Education, educations, updateEducationsSchema } from "./educations";
+import {
+  updateWorkExperiencesSchema,
+  WorkExperience,
+  workExperiences,
+} from "./workExperiences";
+import {
+  Certification,
+  updateCertificationsSchema,
+  userCertifications,
+} from "./certifications";
 import {
   mysqlTable,
   varchar,
@@ -16,7 +24,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { InferSelectModel, relations, sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // Users table
 export const users = mysqlTable(
@@ -123,7 +131,12 @@ export const updateUserSchema = insertUserSchema
 
 export const updateUserProfileSchema = insertUserProfileSchema
   .partial()
-  .omit({ id: true, userId: true, createdAt: true });
+  .omit({ id: true, userId: true, createdAt: true })
+  .extend({
+    educations: updateEducationsSchema.array().optional(),
+    workExperiences: updateWorkExperiencesSchema.array().optional(),
+    certifications: z.array(updateCertificationsSchema).optional(),
+  });
 
 // Type exports
 export type User = z.infer<typeof selectUserSchema>;
@@ -135,5 +148,11 @@ export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
 
 // Get type with relations
 export type UserWithProfile = User & {
-  profile: InferSelectModel<typeof userProfile> | null;
+  profile:
+    | (UserProfile & {
+        certifications: { certification: Certification }[] | null;
+        education: Education[] | null;
+        workExperiences: WorkExperience[] | null;
+      })
+    | null;
 };
