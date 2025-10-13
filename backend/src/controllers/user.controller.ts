@@ -5,11 +5,11 @@ import { BaseController } from "./base.controller";
 import { ValidationError, ForbiddenError, NotFoundError } from "@/utils/errors";
 import { UpdateUser, UpdateUserProfile, UserWithProfile } from "@/db/schema";
 import { ChangePasswordData } from "@/db/interfaces/common";
-import { SearchParams } from "@/validations/base.validation";
 import {
   ChangePasswordSchema,
   GetUserSchema,
   UserEmailSchema,
+  UserQuerySchema,
 } from "@/validations/user.validation";
 import { ApiResponse } from "@/types";
 
@@ -24,16 +24,16 @@ export class UserController extends BaseController {
   }
 
   getAllUsers = async (
-    req: Request<{}, {}, {}, SearchParams["query"]>,
+    req: Request<{}, {}, {}, UserQuerySchema["query"]>,
     res: Response,
   ) => {
     try {
-      const { page, limit, q } = req.query;
+      const { page, limit, searchTerm } = req.query;
 
       const result = await this.userService.getAllUsers({
         page,
         limit,
-        searchTerm: q,
+        searchTerm,
         role: req.user?.role,
       });
 
