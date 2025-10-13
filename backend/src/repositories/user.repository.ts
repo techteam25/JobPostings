@@ -1,5 +1,16 @@
-import { and, count, eq, like, or } from "drizzle-orm";
-import { NewUser, NewUserProfile, User, userProfile, users } from "@/db/schema";
+import { and, count, eq, like, or, sql } from "drizzle-orm";
+import {
+  certifications,
+  educations,
+  NewUser,
+  NewUserProfile,
+  UpdateUserProfile,
+  User,
+  userCertifications,
+  userProfile,
+  users,
+  workExperiences,
+} from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
 import { DatabaseError } from "@/utils/errors";
@@ -192,27 +203,97 @@ export class UserRepository extends BaseRepository<typeof users> {
     );
   }
 
-  async updateProfile(userId: number, profileData: Partial<NewUserProfile>) {
+  async updateProfile(userId: number, profileData: UpdateUserProfile) {
     try {
       return await withDbErrorHandling(
         async () =>
           await db.transaction(async (tx) => {
-            const existingProfile = await tx
-              .select()
-              .from(userProfile)
-              .where(eq(userProfile.userId, userId));
+            const {
+              educations: educationsData,
+              workExperiences: workExperiencesData,
+              certifications: certificationsData,
+              ...userProfileData
+            } = profileData;
 
-            if (existingProfile.length > 0) {
+            const [profileObj] = await tx
+              .insert(userProfile)
+              .values(userProfileData)
+              .onDuplicateKeyUpdate({
+                set: {
+                  userId: sql`values(${userProfile.userId})`,
+                  bio: sql`values(${userProfile.bio})`,
+                  profilePicture: sql`values(${userProfile.profilePicture})`,
+                  resumeUrl: sql`values(${userProfile.resumeUrl})`,
+                  linkedinUrl: sql`values(${userProfile.linkedinUrl})`,
+                  portfolioUrl: sql`values(${userProfile.portfolioUrl})`,
+                  phoneNumber: sql`values(${userProfile.phoneNumber})`,
+                  address: sql`values(${userProfile.address})`,
+                  city: sql`values(${userProfile.city})`,
+                  state: sql`values(${userProfile.state})`,
+                  zipCode: sql`values(${userProfile.zipCode})`,
+                  country: sql`values(${userProfile.country})`,
+                },
+              })
+              .$returningId();
+
+            if (profileObj && profileObj.id) {
+              // Upsert Educations
               await tx
-                .update(userProfile)
-                .set(profileData)
-                .where(eq(userProfile.userId, userId));
-            } else {
-              await tx.insert(userProfile).values({
-                ...profileData,
-                userId,
-              });
+                .insert(educations)
+                .values(educationsData)
+                .onDuplicateKeyUpdate({
+                  set: {
+                    userProfileId: profileObj.id,
+                    schoolName: sql`values(${educations.schoolName})`,
+                    program: sql`values(${educations.program})`,
+                    major: sql`values(${educations.major})`,
+                    graduated: sql`values(${educations.graduated})`,
+                    startDate: sql`values(${educations.startDate})`,
+                    endDate: sql`values(${educations.endDate})`,
+                  },
+                });
+
+              // Upsert Work Experiences
+              await tx
+                .insert(workExperiences)
+                .values(workExperiencesData)
+                .onDuplicateKeyUpdate({
+                  set: {
+                    userProfileId: profileObj.id,
+                    companyName: sql`values(${workExperiences.companyName})`,
+                    current: sql`values(${workExperiences.current})`,
+                    startDate: sql`values(${workExperiences.startDate})`,
+                    endDate: sql`values(${workExperiences.endDate})`,
+                  },
+                });
+
+              // Upsert Certifications
+              const [record] = await tx
+                .insert(certifications)
+                .values(certificationsData)
+                .onDuplicateKeyUpdate({
+                  set: {
+                    certificationName: sql`values(${certifications.certificationName})`,
+                  },
+                })
+                .$returningId();
+
+              // Link Certification to User Profile in Junction Table
+              if (record && record.id) {
+                await tx
+                  .insert(userCertifications)
+                  .values({
+                    certificationId: record.id,
+                    userId: profileObj.id,
+                  })
+                  .onDuplicateKeyUpdate({
+                    set: {
+                      certificationId: sql`values(${userCertifications.certificationId})`,
+                    },
+                  });
+              }
             }
+
             return await tx.query.users.findFirst({
               where: eq(users.id, userId),
               with: {
