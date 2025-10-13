@@ -62,7 +62,16 @@ export class UserRepository extends BaseRepository<typeof users> {
           await db.query.users.findFirst({
             where: eq(users.id, id),
             with: {
-              profile: true,
+              profile: {
+                with: {
+                  certifications: {
+                    columns: {},
+                    with: { certification: true },
+                  },
+                  education: true,
+                  workExperiences: true,
+                },
+              },
             },
             columns: {
               id: true,
@@ -207,7 +216,16 @@ export class UserRepository extends BaseRepository<typeof users> {
             return await tx.query.users.findFirst({
               where: eq(users.id, userId),
               with: {
-                profile: true,
+                profile: {
+                  with: {
+                    certifications: {
+                      columns: {},
+                      with: { certification: true },
+                    },
+                    education: true,
+                    workExperiences: true,
+                  },
+                },
               },
               columns: {
                 id: true,
