@@ -3,7 +3,6 @@ import { UserRepository } from "@/repositories/user.repository";
 import { BaseService } from "./base.service";
 import {
   users,
-  type NewUserProfile,
   type UpdateUser,
   type User,
   UserWithProfile,
@@ -12,13 +11,8 @@ import { NotFoundError, ValidationError, ForbiddenError } from "@/utils/errors";
 import { PaginationMeta } from "@/types";
 import { db } from "@/db/connection";
 import { count, sql } from "drizzle-orm";
-
-interface UserSearchOptions {
-  page?: number;
-  limit?: number;
-  searchTerm?: string;
-  role?: User["role"];
-}
+import { UserQuerySchema } from "@/validations/user.validation";
+import { SecurityUtils } from "@/utils/security";
 
 export class UserService extends BaseService {
   private userRepository: UserRepository;
@@ -28,10 +22,15 @@ export class UserService extends BaseService {
     this.userRepository = new UserRepository();
   }
 
-  async getAllUsers(options: UserSearchOptions) {
-    const { page = 1, limit = 10, searchTerm, role } = options;
+  async getAllUsers(options: UserQuerySchema["query"]) {
+    const { searchTerm, role } = options;
+
+    const sanitizedSearchTerm = SecurityUtils.sanitizeInput(searchTerm || "");
+    const page = Number(options.page || "1");
+    const limit = Number(options.limit || "10");
+
     const result = await this.userRepository.searchUsers(
-      searchTerm || "",
+      sanitizedSearchTerm,
       role,
       {
         page,
