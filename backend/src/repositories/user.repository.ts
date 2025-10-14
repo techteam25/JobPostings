@@ -215,35 +215,27 @@ export class UserRepository extends BaseRepository<typeof users> {
               ...userProfileData
             } = profileData;
 
-            const [profileObj] = await tx
-              .insert(userProfile)
-              .values(userProfileData)
-              .onDuplicateKeyUpdate({
-                set: {
-                  userId: sql`values(${userProfile.userId})`,
-                  bio: sql`values(${userProfile.bio})`,
-                  profilePicture: sql`values(${userProfile.profilePicture})`,
-                  resumeUrl: sql`values(${userProfile.resumeUrl})`,
-                  linkedinUrl: sql`values(${userProfile.linkedinUrl})`,
-                  portfolioUrl: sql`values(${userProfile.portfolioUrl})`,
-                  phoneNumber: sql`values(${userProfile.phoneNumber})`,
-                  address: sql`values(${userProfile.address})`,
-                  city: sql`values(${userProfile.city})`,
-                  state: sql`values(${userProfile.state})`,
-                  zipCode: sql`values(${userProfile.zipCode})`,
-                  country: sql`values(${userProfile.country})`,
-                },
-              })
-              .$returningId();
+            await tx.update(userProfile).set({ ...userProfileData, userId });
+            const userProfileId = await tx
+              .select({ id: userProfile.id })
+              .from(userProfile)
+              .where(eq(userProfile.userId, userId))
+              .then((rows) => (rows[0] ? rows[0].id : null));
 
-            if (profileObj && profileObj.id) {
-              // Upsert Educations
+            if (!userProfileId) {
+              throw new DatabaseError(
+                `User profile not found for userId: ${userId}`,
+              );
+            }
+
+            // Upsert Educations
+            if (educationsData && educationsData.length > 0) {
               await tx
                 .insert(educations)
                 .values(educationsData)
                 .onDuplicateKeyUpdate({
                   set: {
-                    userProfileId: profileObj.id,
+                    userProfileId,
                     schoolName: sql`values(${educations.schoolName})`,
                     program: sql`values(${educations.program})`,
                     major: sql`values(${educations.major})`,
@@ -252,22 +244,26 @@ export class UserRepository extends BaseRepository<typeof users> {
                     endDate: sql`values(${educations.endDate})`,
                   },
                 });
+            }
 
-              // Upsert Work Experiences
+            // Upsert Work Experiences
+            if (workExperiencesData && workExperiencesData.length > 0) {
               await tx
                 .insert(workExperiences)
                 .values(workExperiencesData)
                 .onDuplicateKeyUpdate({
                   set: {
-                    userProfileId: profileObj.id,
+                    userProfileId,
                     companyName: sql`values(${workExperiences.companyName})`,
                     current: sql`values(${workExperiences.current})`,
                     startDate: sql`values(${workExperiences.startDate})`,
                     endDate: sql`values(${workExperiences.endDate})`,
                   },
                 });
+            }
 
-              // Upsert Certifications
+            // Upsert Certifications
+            if (certificationsData && certificationsData.length > 0) {
               const [record] = await tx
                 .insert(certifications)
                 .values(certificationsData)
@@ -284,7 +280,7 @@ export class UserRepository extends BaseRepository<typeof users> {
                   .insert(userCertifications)
                   .values({
                     certificationId: record.id,
-                    userId: profileObj.id,
+                    userId: userProfileId,
                   })
                   .onDuplicateKeyUpdate({
                     set: {
