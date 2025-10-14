@@ -10,18 +10,13 @@ export class UserRepository extends BaseRepository<typeof users> {
     super(users);
   }
 
-async findByEmailWithPassword(email: string) {
+  async findByEmailWithPassword(email: string) {
     try {
       return await withDbErrorHandling(
-        async () => {
-          const user = await db.query.users.findFirst({
+        async () =>
+          await db.query.users.findFirst({
             where: eq(users.email, email),
-          });
-          if (user && !user.isActive) {
-            return undefined; // Treat deactivated users as non-existent for login
-          }
-          return user;
-        }
+          }),
       );
     } catch (error) {
       throw new DatabaseError(

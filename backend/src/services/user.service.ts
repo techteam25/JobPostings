@@ -1,7 +1,5 @@
 import bcrypt from "bcrypt";
 import { UserRepository } from "@/repositories/user.repository";
-import { EmailService } from "@/services/email.service";
-import { JobService } from "@/services/job.service";
 import { BaseService } from "./base.service";
 import {
   users,
@@ -23,14 +21,10 @@ interface UserSearchOptions {
 
 export class UserService extends BaseService {
   private userRepository: UserRepository;
-  private emailService: EmailService;
-  private jobService: JobService;
 
   constructor() {
     super();
     this.userRepository = new UserRepository();
-    this.emailService = new EmailService();
-    this.jobService = new JobService();
   }
 
   async getAllUsers(options: UserSearchOptions) {
@@ -145,39 +139,6 @@ export class UserService extends BaseService {
     return { message: "Password changed successfully" };
   }
 
-  async deactivateSelf(userId: number) {
-    const user = await this.userRepository.findById(userId);
-    if (!user) {
-      return this.handleError(new NotFoundError("User", userId));
-    }
-
-    if (!user.isActive) {
-      return this.handleError(
-        new ValidationError("Account is already deactivated"),
-      );
-    }
-
-    // Edge case: Check for active jobs if employer
-    if (user.role === "employer" && user.organizationId) {
-      const activeJobs = await this.jobService.getActiveJobsByOrganization(user.organizationId);
-      if (activeJobs.length > 0) {
-        return this.handleError(
-          new ValidationError("Cannot deactivate account with active jobs"),
-        );
-      }
-    }
-
-    const success = await this.userRepository.update(userId, { isActive: false });
-    if (!success) {
-      return this.handleError(new Error("Failed to deactivate account"));
-    }
-
-    // Email notification
-    await this.emailService.sendAccountDeactivationConfirmation(user.email, user.firstName);
-
-    return await this.getUserById(userId);
-  }
-
   async deactivateUser(id: number, requestingUserId: number) {
     if (id === requestingUserId) {
       return this.handleError(
@@ -196,24 +157,11 @@ export class UserService extends BaseService {
       );
     }
 
-    // Edge case: Check for active jobs if employer
-    if (user.role === "employer" && user.organizationId) {
-      const activeJobs = await this.jobService.getActiveJobsByOrganization(user.organizationId);
-      if (activeJobs.length > 0) {
-        return this.handleError(
-          new ValidationError("Cannot deactivate user with active jobs"),
-        );
-      }
-    }
-
     const success = await this.userRepository.update(id, { isActive: false });
     if (!success) {
       return this.handleError(new Error("Failed to deactivate user"));
     }
 
-    // Email notification
-    await this.emailService.sendAccountDeactivationConfirmation(user.email, user.firstName);
-    
     return await this.getUserById(id);
   }
 
