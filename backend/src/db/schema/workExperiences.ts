@@ -55,6 +55,8 @@ export const selectWorkExperiencesSchema = createSelectSchema(workExperiences);
 export const insertWorkExperiencesSchema = createInsertSchema(workExperiences, {
   companyName: z.string().min(1, "Company name is required").max(100),
   current: z.boolean().default(false),
+  startDate: z.iso.datetime(),
+  endDate: z.iso.datetime().optional(),
 });
 export const updateWorkExperiencesSchema = createUpdateSchema(
   workExperiences,
