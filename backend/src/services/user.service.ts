@@ -53,7 +53,10 @@ export class UserService extends BaseService {
     return user;
   }
 
-  async createUserProfile(userId: number, profileData: NewUserProfile) {
+  async createUserProfile(
+    userId: number,
+    profileData: Omit<NewUserProfile, "userId">,
+  ) {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       return this.handleError(new NotFoundError("User", userId));

@@ -13,6 +13,7 @@ import {
 import { ChangePasswordData } from "@/db/interfaces/common";
 import {
   ChangePasswordSchema,
+  CreateUserProfile,
   GetUserSchema,
   UserEmailSchema,
   UserQuerySchema,
@@ -109,7 +110,7 @@ export class UserController extends BaseController {
   };
 
   createProfile = async (
-    req: Request<{}, {}, NewUserProfile>,
+    req: Request<{}, {}, CreateUserProfile["body"]>,
     res: Response<ApiResponse<UserProfile>>,
   ) => {
     try {

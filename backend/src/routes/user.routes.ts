@@ -103,6 +103,48 @@ router.put(
   userController.updateProfile,
 );
 
+registry.registerPath({
+  method: "post",
+  path: "/users/me/profile",
+  tags: ["Users"],
+  summary: "Create User Profile",
+  description: "Create a profile for the currently logged-in user.",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createUserPayloadSchema.shape["body"],
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "User profile created successfully",
+      content: {
+        "application/json": {
+          schema: userResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
 router.post(
   "/me/profile",
   validate(createUserPayloadSchema),

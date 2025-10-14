@@ -146,7 +146,10 @@ export class UserRepository extends BaseRepository<typeof users> {
     return userId.id;
   }
 
-  async createProfile(userId: number, profileData: NewUserProfile) {
+  async createProfile(
+    userId: number,
+    profileData: Omit<NewUserProfile, "userId">,
+  ) {
     try {
       return await withDbErrorHandling(
         async () =>

@@ -82,3 +82,4 @@ export type GetUserSchema = z.infer<typeof getUserSchema>;
 export type ChangePasswordSchema = z.infer<typeof changeUserPasswordSchema>;
 export type UserEmailSchema = z.infer<typeof userEmailPayloadSchema>;
 export type UserQuerySchema = z.infer<typeof userQuerySchema>;
+export type CreateUserProfile = z.infer<typeof createUserPayloadSchema>;
