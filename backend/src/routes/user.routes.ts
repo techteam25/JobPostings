@@ -1,3 +1,4 @@
+// user.routes.ts
 import { Router } from "express";
 import { UserController } from "@/controllers/user.controller";
 import { AuthMiddleware } from "@/middleware/auth.middleware";
@@ -106,6 +107,41 @@ router.post(
   validate(changeUserPasswordSchema),
   userController.changePassword,
 );
+
+registry.registerPath({
+  method: "patch",
+  path: "/users/me/deactivate",
+  tags: ["Users"],
+  summary: "Deactivate Own Account",
+  description: "Deactivate the currently logged-in user's account.",
+  responses: {
+    200: {
+      description: "Account deactivated successfully",
+      content: {
+        "application/json": {
+          schema: userResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.patch("/me/deactivate", userController.deactivateSelf);
 
 // Admin only routes for user management
 router.get(
