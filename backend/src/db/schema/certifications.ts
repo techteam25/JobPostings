@@ -18,10 +18,10 @@ export const userCertifications = mysqlTable(
   "user_certifications",
   {
     userId: int("user_id")
-      .references(() => userProfile.id)
+      .references(() => userProfile.id, { onDelete: "cascade" })
       .notNull(),
     certificationId: int("certification_id")
-      .references(() => certifications.id)
+      .references(() => certifications.id, { onDelete: "cascade" })
       .notNull(),
   },
   (table) => [primaryKey({ columns: [table.certificationId, table.userId] })],
