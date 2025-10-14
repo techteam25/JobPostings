@@ -2,7 +2,13 @@
 
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { seedUser, seedUserProfile } from "@tests/utils/seed";
-import { userProfileFixture } from "@tests/utils/fixtures";
+import {
+  userCertificationsFixture,
+  userProfileFixture,
+  workExperiencesFixture,
+} from "@tests/utils/fixtures";
+import { db } from "@/db/connection";
+import { userCertifications, userProfile } from "@/db/schema";
 
 describe("User Controller Integration Tests", () => {
   describe("GET /users", () => {
@@ -69,10 +75,12 @@ describe("User Controller Integration Tests", () => {
   describe("POST and PUT /users/me/profile", () => {
     describe("POST /users/me/profile", () => {
       beforeEach(async () => {
+        db.delete(userCertifications).catch(console.error);
+        db.delete(userProfile).catch(console.error);
         await seedUser();
       });
 
-      it("should create user profile returning 200", async () => {
+      it("should create user profile returning 201", async () => {
         const loginRes = await request.post("/api/auth/login").send({
           email: "normal.user@example.com",
           password: "Password@123",
@@ -82,11 +90,13 @@ describe("User Controller Integration Tests", () => {
 
         const profileData = await userProfileFixture();
         const response = await request
-          .put("/api/users/me/profile")
+          .post("/api/users/me/profile")
           .set("Authorization", `Bearer ${data.tokens.accessToken}`)
           .send(profileData);
 
-        TestHelpers.validateApiResponse(response, 200);
+        console.log(JSON.stringify(response.body, null, 2));
+
+        TestHelpers.validateApiResponse(response, 201);
 
         expect(response.body).toHaveProperty("success", true);
         expect(response.body).toHaveProperty("message", "User profile updated");
@@ -127,7 +137,23 @@ describe("User Controller Integration Tests", () => {
         const response = await request
           .put("/api/users/me/profile")
           .set("Authorization", `Bearer ${data.tokens.accessToken}`)
-          .send({ bio: "Updated bio" });
+          .send({
+            bio: "Updated bio",
+            educations: [
+              {
+                schoolName: "Test University",
+                program: "Bachelors" as const,
+                major: "Computer Science",
+                graduated: true,
+                startDate: new Date("2015-08-15T00:00:00Z"),
+                endDate: new Date("2019-05-20T00:00:00Z"),
+              },
+            ],
+            workExperiences: await workExperiencesFixture(),
+            certifications: userCertificationsFixture(),
+          });
+
+        console.log(JSON.stringify(response.body, null, 2));
 
         TestHelpers.validateApiResponse(response, 200);
 
