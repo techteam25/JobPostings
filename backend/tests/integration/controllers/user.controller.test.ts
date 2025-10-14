@@ -9,6 +9,7 @@ import {
 } from "@tests/utils/fixtures";
 import { db } from "@/db/connection";
 import { userCertifications, userProfile } from "@/db/schema";
+import { sql } from "drizzle-orm";
 
 describe("User Controller Integration Tests", () => {
   describe("GET /users", () => {
@@ -77,6 +78,7 @@ describe("User Controller Integration Tests", () => {
       beforeEach(async () => {
         db.delete(userCertifications).catch(console.error);
         db.delete(userProfile).catch(console.error);
+        await db.execute(sql`ALTER TABLE user_profile AUTO_INCREMENT = 1`);
         await seedUser();
       });
 
@@ -99,27 +101,23 @@ describe("User Controller Integration Tests", () => {
         TestHelpers.validateApiResponse(response, 201);
 
         expect(response.body).toHaveProperty("success", true);
-        expect(response.body).toHaveProperty("message", "User profile updated");
+        expect(response.body).toHaveProperty("message", "User profile created");
         expect(response.body.data).toHaveProperty("id", 1);
-        expect(response.body.data).toHaveProperty("profile");
-        expect(response.body.data.profile).toHaveProperty("userId", 1);
-        expect(response.body.data.profile).toHaveProperty(
+        expect(response.body.data).toHaveProperty("userId", 1);
+        expect(response.body.data).toHaveProperty(
           "profilePicture",
           profileData.profilePicture,
         );
-        expect(response.body.data.profile).toHaveProperty(
-          "bio",
-          profileData.bio,
-        );
-        expect(response.body.data.profile).toHaveProperty(
+        expect(response.body.data).toHaveProperty("bio", profileData.bio);
+        expect(response.body.data).toHaveProperty(
           "profilePicture",
           profileData.profilePicture,
         );
-        expect(response.body.data.profile).toHaveProperty(
+        expect(response.body.data).toHaveProperty(
           "address",
           profileData.address,
         );
-        expect(response.body.data.profile).toHaveProperty(
+        expect(response.body.data).toHaveProperty(
           "linkedinUrl",
           profileData.linkedinUrl,
         );
