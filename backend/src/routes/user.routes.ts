@@ -6,6 +6,7 @@ import {
   getUserSchema,
   changeUserPasswordSchema,
   updateUserPayloadSchema,
+  createUserPayloadSchema,
 } from "@/validations/user.validation";
 import { registry } from "@/swagger/registry";
 import { apiResponseSchema, errorResponseSchema } from "@/types";
@@ -101,6 +102,13 @@ router.put(
   validate(updateUserPayloadSchema),
   userController.updateProfile,
 );
+
+router.post(
+  "/me/profile",
+  validate(createUserPayloadSchema),
+  userController.createProfile,
+);
+
 router.post(
   "/me/change-password",
   validate(changeUserPasswordSchema),
