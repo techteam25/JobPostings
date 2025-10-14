@@ -1,5 +1,5 @@
 import { z } from "@/swagger/registry";
-import { updateUserSchema } from "@/db/schema";
+import { insertUserProfileSchema, updateUserProfileSchema } from "@/db/schema";
 
 const userParamsSchema = z.object({
   id: z.string().regex(/^\d+$/, "Invalid user ID format"),
@@ -66,8 +66,14 @@ export const changeUserPasswordSchema = z.object({
   query: z.object({}).strict(),
 });
 
+export const createUserPayloadSchema = z.object({
+  body: insertUserProfileSchema.omit({ userId: true }),
+  params: z.object({}).strict(),
+  query: z.object({}).strict(),
+});
+
 export const updateUserPayloadSchema = z.object({
-  body: updateUserSchema,
+  body: updateUserProfileSchema,
   params: z.object({}).strict(),
   query: z.object({}).strict(),
 });
