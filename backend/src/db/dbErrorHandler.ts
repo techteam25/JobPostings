@@ -67,11 +67,12 @@ export async function withDbErrorHandling<T>(
   try {
     return await operation();
   } catch (err: unknown) {
-    logger.error({ err });
     const error = err as { code?: string; errno?: number };
     if (error.code?.startsWith?.("ER_") || typeof error.errno === "number") {
       handleMySqlError(error);
     }
+
+    logger.error({ err });
     throw error;
   }
 }
