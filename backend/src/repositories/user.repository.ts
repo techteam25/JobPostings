@@ -146,40 +146,41 @@ export class UserRepository extends BaseRepository<typeof users> {
     return userId.id;
   }
 
-  async createWithProfile(
-    userData: NewUser,
-    profileData?: Partial<NewUserProfile>,
-  ): Promise<number> {
+  async createProfile(userId: number, profileData: NewUserProfile) {
     try {
       return await withDbErrorHandling(
         async () =>
           await db.transaction(async (tx) => {
-            const [res] = await tx
-              .insert(users)
-              .values(userData)
+            const [result] = await tx
+              .insert(userProfile)
+              .values({
+                ...profileData,
+                userId,
+              })
               .$returningId();
 
-            if (!res) {
+            if (!result || isNaN(result.id)) {
               throw new DatabaseError(
-                `Failed to insert user with data: ${JSON.stringify(userData)}`,
+                `Invalid insertId returned: ${result?.id}`,
               );
             }
 
-            const userId = res.id;
-
-            if (profileData) {
-              await tx.insert(userProfile).values({
-                ...profileData,
-                userId,
-              });
-            }
-
-            return userId;
+            return await tx.query.userProfile.findFirst({
+              where: eq(userProfile.id, result.id),
+              with: {
+                certifications: {
+                  columns: {},
+                  with: { certification: true },
+                },
+                education: true,
+                workExperiences: true,
+              },
+            });
           }),
       );
     } catch (error) {
       throw new DatabaseError(
-        `Failed to create user with data: ${JSON.stringify(userData)}`,
+        `Failed to create Profile with data`,
         error instanceof Error ? error : undefined,
       );
     }
@@ -215,6 +216,8 @@ export class UserRepository extends BaseRepository<typeof users> {
               ...userProfileData
             } = profileData;
 
+            console.log({ workExperiencesData, certificationsData });
+
             await tx.update(userProfile).set({ ...userProfileData, userId });
             const userProfileId = await tx
               .select({ id: userProfile.id })
@@ -230,9 +233,16 @@ export class UserRepository extends BaseRepository<typeof users> {
 
             // Upsert Educations
             if (educationsData && educationsData.length > 0) {
+              const edu = educationsData.map((e) => ({
+                ...e,
+                userProfileId,
+                startDate: new Date(e.startDate),
+                endDate: e.endDate ? new Date(e.endDate) : null,
+              }));
+
               await tx
                 .insert(educations)
-                .values(educationsData)
+                .values(edu)
                 .onDuplicateKeyUpdate({
                   set: {
                     userProfileId,
@@ -248,9 +258,16 @@ export class UserRepository extends BaseRepository<typeof users> {
 
             // Upsert Work Experiences
             if (workExperiencesData && workExperiencesData.length > 0) {
+              const work = workExperiencesData.map((we) => ({
+                ...we,
+                userProfileId,
+                startDate: new Date(we.startDate),
+                endDate: we.endDate ? new Date(we.endDate) : null,
+              }));
+
               await tx
                 .insert(workExperiences)
-                .values(workExperiencesData)
+                .values(work)
                 .onDuplicateKeyUpdate({
                   set: {
                     userProfileId,
