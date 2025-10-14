@@ -4,6 +4,7 @@
     "": {
       "name": "frontend",
       "dependencies": {
+        "@eslint/eslintrc": "^3.3.1",
         "@t3-oss/env-core": "^0.13.8",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
