@@ -39,6 +39,16 @@ export class JobService extends BaseService {
     }
   }
 
+  async getActiveJobsByOrganization(organizationId: number): Promise<Job[]> {
+    try {
+      const allJobs = await this.jobRepository.findJobsByEmployer(organizationId, { limit: 10000 });
+      return allJobs.items.filter(job => job.isActive);
+    } catch (error) {
+      this.handleError(error);
+      return [];
+    }
+  }
+
   async searchJobs(filters: SearchParams["query"]) {
     try {
       return await this.jobRepository.searchJobs(filters);

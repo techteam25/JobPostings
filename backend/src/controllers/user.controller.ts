@@ -185,6 +185,18 @@ export class UserController extends BaseController {
     });
   };
 
+  deactivateSelf = async (req: Request, res: Response) => {
+    if (!req.userId) {
+      return this.handleControllerError(
+        res,
+        new ValidationError("User not authenticated"),
+      );
+    }
+
+    const result = await this.userService.deactivateSelf(req.userId);
+    return this.sendSuccess(res, result, "Account deactivated successfully");
+  };
+
   deactivateUser = async (
     req: Request<GetUserSchema["params"]>,
     res: Response,
