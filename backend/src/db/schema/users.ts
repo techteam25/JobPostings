@@ -129,11 +129,19 @@ export const updateUserSchema = insertUserSchema
   .partial()
   .omit({ id: true, createdAt: true, passwordHash: true, updatedAt: true });
 
-export const updateUserProfileSchema = insertUserProfileSchema.extend({
-  educations: insertEducationsSchema.array(),
-  workExperiences: insertWorkExperiencesSchema.array(),
-  certifications: z.array(insertCertificationsSchema),
-});
+export const updateUserProfileSchema = insertUserProfileSchema
+  .omit({ userId: true })
+  .extend({
+    educations: insertEducationsSchema
+      .omit({ userProfileId: true })
+      .array()
+      .default([]),
+    workExperiences: insertWorkExperiencesSchema
+      .omit({ userProfileId: true })
+      .array()
+      .default([]),
+    certifications: z.array(insertCertificationsSchema).default([]),
+  });
 
 // Type exports
 export type User = z.infer<typeof selectUserSchema>;
