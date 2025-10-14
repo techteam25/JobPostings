@@ -1,4 +1,5 @@
 import { Bell, ChevronDown } from "lucide-react";
+import {Button} from "@/components/ui/button";
 
 export default function Navbar() {
   return (
@@ -7,7 +8,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="bg-gray-50 px-4 py-2 rounded-full">
+            <div className="bg-gray-50 px-4 py-2 rounded-2xl">
               <svg
                 width="150"
                 height="40"
@@ -16,8 +17,8 @@ export default function Navbar() {
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
-                  fill-rule="evenodd"
-                  clip-rule="evenodd"
+                  fillRule="evenodd"
+                  clipRule="evenodd"
                   d="M23.5294 0C23.9188 0 24.3059 0.00933158 24.6906 0.0280324C24.6983 0.0284056 24.7047 0.0222832 24.7047 0.0145966V0.0145966C24.7047 0.00716965 24.7108 0.0011489 24.7182 0.0011489H46.227C46.6865 0.00137965 47.0588 0.373466 47.0588 0.83295C47.0588 1.05356 46.9712 1.26515 46.8153 1.42119L41.1753 7.05882H53.203C53.998 7.05882 54.7248 7.52694 55.0019 8.27203C55.9513 10.825 56.4706 13.5871 56.4706 16.4706C56.4706 29.4655 45.9361 40 32.9412 40C32.552 40 32.1651 39.9896 31.7806 39.9708C31.7726 39.9705 31.7659 39.9768 31.7659 39.9848V39.9848C31.7659 39.9926 31.7596 39.9989 31.7518 39.9989H10.2436C9.78414 39.9986 9.41177 39.6265 9.41177 39.1671C9.41179 38.9464 9.49938 38.7348 9.65533 38.5788L15.293 32.9412H3.26757C2.47264 32.9412 1.74575 32.4731 1.46868 31.728C0.519328 29.175 0 26.4129 0 23.5294C0 10.5345 10.5345 0 23.5294 0ZM31.5809 16.6556C29.6389 14.383 26.7531 12.9412 23.5294 12.9412C17.6817 12.9412 12.9412 17.6817 12.9412 23.5294C12.9412 24.7672 13.1552 25.9547 13.5455 27.0588H21.1753L24.8897 23.3444C26.8317 25.617 29.7175 27.0588 32.9412 27.0588C38.7889 27.0588 43.5294 22.3183 43.5294 16.4706C43.5294 15.2328 43.3154 14.0453 42.9251 12.9412H35.2953L31.5809 16.6556Z"
                   fill="#3754FA"
                 ></path>
@@ -66,33 +67,33 @@ export default function Navbar() {
 
             {/* Navigation Links */}
             <div className="flex items-center gap-2">
-              <button className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-full transition">
+              <Button variant="link" className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition">
                 Explore Job
-              </button>
-              <button className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-full transition">
+              </Button>
+              <Button variant="link" className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition">
                 Saved Jobs
-              </button>
-              <button className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-full transition">
+              </Button>
+              <Button variant="link" className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition">
                 Applications
-              </button>
-              <button className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-full transition">
+              </Button>
+              <Button variant="link" className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition">
                 Messages
-              </button>
-              <button className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-full transition">
+              </Button>
+              <Button variant="link" className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition">
                 FAQ
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Right Section */}
           <div className="flex items-center gap-4">
             {/* Notification Bell */}
-            <button className="p-2 hover:bg-gray-50 rounded-full transition">
+            <Button variant="outline" size="icon" className="p-2 hover:bg-gray-50 rounded-full transition">
               <Bell className="w-6 h-6 text-gray-700" />
-            </button>
+            </Button>
 
             {/* User Profile */}
-            <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-full transition">
+            <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-2xl transition">
               <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
                 <svg
                   className="w-6 h-6 text-white"
