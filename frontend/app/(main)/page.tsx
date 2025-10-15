@@ -1,113 +1,174 @@
-import Image from 'next/image'
+"use client";
+
+import { ChevronDown, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { fakeJobs } from "@/assets/jobs";
+import { JobCard } from "@/components/JobCard";
+import { JobType } from "@/lib/types";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <main className="w-full">
+      {/* Hero Section */}
+      <div className="rounded-2xl bg-gradient-to-r from-[#001B71] to-[#003BA3] px-6 py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-2xl">
+            <h1 className="mb-4 text-3xl font-bold text-white md:text-4xl">
+              The Right Job is Waiting for You
+            </h1>
+            <p className="mb-8 font-serif text-sm text-white/90">
+              Explore thousands of jobs and take the next step in your career
+              today!
+            </p>
+
+            {/* Search Bar */}
+            <div className="flex items-center overflow-hidden rounded-full bg-white shadow-lg">
+              <div className="flex flex-1 items-center px-6 py-4">
+                <Search className="mr-1 size-6 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Search here..."
+                  className="flex-1 text-lg text-gray-700 outline-none"
+                />
+              </div>
+              <Button className="mr-1 h-full rounded-full bg-[#001B71] px-10 py-4 font-semibold text-white transition hover:bg-[#003BA3]">
+                Search Job
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
+      {/* Jobs Section */}
+      <div className="mt-6 min-h-screen rounded-2xl bg-gray-50">
+        <div className="mx-auto max-w-7xl px-6 py-8">
+          <div className="grid grid-cols-12 gap-6">
+            {/* Filter Sidebar */}
+            <div className="col-span-3">
+              <div className="rounded-lg bg-white p-6 shadow-sm">
+                <h2 className="mb-6 text-xl font-bold">Filter</h2>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+                {/* Salary Range */}
+                <div className="mb-6">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="font-semibold">Salary Range</h3>
+                    <ChevronDown className="h-5 w-5 text-gray-600" />
+                  </div>
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+                  <div className="mb-4 space-y-3">
+                    <label className="flex cursor-pointer items-center gap-3">
+                      <input type="radio" name="salary" className="h-4 w-4" />
+                      <span className="text-gray-700">Under $1,000</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-3">
+                      <input type="radio" name="salary" className="h-4 w-4" />
+                      <span className="text-gray-700">$1,000 - $5,000</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-3">
+                      <input type="radio" name="salary" className="h-4 w-4" />
+                      <span className="text-gray-700">$5,000 - $10,000</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-3">
+                      <input
+                        type="radio"
+                        name="salary"
+                        defaultChecked
+                        className="h-4 w-4 accent-blue-900"
+                      />
+                      <span className="text-gray-700">Custom</span>
+                    </label>
+                  </div>
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
+                  {/* Range Slider */}
+                  <div className="mt-4">
+                    <input
+                      type="range"
+                      min="0"
+                      max="5000"
+                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-orange-200 accent-blue-500"
+                    />
+                    <div className="mt-2 flex justify-between text-sm text-gray-600">
+                      <span>$1,250</span>
+                      <span>$2,900</span>
+                    </div>
+                  </div>
+                </div>
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
+                {/* Job Type */}
+                <div>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="font-semibold">Job Type</h3>
+                    <ChevronDown className="h-5 w-5 text-gray-600" />
+                  </div>
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <input type="checkbox" className="h-4 w-4" />
+                      <span className="text-gray-700">Full-time</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <input type="checkbox" className="h-4 w-4" />
+                      <span className="text-gray-700">Part-time</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <input type="checkbox" className="h-4 w-4" />
+                      <span className="text-gray-700">Contract</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <input type="checkbox" className="h-4 w-4" />
+                      <span className="text-gray-700">Temporary</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Jobs List */}
+            <div className="col-span-9">
+              <div className="rounded-lg bg-white p-6 shadow-sm">
+                {/* Header */}
+                <div className="mb-6 flex items-center justify-between">
+                  <h2 className="text-xl font-bold">
+                    Explore All Jobs (23,129 Jobs Available)
+                  </h2>
+                  <button className="flex items-center gap-2 text-gray-700 hover:text-gray-900">
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+                      />
+                    </svg>
+                    Sort By
+                  </button>
+                </div>
+
+                {/* Job Cards */}
+                <div className="space-y-4">
+                  {fakeJobs.map((job, index) => (
+                    <JobCard
+                      key={index}
+                      jobType={job.jobType as JobType}
+                      jobDescription={job.jobDescription}
+                      companyName={job.companyName}
+                      experienceLevel={job.experienceLevel}
+                      location={job.location}
+                      positionName={job.positionName}
+                      posted={job.posted}
+                      onApply={job.onApply}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
-  )
+  );
 }
