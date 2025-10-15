@@ -3,12 +3,12 @@ import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
   return (
-    <nav className="shadow-sm w-full mb-6">
+    <nav className="mb-6 w-full py-4">
       <div className="mx-auto">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex h-20 items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="bg-gray-50 px-4 py-2 rounded-2xl">
+            <div className="rounded-2xl bg-gray-50 px-4 py-2">
               <svg
                 width="150"
                 height="40"
@@ -69,31 +69,31 @@ export default function Navbar() {
             <div className="flex items-center gap-2 font-serif">
               <Button
                 variant="link"
-                className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition"
+                className="rounded-2xl px-6 py-2 text-xs text-gray-700 transition hover:bg-gray-50 md:text-sm"
               >
                 Explore Job
               </Button>
               <Button
                 variant="link"
-                className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition"
+                className="rounded-2xl px-6 py-2 text-xs text-gray-700 transition hover:bg-gray-50 md:text-sm"
               >
                 Saved Jobs
               </Button>
               <Button
                 variant="link"
-                className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition"
+                className="rounded-2xl px-6 py-2 text-xs text-gray-700 transition hover:bg-gray-50 md:text-sm"
               >
                 Applications
               </Button>
               <Button
                 variant="link"
-                className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition"
+                className="rounded-2xl px-6 py-2 text-xs text-gray-700 transition hover:bg-gray-50 md:text-sm"
               >
                 Messages
               </Button>
               <Button
                 variant="link"
-                className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition"
+                className="rounded-2xl px-6 py-2 text-xs text-gray-700 transition hover:bg-gray-50 md:text-sm"
               >
                 FAQ
               </Button>
@@ -106,16 +106,16 @@ export default function Navbar() {
             <Button
               variant="outline"
               size="icon"
-              className="p-2 hover:bg-gray-50 rounded-full transition"
+              className="rounded-full p-2 transition hover:bg-gray-50"
             >
-              <Bell className="w-6 h-6 text-gray-700" />
+              <Bell className="h-6 w-6 text-gray-700" />
             </Button>
 
             {/* User Profile */}
-            <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-2xl transition">
-              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+            <div className="flex cursor-pointer items-center gap-3 rounded-2xl px-3 py-2 transition hover:bg-gray-50">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500">
                 <svg
-                  className="w-6 h-6 text-white"
+                  className="h-6 w-6 text-white"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                 >
@@ -123,14 +123,14 @@ export default function Navbar() {
                 </svg>
               </div>
               <div className="text-left font-serif">
-                <div className="font-semibold text-gray-900 text-sm">
+                <div className="text-sm font-semibold text-gray-900">
                   Ronald Roberts
                 </div>
-                <div className="text-gray-500 text-xs">
+                <div className="text-xs text-gray-500">
                   ronaldroberts@gmail.com
                 </div>
               </div>
-              <ChevronDown className="w-5 h-5 text-gray-500" />
+              <ChevronDown className="h-5 w-5 text-gray-500" />
             </div>
           </div>
         </div>
