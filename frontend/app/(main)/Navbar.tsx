@@ -1,9 +1,9 @@
 import { Bell, ChevronDown } from "lucide-react";
-import {Button} from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
   return (
-    <nav className="shadow-sm w-full">
+    <nav className="shadow-sm w-full mb-6">
       <div className="mx-auto">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
@@ -66,20 +66,35 @@ export default function Navbar() {
             </div>
 
             {/* Navigation Links */}
-            <div className="flex items-center gap-2">
-              <Button variant="link" className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition">
+            <div className="flex items-center gap-2 font-serif">
+              <Button
+                variant="link"
+                className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition"
+              >
                 Explore Job
               </Button>
-              <Button variant="link" className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition">
+              <Button
+                variant="link"
+                className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition"
+              >
                 Saved Jobs
               </Button>
-              <Button variant="link" className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition">
+              <Button
+                variant="link"
+                className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition"
+              >
                 Applications
               </Button>
-              <Button variant="link" className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition">
+              <Button
+                variant="link"
+                className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition"
+              >
                 Messages
               </Button>
-              <Button variant="link" className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition">
+              <Button
+                variant="link"
+                className="px-6 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50 rounded-2xl transition"
+              >
                 FAQ
               </Button>
             </div>
@@ -88,7 +103,11 @@ export default function Navbar() {
           {/* Right Section */}
           <div className="flex items-center gap-4">
             {/* Notification Bell */}
-            <Button variant="outline" size="icon" className="p-2 hover:bg-gray-50 rounded-full transition">
+            <Button
+              variant="outline"
+              size="icon"
+              className="p-2 hover:bg-gray-50 rounded-full transition"
+            >
               <Bell className="w-6 h-6 text-gray-700" />
             </Button>
 
@@ -103,7 +122,7 @@ export default function Navbar() {
                   <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                 </svg>
               </div>
-              <div className="text-left">
+              <div className="text-left font-serif">
                 <div className="font-semibold text-gray-900 text-sm">
                   Ronald Roberts
                 </div>
