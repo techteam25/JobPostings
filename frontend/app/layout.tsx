@@ -3,12 +3,18 @@ import { cn } from "@/lib/utils";
 
 import type { Metadata } from "next";
 
-import { Poppins } from "next/font/google";
+import { Montserrat, Poppins } from "next/font/google";
 import "./globals.css";
 
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "700", "900"],
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "500", "700", "900"],
+  variable: "--font-montserrat",
 });
 
 export const metadata: Metadata = {
@@ -22,7 +28,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={cn(poppins.className, "bg-slate-300")}>
+      <body
+        className={cn(poppins.className, montserrat.className, "bg-slate-300")}
+      >
         <div className="max-w-7xl mx-auto">{children}</div>
       </body>
     </html>
