@@ -1,16 +1,17 @@
 "use client";
 
-import { ChevronDown, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fakeJobs } from "@/assets/jobs";
 import { JobCard } from "@/components/JobCard";
 import { JobType } from "@/lib/types";
+import FilterOptionsCard from "@/app/(main)/_components/FilterOptionsCard";
 
 export default function Home() {
   return (
     <main className="w-full">
       {/* Hero Section */}
-      <div className="rounded-2xl bg-gradient-to-r from-[#001B71] to-[#003BA3] px-6 py-20">
+      <div className="from-brand-blue rounded-2xl bg-gradient-to-r to-[#003BA3] px-6 py-20">
         <div className="mx-auto max-w-7xl">
           <div className="max-w-2xl">
             <h1 className="mb-4 text-3xl font-bold text-white md:text-4xl">
@@ -31,7 +32,7 @@ export default function Home() {
                   className="flex-1 text-lg text-gray-700 outline-none"
                 />
               </div>
-              <Button className="mr-1 h-full rounded-full bg-[#001B71] px-10 py-4 font-semibold text-white transition hover:bg-[#003BA3]">
+              <Button className="bg-brand-blue mr-1 h-full rounded-full px-10 py-4 font-semibold text-white transition hover:bg-[#003BA3]">
                 Search Job
               </Button>
             </div>
@@ -43,85 +44,7 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-6 py-8">
           <div className="grid grid-cols-12 gap-6">
             {/* Filter Sidebar */}
-            <div className="col-span-3">
-              <div className="rounded-lg bg-white p-6 shadow-sm">
-                <h2 className="mb-6 text-xl font-bold">Filter</h2>
-
-                {/* Salary Range */}
-                <div className="mb-6">
-                  <div className="mb-4 flex items-center justify-between">
-                    <h3 className="font-semibold">Salary Range</h3>
-                    <ChevronDown className="h-5 w-5 text-gray-600" />
-                  </div>
-
-                  <div className="mb-4 space-y-3">
-                    <label className="flex cursor-pointer items-center gap-3">
-                      <input type="radio" name="salary" className="h-4 w-4" />
-                      <span className="text-gray-700">Under $1,000</span>
-                    </label>
-                    <label className="flex cursor-pointer items-center gap-3">
-                      <input type="radio" name="salary" className="h-4 w-4" />
-                      <span className="text-gray-700">$1,000 - $5,000</span>
-                    </label>
-                    <label className="flex cursor-pointer items-center gap-3">
-                      <input type="radio" name="salary" className="h-4 w-4" />
-                      <span className="text-gray-700">$5,000 - $10,000</span>
-                    </label>
-                    <label className="flex cursor-pointer items-center gap-3">
-                      <input
-                        type="radio"
-                        name="salary"
-                        defaultChecked
-                        className="h-4 w-4 accent-blue-900"
-                      />
-                      <span className="text-gray-700">Custom</span>
-                    </label>
-                  </div>
-
-                  {/* Range Slider */}
-                  <div className="mt-4">
-                    <input
-                      type="range"
-                      min="0"
-                      max="5000"
-                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-orange-200 accent-blue-500"
-                    />
-                    <div className="mt-2 flex justify-between text-sm text-gray-600">
-                      <span>$1,250</span>
-                      <span>$2,900</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Job Type */}
-                <div>
-                  <div className="mb-4 flex items-center justify-between">
-                    <h3 className="font-semibold">Job Type</h3>
-                    <ChevronDown className="h-5 w-5 text-gray-600" />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="flex cursor-pointer items-center gap-2">
-                      <input type="checkbox" className="h-4 w-4" />
-                      <span className="text-gray-700">Full-time</span>
-                    </label>
-                    <label className="flex cursor-pointer items-center gap-2">
-                      <input type="checkbox" className="h-4 w-4" />
-                      <span className="text-gray-700">Part-time</span>
-                    </label>
-                    <label className="flex cursor-pointer items-center gap-2">
-                      <input type="checkbox" className="h-4 w-4" />
-                      <span className="text-gray-700">Contract</span>
-                    </label>
-                    <label className="flex cursor-pointer items-center gap-2">
-                      <input type="checkbox" className="h-4 w-4" />
-                      <span className="text-gray-700">Temporary</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+            <FilterOptionsCard />
             {/* Jobs List */}
             <div className="col-span-9">
               <div className="rounded-lg bg-white p-6 shadow-sm">
