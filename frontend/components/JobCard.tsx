@@ -15,10 +15,10 @@ export const JobCard = ({
   onApply,
 }: JobCardType) => {
   return (
-    <div className="rounded-lg border border-gray-200 p-6 transition hover:border-orange-500">
+    <div className="border-border hover:border-accent rounded-lg border p-6 transition">
       <div className="mb-4 flex items-start justify-between">
         <div className="flex items-start gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-transparent text-2xl font-bold text-white">
+          <div className="text-primary-foreground flex h-14 w-14 items-center justify-center rounded-lg bg-transparent text-2xl font-bold">
             <svg
               width="40"
               height="40"
@@ -41,23 +41,25 @@ export const JobCard = ({
           <div>
             <div className="mb-1 flex items-center gap-2">
               <h3 className="text-lg font-bold">{positionName}</h3>
-              <span className="text-sm text-gray-500">{posted}</span>
+              <span className="text-muted-foreground text-sm">{posted}</span>
             </div>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground text-sm">
               {companyName} · {location}
             </p>
           </div>
         </div>
-        <button className="text-gray-400 hover:text-gray-600">
+        <button className="text-muted-foreground hover:text-foreground/80">
           <Bookmark className="h-6 w-6" />
         </button>
       </div>
 
-      <p className="mb-4 line-clamp-3 text-gray-700">{jobDescription}</p>
+      <p className="text-secondary-foreground mb-4 line-clamp-3">
+        {jobDescription}
+      </p>
 
       <div className="flex items-center justify-between">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="flex items-center gap-1 rounded-full bg-gray-50 px-3 py-1 text-sm text-gray-700">
+          <span className="bg-background text-muted-foreground flex items-center gap-1 rounded-full px-3 py-1 text-sm">
             🕐 {jobType}
           </span>
           <span className="flex items-center gap-1 rounded-full bg-yellow-50 px-3 py-1 text-sm text-yellow-700">
@@ -66,7 +68,7 @@ export const JobCard = ({
         </div>
         <Button
           onClick={onApply}
-          className="flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-2 font-semibold text-white transition hover:bg-orange-600"
+          className="bg-accent text-primary-foreground hover:bg-accent/90 flex items-center gap-2 rounded-lg px-6 py-2 font-semibold transition"
         >
           Apply <ArrowRight className="h-4 w-4" />
         </Button>
