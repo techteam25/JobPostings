@@ -9,6 +9,7 @@ import "./globals.css";
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "700", "900"],
+  variable: "--font-poppins",
 });
 
 const montserrat = Montserrat({
@@ -31,7 +32,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body
         className={cn(poppins.className, montserrat.className, "bg-slate-300")}
       >
-        <div className="max-w-7xl mx-auto">{children}</div>
+        <div className="mx-auto max-w-7xl">{children}</div>
       </body>
     </html>
   );
