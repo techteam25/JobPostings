@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 
 :root {
-    --background: oklch(1.0000 0 0);
+    --background: oklch(0.984 0.003 247.858);
     --foreground: oklch(0.2686 0 0);
     --brand-blue: hsl(226, 100%, 22%);
     --card: oklch(1.0000 0 0);
