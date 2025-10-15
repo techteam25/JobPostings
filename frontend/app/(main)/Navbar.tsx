@@ -66,7 +66,7 @@ export default function Navbar() {
             </div>
 
             {/* Navigation Links */}
-            <div className="flex items-center gap-2 font-serif">
+            <div className="flex items-center gap-2">
               <Button
                 variant="link"
                 className="rounded-2xl px-6 py-2 text-xs text-gray-700 transition hover:bg-gray-50 md:text-sm"
@@ -122,7 +122,7 @@ export default function Navbar() {
                   <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                 </svg>
               </div>
-              <div className="text-left font-serif">
+              <div className="text-left">
                 <div className="text-sm font-semibold text-gray-900">
                   Ronald Roberts
                 </div>
