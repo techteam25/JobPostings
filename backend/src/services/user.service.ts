@@ -5,21 +5,17 @@ import { JobService } from "@/services/job.service";
 import { BaseService } from "./base.service";
 import {
   users,
-  type NewUserProfile,
   type UpdateUser,
   type User,
+  UpdateUserProfile,
+  NewUserProfile,
 } from "@/db/schema";
 import { NotFoundError, ValidationError, ForbiddenError } from "@/utils/errors";
 import { PaginationMeta } from "@/types";
 import { db } from "@/db/connection";
 import { count, sql } from "drizzle-orm";
-
-interface UserSearchOptions {
-  page?: number;
-  limit?: number;
-  searchTerm?: string;
-  role?: User["role"];
-}
+import { UserQuerySchema } from "@/validations/user.validation";
+import { SecurityUtils } from "@/utils/security";
 
 export class UserService extends BaseService {
   private userRepository: UserRepository;
@@ -33,10 +29,15 @@ export class UserService extends BaseService {
     this.jobService = new JobService();
   }
 
-  async getAllUsers(options: UserSearchOptions) {
-    const { page = 1, limit = 10, searchTerm, role } = options;
+  async getAllUsers(options: UserQuerySchema["query"]) {
+    const { searchTerm, role } = options;
+
+    const sanitizedSearchTerm = SecurityUtils.sanitizeInput(searchTerm || "");
+    const page = Number(options.page || "1");
+    const limit = Number(options.limit || "10");
+
     const result = await this.userRepository.searchUsers(
-      searchTerm || "",
+      sanitizedSearchTerm,
       role,
       {
         page,
@@ -56,6 +57,18 @@ export class UserService extends BaseService {
     }
 
     return user;
+  }
+
+  async createUserProfile(
+    userId: number,
+    profileData: Omit<NewUserProfile, "userId">,
+  ) {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      return this.handleError(new NotFoundError("User", userId));
+    }
+
+    return await this.userRepository.createProfile(userId, profileData);
   }
 
   async updateUser(
@@ -110,10 +123,7 @@ export class UserService extends BaseService {
     return await this.getUserById(id);
   }
 
-  async updateUserProfile(
-    userId: number,
-    profileData: Partial<NewUserProfile>,
-  ) {
+  async updateUserProfile(userId: number, profileData: UpdateUserProfile) {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       return this.handleError(new NotFoundError("User", userId));

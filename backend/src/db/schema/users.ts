@@ -1,9 +1,17 @@
 import { organizations } from "./organizations";
 import { sessions } from "./sessions";
 import { auth } from "./auth";
-import { educations } from "./educations";
-import { workExperiences } from "./workExperiences";
-import { userCertifications } from "./certifications";
+import { Education, educations, insertEducationsSchema } from "./educations";
+import {
+  insertWorkExperiencesSchema,
+  WorkExperience,
+  workExperiences,
+} from "./workExperiences";
+import {
+  Certification,
+  insertCertificationsSchema,
+  userCertifications,
+} from "./certifications";
 import {
   mysqlTable,
   varchar,
@@ -16,7 +24,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { InferSelectModel, relations, sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // Users table
 export const users = mysqlTable(
@@ -122,8 +130,18 @@ export const updateUserSchema = insertUserSchema
   .omit({ id: true, createdAt: true, passwordHash: true, updatedAt: true });
 
 export const updateUserProfileSchema = insertUserProfileSchema
-  .partial()
-  .omit({ id: true, userId: true, createdAt: true });
+  .omit({ userId: true })
+  .extend({
+    educations: insertEducationsSchema
+      .omit({ userProfileId: true })
+      .array()
+      .default([]),
+    workExperiences: insertWorkExperiencesSchema
+      .omit({ userProfileId: true })
+      .array()
+      .default([]),
+    certifications: z.array(insertCertificationsSchema).default([]),
+  });
 
 // Type exports
 export type User = z.infer<typeof selectUserSchema>;
@@ -135,5 +153,11 @@ export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
 
 // Get type with relations
 export type UserWithProfile = User & {
-  profile: InferSelectModel<typeof userProfile> | null;
+  profile:
+    | (UserProfile & {
+        certifications: { certification: Certification }[] | null;
+        education: Education[] | null;
+        workExperiences: WorkExperience[] | null;
+      })
+    | null;
 };

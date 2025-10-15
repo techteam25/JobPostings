@@ -3,13 +3,20 @@ import { UserService } from "@/services/user.service";
 import { AuthService } from "@/services/auth.service";
 import { BaseController } from "./base.controller";
 import { ValidationError, ForbiddenError, NotFoundError } from "@/utils/errors";
-import { UpdateUser, UpdateUserProfile, UserWithProfile } from "@/db/schema";
+import {
+  NewUserProfile,
+  UpdateUser,
+  UpdateUserProfile,
+  UserProfile,
+  UserWithProfile,
+} from "@/db/schema";
 import { ChangePasswordData } from "@/db/interfaces/common";
-import { SearchParams } from "@/validations/base.validation";
 import {
   ChangePasswordSchema,
+  CreateUserProfile,
   GetUserSchema,
   UserEmailSchema,
+  UserQuerySchema,
 } from "@/validations/user.validation";
 import { ApiResponse } from "@/types";
 
@@ -24,16 +31,16 @@ export class UserController extends BaseController {
   }
 
   getAllUsers = async (
-    req: Request<{}, {}, {}, SearchParams["query"]>,
+    req: Request<{}, {}, {}, UserQuerySchema["query"]>,
     res: Response,
   ) => {
     try {
-      const { page, limit, q } = req.query;
+      const { page, limit, searchTerm } = req.query;
 
       const result = await this.userService.getAllUsers({
         page,
         limit,
-        searchTerm: q,
+        searchTerm,
         role: req.user?.role,
       });
 
@@ -102,6 +109,44 @@ export class UserController extends BaseController {
     return this.sendSuccess(res, user, "User updated successfully");
   };
 
+  createProfile = async (
+    req: Request<{}, {}, CreateUserProfile["body"]>,
+    res: Response<ApiResponse<UserProfile>>,
+  ) => {
+    try {
+      const profileData = req.body;
+      const profile = await this.userService.createUserProfile(
+        req.userId!,
+        profileData,
+      );
+
+      if (!profile) {
+        return res.status(400).json({
+          success: false,
+          status: "error",
+          message: "Failed to create user profile",
+          error: "INTERNAL_SERVER_ERROR",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      return res.status(201).json({
+        success: true,
+        data: profile,
+        message: "User profile created",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        message: "Failed to create user profile",
+        error: error instanceof Error ? error.message : "INTERNAL_SERVER_ERROR",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  };
+
   updateProfile = async (
     req: Request<{}, {}, UpdateUserProfile>,
     res: Response<ApiResponse<UserWithProfile>>,
@@ -112,6 +157,8 @@ export class UserController extends BaseController {
         req.userId!,
         profileData,
       );
+
+      console.log({ profileData });
 
       if (!user) {
         return res.status(400).json({
@@ -130,6 +177,7 @@ export class UserController extends BaseController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
+      // console.log({ error });
       return res.status(500).json({
         success: false,
         status: "error",

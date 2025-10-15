@@ -1,5 +1,5 @@
 import { z } from "@/swagger/registry";
-import { updateUserSchema } from "@/db/schema";
+import { insertUserProfileSchema, updateUserProfileSchema } from "@/db/schema";
 
 const userParamsSchema = z.object({
   id: z.string().regex(/^\d+$/, "Invalid user ID format"),
@@ -23,15 +23,22 @@ const changePasswordSchema = z.object({
 const getUsersQuerySchema = z.object({
   page: z
     .string()
+    .regex(/^\d+$/)
     .optional()
-    .transform((val) => (val ? parseInt(val, 10) : 1))
-    .refine((val) => val > 0, "Page must be positive"),
+    .refine((val) => val === undefined || parseInt(val) > 0, {
+      message: "Page must be a positive integer",
+    }),
   limit: z
     .string()
+    .regex(/^\d+$/)
     .optional()
-    .transform((val) => (val ? parseInt(val, 10) : 10))
-    .refine((val) => val > 0 && val <= 100, "Limit must be between 1 and 100"),
-  search: z.string().optional(),
+    .refine(
+      (val) => val === undefined || (parseInt(val) > 0 && parseInt(val) <= 100),
+      {
+        message: "Limit must be a positive integer and at most 100",
+      },
+    ),
+  searchTerm: z.string().optional(),
   role: z.enum(["user", "employer", "admin"]).optional(),
 });
 
@@ -59,8 +66,14 @@ export const changeUserPasswordSchema = z.object({
   query: z.object({}).strict(),
 });
 
+export const createUserPayloadSchema = z.object({
+  body: insertUserProfileSchema.omit({ userId: true }),
+  params: z.object({}).strict(),
+  query: z.object({}).strict(),
+});
+
 export const updateUserPayloadSchema = z.object({
-  body: updateUserSchema,
+  body: updateUserProfileSchema,
   params: z.object({}).strict(),
   query: z.object({}).strict(),
 });
@@ -68,3 +81,5 @@ export const updateUserPayloadSchema = z.object({
 export type GetUserSchema = z.infer<typeof getUserSchema>;
 export type ChangePasswordSchema = z.infer<typeof changeUserPasswordSchema>;
 export type UserEmailSchema = z.infer<typeof userEmailPayloadSchema>;
+export type UserQuerySchema = z.infer<typeof userQuerySchema>;
+export type CreateUserProfile = z.infer<typeof createUserPayloadSchema>;

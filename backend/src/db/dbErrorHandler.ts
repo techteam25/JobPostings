@@ -71,6 +71,8 @@ export async function withDbErrorHandling<T>(
     if (error.code?.startsWith?.("ER_") || typeof error.errno === "number") {
       handleMySqlError(error);
     }
+
+    logger.error({ err });
     throw error;
   }
 }

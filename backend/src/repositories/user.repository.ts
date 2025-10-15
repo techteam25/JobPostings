@@ -1,5 +1,16 @@
-import { and, count, eq, like, or } from "drizzle-orm";
-import { NewUser, NewUserProfile, User, userProfile, users } from "@/db/schema";
+import { and, count, eq, like, or, sql } from "drizzle-orm";
+import {
+  certifications,
+  educations,
+  NewUser,
+  NewUserProfile,
+  UpdateUserProfile,
+  User,
+  userCertifications,
+  userProfile,
+  users,
+  workExperiences,
+} from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
 import { DatabaseError } from "@/utils/errors";
@@ -67,7 +78,16 @@ async findByEmailWithPassword(email: string) {
           await db.query.users.findFirst({
             where: eq(users.id, id),
             with: {
-              profile: true,
+              profile: {
+                with: {
+                  certifications: {
+                    columns: {},
+                    with: { certification: true },
+                  },
+                  education: true,
+                  workExperiences: true,
+                },
+              },
             },
             columns: {
               id: true,
@@ -131,40 +151,44 @@ async findByEmailWithPassword(email: string) {
     return userId.id;
   }
 
-  async createWithProfile(
-    userData: NewUser,
-    profileData?: Partial<NewUserProfile>,
-  ): Promise<number> {
+  async createProfile(
+    userId: number,
+    profileData: Omit<NewUserProfile, "userId">,
+  ) {
     try {
       return await withDbErrorHandling(
         async () =>
           await db.transaction(async (tx) => {
-            const [res] = await tx
-              .insert(users)
-              .values(userData)
+            const [result] = await tx
+              .insert(userProfile)
+              .values({
+                ...profileData,
+                userId,
+              })
               .$returningId();
 
-            if (!res) {
+            if (!result || isNaN(result.id)) {
               throw new DatabaseError(
-                `Failed to insert user with data: ${JSON.stringify(userData)}`,
+                `Invalid insertId returned: ${result?.id}`,
               );
             }
 
-            const userId = res.id;
-
-            if (profileData) {
-              await tx.insert(userProfile).values({
-                ...profileData,
-                userId,
-              });
-            }
-
-            return userId;
+            return await tx.query.userProfile.findFirst({
+              where: eq(userProfile.id, result.id),
+              with: {
+                certifications: {
+                  columns: {},
+                  with: { certification: true },
+                },
+                education: true,
+                workExperiences: true,
+              },
+            });
           }),
       );
     } catch (error) {
       throw new DatabaseError(
-        `Failed to create user with data: ${JSON.stringify(userData)}`,
+        `Failed to create Profile with data`,
         error instanceof Error ? error : undefined,
       );
     }
@@ -188,31 +212,122 @@ async findByEmailWithPassword(email: string) {
     );
   }
 
-  async updateProfile(userId: number, profileData: Partial<NewUserProfile>) {
+  async updateProfile(userId: number, profileData: UpdateUserProfile) {
     try {
       return await withDbErrorHandling(
         async () =>
           await db.transaction(async (tx) => {
-            const existingProfile = await tx
-              .select()
-              .from(userProfile)
-              .where(eq(userProfile.userId, userId));
+            const {
+              educations: educationsData,
+              workExperiences: workExperiencesData,
+              certifications: certificationsData,
+              ...userProfileData
+            } = profileData;
 
-            if (existingProfile.length > 0) {
-              await tx
-                .update(userProfile)
-                .set(profileData)
-                .where(eq(userProfile.userId, userId));
-            } else {
-              await tx.insert(userProfile).values({
-                ...profileData,
-                userId,
-              });
+            console.log({ workExperiencesData, certificationsData });
+
+            await tx.update(userProfile).set({ ...userProfileData, userId });
+            const userProfileId = await tx
+              .select({ id: userProfile.id })
+              .from(userProfile)
+              .where(eq(userProfile.userId, userId))
+              .then((rows) => (rows[0] ? rows[0].id : null));
+
+            if (!userProfileId) {
+              throw new DatabaseError(
+                `User profile not found for userId: ${userId}`,
+              );
             }
+
+            // Upsert Educations
+            if (educationsData && educationsData.length > 0) {
+              const edu = educationsData.map((e) => ({
+                ...e,
+                userProfileId,
+                startDate: new Date(e.startDate),
+                endDate: e.endDate ? new Date(e.endDate) : null,
+              }));
+
+              await tx
+                .insert(educations)
+                .values(edu)
+                .onDuplicateKeyUpdate({
+                  set: {
+                    userProfileId,
+                    schoolName: sql`values(${educations.schoolName})`,
+                    program: sql`values(${educations.program})`,
+                    major: sql`values(${educations.major})`,
+                    graduated: sql`values(${educations.graduated})`,
+                    startDate: sql`values(${educations.startDate})`,
+                    endDate: sql`values(${educations.endDate})`,
+                  },
+                });
+            }
+
+            // Upsert Work Experiences
+            if (workExperiencesData && workExperiencesData.length > 0) {
+              const work = workExperiencesData.map((we) => ({
+                ...we,
+                userProfileId,
+                startDate: new Date(we.startDate),
+                endDate: we.endDate ? new Date(we.endDate) : null,
+              }));
+
+              await tx
+                .insert(workExperiences)
+                .values(work)
+                .onDuplicateKeyUpdate({
+                  set: {
+                    userProfileId,
+                    companyName: sql`values(${workExperiences.companyName})`,
+                    current: sql`values(${workExperiences.current})`,
+                    startDate: sql`values(${workExperiences.startDate})`,
+                    endDate: sql`values(${workExperiences.endDate})`,
+                  },
+                });
+            }
+
+            // Upsert Certifications
+            if (certificationsData && certificationsData.length > 0) {
+              const [record] = await tx
+                .insert(certifications)
+                .values(certificationsData)
+                .onDuplicateKeyUpdate({
+                  set: {
+                    certificationName: sql`values(${certifications.certificationName})`,
+                  },
+                })
+                .$returningId();
+
+              // Link Certification to User Profile in Junction Table
+              if (record && record.id) {
+                await tx
+                  .insert(userCertifications)
+                  .values({
+                    certificationId: record.id,
+                    userId: userProfileId,
+                  })
+                  .onDuplicateKeyUpdate({
+                    set: {
+                      certificationId: sql`values(${userCertifications.certificationId})`,
+                    },
+                  });
+              }
+            }
+
             return await tx.query.users.findFirst({
               where: eq(users.id, userId),
               with: {
-                profile: true,
+                profile: {
+                  with: {
+                    certifications: {
+                      columns: {},
+                      with: { certification: true },
+                    },
+                    education: true,
+                    workExperiences: true,
+                  },
+                },
               },
               columns: {
                 id: true,

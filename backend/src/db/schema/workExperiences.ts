@@ -7,7 +7,11 @@ import {
   check,
   int,
 } from "drizzle-orm/mysql-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-zod";
 import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
 import { userProfile } from "./users";
@@ -51,10 +55,12 @@ export const selectWorkExperiencesSchema = createSelectSchema(workExperiences);
 export const insertWorkExperiencesSchema = createInsertSchema(workExperiences, {
   companyName: z.string().min(1, "Company name is required").max(100),
   current: z.boolean().default(false),
+  startDate: z.iso.datetime(),
+  endDate: z.iso.datetime().optional(),
 });
-export const updateWorkExperiencesSchema = insertWorkExperiencesSchema
-  .partial()
-  .omit({ id: true, userProfileId: true });
+export const updateWorkExperiencesSchema = createUpdateSchema(
+  workExperiences,
+).omit({ userProfileId: true });
 
 // Type exports
 export type WorkExperience = z.infer<typeof selectWorkExperiencesSchema>;

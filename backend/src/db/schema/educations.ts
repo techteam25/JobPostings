@@ -8,7 +8,11 @@ import {
   check,
   int,
 } from "drizzle-orm/mysql-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-zod";
 import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
 import { userProfile } from "./users";
@@ -60,10 +64,12 @@ export const insertEducationsSchema = createInsertSchema(educations, {
   schoolName: z.string().min(1, "School name is required").max(100),
   major: z.string().min(1, "Program major is required").max(100),
   graduated: z.boolean().default(false),
+  startDate: z.iso.datetime(),
+  endDate: z.iso.datetime().optional(),
 });
-export const updateEducationsSchema = insertEducationsSchema
-  .partial()
-  .omit({ id: true, userProfileId: true });
+export const updateEducationsSchema = createUpdateSchema(educations).omit({
+  userProfileId: true,
+});
 
 // Type exports
 export type Education = z.infer<typeof selectEducationsSchema>;

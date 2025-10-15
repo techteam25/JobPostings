@@ -1,4 +1,11 @@
-import { int, varchar, timestamp, mysqlTable, boolean } from "drizzle-orm/mysql-core";
+import {
+  int,
+  varchar,
+  timestamp,
+  mysqlTable,
+  boolean,
+  text,
+} from "drizzle-orm/mysql-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -6,9 +13,11 @@ import { users } from "./users";
 
 export const sessions = mysqlTable("sessions", {
   id: int("id").autoincrement().primaryKey(),
-  userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  accessToken: varchar("access_token", { length: 512 }),
-  refreshToken: varchar("refresh_token", { length: 255 }).notNull().unique(),
+  userId: int("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
   userAgent: varchar("user_agent", { length: 255 }),
   ipAddress: varchar("ip_address", { length: 45 }),
   isActive: boolean("is_active").notNull().default(true),
@@ -27,15 +36,15 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
 
 export const insertSessionSchema = createInsertSchema(sessions);
 export const selectSessionSchema = createSelectSchema(sessions);
-export const updateSessionSchema = insertSessionSchema.partial().omit({ 
-  id: true, 
-  userId: true, 
-  createdAt: true 
+export const updateSessionSchema = insertSessionSchema.partial().omit({
+  id: true,
+  userId: true,
+  createdAt: true,
 });
 
 export const refreshTokenSchema = z.object({
   body: z.object({
-    refreshToken: z.string().min(1, 'Refresh token is required'),
+    refreshToken: z.string().min(1, "Refresh token is required"),
   }),
 });
 
