@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body
-        className={cn(poppins.className, montserrat.className, "bg-slate-300")}
+        className={cn(poppins.className, montserrat.className, "bg-slate-100")}
       >
         <div className="mx-auto max-w-7xl">{children}</div>
       </body>
