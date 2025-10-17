@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1760735132636,
+      "tag": "0000_pale_jackal",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1760735300852,
+      "tag": "0001_stormy_dark_beast",
+      "breakpoints": true
+    }
+  ],
+  "version": "1"
+}

@@ -4,6 +4,7 @@ import {
   educations,
   NewUser,
   NewUserProfile,
+  sessions,
   UpdateUserProfile,
   User,
   userCertifications,
@@ -95,6 +96,33 @@ async findByIdWithProfile(id: number) {
     }
   }
 
+  async findByIdWithPassword(id: number): Promise<User & { passwordHash: string } | undefined> {
+  try {
+    return await withDbErrorHandling(async () =>
+      await db.query.users.findFirst({
+        where: eq(users.id, id),
+        columns: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          organizationId: true,
+          isEmailVerified: true,
+          status: true,
+          deletedAt: true,
+          lastLoginAt: true,
+          createdAt: true,
+          updatedAt: true,
+          passwordHash: true, 
+        },
+      })
+    );
+  } catch (error) {
+    throw new DatabaseError(`Failed to query user with password by id: ${id}`, error instanceof Error ? error : undefined);
+  }
+}
+
   async findUserById(id: number) {
     try {
       return await withDbErrorHandling(
@@ -173,6 +201,19 @@ async findByIdWithProfile(id: number) {
     } catch (error) {
       throw new DatabaseError(
         `Failed to create Profile with data`,
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  async deleteSessionsByUserId(userId: number): Promise<void> {
+    try {
+      await withDbErrorHandling(async () => {
+        await db.delete(sessions).where(eq(sessions.userId, userId));
+      });
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to delete sessions for userId: ${userId}`,
         error instanceof Error ? error : undefined
       );
     }

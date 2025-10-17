@@ -426,6 +426,15 @@ export class JobService extends BaseService {
     return { message: "Application withdrawn successfully" };
   }
 
+  async deleteJobApplicationsByUserId(userId: number): Promise<void> {
+    try {
+      await this.jobRepository.deleteJobApplicationsByUserId(userId);
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+
   // Dashboard and Statistics Methods
   // async getJobStatistics() {
   //   try {

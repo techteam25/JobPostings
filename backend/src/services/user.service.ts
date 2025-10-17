@@ -288,4 +288,48 @@ export class UserService extends BaseService {
       this.handleError(error);
     }
   }
+
+  async deleteSelf(userId: number, currentPassword: string): Promise<void> {
+  const user = await this.userRepository.findByIdWithPassword(userId);
+  if (!user) {
+    return this.handleError(new NotFoundError("User", userId));
+  }
+
+  if (user.status !== 'active') {
+    return this.handleError(new ValidationError("Account is already deactivated or deleted"));
+  }
+
+  // Safeguard: Validate password
+  const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!isValid) {
+    return this.handleError(new ValidationError("Current password is incorrect"));
+  }
+
+  // Business checks
+  if (user.role === "employer" && user.organizationId) {
+    const activeJobs = await this.jobService.getActiveJobsByOrganization(user.organizationId);
+    if (activeJobs.length > 0) {
+      return this.handleError(new ValidationError("Cannot delete account with active jobs"));
+    }
+  }
+  // Notification email
+  await this.emailService.sendAccountDeletionConfirmation(user.email, user.firstName);
+
+  // Soft delete: Update status and timestamp
+  const success = await this.userRepository.update(userId, {
+    status: 'deleted',
+    deletedAt: new Date(),
+  });
+  if (!success) {
+    return this.handleError(new Error("Failed to delete account"));
+  }
+
+  // Clean up related data
+  await Promise.all([
+    this.userRepository.deleteSessionsByUserId(userId),
+    this.jobService.deleteJobApplicationsByUserId(userId),
+  ]);
+
+  return;
+}
 }

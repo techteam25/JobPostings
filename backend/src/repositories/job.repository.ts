@@ -392,4 +392,22 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .then((result) => result.length > 0),
     );
   }
+
+  async deleteJobApplicationsByUserId(userId: number): Promise<void> {
+    return withDbErrorHandling(async () => {
+      await db
+        .delete(jobApplications)
+        .where(eq(jobApplications.applicantId, userId));
+    });
+  }
+
+
+  async deleteByUserId(userId: number) {
+    return withDbErrorHandling(async () => {
+      await db
+        .delete(jobApplications)
+        .where(eq(jobApplications.applicantId, userId));
+    });  
+  }
+
 }
