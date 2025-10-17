@@ -2,6 +2,7 @@ import express from "express";
 import type { Application, Request, Response, NextFunction } from "express";
 import { rateLimit } from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
+import cors from "cors";
 
 import pinoHttp from "pino-http";
 import swaggerUi from "swagger-ui-express";
@@ -61,6 +62,11 @@ const swaggerOptions = generator.generateDocument({
   },
   servers: [{ url: `http://${env.HOST}:${env.PORT}` }],
 });
+
+app.use(cors({
+    origin: ["http://localhost:3000"],
+    credentials: true,
+}));
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerOptions));
 
