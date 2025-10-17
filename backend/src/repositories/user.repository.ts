@@ -458,8 +458,16 @@ async findByIdWithProfile(id: number) {
     try {
       return await withDbErrorHandling(async () =>
         db.query.users.findMany({
-          with: { profile: true },
           where: eq(users.status, "active"),
+          with: {
+            profile: {
+              with: {
+                certifications: { columns: {}, with: { certification: true } },
+                education: true,
+                workExperiences: true,
+              },
+            },
+          },
         })
       );
     } catch (error) {

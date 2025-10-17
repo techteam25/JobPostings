@@ -74,7 +74,7 @@ export class OrganizationRepository extends BaseRepository<
                 role: true,
                 organizationId: true,
                 isEmailVerified: true,
-                isActive: true,
+                status: true,
               },
             },
           },

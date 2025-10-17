@@ -161,7 +161,7 @@ export class UserService extends BaseService {
       return this.handleError(new NotFoundError("User", userId));
     }
 
-    if (!user.isActive) {
+    if (user.status !== 'active') {
       return this.handleError(
         new ValidationError("Account is already deactivated"),
       );
@@ -177,7 +177,7 @@ export class UserService extends BaseService {
       }
     }
 
-    const success = await this.userRepository.update(userId, { isActive: false });
+    const success = await this.userRepository.update(userId, { status: 'deactivated' });
     if (!success) {
       return this.handleError(new Error("Failed to deactivate account"));
     }
@@ -200,7 +200,7 @@ export class UserService extends BaseService {
       return this.handleError(new NotFoundError("User", id));
     }
 
-    if (!user.isActive) {
+    if (user.status !== 'active') {
       return this.handleError(
         new ValidationError("User is already deactivated"),
       );
@@ -216,7 +216,7 @@ export class UserService extends BaseService {
       }
     }
 
-    const success = await this.userRepository.update(id, { isActive: false });
+    const success = await this.userRepository.update(id, { status: 'deactivated' });
     if (!success) {
       return this.handleError(new Error("Failed to deactivate user"));
     }
@@ -233,11 +233,11 @@ export class UserService extends BaseService {
       return this.handleError(new NotFoundError("User", id));
     }
 
-    if (user.isActive) {
+    if (user.status === 'active') {
       return this.handleError(new ValidationError("User is already active"));
     }
 
-    const success = await this.userRepository.update(id, { isActive: true });
+    const success = await this.userRepository.update(id, { status: 'active' });
     if (!success) {
       return this.handleError(new Error("Failed to activate user"));
     }

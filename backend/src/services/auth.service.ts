@@ -52,6 +52,10 @@ export class AuthService extends BaseService {
     const userId = await this.userRepository.createUser({
       ...userDataWithoutPassword,
       passwordHash,
+      status: "active",
+      isEmailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     if (!userId || isNaN(userId)) {
       return this.handleError(
@@ -152,7 +156,7 @@ export class AuthService extends BaseService {
       throw new UnauthorizedError("Invalid credentials");
     }
 
-    if (!user.isActive) {
+    if (user.status !== "active") {
       throw new UnauthorizedError("Account is deactivated");
     }
 
@@ -196,7 +200,7 @@ export class AuthService extends BaseService {
     const userResult = await this.userRepository.findByIdWithProfile(
       session.userId,
     );
-    if (!userResult || !userResult.isActive) {
+    if (!userResult || userResult.status !== "active") {
       await this.sessionRepository.deactivateSession(session.id);
       return this.handleError(
         new UnauthorizedError("User account is inactive"),
