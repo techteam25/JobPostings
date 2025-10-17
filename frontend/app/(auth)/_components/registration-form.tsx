@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+
 import { useForm } from "@tanstack/react-form";
 import { cn } from "@/lib/utils";
 
@@ -8,13 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldInfo } from "@/components/common/FieldInfo";
 
 import { BsEye, BsEyeSlash } from "react-icons/bs";
 import { BsFillPersonFill } from "react-icons/bs";
 import { BsLinkedin } from "react-icons/bs";
 import { FcGoogle } from "react-icons/fc";
 import { MdWork } from "react-icons/md";
-import { FieldInfo } from "@/components/common/FieldInfo";
 
 import {
   RegistrationData,
@@ -54,9 +56,6 @@ export default function RegistrationForm() {
       <h2 className="text-foreground mb-2 text-3xl font-bold">
         Create Account
       </h2>
-      <p className="text-secondary-foreground mb-6 text-sm sm:text-base">
-        Join JobFinder and discover opportunities
-      </p>
 
       <div>
         <form
@@ -403,10 +402,11 @@ export default function RegistrationForm() {
         <p className="text-secondary-foreground mt-6 text-center text-sm">
           Already have an account?{" "}
           <Button
+            asChild
             variant="link"
             className="text-accent hover:text-accent/90 cursor-pointer font-semibold"
           >
-            Sign in
+            <Link href="/sign-in">Sign in</Link>
           </Button>
         </p>
       </div>
