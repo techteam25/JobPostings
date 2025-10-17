@@ -27,7 +27,7 @@ function Page() {
           </h1>
           <p className="text-secondary-foreground text-sm md:text-base lg:text-xl">
             Join ministries and individuals answering the call to serve.
-            Discover opportunities to use your gifts where they’re needed most.
+            Discover opportunities to use your gifts where they are needed most.
           </p>
 
           <div className="space-y-4 pt-4">
