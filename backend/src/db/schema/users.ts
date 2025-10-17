@@ -21,6 +21,7 @@ import {
   boolean,
   int,
   check,
+  index,
 } from "drizzle-orm/mysql-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -42,7 +43,10 @@ export const users = mysqlTable(
       onDelete: "cascade",
     }),
     isEmailVerified: boolean("is_email_verified").default(false).notNull(),
-    isActive: boolean("is_active").default(true).notNull(),
+    status: mysqlEnum("status", ["active", "deactivated", "deleted"])
+      .default("active")
+      .notNull(),
+    deletedAt: timestamp("deleted_at"),
     lastLoginAt: timestamp("last_login_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
@@ -52,6 +56,13 @@ export const users = mysqlTable(
       "employer_must_have_organization",
       sql`(${table.role} != 'employer' OR ${table.organizationId} IS NOT NULL)`,
     ),
+    check(
+      "deleted_status_requires_deleted_at",
+      sql`(${table.status} != 'deleted' OR ${table.deletedAt} IS NOT NULL)`,
+    ),
+    // Index for common filters (status-based queries)
+    index("idx_users_status").on(table.status),
+    index("idx_users_email").on(table.email), 
   ],
 );
 
@@ -106,6 +117,8 @@ export const insertUserSchema = createInsertSchema(users, {
   lastName: z.string().min(1, "Last name is required").max(100).trim(),
   role: z.enum(["user", "employer", "admin"]).default("user"),
   organizationId: z.number().int().positive().nullable().optional(),
+  status: z.enum(["active", "deactivated", "deleted"]).default("active"),
+  deletedAt: z.date().optional(),
 });
 
 export const insertUserProfileSchema = createInsertSchema(userProfile, {
@@ -127,7 +140,7 @@ export const selectUserProfileSchema = createSelectSchema(userProfile);
 
 export const updateUserSchema = insertUserSchema
   .partial()
-  .omit({ id: true, createdAt: true, passwordHash: true, updatedAt: true });
+  .omit({ id: true, createdAt: true, passwordHash: true, updatedAt: true, deletedAt: true });
 
 export const updateUserProfileSchema = insertUserProfileSchema
   .omit({ userId: true })
@@ -144,7 +157,7 @@ export const updateUserProfileSchema = insertUserProfileSchema
   });
 
 // Type exports
-export type User = z.infer<typeof selectUserSchema>;
+export type User = z.infer<typeof selectUserSchema> & { status: "active" | "deactivated" | "deleted" };
 export type NewUser = z.infer<typeof insertUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type UserProfile = z.infer<typeof selectUserProfileSchema>;

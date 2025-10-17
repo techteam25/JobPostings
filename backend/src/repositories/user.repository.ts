@@ -1,4 +1,4 @@
-import { and, count, eq, like, or, sql } from "drizzle-orm";
+import { and, count, eq, like, or, sql, ne } from "drizzle-orm";
 import {
   certifications,
   educations,
@@ -23,92 +23,75 @@ export class UserRepository extends BaseRepository<typeof users> {
 
 async findByEmailWithPassword(email: string) {
     try {
-      return await withDbErrorHandling(
-        async () => {
-          const user = await db.query.users.findFirst({
-            where: eq(users.email, email),
-          });
-          if (user && !user.isActive) {
-            return undefined; // Treat deactivated users as non-existent for login
-          }
-          return user;
-        }
-      );
+      return await withDbErrorHandling(async () => {
+        const user = await db.query.users.findFirst({
+          where: and(eq(users.email, email), eq(users.status, "active")),
+        });
+        return user || undefined;
+      });
     } catch (error) {
-      throw new DatabaseError(
-        `Failed to query user by email: ${email}`,
-        error instanceof Error ? error : undefined,
-      );
+      throw new DatabaseError(`Failed to query user by email for login: ${email}`, error instanceof Error ? error : undefined);
     }
   }
 
-  async findByEmail(email: string): Promise<User | undefined> {
+async findByEmail(email: string): Promise<User | undefined> {
     try {
-      return await withDbErrorHandling(
-        async () =>
-          await db.query.users.findFirst({
-            columns: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              role: true,
-              organizationId: true,
-              isEmailVerified: true,
-              isActive: true,
-              lastLoginAt: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-            where: eq(users.email, email),
-          }),
+      return await withDbErrorHandling(async () =>
+        await db.query.users.findFirst({
+          columns: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            organizationId: true,
+            isEmailVerified: true,
+            status: true,
+            deletedAt: true, 
+            lastLoginAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+          where: and(eq(users.email, email), ne(users.status, "deleted")),
+        }),
       );
     } catch (error) {
-      throw new DatabaseError(
-        `Failed to query user by email: ${email}`,
-        error instanceof Error ? error : undefined,
-      );
+      throw new DatabaseError(`Failed to query user by email: ${email}`, error instanceof Error ? error : undefined);
     }
   }
 
-  async findByIdWithProfile(id: number) {
+async findByIdWithProfile(id: number) {
     try {
-      return await withDbErrorHandling(
-        async () =>
-          await db.query.users.findFirst({
-            where: eq(users.id, id),
-            with: {
-              profile: {
-                with: {
-                  certifications: {
-                    columns: {},
-                    with: { certification: true },
-                  },
-                  education: true,
-                  workExperiences: true,
-                },
+      return await withDbErrorHandling(async () =>
+        await db.query.users.findFirst({
+          where: and(eq(users.id, id), eq(users.status, "active")),
+          with: {
+            profile: {
+              with: {
+                certifications: { columns: {}, with: { certification: true } },
+                education: true,
+                workExperiences: true,
               },
             },
-            columns: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              role: true,
-              organizationId: true,
-              isEmailVerified: true,
-              isActive: true,
-              lastLoginAt: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          }),
+          },
+          columns: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            organizationId: true,
+            isEmailVerified: true,
+            status: true,
+            deletedAt: true,
+            lastLoginAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
       );
     } catch (error) {
-      throw new DatabaseError(
-        `Failed to query user with profile by id: ${id}`,
-        error instanceof Error ? error : undefined,
-      );
+      throw new DatabaseError(`Failed to query user with profile by id: ${id}`, error instanceof Error ? error : undefined);
     }
   }
 
@@ -126,24 +109,25 @@ async findByEmailWithPassword(email: string) {
               role: true,
               organizationId: true,
               isEmailVerified: true,
-              isActive: true,
+              status: true,
+              deletedAt: true,
               lastLoginAt: true,
               createdAt: true,
               updatedAt: true,
             },
-          }),
+          })
       );
     } catch (error) {
       throw new DatabaseError(
         `Failed to query user with profile by id: ${id}`,
-        error instanceof Error ? error : undefined,
+        error instanceof Error ? error : undefined
       );
     }
   }
 
   async createUser(userData: NewUser): Promise<number> {
     const [userId] = await withDbErrorHandling(
-      async () => await db.insert(users).values(userData).$returningId(),
+      async () => await db.insert(users).values(userData).$returningId()
     );
     if (!userId || isNaN(userId.id)) {
       throw new DatabaseError(`Invalid insertId returned: ${userId?.id}`);
@@ -153,7 +137,7 @@ async findByEmailWithPassword(email: string) {
 
   async createProfile(
     userId: number,
-    profileData: Omit<NewUserProfile, "userId">,
+    profileData: Omit<NewUserProfile, "userId">
   ) {
     try {
       return await withDbErrorHandling(
@@ -169,7 +153,7 @@ async findByEmailWithPassword(email: string) {
 
             if (!result || isNaN(result.id)) {
               throw new DatabaseError(
-                `Invalid insertId returned: ${result?.id}`,
+                `Invalid insertId returned: ${result?.id}`
               );
             }
 
@@ -184,12 +168,12 @@ async findByEmailWithPassword(email: string) {
                 workExperiences: true,
               },
             });
-          }),
+          })
       );
     } catch (error) {
       throw new DatabaseError(
         `Failed to create Profile with data`,
-        error instanceof Error ? error : undefined,
+        error instanceof Error ? error : undefined
       );
     }
   }
@@ -208,7 +192,7 @@ async findByEmailWithPassword(email: string) {
           }
           await tx.delete(userProfile).where(eq(userProfile.userId, userId));
           await tx.delete(users).where(eq(users.id, userId));
-        }),
+        })
     );
   }
 
@@ -235,7 +219,7 @@ async findByEmailWithPassword(email: string) {
 
             if (!userProfileId) {
               throw new DatabaseError(
-                `User profile not found for userId: ${userId}`,
+                `User profile not found for userId: ${userId}`
               );
             }
 
@@ -337,18 +321,19 @@ async findByEmailWithPassword(email: string) {
                 role: true,
                 organizationId: true,
                 isEmailVerified: true,
-                isActive: true,
+                status: true,
+                deletedAt: true,
                 lastLoginAt: true,
                 createdAt: true,
                 updatedAt: true,
               },
             });
-          }),
+          })
       );
     } catch (error) {
       throw new DatabaseError(
         `Failed to update profile for userId: ${userId}`,
-        error instanceof Error ? error : undefined,
+        error instanceof Error ? error : undefined
       );
     }
   }
@@ -356,7 +341,7 @@ async findByEmailWithPassword(email: string) {
   async searchUsers(
     searchTerm: string,
     role: "user" | "employer" | "admin" | undefined,
-    options: { page?: number; limit?: number } = {},
+    options: { page?: number; limit?: number } = {}
   ): Promise<{
     items: User[];
     pagination: {
@@ -376,8 +361,8 @@ async findByEmailWithPassword(email: string) {
           or(
             like(users.firstName, `%${searchTerm}%`),
             like(users.lastName, `%${searchTerm}%`),
-            like(users.email, `%${searchTerm}%`),
-          ),
+            like(users.email, `%${searchTerm}%`)
+          )
         );
       }
 
@@ -400,7 +385,8 @@ async findByEmailWithPassword(email: string) {
                 role: users.role,
                 organizationId: users.organizationId,
                 isEmailVerified: users.isEmailVerified,
-                isActive: users.isActive,
+                status: users.status,
+                deletedAt: users.deletedAt,
                 lastLoginAt: users.lastLoginAt,
                 createdAt: users.createdAt,
                 updatedAt: users.updatedAt,
@@ -416,7 +402,7 @@ async findByEmailWithPassword(email: string) {
               .where(whereCondition);
 
             return [items, totalResult];
-          }),
+          })
       );
 
       const total = totalResult?.count ?? 0;
@@ -433,7 +419,7 @@ async findByEmailWithPassword(email: string) {
     } catch (error) {
       throw new DatabaseError(
         `Failed to search users with term: ${searchTerm}`,
-        error instanceof Error ? error : undefined,
+        error instanceof Error ? error : undefined
       );
     }
   }
@@ -451,30 +437,36 @@ async findByEmailWithPassword(email: string) {
               role: users.role,
               organizationId: users.organizationId,
               isEmailVerified: users.isEmailVerified,
-              isActive: users.isActive,
+              status: users.status,
+              deletedAt: users.deletedAt,
               lastLoginAt: users.lastLoginAt,
               createdAt: users.createdAt,
               updatedAt: users.updatedAt,
             })
             .from(users)
-            .where(eq(users.role, role)),
+            .where(and(eq(users.role, role), eq(users.status, "active"))) // Filter active
       );
     } catch (error) {
       throw new DatabaseError(
         `Failed to fetch users by role: ${role}`,
-        error instanceof Error ? error : undefined,
+        error instanceof Error ? error : undefined
       );
     }
   }
 
   async findActiveUsersByRole() {
-    return withDbErrorHandling(async () =>
-      db.query.users.findMany({
-        with: {
-          profile: true,
-        },
-        where: and(eq(users.isActive, true), eq(users.isActive, true)),
-      }),
-    );
+    try {
+      return await withDbErrorHandling(async () =>
+        db.query.users.findMany({
+          with: { profile: true },
+          where: eq(users.status, "active"),
+        })
+      );
+    } catch (error) {
+      throw new DatabaseError(
+        "Failed to find active users by role",
+        error instanceof Error ? error : undefined
+      );
+    }
   }
 }
