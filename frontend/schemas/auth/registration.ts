@@ -17,3 +17,9 @@ export const registrationSchema = z
   });
 
 export type RegistrationData = z.infer<typeof registrationSchema>;
+export type RegistrationInput = Omit<
+  RegistrationData,
+  "accountType" | "confirmPassword" | "hasAgreedToTerms"
+> & {
+  role: "user" | "employer";
+};
