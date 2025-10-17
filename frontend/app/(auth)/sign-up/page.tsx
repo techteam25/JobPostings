@@ -1,4 +1,5 @@
 import RegistrationForm from "@/app/(auth)/_components/registration-form";
+
 import { CheckCircle } from "lucide-react";
 
 function Page() {
@@ -42,7 +43,7 @@ function Page() {
                 <h3 className="text-lg font-semibold">
                   Access 23,000+ Job Listings
                 </h3>
-                <p className="text-accent-foreground/70">
+                <p className="text-muted-foreground">
                   From startups to Fortune 500 companies
                 </p>
               </div>
@@ -53,7 +54,7 @@ function Page() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold">AI-Powered Matching</h3>
-                <p className="text-accent-foreground/70">
+                <p className="text-muted-foreground">
                   Get jobs tailored to your skills and preferences
                 </p>
               </div>
@@ -64,7 +65,7 @@ function Page() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold">Career Resources</h3>
-                <p className="text-white/70">
+                <p className="text-muted-foreground">
                   Resume tips, interview prep, and career advice
                 </p>
               </div>

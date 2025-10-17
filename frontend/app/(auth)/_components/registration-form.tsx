@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useForm } from "@tanstack/react-form";
-
 import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
@@ -15,15 +14,20 @@ import { BsFillPersonFill } from "react-icons/bs";
 import { BsLinkedin } from "react-icons/bs";
 import { FcGoogle } from "react-icons/fc";
 import { MdWork } from "react-icons/md";
+import { FieldInfo } from "@/components/common/FieldInfo";
+
 import {
   RegistrationData,
   registrationSchema,
 } from "@/schemas/auth/registration";
-import { FieldInfo } from "@/components/common/FieldInfo";
+
+import { useRegisterUser } from "@/app/(auth)/sign-up/actions/use-register-user";
 
 export default function RegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const createUserAsyncAction = useRegisterUser();
 
   const registrationInput: RegistrationData = {
     firstName: "",
@@ -40,8 +44,8 @@ export default function RegistrationForm() {
     validators: {
       onChange: registrationSchema,
     },
-    onSubmit: (values) => {
-      console.log("Form Submitted", { values });
+    onSubmit: async (values) => {
+      await createUserAsyncAction(values.value);
     },
   });
 
