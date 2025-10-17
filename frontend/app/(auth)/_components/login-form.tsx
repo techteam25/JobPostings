@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useForm } from "@tanstack/react-form";
 
 import { LoginInput, loginSchema } from "@/schemas/auth/login";
+import { useLoginUser } from "@/app/(auth)/sign-in/actions/use-login-user";
+
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { FieldInfo } from "@/components/common/FieldInfo";
@@ -25,11 +27,16 @@ const loginInput: LoginInput = {
 };
 
 export default function LoginForm() {
+  const loginUserAsync = useLoginUser();
+
   const [showPassword, setShowPassword] = useState(false);
   const form = useForm({
     defaultValues: loginInput,
     validators: {
       onChange: loginSchema,
+    },
+    onSubmit: async (values) => {
+      await loginUserAsync(values.value);
     },
   });
 
