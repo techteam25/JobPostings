@@ -188,26 +188,27 @@ export class UserController extends BaseController {
     }
   };
 
-  changePassword = async (
-    req: Request<{}, {}, ChangePasswordSchema["body"]>,
-    res: Response,
-  ) => {
-    if (!req.userId) {
-      return this.handleControllerError(
-        res,
-        new ValidationError("User not authenticated"),
-      );
-    }
-
-    const { currentPassword, newPassword }: ChangePasswordData = req.body;
-
-    await this.userService.changePassword(
-      req.userId,
-      currentPassword,
-      newPassword,
+changePassword = async (
+  req: Request<{}, {}, ChangePasswordSchema["body"]>,
+  res: Response,
+) => {
+  if (!req.userId) {
+    return this.handleControllerError(
+      res,
+      new ValidationError("User not authenticated"),
     );
-    return this.sendSuccess(res, null, "Password changed successfully");
-  };
+  }
+
+  const { currentPassword, newPassword } = req.body;
+
+  const result = await this.userService.changePassword(
+    req.userId,
+    currentPassword,
+    newPassword,
+  );
+
+  return this.sendSuccess(res, result, "Password changed successfully");
+};
 
   getCurrentUser = async (
     req: Request,
