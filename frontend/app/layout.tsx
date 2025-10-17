@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 
 import { Montserrat, Poppins } from "next/font/google";
 import "./globals.css";
+import Providers from "@/providers";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -32,7 +33,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body
         className={cn(poppins.className, montserrat.className, "bg-slate-100")}
       >
-        <div className="mx-auto max-w-7xl">{children}</div>
+        <div className="mx-auto max-w-7xl">
+          <Providers>{children}</Providers>
+        </div>
       </body>
     </html>
   );
