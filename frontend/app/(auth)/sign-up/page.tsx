@@ -1,37 +1,33 @@
+import Image from "next/image";
+
 import RegistrationForm from "@/app/(auth)/_components/registration-form";
+
+import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
 
 import { CheckCircle } from "lucide-react";
 
 function Page() {
   return (
-    <div className="bg-background flex min-h-screen flex-col items-center justify-center rounded-2xl p-4 shadow-2xl">
+    <div className="bg-background flex min-h-screen flex-col items-center justify-center rounded-2xl shadow-2xl">
       <div className="grid w-full max-w-6xl items-center gap-8 md:grid-cols-[1fr_auto_1fr]">
         {/* Left Side - Marketing Content */}
         <div className="text-foreground hidden space-y-6 md:block">
           <div className="inline-block">
             <div className="bg-background flex items-center gap-2 rounded-full px-4 py-2 backdrop-blur-sm">
-              <div className="bg-accent flex h-8 w-8 items-center justify-center rounded-full">
-                <svg
-                  className="text-accent-foreground h-5 w-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 6v12M6 12h12" />
-                </svg>
-              </div>
-              <span className="font-semibold">JobFinder</span>
+              <Image
+                src={GetInvolvedLogo}
+                alt="Get Involved Logo"
+                className="mx-auto h-20 w-auto"
+              />
             </div>
           </div>
 
-          <h1 className="text-lg leading-tight font-bold sm:text-2xl md:text-5xl">
-            Start Your Career Journey Today
+          <h1 className="sm:text-md text-foreground text-sm leading-tight font-bold md:text-xl">
+            Connecting Ministries with those called to serve
           </h1>
           <p className="text-secondary-foreground text-sm md:text-base lg:text-xl">
-            Join thousands of professionals finding their dream jobs. Get
-            personalized recommendations and exclusive access to top employers.
+            Join ministries and individuals answering the call to serve.
+            Discover opportunities to use your gifts where they’re needed most.
           </p>
 
           <div className="space-y-4 pt-4">
@@ -41,10 +37,10 @@ function Page() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold">
-                  Access 23,000+ Job Listings
+                  Explore Service Opportunities
                 </h3>
                 <p className="text-muted-foreground">
-                  From startups to Fortune 500 companies
+                  From national faith organizations to global missions
                 </p>
               </div>
             </div>
@@ -53,9 +49,11 @@ function Page() {
                 <CheckCircle className="text-accent-foreground h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold">AI-Powered Matching</h3>
+                <h3 className="text-lg font-semibold">
+                  Purpose-Driven Matching
+                </h3>
                 <p className="text-muted-foreground">
-                  Get jobs tailored to your skills and preferences
+                  AI-assisted matching based on your calling and experience
                 </p>
               </div>
             </div>
@@ -64,9 +62,9 @@ function Page() {
                 <CheckCircle className="text-accent-foreground h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold">Career Resources</h3>
+                <h3 className="text-lg font-semibold">Support & Development</h3>
                 <p className="text-muted-foreground">
-                  Resume tips, interview prep, and career advice
+                  Training, mentorship, and career growth for ministry workers
                 </p>
               </div>
             </div>
