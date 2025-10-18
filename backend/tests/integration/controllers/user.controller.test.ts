@@ -4,6 +4,7 @@ import {
   request,
   TestHelpers,
   mockSendAccountDeactivationConfirmation,
+  mockSendAccountDeletionConfirmation,
 } from "@tests/utils/testHelpers";
 import { seedUser, seedUserProfile } from "@tests/utils/seed";
 import {
@@ -198,6 +199,28 @@ describe("User Controller Integration Tests", () => {
         );
         expect(response.body.data).toHaveProperty("id", 1);
         expect(response.body.data).toHaveProperty("status", "deactivated");
+      });
+    });
+
+    describe("DELETE /me/delete", () => {
+      beforeEach(async () => {
+        mockSendAccountDeletionConfirmation.mockClear();
+        await seedUser();
+      });
+
+      it("should delete user account returning 204", async () => {
+        const loginRes = await request.post("/api/auth/login").send({
+          email: "normal.user@example.com",
+          password: "Password@123",
+        });
+
+        const data = loginRes.body.data;
+        const response = await request
+          .delete("/api/users/me/delete")
+          .set("Authorization", `Bearer ${data.tokens.accessToken}`)
+          .send({ currentPassword: "Password@123", confirm: true });
+
+        expect(response.status).toBe(204);
       });
     });
   });
