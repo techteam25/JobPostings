@@ -78,7 +78,7 @@ export async function createTestUser(overrides: Partial<schema.NewUser> = {}) {
     passwordHash: "hashedpassword123",
     role: "user",
     isEmailVerified: true,
-    isActive: true,
+    status: "active",
     ...overrides,
   };
 
