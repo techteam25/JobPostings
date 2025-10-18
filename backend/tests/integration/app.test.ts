@@ -47,7 +47,7 @@ describe("Express App Integration Tests", () => {
     it("should handle OPTIONS requests", async () => {
       const response = await request.options("/api");
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(204);
       expect(response.headers).toHaveProperty("access-control-allow-methods");
     });
   });
