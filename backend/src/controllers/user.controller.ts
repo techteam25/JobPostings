@@ -69,7 +69,7 @@ export class UserController extends BaseController {
       );
     }
 
-    return this.sendSuccess(res, user, "User retrieved successfully");
+    return this.sendSuccess<User>(res, user, "User retrieved successfully");
   };
 
   updateUser = async (
@@ -106,7 +106,7 @@ export class UserController extends BaseController {
       req.user.role,
     );
 
-    return this.sendSuccess(res, user, "User updated successfully");
+    return this.sendSuccess<User>(res, user, "User updated successfully");
   };
 
   createProfile = async (
@@ -257,7 +257,11 @@ export class UserController extends BaseController {
     const id = Number(req.params.id);
 
     const result = await this.userService.deactivateUser(id, req.user!.id);
-    return this.sendSuccess(res, result, "User deactivated successfully");
+    return this.sendSuccess<UserWithProfile>(
+      res,
+      result,
+      "User deactivated successfully",
+    );
   };
 
   activateUser = async (
