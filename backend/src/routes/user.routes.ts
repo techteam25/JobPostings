@@ -158,7 +158,8 @@ registry.registerPath({
   path: "/users/me/change-password",
   tags: ["Users"],
   summary: "Change Password",
-  description: "Allow authenticated users to change their password after validating the current one.",
+  description:
+    "Allow authenticated users to change their password after validating the current one.",
   request: {
     body: {
       content: {
@@ -250,7 +251,8 @@ registry.registerPath({
   path: "/users/me",
   tags: ["Users"],
   summary: "Delete Own Account",
-  description: "Permanently delete the authenticated user's account after re-authentication.",
+  description:
+    "Permanently delete the authenticated user's account after re-authentication.",
   request: {
     body: {
       content: {
@@ -262,13 +264,22 @@ registry.registerPath({
   },
   responses: {
     204: { description: "Account deleted successfully" },
-    400: { description: "Validation error or business rule violation", content: { "application/json": { schema: errorResponseSchema } } },
-    401: { description: "Authentication required", content: { "application/json": { schema: errorResponseSchema } } },
-    404: { description: "User not found", content: { "application/json": { schema: errorResponseSchema } } },
+    400: {
+      description: "Validation error or business rule violation",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    401: {
+      description: "Authentication required",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    404: {
+      description: "User not found",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
   },
 });
 router.delete(
-  "/me",
+  "/me/delete",
   validate(deleteSelfSchema),
   userController.deleteSelf,
 );
