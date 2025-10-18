@@ -152,6 +152,7 @@ export class AuthService extends BaseService {
 
     // Find user by email (include passwordHash for verification)
     const user = await this.userRepository.findByEmailWithPassword(email);
+
     if (!user) {
       throw new UnauthorizedError("Invalid credentials");
     }

@@ -91,7 +91,7 @@ describe("Authentication Controller Integration Tests", () => {
     });
 
     it("should fail to retrieve deactivated user returning 403", async () => {
-      await seedUser(false); // Seed an inactive user
+      await seedUser("deactivated"); // Seed an inactive user
 
       const response = await request.post("/api/auth/login").send({
         email: "normal.user@example.com",

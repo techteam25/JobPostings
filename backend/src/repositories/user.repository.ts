@@ -26,7 +26,7 @@ async findByEmailWithPassword(email: string) {
     try {
       return await withDbErrorHandling(async () => {
         const user = await db.query.users.findFirst({
-          where: and(eq(users.email, email), eq(users.status, "active")),
+          where: and(eq(users.email, email)),
         });
         return user || undefined;
       });
