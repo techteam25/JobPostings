@@ -17,6 +17,7 @@ import {
   GetUserSchema,
   UserEmailSchema,
   UserQuerySchema,
+  DeleteSelfSchema,
 } from "@/validations/user.validation";
 import { ApiResponse } from "@/types";
 
@@ -32,7 +33,7 @@ export class UserController extends BaseController {
 
   getAllUsers = async (
     req: Request<{}, {}, {}, UserQuerySchema["query"]>,
-    res: Response,
+    res: Response
   ) => {
     try {
       const { page, limit, searchTerm } = req.query;
@@ -48,7 +49,7 @@ export class UserController extends BaseController {
         res,
         result.items,
         result.pagination,
-        "Users retrieved successfully",
+        "Users retrieved successfully"
       );
     } catch (error) {
       this.handleControllerError(res, error, "Failed to retrieve users", 500);
@@ -57,7 +58,7 @@ export class UserController extends BaseController {
 
   getUserById = async (
     req: Request<GetUserSchema["params"]>,
-    res: Response,
+    res: Response
   ) => {
     const id = Number(req.params.id);
 
@@ -65,7 +66,7 @@ export class UserController extends BaseController {
     if (!user) {
       return this.handleControllerError(
         res,
-        new NotFoundError("User not found"),
+        new NotFoundError("User not found")
       );
     }
 
@@ -74,27 +75,27 @@ export class UserController extends BaseController {
 
   updateUser = async (
     req: Request<GetUserSchema["params"], {}, UpdateUser>,
-    res: Response,
+    res: Response
   ) => {
     const id = Number(req.params.id);
     if (!id) {
       return this.handleControllerError(
         res,
-        new NotFoundError("User not found"),
+        new NotFoundError("User not found")
       );
     }
 
     if (!req.user) {
       return this.handleControllerError(
         res,
-        new ValidationError("User not authenticated"),
+        new ValidationError("User not authenticated")
       );
     }
 
     if (req.user.role !== "admin" && req.user.id !== id) {
       return this.handleControllerError(
         res,
-        new ForbiddenError("You can only update your own account"),
+        new ForbiddenError("You can only update your own account")
       );
     }
 
@@ -103,7 +104,7 @@ export class UserController extends BaseController {
       id,
       updateData,
       req.user.id,
-      req.user.role,
+      req.user.role
     );
 
     return this.sendSuccess(res, user, "User updated successfully");
@@ -111,13 +112,13 @@ export class UserController extends BaseController {
 
   createProfile = async (
     req: Request<{}, {}, CreateUserProfile["body"]>,
-    res: Response<ApiResponse<UserProfile>>,
+    res: Response<ApiResponse<UserProfile>>
   ) => {
     try {
       const profileData = req.body;
       const profile = await this.userService.createUserProfile(
         req.userId!,
-        profileData,
+        profileData
       );
 
       if (!profile) {
@@ -149,13 +150,13 @@ export class UserController extends BaseController {
 
   updateProfile = async (
     req: Request<{}, {}, UpdateUserProfile>,
-    res: Response<ApiResponse<UserWithProfile>>,
+    res: Response<ApiResponse<UserWithProfile>>
   ) => {
     try {
       const profileData = req.body;
       const user = await this.userService.updateUserProfile(
         req.userId!,
-        profileData,
+        profileData
       );
 
       console.log({ profileData });
@@ -190,28 +191,29 @@ export class UserController extends BaseController {
 
   changePassword = async (
     req: Request<{}, {}, ChangePasswordSchema["body"]>,
-    res: Response,
+    res: Response
   ) => {
     if (!req.userId) {
       return this.handleControllerError(
         res,
-        new ValidationError("User not authenticated"),
+        new ValidationError("User not authenticated")
       );
     }
 
-    const { currentPassword, newPassword }: ChangePasswordData = req.body;
+    const { currentPassword, newPassword } = req.body;
 
-    await this.userService.changePassword(
+    const result = await this.userService.changePassword(
       req.userId,
       currentPassword,
-      newPassword,
+      newPassword
     );
-    return this.sendSuccess(res, null, "Password changed successfully");
+
+    return this.sendSuccess(res, result, "Password changed successfully");
   };
 
   getCurrentUser = async (
     req: Request,
-    res: Response<ApiResponse<UserWithProfile>>,
+    res: Response<ApiResponse<UserWithProfile>>
   ) => {
     if (!req.userId) {
       return res.status(401).json({
@@ -237,7 +239,7 @@ export class UserController extends BaseController {
     if (!req.userId) {
       return this.handleControllerError(
         res,
-        new ValidationError("User not authenticated"),
+        new ValidationError("User not authenticated")
       );
     }
 
@@ -247,7 +249,7 @@ export class UserController extends BaseController {
 
   deactivateUser = async (
     req: Request<GetUserSchema["params"]>,
-    res: Response,
+    res: Response
   ) => {
     const id = Number(req.params.id);
 
@@ -257,7 +259,7 @@ export class UserController extends BaseController {
 
   activateUser = async (
     req: Request<GetUserSchema["params"]>,
-    res: Response,
+    res: Response
   ) => {
     const id = Number(req.params.id);
 
@@ -265,16 +267,34 @@ export class UserController extends BaseController {
     return this.sendSuccess(res, result, "User activated successfully");
   };
 
+  deleteSelf = async (
+    req: Request<{}, {}, DeleteSelfSchema["body"]>,
+    res: Response
+  ) => {
+    if (!req.userId) {
+      return this.handleControllerError(
+        res,
+        new ValidationError("User not authenticated")
+      );
+    }
+
+    const { currentPassword } = req.body;
+
+    await this.userService.deleteSelf(req.userId, currentPassword);
+
+    return this.sendSuccess(res, null, "Account deleted successfully", 204);
+  };
+
   deleteUser = async (
     req: Request<{}, {}, UserEmailSchema["body"]>,
-    res: Response,
+    res: Response
   ) => {
     const { email } = req.body;
 
     if (!req.user) {
       return this.handleControllerError(
         res,
-        new ValidationError("User not authenticated"),
+        new ValidationError("User not authenticated")
       );
     }
 
@@ -300,7 +320,7 @@ export class UserController extends BaseController {
           stats.totalEmployers.length +
           stats.totalAdmins.length,
       },
-      "User statistics retrieved successfully",
+      "User statistics retrieved successfully"
     );
   };
 }

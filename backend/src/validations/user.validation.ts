@@ -78,8 +78,20 @@ export const updateUserPayloadSchema = z.object({
   query: z.object({}).strict(),
 });
 
+const deleteAccountSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  confirm: z.boolean().optional().refine(val => val === true, { message: "You must confirm deletion" }), // Extra safeguard
+});
+
+export const deleteSelfSchema = z.object({
+  body: deleteAccountSchema,
+  params: z.object({}).strict(),
+  query: z.object({}).strict(),
+});
+
 export type GetUserSchema = z.infer<typeof getUserSchema>;
 export type ChangePasswordSchema = z.infer<typeof changeUserPasswordSchema>;
 export type UserEmailSchema = z.infer<typeof userEmailPayloadSchema>;
 export type UserQuerySchema = z.infer<typeof userQuerySchema>;
 export type CreateUserProfile = z.infer<typeof createUserPayloadSchema>;
+export type DeleteSelfSchema = z.infer<typeof deleteSelfSchema>;

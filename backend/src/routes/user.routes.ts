@@ -1,13 +1,14 @@
-// user.routes.ts
 import { Router } from "express";
 import { UserController } from "@/controllers/user.controller";
 import { AuthMiddleware } from "@/middleware/auth.middleware";
+import { z } from "zod";
 import validate from "../middleware/validation.middleware";
 import {
   getUserSchema,
   changeUserPasswordSchema,
   updateUserPayloadSchema,
   createUserPayloadSchema,
+  deleteSelfSchema,
 } from "@/validations/user.validation";
 import { registry } from "@/swagger/registry";
 import { apiResponseSchema, errorResponseSchema } from "@/types";
@@ -152,6 +153,57 @@ router.post(
   userController.createProfile,
 );
 
+registry.registerPath({
+  method: "post",
+  path: "/users/me/change-password",
+  tags: ["Users"],
+  summary: "Change Password",
+  description: "Allow authenticated users to change their password after validating the current one.",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: changeUserPasswordSchema.shape.body,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Password changed successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(z.object({ message: z.string() })),
+        },
+      },
+    },
+    400: {
+      description: "Validation error or incorrect current password",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "User not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
 router.post(
   "/me/change-password",
   validate(changeUserPasswordSchema),
@@ -192,6 +244,34 @@ registry.registerPath({
   },
 });
 router.patch("/me/deactivate", userController.deactivateSelf);
+
+registry.registerPath({
+  method: "delete",
+  path: "/users/me",
+  tags: ["Users"],
+  summary: "Delete Own Account",
+  description: "Permanently delete the authenticated user's account after re-authentication.",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: deleteSelfSchema.shape.body,
+        },
+      },
+    },
+  },
+  responses: {
+    204: { description: "Account deleted successfully" },
+    400: { description: "Validation error or business rule violation", content: { "application/json": { schema: errorResponseSchema } } },
+    401: { description: "Authentication required", content: { "application/json": { schema: errorResponseSchema } } },
+    404: { description: "User not found", content: { "application/json": { schema: errorResponseSchema } } },
+  },
+});
+router.delete(
+  "/me",
+  validate(deleteSelfSchema),
+  userController.deleteSelf,
+);
 
 // Admin only routes for user management
 router.get(

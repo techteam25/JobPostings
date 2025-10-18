@@ -133,7 +133,7 @@ export const jobInsights = mysqlTable(
     index("job_idx").on(table.job),
     check(
       "application_count_must_be_gt_0",
-      sql`(${table.applicationCount} >= 0`,
+      sql`(${table.applicationCount} >= 0)`,
     ), // avoid -ve value when performing application withdraw
   ],
 );

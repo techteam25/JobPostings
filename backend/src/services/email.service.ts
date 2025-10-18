@@ -17,7 +17,10 @@ export class EmailService extends BaseService {
     });
   }
 
-  async sendAccountDeactivationConfirmation(email: string, firstName: string): Promise<void> {
+  async sendAccountDeactivationConfirmation(
+    email: string,
+    firstName: string
+  ): Promise<void> {
     try {
       const mailOptions = {
         from: process.env.EMAIL_FROM || "no-reply@yourapp.com",
@@ -31,6 +34,32 @@ Best regards,
 Tech Team`,
         html: `<p>Dear ${firstName},</p>
 <p>Your account has been successfully deactivated. If you did not initiate this action, please contact support immediately.</p>
+<p>Best regards,<br>Tech Team</p>`,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  async sendAccountDeletionConfirmation(
+    email: string,
+    firstName: string
+  ): Promise<void> {
+    try {
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || "no-reply@yourapp.com",
+        to: email,
+        subject: "Account Deletion Confirmation",
+        text: `Dear ${firstName},
+
+Your account has been successfully deleted. If you did not initiate this action, please contact support immediately.
+
+Best regards,
+Tech Team`,
+        html: `<p>Dear ${firstName},</p>
+<p>Your account has been successfully deleted. If you did not initiate this action, please contact support immediately.</p>
 <p>Best regards,<br>Tech Team</p>`,
       };
 

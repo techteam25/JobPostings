@@ -38,7 +38,7 @@ export class AuthMiddleware {
 
       const user = await this.userService.getUserById(decoded.userId);
 
-      if (!user.isActive) {
+      if (user.status !== "active") {
         return res.status(403).json({
           success: false,
           status: "error",
@@ -102,7 +102,7 @@ export class AuthMiddleware {
     res: Response,
     next: NextFunction,
   ) => {
-    if (!req.user || !req.user.isActive) {
+    if (!req.user || req.user.status !== "active") {
       return res.status(403).json({
         status: "error",
         message: "User account is not active",
