@@ -1,4 +1,4 @@
-import { expect, vi } from "vitest";
+import { expect } from "vitest";
 import supertest from "supertest";
 import { Application } from "express";
 
