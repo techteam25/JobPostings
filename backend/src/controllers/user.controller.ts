@@ -271,7 +271,11 @@ export class UserController extends BaseController {
     const id = Number(req.params.id);
 
     const result = await this.userService.activateUser(id);
-    return this.sendSuccess(res, result, "User activated successfully");
+    return this.sendSuccess<UserWithProfile>(
+      res,
+      result,
+      "User activated successfully",
+    );
   };
 
   deleteSelf = async (
