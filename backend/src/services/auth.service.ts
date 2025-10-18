@@ -107,9 +107,7 @@ export class AuthService extends BaseService {
       user.passwordHash,
     );
     if (!isValid) {
-      return this.handleError(
-        new ValidationError("Current password is incorrect"),
-      );
+      return this.handleError(new ValidationError("Invalid credentials"));
     }
 
     const newHash = await SecurityUtils.hashPassword(newPassword);
