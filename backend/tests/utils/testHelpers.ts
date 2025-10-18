@@ -1,35 +1,7 @@
-const {
-  mockSendAccountDeactivationConfirmation,
-  mockSendAccountDeletionConfirmation,
-} = vi.hoisted(() => {
-  return {
-    mockSendAccountDeactivationConfirmation: vi
-      .fn()
-      .mockResolvedValue(undefined),
-    mockSendAccountDeletionConfirmation: vi.fn().mockResolvedValue(undefined),
-  };
-});
-
-vi.mock("@/services/email.service", () => {
-  return {
-    EmailService: vi.fn().mockImplementation(() => {
-      return {
-        sendAccountDeactivationConfirmation:
-          mockSendAccountDeactivationConfirmation,
-        sendAccountDeletionConfirmation: mockSendAccountDeletionConfirmation,
-      };
-    }),
-  };
-});
-
-export {
-  mockSendAccountDeactivationConfirmation,
-  mockSendAccountDeletionConfirmation,
-};
-
+import { expect, vi } from "vitest";
 import supertest from "supertest";
 import { Application } from "express";
-import { expect } from "vitest";
+
 import app from "@/app";
 
 // Create supertest instance

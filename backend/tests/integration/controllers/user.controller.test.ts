@@ -1,11 +1,25 @@
 // noinspection DuplicatedCode
 
-import {
-  request,
-  TestHelpers,
-  mockSendAccountDeactivationConfirmation,
-  mockSendAccountDeletionConfirmation,
-} from "@tests/utils/testHelpers";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/services/email.service", () => {
+  const mockSendAccountDeactivationConfirmation = vi
+    .fn()
+    .mockResolvedValue(undefined);
+  const mockSendAccountDeletionConfirmation = vi
+    .fn()
+    .mockResolvedValue(undefined);
+
+  return {
+    EmailService: class {
+      sendAccountDeactivationConfirmation =
+        mockSendAccountDeactivationConfirmation;
+      sendAccountDeletionConfirmation = mockSendAccountDeletionConfirmation;
+    },
+  };
+});
+
+import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { seedUser, seedUserProfile } from "@tests/utils/seed";
 import {
   userCertificationsFixture,
@@ -171,7 +185,7 @@ describe("User Controller Integration Tests", () => {
 
     describe("PATCH /users/me/deactivate", () => {
       beforeEach(async () => {
-        mockSendAccountDeactivationConfirmation.mockClear();
+        // mockSendAccountDeactivationConfirmation.mockClear();
 
         await seedUser();
       });
@@ -204,7 +218,7 @@ describe("User Controller Integration Tests", () => {
 
     describe("DELETE /me/delete", () => {
       beforeEach(async () => {
-        mockSendAccountDeletionConfirmation.mockClear();
+        // mockSendAccountDeletionConfirmation.mockClear();
         await seedUser();
       });
 
@@ -219,6 +233,8 @@ describe("User Controller Integration Tests", () => {
           .delete("/api/users/me/delete")
           .set("Authorization", `Bearer ${data.tokens.accessToken}`)
           .send({ currentPassword: "Password@123", confirm: true });
+
+        console.log(JSON.stringify(response.body, null, 2));
 
         expect(response.status).toBe(204);
       });
