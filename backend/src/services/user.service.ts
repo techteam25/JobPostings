@@ -1,4 +1,3 @@
-import bcrypt from "bcrypt";
 import { UserRepository } from "@/repositories/user.repository";
 import { EmailService } from "@/services/email.service";
 import { JobService } from "@/services/job.service";
@@ -142,14 +141,17 @@ export class UserService extends BaseService {
       return this.handleError(new NotFoundError("User", userId));
     }
 
-    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    const isValid = await SecurityUtils.verifyPassword(
+      currentPassword,
+      user.passwordHash,
+    );
     if (!isValid) {
       return this.handleError(
         new ValidationError("Current password is incorrect"),
       );
     }
 
-    const newHash = await bcrypt.hash(newPassword, 12);
+    const newHash = await SecurityUtils.hashPassword(newPassword);
     await this.userRepository.update(userId, { passwordHash: newHash });
 
     return { message: "Password changed successfully" };
@@ -313,18 +315,13 @@ export class UserService extends BaseService {
       return this.handleError(new NotFoundError("User", userId));
     }
 
-    if (user.status !== "active") {
-      return this.handleError(
-        new ValidationError("Account is already deactivated or deleted"),
-      );
-    }
-
     // Safeguard: Validate password
-    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    const isValid = await SecurityUtils.verifyPassword(
+      currentPassword,
+      user.passwordHash,
+    );
     if (!isValid) {
-      return this.handleError(
-        new ValidationError("Current password is incorrect"),
-      );
+      return this.handleError(new ValidationError("Invalid Credentials"));
     }
 
     // Business checks
@@ -345,19 +342,16 @@ export class UserService extends BaseService {
     );
 
     // Soft delete: Update status and timestamp
-    const success = await this.userRepository.update(userId, {
-      status: "deleted",
-      deletedAt: new Date(),
-    });
-    if (!success) {
+    const userDeleted = await this.userRepository.deleteUsersOwnAccount(
+      userId,
+      {
+        status: "deleted",
+        deletedAt: new Date(),
+      },
+    );
+    if (!userDeleted) {
       return this.handleError(new Error("Failed to delete account"));
     }
-
-    // Clean up related data
-    await Promise.all([
-      this.userRepository.deleteSessionsByUserId(userId),
-      this.jobService.deleteJobApplicationsByUserId(userId),
-    ]);
 
     return;
   }
