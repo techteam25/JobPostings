@@ -1,20 +1,41 @@
-import supertest from 'supertest';
-import { Application } from 'express';
-import { expect } from 'vitest';
-import app from '@/app';
+const { mockSendAccountDeactivationConfirmation } = vi.hoisted(() => {
+  return {
+    mockSendAccountDeactivationConfirmation: vi
+      .fn()
+      .mockResolvedValue(undefined),
+  };
+});
+
+vi.mock("@/services/email.service", () => {
+  return {
+    EmailService: vi.fn().mockImplementation(() => {
+      return {
+        sendAccountDeactivationConfirmation:
+          mockSendAccountDeactivationConfirmation,
+      };
+    }),
+  };
+});
+
+export { mockSendAccountDeactivationConfirmation };
+
+import supertest from "supertest";
+import { Application } from "express";
+import { expect } from "vitest";
+import app from "@/app";
 
 // Create supertest instance
 export const request = supertest(app);
 
 // Common test data
 export const testUser = {
-  name: 'John Doe',
-  email: 'john@example.com',
+  name: "John Doe",
+  email: "john@example.com",
 };
 
 export const testApiResponse = {
-  status: 'success',
-  message: 'Test successful',
+  status: "success",
+  message: "Test successful",
   timestamp: expect.any(String),
 };
 
@@ -43,7 +64,7 @@ export class TestHelpers {
    * Waits for a specified amount of time
    */
   static async wait(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -51,8 +72,8 @@ export class TestHelpers {
    */
   static createMockRequestBody(override: Record<string, any> = {}) {
     return {
-      name: 'Test Name',
-      email: 'test@example.com',
+      name: "Test Name",
+      email: "test@example.com",
       ...override,
     };
   }
@@ -62,17 +83,17 @@ export class TestHelpers {
    */
   static validateApiResponse(response: any, expectedStatus = 200) {
     expect(response.status).toBe(expectedStatus);
-    expect(response.body).toHaveProperty('message');
-    
+    expect(response.body).toHaveProperty("message");
+
     // Only check for status and timestamp if they exist (some routes may not have them)
     if (response.body.status) {
-      expect(response.body).toHaveProperty('status');
+      expect(response.body).toHaveProperty("status");
     }
     if (response.body.timestamp) {
-      expect(response.body).toHaveProperty('timestamp');
+      expect(response.body).toHaveProperty("timestamp");
     }
-    if (response.body.status === 'success' && response.body.data) {
-      expect(response.body).toHaveProperty('data');
+    if (response.body.status === "success" && response.body.data) {
+      expect(response.body).toHaveProperty("data");
     }
   }
 }
