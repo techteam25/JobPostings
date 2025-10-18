@@ -105,4 +105,56 @@ describe("Authentication Controller Integration Tests", () => {
       expect(response.body).toHaveProperty("error", "Account is deactivated");
     });
   });
+
+  describe("POST /change-password", () => {
+    it("should change the user's password returning 200", async () => {
+      await seedUser("active");
+
+      // Login to get tokens
+      const loginResponse = await request.post("/api/auth/login").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+
+      const data = loginResponse.body.data;
+
+      const response = await request
+        .post("/api/auth/change-password")
+        .set("Authorization", `Bearer ${data.tokens.accessToken}`)
+        .send({
+          currentPassword: "Password@123",
+          newPassword: "NewPassword@123",
+        });
+
+      TestHelpers.validateApiResponse(response, 200);
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Password changed successfully",
+      );
+    });
+
+    it("should fail to change the user's password returning 400", async () => {
+      await seedUser("active");
+
+      // Login to get tokens
+      const loginResponse = await request.post("/api/auth/login").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+
+      const data = loginResponse.body.data;
+      const response = await request
+        .post("/api/auth/change-password")
+        .set("Authorization", `Bearer ${data.tokens.accessToken}`)
+        .send({
+          currentPassword: "WrongCurrentPassword",
+          newPassword: "NewPassword@123",
+        });
+
+      TestHelpers.validateApiResponse(response, 400);
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body).toHaveProperty("message", "Invalid credentials");
+    });
+  });
 });
