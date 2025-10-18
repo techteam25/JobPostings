@@ -41,6 +41,14 @@ const envSchema = z.object({
 
   // redis configuration
   REDIS_URL: z.url({ error: "REDIS_URL must be a valid URL" }),
+
+  // email service configuration could be added here
+  SMTP_HOST: z.string().min(1, "SMTP host is required"),
+  SMTP_PORT: z.coerce.number("SMTP port must be a number"),
+  SMTP_SECURE: z.boolean().default(true),
+  SMTP_USER: z.string().min(1, "SMTP user is required"),
+  SMTP_PASS: z.string().min(1, "SMTP password is required"),
+  EMAIL_FROM: z.email("EMAIL_FROM must be a valid email address"),
 });
 
 // Type inference from the schema
@@ -75,6 +83,12 @@ function validateEnv(): Env {
           JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || "",
           LOG_LEVEL: (process.env.LOG_LEVEL as LogLevel) || "info",
           REDIS_URL: process.env.REDIS_URL || "redis://localhost:6379",
+          SMTP_HOST: process.env.SMTP_HOST || "smtp.example.com",
+          SMTP_PORT: parseInt(process.env.SMTP_PORT || "587"),
+          SMTP_SECURE: process.env.SMTP_SECURE === "true",
+          SMTP_USER: process.env.SMTP_USER || "",
+          SMTP_PASS: process.env.SMTP_PASS || "",
+          EMAIL_FROM: process.env.EMAIL_FROM || "",
         };
       }
 
