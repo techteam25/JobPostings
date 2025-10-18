@@ -90,28 +90,36 @@ export class AuthController extends BaseController {
     req: Request<{}, {}, ChangeUserPasswordSchema["body"]>,
     res: Response<ApiResponse<void>>,
   ) => {
-    if (!req.userId) {
-      return res.status(401).json({
+    try {
+      if (!req.userId) {
+        return res.status(401).json({
+          success: false,
+          status: "error",
+          message: "User not authenticated",
+          error: "UNAUTHORIZED",
+          timestamp: new Date().toISOString(),
+        });
+      }
+      const { currentPassword, newPassword } = req.body;
+
+      await this.authService.changePassword(req.userId, {
+        currentPassword,
+        newPassword,
+      });
+      return res.status(200).json({
+        success: true,
+        message: "Password changed successfully",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      return res.status(400).json({
         success: false,
         status: "error",
-        message: "User not authenticated",
-        error: "UNAUTHORIZED",
+        message: "Invalid credentials",
+        error: (error as Error).message,
         timestamp: new Date().toISOString(),
       });
     }
-    const { currentPassword, newPassword } = req.body;
-
-    await this.authService.changePassword(req.userId, {
-      currentPassword,
-      newPassword,
-    });
-    return res.status(200).json({
-      success: true,
-      message: "Password changed successfully",
-      timestamp: new Date().toISOString(),
-    });
-
-    // return this.sendSuccess(res, null, "Password changed successfully");
   };
 
   refreshToken = async (
