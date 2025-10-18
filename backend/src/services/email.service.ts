@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { BaseService } from "./base.service";
+import { env } from "@/config/env";
 
 export class EmailService extends BaseService {
   private transporter: nodemailer.Transporter;
@@ -7,23 +8,23 @@ export class EmailService extends BaseService {
   constructor() {
     super();
     this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.example.com",
-      port: parseInt(process.env.SMTP_PORT || "587"),
-      secure: process.env.SMTP_SECURE === "true",
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      secure: env.SMTP_SECURE,
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: env.SMTP_USER,
+        pass: env.SMTP_PASS,
       },
     });
   }
 
   async sendAccountDeactivationConfirmation(
     email: string,
-    firstName: string
+    firstName: string,
   ): Promise<void> {
     try {
       const mailOptions = {
-        from: process.env.EMAIL_FROM || "no-reply@yourapp.com",
+        from: env.EMAIL_FROM,
         to: email,
         subject: "Account Deactivation Confirmation",
         text: `Dear ${firstName},
@@ -45,11 +46,11 @@ Tech Team`,
 
   async sendAccountDeletionConfirmation(
     email: string,
-    firstName: string
+    firstName: string,
   ): Promise<void> {
     try {
       const mailOptions = {
-        from: process.env.EMAIL_FROM || "no-reply@yourapp.com",
+        from: env.EMAIL_FROM,
         to: email,
         subject: "Account Deletion Confirmation",
         text: `Dear ${firstName},
