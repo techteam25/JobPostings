@@ -157,11 +157,12 @@ export class UserService extends BaseService {
 
   async deactivateSelf(userId: number) {
     const user = await this.userRepository.findById(userId);
+
     if (!user) {
       return this.handleError(new NotFoundError("User", userId));
     }
 
-    if (user.status !== 'active') {
+    if (user.status !== "active") {
       return this.handleError(
         new ValidationError("Account is already deactivated"),
       );
@@ -169,7 +170,9 @@ export class UserService extends BaseService {
 
     // Edge case: Check for active jobs if employer
     if (user.role === "employer" && user.organizationId) {
-      const activeJobs = await this.jobService.getActiveJobsByOrganization(user.organizationId);
+      const activeJobs = await this.jobService.getActiveJobsByOrganization(
+        user.organizationId,
+      );
       if (activeJobs.length > 0) {
         return this.handleError(
           new ValidationError("Cannot deactivate account with active jobs"),
@@ -177,15 +180,23 @@ export class UserService extends BaseService {
       }
     }
 
-    const success = await this.userRepository.update(userId, { status: 'deactivated' });
-    if (!success) {
+    const deactivatedUser = await this.userRepository.deactivateUserAccount(
+      userId,
+      {
+        status: "deactivated",
+      },
+    );
+    if (!deactivatedUser) {
       return this.handleError(new Error("Failed to deactivate account"));
     }
 
     // Email notification
-    await this.emailService.sendAccountDeactivationConfirmation(user.email, user.firstName);
+    await this.emailService.sendAccountDeactivationConfirmation(
+      deactivatedUser.email,
+      deactivatedUser.firstName,
+    );
 
-    return await this.getUserById(userId);
+    return deactivatedUser;
   }
 
   async deactivateUser(id: number, requestingUserId: number) {
@@ -200,7 +211,7 @@ export class UserService extends BaseService {
       return this.handleError(new NotFoundError("User", id));
     }
 
-    if (user.status !== 'active') {
+    if (user.status !== "active") {
       return this.handleError(
         new ValidationError("User is already deactivated"),
       );
@@ -208,7 +219,9 @@ export class UserService extends BaseService {
 
     // Edge case: Check for active jobs if employer
     if (user.role === "employer" && user.organizationId) {
-      const activeJobs = await this.jobService.getActiveJobsByOrganization(user.organizationId);
+      const activeJobs = await this.jobService.getActiveJobsByOrganization(
+        user.organizationId,
+      );
       if (activeJobs.length > 0) {
         return this.handleError(
           new ValidationError("Cannot deactivate user with active jobs"),
@@ -216,14 +229,19 @@ export class UserService extends BaseService {
       }
     }
 
-    const success = await this.userRepository.update(id, { status: 'deactivated' });
+    const success = await this.userRepository.update(id, {
+      status: "deactivated",
+    });
     if (!success) {
       return this.handleError(new Error("Failed to deactivate user"));
     }
 
     // Email notification
-    await this.emailService.sendAccountDeactivationConfirmation(user.email, user.firstName);
-    
+    await this.emailService.sendAccountDeactivationConfirmation(
+      user.email,
+      user.firstName,
+    );
+
     return await this.getUserById(id);
   }
 
@@ -233,11 +251,11 @@ export class UserService extends BaseService {
       return this.handleError(new NotFoundError("User", id));
     }
 
-    if (user.status === 'active') {
+    if (user.status === "active") {
       return this.handleError(new ValidationError("User is already active"));
     }
 
-    const success = await this.userRepository.update(id, { status: 'active' });
+    const success = await this.userRepository.update(id, { status: "active" });
     if (!success) {
       return this.handleError(new Error("Failed to activate user"));
     }
@@ -290,46 +308,57 @@ export class UserService extends BaseService {
   }
 
   async deleteSelf(userId: number, currentPassword: string): Promise<void> {
-  const user = await this.userRepository.findByIdWithPassword(userId);
-  if (!user) {
-    return this.handleError(new NotFoundError("User", userId));
-  }
-
-  if (user.status !== 'active') {
-    return this.handleError(new ValidationError("Account is already deactivated or deleted"));
-  }
-
-  // Safeguard: Validate password
-  const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
-  if (!isValid) {
-    return this.handleError(new ValidationError("Current password is incorrect"));
-  }
-
-  // Business checks
-  if (user.role === "employer" && user.organizationId) {
-    const activeJobs = await this.jobService.getActiveJobsByOrganization(user.organizationId);
-    if (activeJobs.length > 0) {
-      return this.handleError(new ValidationError("Cannot delete account with active jobs"));
+    const user = await this.userRepository.findByIdWithPassword(userId);
+    if (!user) {
+      return this.handleError(new NotFoundError("User", userId));
     }
+
+    if (user.status !== "active") {
+      return this.handleError(
+        new ValidationError("Account is already deactivated or deleted"),
+      );
+    }
+
+    // Safeguard: Validate password
+    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValid) {
+      return this.handleError(
+        new ValidationError("Current password is incorrect"),
+      );
+    }
+
+    // Business checks
+    if (user.role === "employer" && user.organizationId) {
+      const activeJobs = await this.jobService.getActiveJobsByOrganization(
+        user.organizationId,
+      );
+      if (activeJobs.length > 0) {
+        return this.handleError(
+          new ValidationError("Cannot delete account with active jobs"),
+        );
+      }
+    }
+    // Notification email
+    await this.emailService.sendAccountDeletionConfirmation(
+      user.email,
+      user.firstName,
+    );
+
+    // Soft delete: Update status and timestamp
+    const success = await this.userRepository.update(userId, {
+      status: "deleted",
+      deletedAt: new Date(),
+    });
+    if (!success) {
+      return this.handleError(new Error("Failed to delete account"));
+    }
+
+    // Clean up related data
+    await Promise.all([
+      this.userRepository.deleteSessionsByUserId(userId),
+      this.jobService.deleteJobApplicationsByUserId(userId),
+    ]);
+
+    return;
   }
-  // Notification email
-  await this.emailService.sendAccountDeletionConfirmation(user.email, user.firstName);
-
-  // Soft delete: Update status and timestamp
-  const success = await this.userRepository.update(userId, {
-    status: 'deleted',
-    deletedAt: new Date(),
-  });
-  if (!success) {
-    return this.handleError(new Error("Failed to delete account"));
-  }
-
-  // Clean up related data
-  await Promise.all([
-    this.userRepository.deleteSessionsByUserId(userId),
-    this.jobService.deleteJobApplicationsByUserId(userId),
-  ]);
-
-  return;
-}
 }

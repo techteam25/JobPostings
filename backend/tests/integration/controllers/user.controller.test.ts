@@ -1,6 +1,10 @@
 // noinspection DuplicatedCode
 
-import { request, TestHelpers } from "@tests/utils/testHelpers";
+import {
+  request,
+  TestHelpers,
+  mockSendAccountDeactivationConfirmation,
+} from "@tests/utils/testHelpers";
 import { seedUser, seedUserProfile } from "@tests/utils/seed";
 import {
   userCertificationsFixture,
@@ -161,6 +165,39 @@ describe("User Controller Integration Tests", () => {
         expect(response.body.data).toHaveProperty("profile");
         expect(response.body.data.profile).toHaveProperty("userId", 1);
         expect(response.body.data.profile).toHaveProperty("bio", "Updated bio");
+      });
+    });
+
+    describe("PATCH /users/me/deactivate", () => {
+      beforeEach(async () => {
+        mockSendAccountDeactivationConfirmation.mockClear();
+
+        await seedUser();
+      });
+
+      it("should deactivate user account returning 200", async () => {
+        const loginRes = await request.post("/api/auth/login").send({
+          email: "normal.user@example.com",
+          password: "Password@123",
+        });
+
+        const data = loginRes.body.data;
+
+        const response = await request
+          .patch("/api/users/me/deactivate")
+          .set("Authorization", `Bearer ${data.tokens.accessToken}`);
+
+        console.log(JSON.stringify(response.body, null, 2));
+
+        TestHelpers.validateApiResponse(response, 200);
+
+        expect(response.body).toHaveProperty("success", true);
+        expect(response.body).toHaveProperty(
+          "message",
+          "Account deactivated successfully",
+        );
+        expect(response.body.data).toHaveProperty("id", 1);
+        expect(response.body.data).toHaveProperty("status", "deactivated");
       });
     });
   });
