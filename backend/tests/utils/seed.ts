@@ -21,7 +21,9 @@ enum compensationTypeEnum {
   STIPEND = "stipend",
 }
 
-export const seedUser = async (isActive: boolean = true) => {
+export const seedUser = async (
+  status: "active" | "deactivated" | "deleted" = "active",
+) => {
   const { faker } = await import("@faker-js/faker");
   const bcrypt = await import("bcrypt");
 
@@ -39,7 +41,7 @@ export const seedUser = async (isActive: boolean = true) => {
       firstName: faker.person.firstName(),
       lastName: faker.person.lastName(),
       role: "user",
-      isActive,
+      status,
     });
   });
 };
@@ -177,7 +179,7 @@ export const seedAdminUser = async () => {
         role: "admin",
         organizationId: 1,
         isEmailVerified: true,
-        isActive: true,
+        status: "active",
         lastLoginAt: new Date(),
       });
     });
@@ -208,7 +210,7 @@ export const seedUserProfile = async () => {
           firstName: faker.person.firstName(),
           lastName: faker.person.lastName(),
           role: "user",
-          isActive: true,
+          status: "active",
         })
         .$returningId();
 

@@ -1,5 +1,24 @@
 // noinspection DuplicatedCode
 
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/services/email.service", () => {
+  const mockSendAccountDeactivationConfirmation = vi
+    .fn()
+    .mockResolvedValue(undefined);
+  const mockSendAccountDeletionConfirmation = vi
+    .fn()
+    .mockResolvedValue(undefined);
+
+  return {
+    EmailService: class {
+      sendAccountDeactivationConfirmation =
+        mockSendAccountDeactivationConfirmation;
+      sendAccountDeletionConfirmation = mockSendAccountDeletionConfirmation;
+    },
+  };
+});
+
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { seedUser, seedUserProfile } from "@tests/utils/seed";
 import {
@@ -161,6 +180,63 @@ describe("User Controller Integration Tests", () => {
         expect(response.body.data).toHaveProperty("profile");
         expect(response.body.data.profile).toHaveProperty("userId", 1);
         expect(response.body.data.profile).toHaveProperty("bio", "Updated bio");
+      });
+    });
+
+    describe("PATCH /users/me/deactivate", () => {
+      beforeEach(async () => {
+        // mockSendAccountDeactivationConfirmation.mockClear();
+
+        await seedUser();
+      });
+
+      it("should deactivate user account returning 200", async () => {
+        const loginRes = await request.post("/api/auth/login").send({
+          email: "normal.user@example.com",
+          password: "Password@123",
+        });
+
+        const data = loginRes.body.data;
+
+        const response = await request
+          .patch("/api/users/me/deactivate")
+          .set("Authorization", `Bearer ${data.tokens.accessToken}`);
+
+        console.log(JSON.stringify(response.body, null, 2));
+
+        TestHelpers.validateApiResponse(response, 200);
+
+        expect(response.body).toHaveProperty("success", true);
+        expect(response.body).toHaveProperty(
+          "message",
+          "Account deactivated successfully",
+        );
+        expect(response.body.data).toHaveProperty("id", 1);
+        expect(response.body.data).toHaveProperty("status", "deactivated");
+      });
+    });
+
+    describe("DELETE /me/delete", () => {
+      beforeEach(async () => {
+        // mockSendAccountDeletionConfirmation.mockClear();
+        await seedUser();
+      });
+
+      it("should delete user account returning 204", async () => {
+        const loginRes = await request.post("/api/auth/login").send({
+          email: "normal.user@example.com",
+          password: "Password@123",
+        });
+
+        const data = loginRes.body.data;
+        const response = await request
+          .delete("/api/users/me/delete")
+          .set("Authorization", `Bearer ${data.tokens.accessToken}`)
+          .send({ currentPassword: "Password@123", confirm: true });
+
+        console.log(JSON.stringify(response.body, null, 2));
+
+        expect(response.status).toBe(204);
       });
     });
   });

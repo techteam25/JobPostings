@@ -1,0 +1,1 @@
+ALTER TABLE `sessions` DROP INDEX `sessions_refresh_token_unique`;

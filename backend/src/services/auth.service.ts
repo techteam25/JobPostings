@@ -107,9 +107,7 @@ export class AuthService extends BaseService {
       user.passwordHash,
     );
     if (!isValid) {
-      return this.handleError(
-        new ValidationError("Current password is incorrect"),
-      );
+      return this.handleError(new ValidationError("Invalid credentials"));
     }
 
     const newHash = await SecurityUtils.hashPassword(newPassword);
@@ -152,6 +150,7 @@ export class AuthService extends BaseService {
 
     // Find user by email (include passwordHash for verification)
     const user = await this.userRepository.findByEmailWithPassword(email);
+
     if (!user) {
       throw new UnauthorizedError("Invalid credentials");
     }

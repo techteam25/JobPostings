@@ -1,0 +1,1 @@
+ALTER TABLE `user_profile` MODIFY COLUMN `resume_url` varchar(255);
