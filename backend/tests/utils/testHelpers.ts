@@ -1,8 +1,12 @@
-const { mockSendAccountDeactivationConfirmation } = vi.hoisted(() => {
+const {
+  mockSendAccountDeactivationConfirmation,
+  mockSendAccountDeletionConfirmation,
+} = vi.hoisted(() => {
   return {
     mockSendAccountDeactivationConfirmation: vi
       .fn()
       .mockResolvedValue(undefined),
+    mockSendAccountDeletionConfirmation: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -12,12 +16,16 @@ vi.mock("@/services/email.service", () => {
       return {
         sendAccountDeactivationConfirmation:
           mockSendAccountDeactivationConfirmation,
+        sendAccountDeletionConfirmation: mockSendAccountDeletionConfirmation,
       };
     }),
   };
 });
 
-export { mockSendAccountDeactivationConfirmation };
+export {
+  mockSendAccountDeactivationConfirmation,
+  mockSendAccountDeletionConfirmation,
+};
 
 import supertest from "supertest";
 import { Application } from "express";
