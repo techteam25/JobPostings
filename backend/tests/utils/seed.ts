@@ -22,7 +22,7 @@ enum compensationTypeEnum {
 }
 
 export const seedUser = async (
-  status: "active" | "deactivated" | "deleted" = "deactivated",
+  status: "active" | "deactivated" | "deleted" = "active",
 ) => {
   const { faker } = await import("@faker-js/faker");
   const bcrypt = await import("bcrypt");
