@@ -2,6 +2,7 @@ import { and, count, eq, like, or, sql, ne } from "drizzle-orm";
 import {
   certifications,
   educations,
+  jobApplications,
   NewUser,
   NewUserProfile,
   sessions,
@@ -566,7 +567,48 @@ export class UserRepository extends BaseRepository<typeof users> {
           }),
       );
     } catch (error) {
-      throw new DatabaseError(`Failed to update ${this.resourceName}`, error);
+      throw new DatabaseError(
+        `Failed to deactivate user account for user with id: ${id}`,
+        error,
+      );
+    }
+  }
+
+  async deleteUsersOwnAccount(
+    userId: number,
+    data: { status: "active" | "deactivated" | "deleted"; deletedAt: Date },
+  ) {
+    try {
+      return await withDbErrorHandling(
+        async () =>
+          await db.transaction(async (tx) => {
+            const [result] = await tx
+              .update(users)
+              .set({
+                status: data.status,
+                deletedAt: data.deletedAt,
+                updatedAt: new Date(),
+              })
+              .where(eq(users.id, userId));
+
+            if (!result.affectedRows && result.affectedRows === 0) {
+              tx.rollback();
+            }
+
+            await tx.delete(sessions).where(eq(sessions.userId, userId));
+
+            await tx
+              .delete(jobApplications)
+              .where(eq(jobApplications.applicantId, userId));
+
+            return true;
+          }),
+      );
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to delete account for user with id: ${userId}`,
+        error,
+      );
     }
   }
 }
