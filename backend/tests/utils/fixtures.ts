@@ -54,3 +54,14 @@ export const userCertificationsFixture = () => {
     },
   ];
 };
+
+export const userFixture = async () => {
+  const { faker } = await import("@faker-js/faker");
+  return {
+    name: faker.person.fullName(),
+    email: faker.internet.email(),
+    image: faker.image.avatar(),
+    password: "Password@123",
+    // status: "active" as const,
+  };
+};
