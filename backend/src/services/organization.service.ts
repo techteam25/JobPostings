@@ -1,6 +1,6 @@
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { BaseService } from "./base.service";
-import { NewOrganization } from "@/db/schema";
+import { NewOrganization } from "@/validations/organization.validation";
 import { ConflictError, NotFoundError } from "@/utils/errors";
 
 export class OrganizationService extends BaseService {
@@ -39,7 +39,10 @@ export class OrganizationService extends BaseService {
     return organization;
   }
 
-  async createOrganization(organizationData: NewOrganization) {
+  async createOrganization(
+    organizationData: NewOrganization,
+    sessionUserId: number,
+  ) {
     // Check if organization with same name exists
     const existingOrg = await this.organizationRepository.findByName(
       organizationData.name,
@@ -48,9 +51,17 @@ export class OrganizationService extends BaseService {
       throw new ConflictError("Organization with this name already exists");
     }
 
-    const organizationId =
-      await this.organizationRepository.create(organizationData);
-    return await this.getOrganizationById(Number(organizationId));
+    const createdOrganization =
+      await this.organizationRepository.createOrganization(
+        organizationData,
+        sessionUserId,
+      );
+
+    if (!createdOrganization) {
+      throw new Error("Failed to create organization");
+    }
+
+    return createdOrganization;
   }
 
   async updateOrganization(id: number, updateData: Partial<NewOrganization>) {
@@ -69,5 +80,9 @@ export class OrganizationService extends BaseService {
     }
 
     return { message: "Organization deleted successfully" };
+  }
+
+  async isRolePermitted(userId: number) {
+    return await this.organizationRepository.canPostJobs(userId);
   }
 }
