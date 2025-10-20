@@ -18,7 +18,11 @@ import {
 import { GetOrganizationSchema } from "@/validations/organization.validation";
 import { SearchParams } from "@/validations/base.validation";
 import { GetJobApplicationSchema } from "@/validations/jobApplications.validation";
-import { Job, JobWithEmployer, UpdateJobApplication } from "@/db/schema";
+import {
+  Job,
+  JobWithEmployer,
+  UpdateJobApplication,
+} from "@/validations/job.validation";
 import { ApiResponse, PaginatedResponse } from "@/types";
 
 export class JobController extends BaseController {
@@ -192,7 +196,7 @@ export class JobController extends BaseController {
     try {
       const jobData = {
         ...req.body,
-        employerId: req.user?.organizationId!,
+        employerId: req.userId!, // Todo: get employerId from user's organization
         postedById: req.userId!,
         applicationDeadline: req.body.applicationDeadline
           ? new Date(req.body.applicationDeadline)
