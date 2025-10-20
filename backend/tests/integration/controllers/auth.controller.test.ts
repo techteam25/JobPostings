@@ -1,160 +1,161 @@
+// noinspection DuplicatedCode
+
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { seedUser } from "@tests/utils/seed";
+import { userFixture } from "@tests/utils/fixtures";
+import { beforeEach, expect } from "vitest";
+import { user } from "@/db/schema";
+import { sql } from "drizzle-orm";
+import { db } from "@/db/connection";
 
 describe("Authentication Controller Integration Tests", () => {
-  describe("POST /register", () => {
+  describe("POST /sign-up/email", () => {
+    beforeEach(async () => {
+      await db.delete(user);
+
+      // Reset auto-increment counters
+      await db.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+    });
     it("should register a new user returning 201", async () => {
-      const { faker } = await import("@faker-js/faker");
+      const newUser = await userFixture();
 
-      const newUser = {
-        email: faker.internet.email(),
-        password: "Password@123",
-        firstName: faker.person.firstName(),
-        lastName: faker.person.lastName(),
-        role: "user",
-      };
+      const response = await request
+        .post("/api/auth/sign-up/email")
+        .send(newUser);
 
-      const response = await request.post("/api/auth/register").send(newUser);
-
-      TestHelpers.validateApiResponse(response, 201);
-
-      expect(response.body.data).toHaveProperty("user");
-      expect(response.body.data.user).toHaveProperty("id");
-      expect(response.body.data.user.email).toBe(newUser.email);
-      expect(response.body.data.user.firstName).toBe(newUser.firstName);
-      expect(response.body.data.user.lastName).toBe(newUser.lastName);
-      expect(response.body.data.user.role).toBe(newUser.role);
-      expect(response.body.data.user).not.toHaveProperty("password");
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("user");
+      expect(response.body.user).toHaveProperty("id");
+      expect(response.body.user.email).toBe(newUser.email.toLowerCase());
+      expect(response.body.user.name).toBe(newUser.name);
+      expect(response.body.user.image).toBe(newUser.image);
+      expect(response.body.user.name).toBe(newUser.name);
+      expect(response.body.user).not.toHaveProperty("password");
     });
 
-    it("should fail to register a new user returning 400", async () => {
-      const { faker } = await import("@faker-js/faker");
-      const newUser = {
-        email: faker.internet.email(),
-        password: "Password@123",
-        firstName: faker.person.firstName(),
-        lastName: faker.person.lastName(),
-        role: "user",
-      };
+    it("should fail to register a new user returning 422", async () => {
+      const newUser = await userFixture();
 
-      await request.post("/api/auth/register").send(newUser);
+      await request.post("/api/auth/sign-up/email").send(newUser);
       const response = await request
-        .post("/api/auth/register")
+        .post("/api/auth/sign-up/email")
         .send({ ...newUser, email: newUser.email });
 
-      TestHelpers.validateApiResponse(response, 400);
-      expect(response.body).toHaveProperty("success", false);
-      expect(response.body).toHaveProperty("message", "Registration failed");
+      TestHelpers.validateApiResponse(response, 422);
+      expect(response.body).toHaveProperty(
+        "message",
+        "User already exists. Use another email.",
+      );
     });
   });
 
-  describe("POST /login", () => {
-    it("should login a user returning 200", async () => {
-      const { faker } = await import("@faker-js/faker");
-      const newUser = {
-        email: faker.internet.email(),
-        password: "Password@123",
-        firstName: faker.person.firstName(),
-        lastName: faker.person.lastName(),
-        role: "user",
-      };
+  describe("POST /sign-in/email", () => {
+    beforeEach(async () => {
+      await db.delete(user);
 
-      await request.post("/api/auth/register").send(newUser);
+      // Reset auto-increment counters
+      await db.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+    });
+
+    it("should login a user returning 200", async () => {
+      const newUser = await userFixture();
+
+      await request.post("/api/auth/sign-up/email").send(newUser);
       const response = await request
-        .post("/api/auth/login")
+        .post("/api/auth/sign-in/email")
         .send({ email: newUser.email, password: newUser.password });
 
-      TestHelpers.validateApiResponse(response, 200);
-      expect(response.body.data).toHaveProperty("tokens");
-      expect(response.body.data.tokens).toHaveProperty("accessToken");
-      expect(response.body.data.tokens).toHaveProperty("refreshToken");
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("user");
+      expect(response.body.user).toHaveProperty("id");
+      expect(response.body.user.email).toBe(newUser.email.toLowerCase());
+      expect(response.body.user.name).toBe(newUser.name);
+      expect(response.body.user.image).toBe(newUser.image);
+      expect(response.body.user.name).toBe(newUser.name);
+      expect(response.body.user).not.toHaveProperty("password");
     });
 
-    it("should fail to login a user returning 400", async () => {
-      const { faker } = await import("@faker-js/faker");
-      const newUser = {
-        email: faker.internet.email(),
-        password: "Password@123",
-        firstName: faker.person.firstName(),
-        lastName: faker.person.lastName(),
-        role: "user",
-      };
+    it("should fail to login a user returning 401", async () => {
+      const newUser = await userFixture();
 
-      await request.post("/api/auth/register").send(newUser);
+      await request.post("/api/auth/sign-up/").send(newUser);
       const response = await request
-        .post("/api/auth/login")
+        .post("/api/auth/sign-in/email")
         .send({ email: newUser.email, password: "WrongPassword" });
 
-      TestHelpers.validateApiResponse(response, 401);
-      expect(response.body).toHaveProperty("success", false);
-      expect(response.body).toHaveProperty("message", "Login failed");
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Invalid email or password",
+      );
     });
 
-    it("should fail to retrieve deactivated user returning 403", async () => {
+    it("should fail to login deactivated user returning 401", async () => {
       await seedUser("deactivated"); // Seed an inactive user
 
-      const response = await request.post("/api/auth/login").send({
+      const response = await request.post("/api/auth/sign-in/email").send({
         email: "normal.user@example.com",
         password: "Password@123",
       });
 
-      TestHelpers.validateApiResponse(response, 401);
-
-      expect(response.body).toHaveProperty("success", false);
-      expect(response.body).toHaveProperty("message", "Login failed");
-      expect(response.body).toHaveProperty("error", "Account is deactivated");
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty("message", "Account is not active");
     });
   });
 
   describe("POST /change-password", () => {
     it("should change the user's password returning 200", async () => {
-      await seedUser("active");
+      await seedUser();
 
       // Login to get tokens
-      const loginResponse = await request.post("/api/auth/login").send({
+      const loginResponse = await request.post("/api/auth/sign-in/email").send({
         email: "normal.user@example.com",
         password: "Password@123",
       });
 
-      const data = loginResponse.body.data;
+      const cookie = loginResponse.headers["set-cookie"]
+        ? loginResponse.headers["set-cookie"][0]
+        : "";
 
       const response = await request
         .post("/api/auth/change-password")
-        .set("Authorization", `Bearer ${data.tokens.accessToken}`)
+        .set("Cookie", cookie ?? "")
         .send({
           currentPassword: "Password@123",
           newPassword: "NewPassword@123",
         });
 
-      TestHelpers.validateApiResponse(response, 200);
-      expect(response.body).toHaveProperty("success", true);
-      expect(response.body).toHaveProperty(
-        "message",
-        "Password changed successfully",
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("user");
+      expect(response.body.user).toHaveProperty(
+        "email",
+        "normal.user@example.com",
       );
     });
 
     it("should fail to change the user's password returning 400", async () => {
-      await seedUser("active");
+      await seedUser();
 
       // Login to get tokens
-      const loginResponse = await request.post("/api/auth/login").send({
+      const loginResponse = await request.post("/api/auth/sign-in/email").send({
         email: "normal.user@example.com",
         password: "Password@123",
       });
 
-      const data = loginResponse.body.data;
+      const cookie = loginResponse.headers["set-cookie"]
+        ? loginResponse.headers["set-cookie"][0]
+        : "";
+
       const response = await request
         .post("/api/auth/change-password")
-        .set("Authorization", `Bearer ${data.tokens.accessToken}`)
+        .set("Cookie", cookie ?? "")
         .send({
           currentPassword: "WrongCurrentPassword",
           newPassword: "NewPassword@123",
         });
 
       TestHelpers.validateApiResponse(response, 400);
-      expect(response.body).toHaveProperty("success", false);
-      expect(response.body).toHaveProperty("message", "Invalid credentials");
+      expect(response.body).toHaveProperty("message", "Invalid password");
     });
   });
 });
