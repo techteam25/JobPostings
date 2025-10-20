@@ -6,7 +6,13 @@ import logger from "@/logger";
 
 import { auth } from "@/utils/auth";
 import { db } from "@/db/connection";
-import { organizations, jobsDetails, user, userProfile } from "@/db/schema";
+import {
+  organizations,
+  jobsDetails,
+  user,
+  userProfile,
+  organizationMembers,
+} from "@/db/schema";
 import { userProfileFixture } from "@tests/utils/fixtures";
 
 enum jobTypeEnum {
@@ -81,24 +87,59 @@ export const seedOrganizations = async () => {
   const { faker } = await import("@faker-js/faker");
 
   await db.transaction(async (trx) => {
+    await trx.delete(organizationMembers);
     await trx.delete(organizations);
+    await trx.delete(user);
 
     // Reset auto-increment counters
+    await trx.execute(sql`ALTER TABLE organization_members AUTO_INCREMENT = 1`);
     await trx.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
+    await trx.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
 
-    await trx.insert(organizations).values(
-      Array.from({ length: 3 }).map(() => ({
-        name: faker.company.name(),
-        streetAddress: faker.location.streetAddress(),
-        city: faker.location.city(),
-        state: faker.location.state(),
-        zipCode: faker.location.zipCode("#####"),
-        phone: faker.phone.number({ style: "international" }),
-        contact: 1,
-        url: faker.internet.url(),
-        mission: faker.lorem.sentence(),
-      })),
-    );
+    const owner = await auth.api.signUpEmail({
+      body: {
+        email: "org.owner@example.com",
+        password: "Password@123",
+        name: faker.person.firstName() + " " + faker.person.lastName(),
+        image: faker.image.avatar(),
+      },
+    });
+
+    if (!owner) {
+      throw new Error("Failed to create organization owner");
+    }
+
+    const createdOrgIds = await trx
+      .insert(organizations)
+      .values(
+        Array.from({ length: 3 }).map(() => ({
+          name: faker.company.name(),
+          streetAddress: faker.location.streetAddress(),
+          city: faker.location.city(),
+          state: faker.location.state(),
+          zipCode: faker.location.zipCode("#####"),
+          phone: faker.phone.number({ style: "international" }),
+          url: faker.internet.url(),
+          mission: faker.lorem.sentence(),
+        })),
+      )
+      .$returningId();
+
+    if (createdOrgIds && createdOrgIds.length === 0) {
+      throw new Error("No organizations were created");
+    }
+
+    const orgMemberInserts = await trx
+      .insert(organizationMembers)
+      .values(
+        createdOrgIds.map((orgId) => ({
+          userId: Number(owner.user.id),
+          organizationId: orgId.id,
+          role: "owner" as const,
+          isActive: true,
+        })),
+      )
+      .$returningId();
   });
 };
 
