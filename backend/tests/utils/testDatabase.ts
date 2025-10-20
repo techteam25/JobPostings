@@ -58,39 +58,11 @@ export async function clearTestData() {
     // Clear in reverse order to respect foreign keys
     await db.delete(schema.jobApplications);
     await db.delete(schema.jobsDetails);
-    await db.delete(schema.users);
+    await db.delete(schema.user);
   } catch (error) {
     console.error("Failed to clear test data:", error);
     throw error;
   }
-}
-
-/**
- * Create test user data
- */
-export async function createTestUser(overrides: Partial<schema.NewUser> = {}) {
-  const { db } = createTestDatabase();
-
-  const defaultUser: schema.NewUser = {
-    email: `test${Date.now()}@example.com`,
-    firstName: "Test",
-    lastName: "User",
-    passwordHash: "hashedpassword123",
-    role: "user",
-    isEmailVerified: true,
-    status: "active",
-    ...overrides,
-  };
-
-  const [result] = await db.insert(schema.users).values(defaultUser);
-
-  // Get the inserted user
-  const [user] = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.id, result.insertId));
-
-  return user;
 }
 
 /**
