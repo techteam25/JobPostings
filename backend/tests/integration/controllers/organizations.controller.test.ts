@@ -1,30 +1,21 @@
+// noinspection DuplicatedCode
+
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 
 import { db } from "@/db/connection";
-import { organizations, User, users } from "@/db/schema";
-import { AuthTokens } from "@/types";
+import { organizationMembers, organizations, user } from "@/db/schema";
+import { seedOrganizations, seedUser } from "@tests/utils/seed";
+import { organizationFixture } from "@tests/utils/fixtures";
+import { sql } from "drizzle-orm";
 
 describe("Organization Controller Integration Tests", async () => {
   const { faker } = await import("@faker-js/faker");
   beforeEach(async () => {
-    const { faker } = await import("@faker-js/faker");
-
     // Clear organizations table before each test
-    await db.delete(users);
+    await db.delete(user);
     await db.delete(organizations);
 
-    await db.insert(organizations).values({
-      id: 1,
-      name: faker.company.name(),
-      streetAddress: faker.location.streetAddress(),
-      city: faker.location.city(),
-      state: faker.location.state(),
-      zipCode: faker.location.zipCode("#####"),
-      phone: faker.phone.number({ style: "international" }),
-      contact: 1,
-      url: faker.internet.url(),
-      mission: faker.lorem.sentence(),
-    });
+    await seedOrganizations();
   });
   describe("GET /organizations", () => {
     it("should retrieve all organizations returning 200", async () => {
@@ -38,6 +29,7 @@ describe("Organization Controller Integration Tests", async () => {
         "Organizations retrieved successfully",
       );
       expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data).toHaveLength(3);
     });
 
     it("should retrieve a single organization returning 200", async () => {
@@ -48,38 +40,35 @@ describe("Organization Controller Integration Tests", async () => {
   });
 
   describe("POST /organizations", async () => {
-    let userResponse: { data: { user: User; tokens: AuthTokens } };
+    let cookie: string | undefined;
 
     beforeEach(async () => {
-      const newUser = {
-        id: 1,
-        email: faker.internet.email(),
-        password: "Password@123",
-        firstName: faker.person.firstName(),
-        lastName: faker.person.lastName(),
-        role: "admin",
-      };
+      await db.delete(organizationMembers);
+      await db.delete(organizations);
 
-      const response = await request.post("/api/auth/register").send(newUser);
-      userResponse = response.body;
+      // Reset auto-increment counters
+      await db.execute(
+        sql`ALTER TABLE organization_members AUTO_INCREMENT = 1`,
+      );
+      await db.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
+
+      await seedUser();
+
+      const response = await request.post("/api/auth/sign-in/email").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+      cookie = response.headers["set-cookie"]
+        ? response.headers["set-cookie"][0]
+        : "";
     });
 
     it("should create a new organization returning 201", async () => {
-      const newOrganization = {
-        name: faker.company.name(),
-        streetAddress: faker.location.streetAddress(),
-        city: faker.location.city(),
-        state: faker.location.state(),
-        zipCode: faker.location.zipCode("#####"),
-        phone: faker.phone.number({ style: "international" }),
-        contact: 1,
-        url: faker.internet.url(),
-        mission: faker.lorem.sentence(),
-      };
+      const newOrganization = await organizationFixture();
 
       const response = await request
         .post("/api/organizations")
-        .set("Authorization", `Bearer ${userResponse.data.tokens.accessToken}`)
+        .set("Cookie", cookie ?? "")
         .send(newOrganization);
 
       TestHelpers.validateApiResponse(response, 201);
@@ -90,20 +79,13 @@ describe("Organization Controller Integration Tests", async () => {
         "Organization created successfully",
       );
       expect(response.body.data).toMatchObject(newOrganization);
+      expect(response.body.data).toHaveProperty("members");
+      expect(Array.isArray(response.body.data.members)).toBe(true);
+      expect(response.body.data.members[0]).toHaveProperty("role", "owner");
     });
 
     it("should fail to create a new organization without auth returning 401", async () => {
-      const newOrganization = {
-        name: faker.company.name(),
-        streetAddress: faker.location.streetAddress(),
-        city: faker.location.city(),
-        state: faker.location.state(),
-        zipCode: faker.location.zipCode("#####"),
-        phone: faker.phone.number({ style: "international" }),
-        contact: 1,
-        url: faker.internet.url(),
-        mission: faker.lorem.sentence(),
-      };
+      const newOrganization = await organizationFixture();
 
       const response = await request
         .post("/api/organizations")
@@ -111,44 +93,49 @@ describe("Organization Controller Integration Tests", async () => {
 
       TestHelpers.validateApiResponse(response, 401);
 
+      expect(response.body).toHaveProperty("success", false);
       expect(response.body).toHaveProperty("status", "error");
       expect(response.body).toHaveProperty(
         "message",
         "Authentication required",
       );
-      expect(response.header).toHaveProperty(
-        "www-authenticate",
-        `Bearer realm=/api/organizations charset="UTF-8"`,
-      );
+      expect(response.body).toHaveProperty("error", "UNAUTHORIZED");
     });
   });
   describe("PUT /organizations/:organizationId", () => {
-    let userResponse: { data: { user: User; tokens: AuthTokens } };
+    let cookie: string | undefined;
 
     beforeEach(async () => {
-      const newUser = {
-        id: 1,
-        email: faker.internet.email(),
-        password: "Password@123",
-        firstName: faker.person.firstName(),
-        lastName: faker.person.lastName(),
-        role: "admin",
-      };
+      await db.delete(organizationMembers);
+      await db.delete(organizations);
 
-      const response = await request.post("/api/auth/register").send(newUser);
-      userResponse = response.body;
+      // Reset auto-increment counters
+      await db.execute(
+        sql`ALTER TABLE organization_members AUTO_INCREMENT = 1`,
+      );
+      await db.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
+
+      await seedUser();
+
+      const response = await request.post("/api/auth/sign-in/email").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+
+      cookie = response.headers["set-cookie"]
+        ? response.headers["set-cookie"][0]
+        : "";
 
       await request
         .post("/api/organizations")
-        .set("Authorization", `Bearer ${userResponse.data.tokens.accessToken}`)
+        .set("Cookie", cookie!)
         .send({
           name: faker.company.name(),
           streetAddress: faker.location.streetAddress(),
           city: faker.location.city(),
           state: faker.location.state(),
           zipCode: faker.location.zipCode("#####"),
-          phone: faker.phone.number({ style: "international" }),
-          contact: 1,
+          phone: faker.phone.number({ style: "national" }),
           url: faker.internet.url(),
           mission: faker.lorem.sentence(),
         });
@@ -156,7 +143,7 @@ describe("Organization Controller Integration Tests", async () => {
     it("should update an existing organization returning 200", async () => {
       const response = await request
         .put("/api/organizations/1")
-        .set("Authorization", `Bearer ${userResponse.data.tokens.accessToken}`)
+        .set("Cookie", cookie!)
         .send({
           streetAddress: "123 New St",
           city: "New City",
@@ -181,17 +168,7 @@ describe("Organization Controller Integration Tests", async () => {
     });
 
     it("should fail to update an organization without auth returning 401", async () => {
-      const updatedOrganization = {
-        name: faker.company.name(),
-        streetAddress: faker.location.streetAddress(),
-        city: faker.location.city(),
-        state: faker.location.state(),
-        zipCode: faker.location.zipCode("#####"),
-        phone: faker.phone.number({ style: "international" }),
-        contact: 1,
-        url: faker.internet.url(),
-        mission: faker.lorem.sentence(),
-      };
+      const updatedOrganization = await organizationFixture();
 
       const response = await request
         .put("/api/organizations/1")
@@ -204,40 +181,43 @@ describe("Organization Controller Integration Tests", async () => {
         "message",
         "Authentication required",
       );
-      expect(response.header).toHaveProperty(
-        "www-authenticate",
-        `Bearer realm=/api/organizations/1 charset="UTF-8"`,
-      );
     });
   });
 
   describe("DELETE /organizations/:organizationId", () => {
-    let data: { data: { user: User; tokens: AuthTokens } };
+    let cookie: string | undefined;
 
     beforeEach(async () => {
-      const newUser = {
-        id: 1,
-        email: faker.internet.email(),
-        password: "Password@123",
-        firstName: faker.person.firstName(),
-        lastName: faker.person.lastName(),
-        role: "admin",
-      };
+      await db.delete(organizationMembers);
+      await db.delete(organizations);
 
-      const response = await request.post("/api/auth/register").send(newUser);
-      data = response.body;
+      // Reset auto-increment counters
+      await db.execute(
+        sql`ALTER TABLE organization_members AUTO_INCREMENT = 1`,
+      );
+      await db.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
+
+      await seedUser();
+
+      const response = await request.post("/api/auth/sign-in/email").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+
+      cookie = response.headers["set-cookie"]
+        ? response.headers["set-cookie"][0]
+        : "";
 
       await request
         .post("/api/organizations")
-        .set("Authorization", `Bearer ${data.data.tokens.accessToken}`)
+        .set("Cookie", cookie!)
         .send({
           name: faker.company.name(),
           streetAddress: faker.location.streetAddress(),
           city: faker.location.city(),
           state: faker.location.state(),
           zipCode: faker.location.zipCode("#####"),
-          phone: faker.phone.number({ style: "international" }),
-          contact: 1,
+          phone: faker.phone.number({ style: "national" }),
           url: faker.internet.url(),
           mission: faker.lorem.sentence(),
         });
@@ -246,7 +226,7 @@ describe("Organization Controller Integration Tests", async () => {
     it("should delete an existing organization returning 200", async () => {
       const response = await request
         .delete("/api/organizations/1")
-        .set("Authorization", `Bearer ${data.data.tokens.accessToken}`);
+        .set("Cookie", cookie!);
 
       TestHelpers.validateApiResponse(response, 200);
 
@@ -266,10 +246,6 @@ describe("Organization Controller Integration Tests", async () => {
       expect(response.body).toHaveProperty(
         "message",
         "Authentication required",
-      );
-      expect(response.header).toHaveProperty(
-        "www-authenticate",
-        `Bearer realm=/api/organizations/1 charset="UTF-8"`,
       );
     });
   });
