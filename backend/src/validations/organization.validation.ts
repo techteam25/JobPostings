@@ -1,33 +1,35 @@
 import { z } from "@/swagger/registry";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
-const organizationPayloadSchema = z.object({
+import { organizationMembers, organizations } from "@/db/schema";
+
+// Zod schemas for validation
+export const selectOrganizationSchema = createSelectSchema(organizations);
+export const insertOrganizationSchema = createInsertSchema(organizations, {
   name: z.string().min(5, "Name must be at least 5 characters").max(100),
-  streetAddress: z.string().min(1, "Street address is required").max(100),
-  city: z.string().min(1, "City is required").max(100),
-  state: z.string().min(1, "State is required").max(100),
-  zipCode: z.string().min(5, "Zip code must be 5 digits").max(5),
+  url: z.url("Invalid organization website URL"),
   phone: z
     .string()
-    .min(10, "Phone must be at least 10 digits")
-    .max(15)
+    .min(10, "Phone must be at least 20 characters")
+    .max(20)
     .optional(),
-  contact: z.number().positive("Contact ID is required"),
-  url: z.url("Invalid organization website URL"),
-  mission: z.string().min(1, "Mission statement is required"),
 });
+export const updateOrganizationInputSchema = insertOrganizationSchema
+  .partial()
+  .omit({ id: true, createdAt: true });
 
 const organizationIdParamSchema = z.object({
   organizationId: z.string().regex(/^\d+$/, "organizationId is required"),
 });
 
 export const createOrganizationSchema = z.object({
-  body: organizationPayloadSchema,
+  body: insertOrganizationSchema,
   params: z.object({}).strict(),
   query: z.object({}).strict(),
 });
 
 export const updateOrganizationSchema = z.object({
-  body: organizationPayloadSchema.partial(),
+  body: updateOrganizationInputSchema,
   params: organizationIdParamSchema,
   query: z.object({}).strict(),
 });
@@ -43,6 +45,10 @@ export const deleteOrganizationSchema = z.object({
   query: z.object({}).strict(),
   params: organizationIdParamSchema,
 });
+
+export type NewOrganization = z.infer<typeof insertOrganizationSchema>;
+export type Organization = z.infer<typeof selectOrganizationSchema>;
+export type OrganizationMember = z.infer<typeof organizationMembers>;
 
 export type GetOrganizationSchema = z.infer<typeof getOrganizationSchema>;
 export type CreateOrganizationSchema = z.infer<typeof createOrganizationSchema>;

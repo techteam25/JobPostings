@@ -25,7 +25,6 @@ export const organizations = mysqlTable(
     state: varchar("state", { length: 100 }).notNull(),
     zipCode: varchar("zip_code", { length: 5 }).notNull(),
     phone: varchar("phone", { length: 15 }),
-    contact: int("contact").notNull(),
     url: varchar("url", { length: 255 }).notNull(),
     logoUrl: varchar("logo_url", { length: 500 }),
     mission: text("mission").notNull(),
@@ -90,7 +89,6 @@ export const organizationMembers = mysqlTable(
 
 // Relations
 export const organizationRelations = relations(organizations, ({ many }) => ({
-  contact: many(user),
   jobInsights: many(jobInsights),
   members: many(organizationMembers),
 }));
@@ -108,21 +106,3 @@ export const organizationMemberRelations = relations(
     }),
   }),
 );
-
-// Zod schemas for validation
-export const selectOrganizationSchema = createSelectSchema(organizations);
-export const insertOrganizationSchema = createInsertSchema(organizations, {
-  name: z.string().min(5, "Name must be at least 5 characters").max(100),
-  url: z.url("Invalid organization website URL"),
-  phone: z
-    .string()
-    .min(10, "Phone must be at least 10 characters")
-    .max(10)
-    .optional(),
-});
-export const updateOrganizationSchema = insertOrganizationSchema
-  .partial()
-  .omit({ id: true, createdAt: true });
-
-export type NewOrganization = z.infer<typeof insertOrganizationSchema>;
-export type Organization = z.infer<typeof selectOrganizationSchema>;
