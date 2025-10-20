@@ -1,19 +1,21 @@
 import { Router } from "express";
 
 import { JobController } from "@/controllers/job.controller";
-import { selectJobSchema, selectOrganizationSchema } from "@/db/schema";
 
 import { AuthMiddleware } from "@/middleware/auth.middleware";
 
 import validate from "../middleware/validation.middleware";
 import {
+  selectJobSchema,
   createJobSchema,
-  updateJobSchema,
+  updateJobInputSchema,
   getJobSchema,
   deleteJobSchema,
+  updateJobSchema,
 } from "@/validations/job.validation";
 import { searchParams } from "@/validations/base.validation";
 import { updateApplicationStatusSchema } from "@/validations/jobApplications.validation";
+import { selectOrganizationSchema } from "@/validations/organization.validation";
 
 import { registry, z } from "@/swagger/registry";
 
@@ -140,26 +142,26 @@ router.use(authMiddleware.authenticate);
 // User routes (authenticated users)
 router.get(
   "/recommendations/me",
-  authMiddleware.requireRole(["user"]),
+  authMiddleware.requireUserRole(),
   jobController.getRecommendedJobs,
 );
 
 router.get(
   "/applications/my",
-  authMiddleware.requireRole(["user"]),
+  authMiddleware.requireUserRole(),
   jobController.getUserApplications,
 );
 
 router.post(
   "/:jobId/apply",
-  authMiddleware.requireRole(["user"]),
+  authMiddleware.requireUserRole(),
   validate(getJobSchema),
   jobController.applyForJob,
 );
 
 router.patch(
   "/applications/:applicationId/withdraw",
-  authMiddleware.requireRole(["user"]),
+  authMiddleware.requireUserRole(),
   validate(getJobSchema),
   jobController.withdrawApplication,
 );
@@ -167,7 +169,7 @@ router.patch(
 // Employer routes
 router.get(
   "/my/posted",
-  authMiddleware.requireRole(["employer", "admin"]),
+  authMiddleware.requireJobPostingRole(),
   jobController.getMyJobs,
 );
 
@@ -222,7 +224,7 @@ registry.registerPath({
 });
 router.post(
   "/",
-  authMiddleware.requireRole(["employer", "admin"]),
+  authMiddleware.requireJobPostingRole(),
   validate(createJobSchema),
   jobController.createJob,
 );
@@ -287,8 +289,8 @@ registry.registerPath({
 });
 router.put(
   "/:jobId",
-  authMiddleware.requireRole(["employer", "admin"]),
-  validate(updateJobSchema),
+  authMiddleware.requireJobPostingRole(),
+  validate(updateJobInputSchema),
   jobController.updateJob,
 );
 
@@ -349,21 +351,21 @@ registry.registerPath({
 });
 router.delete(
   "/:jobId",
-  authMiddleware.requireRole(["employer", "admin"]),
+  authMiddleware.requireJobPostingRole(), // Todo: Create admins, recruiter, & owner specific middleware
   validate(deleteJobSchema),
   jobController.deleteJob,
 );
 
 router.get(
   "/:jobId/applications",
-  authMiddleware.requireRole(["employer", "admin"]),
+  authMiddleware.requireJobPostingRole(),
   validate(getJobSchema),
   jobController.getJobApplications,
 );
 
 router.patch(
-  "/applications/:applicationId/status",
-  authMiddleware.requireRole(["employer", "admin"]),
+  "/applications/:applicationId/status", // Todo: Create admins, recruiter, & owner specific middleware
+  authMiddleware.requireJobPostingRole(),
   validate(updateApplicationStatusSchema),
   jobController.updateApplicationStatus,
 );
@@ -371,7 +373,7 @@ router.patch(
 // Organization-specific routes
 router.get(
   "/employer/:employerId",
-  authMiddleware.requireRole(["employer", "admin"]),
+  authMiddleware.requireJobPostingRole(),
   validate(getJobSchema),
   jobController.getJobsByEmployer,
 );
