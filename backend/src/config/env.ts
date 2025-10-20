@@ -45,10 +45,13 @@ const envSchema = z.object({
   // email service configuration could be added here
   SMTP_HOST: z.string().min(1, "SMTP host is required"),
   SMTP_PORT: z.coerce.number("SMTP port must be a number"),
-  SMTP_SECURE: z.boolean().default(true),
+  SMTP_SECURE: z.coerce.boolean().default(true),
   SMTP_USER: z.string().min(1, "SMTP user is required"),
   SMTP_PASS: z.string().min(1, "SMTP password is required"),
   EMAIL_FROM: z.email("EMAIL_FROM must be a valid email address"),
+
+  // Better auth configuration
+  BETTER_AUTH_SECRET: z.string(),
 });
 
 // Type inference from the schema
@@ -89,6 +92,7 @@ function validateEnv(): Env {
           SMTP_USER: process.env.SMTP_USER || "",
           SMTP_PASS: process.env.SMTP_PASS || "",
           EMAIL_FROM: process.env.EMAIL_FROM || "",
+          BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET || "",
         };
       }
 
