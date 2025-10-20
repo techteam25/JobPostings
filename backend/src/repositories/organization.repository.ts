@@ -1,9 +1,11 @@
-import { count, eq, like, or } from "drizzle-orm";
-import { organizations } from "@/db/schema";
+import { and, count, eq, like, or } from "drizzle-orm";
+import { organizationMembers, organizations } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
-import { calculatePagination, countRecords } from "@/db/utils";
+import { calculatePagination } from "@/db/utils";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
+import { DatabaseError } from "@/utils/errors";
+import { NewOrganization } from "@/validations/organization.validation";
 
 export class OrganizationRepository extends BaseRepository<
   typeof organizations
@@ -59,26 +61,99 @@ export class OrganizationRepository extends BaseRepository<
     return { items, pagination };
   }
 
+  async createOrganization(data: NewOrganization, sessionUserId: number) {
+    try {
+      return await withDbErrorHandling(
+        async () =>
+          await db.transaction(async (tx) => {
+            const [orgId] = await tx
+              .insert(organizations)
+              .values(data)
+              .$returningId();
+
+            if (!orgId) {
+              throw new Error("Failed to create and retrieve organization ID");
+            }
+
+            // Add the creating user as the organization owner
+            const user = await tx
+              .insert(organizationMembers)
+              .values({
+                organizationId: orgId.id,
+                role: "owner",
+                isActive: true,
+                userId: sessionUserId,
+              })
+              .onDuplicateKeyUpdate({
+                set: {
+                  role: "owner",
+                  isActive: true,
+                  organizationId: orgId.id,
+                  userId: sessionUserId,
+                },
+              });
+
+            return await tx.query.organizations.findFirst({
+              where: eq(organizations.id, orgId.id),
+              with: {
+                members: true,
+              },
+            });
+          }),
+      );
+    } catch (error) {
+      throw new DatabaseError(`Failed to create ${this.resourceName}`, error);
+    }
+  }
+
   async findByContact(contactId: number) {
     return await withDbErrorHandling(
       async () =>
-        await db.query.organizations.findFirst({
-          where: eq(organizations.contact, contactId),
+        await db.query.organizationMembers.findFirst({
+          where: eq(organizationMembers.userId, contactId),
           with: {
-            contact: {
+            user: {
               columns: {
                 id: true,
-                firstName: true,
-                lastName: true,
+                fullName: true,
                 email: true,
-                role: true,
-                organizationId: true,
-                isEmailVerified: true,
+                emailVerified: true,
                 status: true,
               },
             },
           },
         }),
     );
+  }
+
+  async canPostJobs(userId: number): Promise<boolean> {
+    const memberships = await db.query.organizationMembers.findMany({
+      where: and(
+        eq(organizationMembers.userId, userId),
+        eq(organizationMembers.isActive, true),
+      ),
+      with: {
+        organization: true,
+      },
+    });
+
+    return memberships.some(
+      (m) =>
+        ["active", "trial"].includes(m.organization?.subscriptionStatus) &&
+        ["owner", "admin", "recruiter"].includes(m.role),
+    );
+  }
+
+  // Get user's active organizations
+  async getUserOrganizations(userId: number) {
+    return db.query.organizationMembers.findMany({
+      where: and(
+        eq(organizationMembers.userId, userId),
+        eq(organizationMembers.isActive, true),
+      ),
+      with: {
+        organization: true,
+      },
+    });
   }
 }
