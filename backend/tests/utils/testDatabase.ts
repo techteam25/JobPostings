@@ -4,6 +4,7 @@ import mysql from "mysql2/promise";
 import { env } from "@/config/env";
 import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { NewJob, NewJobApplication } from "@/validations/job.validation";
 
 let testConnection: mysql.Pool | null = null;
 let testDb: (MySql2Database<typeof schema> & { $client: Pool }) | null = null;
@@ -70,11 +71,11 @@ export async function clearTestData() {
  */
 export async function createTestJob(
   employerId: number,
-  overrides: Partial<schema.NewJob> = {},
+  overrides: Partial<NewJob> = {},
 ) {
   const { db } = createTestDatabase();
 
-  const defaultJob: schema.NewJob = {
+  const defaultJob: NewJob = {
     title: "Test Software Engineer Position",
     description:
       "This is a test job posting for a software engineer position with great benefits and competitive salary.",
@@ -108,11 +109,11 @@ export async function createTestJob(
 export async function createTestJobApplication(
   jobId: number,
   applicantId: number,
-  overrides: Partial<schema.NewJobApplication> = {},
+  overrides: Partial<NewJobApplication> = {},
 ) {
   const { db } = createTestDatabase();
 
-  const defaultApplication: schema.NewJobApplication = {
+  const defaultApplication: NewJobApplication = {
     jobId,
     applicantId,
     status: "pending",
