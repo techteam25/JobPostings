@@ -1,15 +1,3 @@
-import { session } from "./sessions";
-import { Education, educations, insertEducationsSchema } from "./educations";
-import {
-  insertWorkExperiencesSchema,
-  WorkExperience,
-  workExperiences,
-} from "./workExperiences";
-import {
-  Certification,
-  insertCertificationsSchema,
-  userCertifications,
-} from "./certifications";
 import {
   mysqlTable,
   varchar,
@@ -20,9 +8,13 @@ import {
   check,
   index,
 } from "drizzle-orm/mysql-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
+
+import { session } from "./sessions";
+import { educations } from "./educations";
+import { workExperiences } from "./workExperiences";
+import { userCertifications } from "./certifications";
+import { organizationMembers } from "./organizations";
 
 // Users table
 export const user = mysqlTable(
@@ -38,7 +30,7 @@ export const user = mysqlTable(
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
-    status: text("status").default("active").notNull(),
+    status: varchar("status", { length: 20 }).default("active").notNull(),
     deletedAt: timestamp("deleted_at", { fsp: 3 }),
     lastLoginAt: timestamp("last_login_at", { fsp: 3 }),
   },
@@ -87,6 +79,7 @@ export const userRelations = relations(user, ({ one, many }) => ({
     references: [userProfile.userId],
   }),
   sessions: many(session),
+  organizationMembers: many(organizationMembers),
 }));
 
 export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
@@ -98,67 +91,3 @@ export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
   workExperiences: many(workExperiences),
   certifications: many(userCertifications),
 }));
-
-// Zod schemas
-export const insertUserSchema = createInsertSchema(user, {
-  email: z.email("Invalid email format").toLowerCase(),
-  fullName: z.string().min(1, "First name is required").max(100).trim(),
-  status: z.enum(["active", "deactivated", "deleted"]).default("active"),
-  deletedAt: z.date().optional(),
-});
-
-export const insertUserProfileSchema = createInsertSchema(userProfile, {
-  userId: z.number().int().positive(),
-  bio: z
-    .string()
-    .min(10, "Bio must be at least 10 characters")
-    .max(1000)
-    .optional(),
-  resumeUrl: z.url("Invalid resume URL").optional(),
-  linkedinUrl: z.url("Invalid LinkedIn URL").optional(),
-  portfolioUrl: z.url("Invalid portfolio URL").optional(),
-});
-
-export const selectUserSchema = createSelectSchema(user);
-export const selectUserProfileSchema = createSelectSchema(userProfile);
-
-export const updateUserSchema = insertUserSchema.partial().omit({
-  id: true,
-  createdAt: true,
-  passwordHash: true,
-  updatedAt: true,
-  deletedAt: true,
-});
-
-export const updateUserProfileSchema = insertUserProfileSchema
-  .omit({ userId: true })
-  .extend({
-    educations: insertEducationsSchema
-      .omit({ userProfileId: true })
-      .array()
-      .default([]),
-    workExperiences: insertWorkExperiencesSchema
-      .omit({ userProfileId: true })
-      .array()
-      .default([]),
-    // certifications: z.array(insertCertificationsSchema).default([]),
-  });
-
-// Type exports
-export type User = z.infer<typeof selectUserSchema>;
-export type NewUser = z.infer<typeof insertUserSchema>;
-export type UpdateUser = z.infer<typeof updateUserSchema>;
-export type UserProfile = z.infer<typeof selectUserProfileSchema>;
-export type NewUserProfile = z.infer<typeof insertUserProfileSchema>;
-export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
-
-// Get type with relations
-export type UserWithProfile = User & {
-  profile:
-    | (UserProfile & {
-        certifications: { certification: Certification }[] | null;
-        education: Education[] | null;
-        workExperiences: WorkExperience[] | null;
-      })
-    | null;
-};
