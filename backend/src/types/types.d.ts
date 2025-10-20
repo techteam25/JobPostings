@@ -1,5 +1,5 @@
-import { User } from "@/db/schema";
 import { Logger } from "pino";
+import { User } from "@/validations/userProfile.validation";
 
 declare global {
   namespace Express {
