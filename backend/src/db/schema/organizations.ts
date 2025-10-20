@@ -1,15 +1,18 @@
 import {
-  mysqlTable,
-  varchar,
-  timestamp,
-  text,
+  boolean,
   index,
   int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  unique,
+  varchar,
 } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { users } from "./users";
+import { user } from "./users";
 import { jobInsights } from "./jobsDetails";
 
 export const organizations = mysqlTable(
@@ -24,7 +27,30 @@ export const organizations = mysqlTable(
     phone: varchar("phone", { length: 15 }),
     contact: int("contact").notNull(),
     url: varchar("url", { length: 255 }).notNull(),
+    logoUrl: varchar("logo_url", { length: 500 }),
     mission: text("mission").notNull(),
+    subscriptionTier: mysqlEnum("subscription_tier", [
+      "free",
+      "basic",
+      "professional",
+      "enterprise",
+    ])
+      .default("free")
+      .notNull(),
+    subscriptionStatus: mysqlEnum("subscription_status", [
+      "active",
+      "cancelled",
+      "expired",
+      "trial",
+    ])
+      .default("trial")
+      .notNull(),
+    subscriptionStartDate: timestamp("subscription_start_date"),
+    subscriptionEndDate: timestamp("subscription_end_date"),
+    jobPostingLimit: int("job_posting_limit").default(1), // Based on tier
+    status: mysqlEnum("status", ["active", "suspended", "deleted"])
+      .default("active")
+      .notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },
@@ -33,14 +59,49 @@ export const organizations = mysqlTable(
     index("state_idx").on(table.state),
     index("city_idx").on(table.city),
     index("zip_idx").on(table.zipCode),
+    index("idx_subscription_status").on(table.subscriptionStatus),
+  ],
+);
+
+export const organizationMembers = mysqlTable(
+  "organization_members",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    userId: int("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    organizationId: int("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    role: mysqlEnum("role", ["owner", "admin", "recruiter", "member"])
+      .default("member")
+      .notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    // Prevent duplicate memberships
+    unique("unique_user_org").on(table.userId, table.organizationId),
+    index("idx_org_members_user").on(table.userId),
+    index("idx_org_members_org").on(table.organizationId),
   ],
 );
 
 // Relations
 export const organizationRelations = relations(organizations, ({ many }) => ({
-  contact: many(users),
+  contact: many(user),
   jobInsights: many(jobInsights),
+  members: many(organizationMembers),
 }));
+
+export const organizationMemberRelations = relations(
+  organizationMembers,
+  ({ many, one }) => ({
+    user: many(user),
+    organization: one(organizations),
+  }),
+);
 
 // Zod schemas for validation
 export const selectOrganizationSchema = createSelectSchema(organizations);
