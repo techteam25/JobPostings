@@ -4,12 +4,13 @@ import { AuthMiddleware } from "@/middleware/auth.middleware";
 import validate from "../middleware/validation.middleware";
 import {
   createOrganizationSchema,
-  updateOrganizationSchema,
+  updateOrganizationInputSchema,
   getOrganizationSchema,
   deleteOrganizationSchema,
+  updateOrganizationSchema,
 } from "@/validations/organization.validation";
 import { registry, z } from "@/swagger/registry";
-import { selectOrganizationSchema } from "@/db/schema";
+import { selectOrganizationSchema } from "@/validations/organization.validation";
 import {
   apiResponseSchema,
   errorResponseSchema,
@@ -158,7 +159,6 @@ registry.registerPath({
 router.post(
   "/",
   authMiddleware.authenticate,
-  authMiddleware.requireRole(["admin", "employer"]),
   validate(createOrganizationSchema),
   organizationController.createOrganization,
 );
@@ -225,8 +225,8 @@ registry.registerPath({
 router.put(
   "/:organizationId",
   authMiddleware.authenticate,
-  authMiddleware.requireRole(["admin", "employer"]),
-  validate(updateOrganizationSchema),
+  authMiddleware.requireJobPostingRole(),
+  validate(updateOrganizationInputSchema),
   organizationController.updateOrganization,
 );
 
@@ -289,7 +289,7 @@ registry.registerPath({
 router.delete(
   "/:organizationId",
   authMiddleware.authenticate,
-  authMiddleware.requireRole(["admin"]),
+  authMiddleware.requireJobPostingRole(), // Todo: Create admin & owner only middleware
   validate(deleteOrganizationSchema),
   organizationController.deleteOrganization,
 );
