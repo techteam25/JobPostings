@@ -65,3 +65,18 @@ export const userFixture = async () => {
     // status: "active" as const,
   };
 };
+
+export const organizationFixture = async () => {
+  const { faker } = await import("@faker-js/faker");
+
+  return {
+    name: faker.company.name(),
+    streetAddress: faker.location.streetAddress(),
+    city: faker.location.city(),
+    state: faker.location.state(),
+    zipCode: faker.location.zipCode("#####"),
+    phone: faker.phone.number({ style: "national" }),
+    url: faker.internet.url(),
+    mission: faker.lorem.sentence(),
+  };
+};
