@@ -1,9 +1,9 @@
 import { JobRepository } from "@/repositories/job.repository";
 import { UserRepository } from "@/repositories/user.repository";
 import { BaseService } from "./base.service";
-import { Job, userProfile, UserWithProfile } from "@/db/schema";
-import { User } from "@/db/schema";
-import { NotFoundError, ValidationError } from "@/utils/errors";
+import { NotFoundError } from "@/utils/errors";
+import { User, UserWithProfile } from "@/validations/userProfile.validation";
+import { Job } from "@/validations/job.validation";
 
 interface JobMatchScore {
   job: Job;
