@@ -1,9 +1,12 @@
 // noinspection JSUnusedGlobalSymbols
 
-import { db } from "@/db/connection";
-import { organizations, jobsDetails, users, userProfile } from "@/db/schema";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+
 import logger from "@/logger";
+
+import { auth } from "@/utils/auth";
+import { db } from "@/db/connection";
+import { organizations, jobsDetails, user, userProfile } from "@/db/schema";
 import { userProfileFixture } from "@tests/utils/fixtures";
 
 enum jobTypeEnum {
@@ -25,24 +28,26 @@ export const seedUser = async (
   status: "active" | "deactivated" | "deleted" = "active",
 ) => {
   const { faker } = await import("@faker-js/faker");
-  const bcrypt = await import("bcrypt");
-
-  const hashedPassword = await bcrypt.hash("Password@123", 12);
 
   await db.transaction(async (trx) => {
-    await trx.delete(users);
+    await trx.delete(user);
 
     // Reset auto-increment counters
     await trx.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
 
-    await trx.insert(users).values({
-      email: "normal.user@example.com",
-      passwordHash: hashedPassword,
-      firstName: faker.person.firstName(),
-      lastName: faker.person.lastName(),
-      role: "user",
-      status,
+    const createdUser = await auth.api.signUpEmail({
+      body: {
+        email: "normal.user@example.com",
+        password: "Password@123",
+        name: faker.person.firstName() + " " + faker.person.lastName(),
+        image: faker.image.avatar(),
+      },
     });
+
+    await trx
+      .update(user)
+      .set({ status })
+      .where(eq(user.id, Number(createdUser.user.id)));
   });
 };
 
@@ -53,18 +58,19 @@ export const seedUsers = async () => {
   const hashedPassword = await bcrypt.hash("Password@123", 12);
 
   await db.transaction(async (trx) => {
-    await trx.delete(users);
+    await trx.delete(user);
 
     // Reset auto-increment counters
     await trx.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
 
-    await trx.insert(users).values(
+    await trx.insert(user).values(
       Array.from({ length: 5 }).map((_, index) => ({
         id: index + 1,
         email: faker.internet.email(),
         passwordHash: hashedPassword,
-        firstName: faker.person.firstName(),
-        lastName: faker.person.lastName(),
+        fullName: `${faker.person.firstName()} ${faker.person.lastName()}`,
+        emailVerified: true,
+        image: faker.image.avatar(),
         role: "user" as const,
       })),
     );
@@ -101,7 +107,7 @@ export const seedJobs = async () => {
 
   try {
     await db.transaction(async (t) => {
-      await t.delete(users);
+      await t.delete(user);
       await t.delete(organizations);
       await t.delete(jobsDetails);
 
@@ -161,26 +167,20 @@ export const seedJobs = async () => {
 export const seedAdminUser = async () => {
   const { faker } = await import("@faker-js/faker");
 
-  const bcrypt = await import("bcrypt");
-  const hashedPassword = await bcrypt.hash("Password@123", 12);
-
   try {
     await db.transaction(async (t) => {
-      await t.delete(users);
+      await t.delete(user);
 
       // Reset auto-increment counters
       await t.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
 
-      await t.insert(users).values({
-        email: "admin@example.com",
-        firstName: faker.person.firstName(),
-        lastName: faker.person.lastName(),
-        passwordHash: hashedPassword,
-        role: "admin",
-        organizationId: 1,
-        isEmailVerified: true,
-        status: "active",
-        lastLoginAt: new Date(),
+      await auth.api.signUpEmail({
+        body: {
+          email: "normal.user@example.com",
+          password: "Password@123",
+          name: faker.person.firstName() + " " + faker.person.lastName(),
+          image: faker.image.avatar(),
+        },
       });
     });
   } catch (error) {
@@ -189,38 +189,33 @@ export const seedAdminUser = async () => {
 };
 
 export const seedUserProfile = async () => {
-  const bcrypt = await import("bcrypt");
   const { faker } = await import("@faker-js/faker");
 
   const userProfileData = await userProfileFixture();
-  const hashedPassword = await bcrypt.hash("Password@123", 12);
 
   try {
     await db.transaction(async (trx) => {
-      await trx.delete(users);
+      await trx.delete(user);
 
       await trx.execute(sql`ALTER TABLE user_profile AUTO_INCREMENT = 1`);
       await trx.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
 
-      const [userId] = await trx
-        .insert(users)
-        .values({
+      const createdUser = await auth.api.signUpEmail({
+        body: {
           email: "normal.user@example.com",
-          passwordHash: hashedPassword,
-          firstName: faker.person.firstName(),
-          lastName: faker.person.lastName(),
-          role: "user",
-          status: "active",
-        })
-        .$returningId();
+          password: "Password@123",
+          name: faker.person.firstName() + " " + faker.person.lastName(),
+          image: faker.image.avatar(),
+        },
+      });
 
-      if (!userId || isNaN(userId.id)) {
-        throw new Error(`Invalid insertId returned: ${userId?.id}`);
+      if (!createdUser || parseInt(createdUser.user.id)) {
+        throw new Error(`Invalid insertId returned: ${createdUser.user.id}`);
       }
 
       await trx.insert(userProfile).values({
         ...userProfileData,
-        userId: userId.id,
+        userId: Number(createdUser.user.id),
       });
     });
   } catch (error) {
