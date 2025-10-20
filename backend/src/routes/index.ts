@@ -1,5 +1,4 @@
 import { Router } from "express";
-import authRoutes from "./auth.routes";
 import userRoutes from "./user.routes";
 import jobRoutes from "./job.routes";
 import organizationRoutes from "./organization.routes";
