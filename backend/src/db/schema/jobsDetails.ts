@@ -14,7 +14,7 @@ import {
 import { relations, sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { users } from "./users";
+import { user } from "./users";
 import { Organization, organizations } from "./organizations";
 
 // Jobs table
@@ -107,7 +107,7 @@ export const jobApplications = mysqlTable(
     }),
     foreignKey({
       columns: [table.applicantId],
-      foreignColumns: [users.id],
+      foreignColumns: [user.id],
       name: "fk_application_applicant",
     }),
   ],
@@ -158,9 +158,9 @@ export const jobApplicationsRelations = relations(
       fields: [jobApplications.jobId],
       references: [jobsDetails.id],
     }),
-    applicant: one(users, {
+    applicant: one(user, {
       fields: [jobApplications.applicantId],
-      references: [users.id],
+      references: [user.id],
     }),
   }),
 );
