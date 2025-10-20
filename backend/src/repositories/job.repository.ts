@@ -3,15 +3,17 @@ import {
   jobApplications,
   jobInsights,
   jobsDetails,
-  NewJobApplication,
   organizations,
-  UpdateJobApplication,
-  users,
+  user,
 } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
 import { calculatePagination, countRecords } from "@/db/utils";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
+import {
+  NewJobApplication,
+  UpdateJobApplication,
+} from "@/validations/job.validation";
 
 export class JobRepository extends BaseRepository<typeof jobsDetails> {
   constructor() {
@@ -175,16 +177,15 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
             employer: organizations,
             applications: jobApplications,
             applicant: {
-              id: users.id,
-              firstName: users.firstName,
-              lastName: users.lastName,
-              email: users.email,
+              id: user.id,
+              fullName: user.fullName,
+              email: user.email,
             },
           })
           .from(jobsDetails)
           .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
           .leftJoin(jobApplications, eq(jobsDetails.id, jobApplications.jobId))
-          .leftJoin(users, eq(jobApplications.applicantId, users.id))
+          .leftJoin(user, eq(jobApplications.applicantId, user.id))
           .where(eq(jobsDetails.id, jobId)),
     );
   }
@@ -232,14 +233,13 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .select({
             application: jobApplications,
             applicant: {
-              id: users.id,
-              firstName: users.firstName,
-              lastName: users.lastName,
-              email: users.email,
+              id: user.id,
+              fullName: user.fullName,
+              email: user.email,
             },
           })
           .from(jobApplications)
-          .innerJoin(users, eq(jobApplications.applicantId, users.id))
+          .innerJoin(user, eq(jobApplications.applicantId, user.id))
           .where(where)
           .orderBy(desc(jobApplications.appliedAt))
           .limit(limit)
@@ -365,14 +365,13 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
               employerId: jobsDetails.employerId,
             },
             user: {
-              id: users.id,
-              organizationId: users.organizationId,
+              id: user.id,
             },
           })
           .from(jobApplications)
           .where(eq(jobApplications.id, applicationId))
           .innerJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
-          .innerJoin(users, eq(jobApplications.applicantId, users.id)),
+          .innerJoin(user, eq(jobApplications.applicantId, user.id)),
     );
   }
 
@@ -401,13 +400,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     });
   }
 
-
   async deleteByUserId(userId: number) {
     return withDbErrorHandling(async () => {
       await db
         .delete(jobApplications)
         .where(eq(jobApplications.applicantId, userId));
-    });  
+    });
   }
-
 }
