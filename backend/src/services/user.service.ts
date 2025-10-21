@@ -1,48 +1,41 @@
 import { UserRepository } from "@/repositories/user.repository";
 import { EmailService } from "@/services/email.service";
-import { JobService } from "@/services/job.service";
 import { BaseService } from "./base.service";
-import {
-  users,
-  type UpdateUser,
-  type User,
-  UpdateUserProfile,
-  NewUserProfile,
-} from "@/db/schema";
-import { NotFoundError, ValidationError, ForbiddenError } from "@/utils/errors";
+import { NotFoundError, ValidationError } from "@/utils/errors";
 import { PaginationMeta } from "@/types";
-import { db } from "@/db/connection";
-import { count, sql } from "drizzle-orm";
 import { UserQuerySchema } from "@/validations/user.validation";
 import { SecurityUtils } from "@/utils/security";
+import { auth } from "@/utils/auth";
+import {
+  NewUserProfile,
+  UpdateUser,
+  UpdateUserProfile,
+} from "@/validations/userProfile.validation";
+import { OrganizationRepository } from "@/repositories/organization.repository";
 
 export class UserService extends BaseService {
   private userRepository: UserRepository;
   private emailService: EmailService;
-  private jobService: JobService;
+  private organizationRepository: OrganizationRepository;
 
   constructor() {
     super();
     this.userRepository = new UserRepository();
     this.emailService = new EmailService();
-    this.jobService = new JobService();
+    this.organizationRepository = new OrganizationRepository();
   }
 
   async getAllUsers(options: UserQuerySchema["query"]) {
-    const { searchTerm, role } = options;
+    const { searchTerm } = options;
 
     const sanitizedSearchTerm = SecurityUtils.sanitizeInput(searchTerm || "");
     const page = Number(options.page || "1");
     const limit = Number(options.limit || "10");
 
-    const result = await this.userRepository.searchUsers(
-      sanitizedSearchTerm,
-      role,
-      {
-        page,
-        limit,
-      },
-    );
+    const result = await this.userRepository.searchUsers(sanitizedSearchTerm, {
+      page,
+      limit,
+    });
     return {
       items: result.items,
       pagination: result.pagination as PaginationMeta, // Ensure type consistency
@@ -70,38 +63,11 @@ export class UserService extends BaseService {
     return await this.userRepository.createProfile(userId, profileData);
   }
 
-  async updateUser(
-    id: number,
-    updateData: UpdateUser,
-    requestingUserId: number,
-    requestingUserRole: string,
-  ) {
+  async updateUser(id: number, updateData: UpdateUser) {
     // Check if user exists
     const existingUser = await this.userRepository.findById(id);
     if (!existingUser) {
       return this.handleError(new NotFoundError("User", id));
-    }
-
-    // Permission checks
-    const isAdmin = requestingUserRole === "admin";
-    const isSelfUpdate = requestingUserId === id;
-
-    if (!isAdmin && !isSelfUpdate) {
-      return this.handleError(
-        new ForbiddenError("You can only update your own profile"),
-      );
-    }
-
-    // Non-admins cannot change certain fields
-    if (
-      !isAdmin &&
-      (updateData.role || updateData.organizationId !== undefined)
-    ) {
-      return this.handleError(
-        new ForbiddenError(
-          "Insufficient permissions to modify role or organization",
-        ),
-      );
     }
 
     // Validate email uniqueness if email is being updated
@@ -114,7 +80,12 @@ export class UserService extends BaseService {
       }
     }
 
-    const success = await this.userRepository.update(id, updateData);
+    const { status: success } = await auth.api.updateUser({
+      body: {
+        name: updateData.fullName,
+        image: updateData.image as string | undefined,
+      },
+    });
     if (!success) {
       return this.handleError(new Error("Failed to update user"));
     }
@@ -141,20 +112,15 @@ export class UserService extends BaseService {
       return this.handleError(new NotFoundError("User", userId));
     }
 
-    const isValid = await SecurityUtils.verifyPassword(
-      currentPassword,
-      user.passwordHash,
-    );
-    if (!isValid) {
-      return this.handleError(
-        new ValidationError("Current password is incorrect"),
-      );
-    }
+    const res = await auth.api.changePassword({
+      body: {
+        newPassword,
+        currentPassword,
+        revokeOtherSessions: true,
+      },
+    });
 
-    const newHash = await SecurityUtils.hashPassword(newPassword);
-    await this.userRepository.update(userId, { passwordHash: newHash });
-
-    return { message: "Password changed successfully" };
+    return { message: "Password changed successfully", data: res };
   }
 
   async deactivateSelf(userId: number) {
@@ -170,18 +136,6 @@ export class UserService extends BaseService {
       );
     }
 
-    // Edge case: Check for active jobs if employer
-    if (user.role === "employer" && user.organizationId) {
-      const activeJobs = await this.jobService.getActiveJobsByOrganization(
-        user.organizationId,
-      );
-      if (activeJobs.length > 0) {
-        return this.handleError(
-          new ValidationError("Cannot deactivate account with active jobs"),
-        );
-      }
-    }
-
     const deactivatedUser = await this.userRepository.deactivateUserAccount(
       userId,
       {
@@ -195,7 +149,7 @@ export class UserService extends BaseService {
     // Email notification
     await this.emailService.sendAccountDeactivationConfirmation(
       deactivatedUser.email,
-      deactivatedUser.firstName,
+      deactivatedUser.fullName,
     );
 
     return deactivatedUser;
@@ -219,17 +173,18 @@ export class UserService extends BaseService {
       );
     }
 
+    // Todo: Check permissions with Better-Auth
     // Edge case: Check for active jobs if employer
-    if (user.role === "employer" && user.organizationId) {
-      const activeJobs = await this.jobService.getActiveJobsByOrganization(
-        user.organizationId,
-      );
-      if (activeJobs.length > 0) {
-        return this.handleError(
-          new ValidationError("Cannot deactivate user with active jobs"),
-        );
-      }
-    }
+    // if (user.role === "employer" && user.organizationId) {
+    //   const activeJobs = await this.jobService.getActiveJobsByOrganization(
+    //     user.organizationId,
+    //   );
+    //   if (activeJobs.length > 0) {
+    //     return this.handleError(
+    //       new ValidationError("Cannot deactivate user with active jobs"),
+    //     );
+    //   }
+    // }
 
     const success = await this.userRepository.update(id, {
       status: "deactivated",
@@ -241,7 +196,7 @@ export class UserService extends BaseService {
     // Email notification
     await this.emailService.sendAccountDeactivationConfirmation(
       user.email,
-      user.firstName,
+      user.fullName,
     );
 
     return await this.getUserById(id);
@@ -265,90 +220,75 @@ export class UserService extends BaseService {
     return await this.getUserById(id);
   }
 
-  async getUsersByRole(role: User["role"]) {
-    try {
-      return await this.userRepository.findByRole(role);
-    } catch (error) {
-      this.handleError(error);
-    }
+  async canSeekJobs(sessionUserId: number) {
+    return await this.userRepository.canSeekJobs(sessionUserId);
   }
 
+  async hasPrerequisiteRoles(
+    sessionUserId: number,
+    roles: ("owner" | "admin" | "recruiter" | "member")[],
+  ) {
+    return await this.organizationRepository.checkHasElevatedRole(
+      sessionUserId,
+      roles,
+    );
+  }
+
+  // Todo: Implement user statistics - Role no longer available directly on user
   // Get user statistics
-  async getUserStats() {
-    try {
-      const result = await db
-        .select({
-          users: count(sql`CASE WHEN ${users.role} = 'user' THEN 1 END`),
-          employers: count(
-            sql`CASE WHEN ${users.role} = 'employer' THEN 1 END`,
-          ),
-          admins: count(sql`CASE WHEN ${users.role} = 'admin' THEN 1 END`),
-          total: count(),
-        })
-        .from(users);
+  // async getUserStats() {
+  //   try {
+  //     const result = await db
+  //       .select({
+  //         users: count(sql`CASE WHEN ${user.role} = 'user' THEN 1 END`),
+  //         employers: count(
+  //           sql`CASE WHEN ${user.role} = 'employer' THEN 1 END`,
+  //         ),
+  //         admins: count(sql`CASE WHEN ${user.role} = 'admin' THEN 1 END`),
+  //         total: count(),
+  //       })
+  //       .from(user);
+  //
+  //     const stats = result[0];
+  //
+  //     if (!stats) {
+  //       return {
+  //         users: 0,
+  //         employers: 0,
+  //         admins: 0,
+  //         total: 0,
+  //       };
+  //     }
+  //
+  //     return {
+  //       users: stats.users,
+  //       employers: stats.employers,
+  //       admins: stats.admins,
+  //       total: stats.total,
+  //     };
+  //   } catch (error) {
+  //     this.handleError(error);
+  //   }
+  // }
 
-      const stats = result[0];
-
-      if (!stats) {
-        return {
-          users: 0,
-          employers: 0,
-          admins: 0,
-          total: 0,
-        };
-      }
-
-      return {
-        users: stats.users,
-        employers: stats.employers,
-        admins: stats.admins,
-        total: stats.total,
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  async deleteSelf(userId: number, currentPassword: string): Promise<void> {
+  async deleteSelf(userId: number, token: string): Promise<void> {
     const user = await this.userRepository.findByIdWithPassword(userId);
     if (!user) {
       return this.handleError(new NotFoundError("User", userId));
     }
 
-    // Safeguard: Validate password
-    const isValid = await SecurityUtils.verifyPassword(
-      currentPassword,
-      user.passwordHash,
-    );
-    if (!isValid) {
-      return this.handleError(new ValidationError("Invalid Credentials"));
-    }
+    const userDeleted = await auth.api.deleteUser({
+      body: {
+        token, // Todo: replace currentPassword with actual confirmation token
+      },
+    });
 
-    // Business checks
-    if (user.role === "employer" && user.organizationId) {
-      const activeJobs = await this.jobService.getActiveJobsByOrganization(
-        user.organizationId,
-      );
-      if (activeJobs.length > 0) {
-        return this.handleError(
-          new ValidationError("Cannot delete account with active jobs"),
-        );
-      }
-    }
     // Notification email
     await this.emailService.sendAccountDeletionConfirmation(
       user.email,
-      user.firstName,
+      user.fullName,
     );
 
-    // Soft delete: Update status and timestamp
-    const userDeleted = await this.userRepository.deleteUsersOwnAccount(
-      userId,
-      {
-        status: "deleted",
-        deletedAt: new Date(),
-      },
-    );
     if (!userDeleted) {
       return this.handleError(new Error("Failed to delete account"));
     }
