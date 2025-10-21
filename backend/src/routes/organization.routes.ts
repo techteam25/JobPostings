@@ -110,7 +110,7 @@ registry.registerPath({
   path: "/organizations",
   summary: "Create a new organization",
   tags: ["Organizations"],
-  security: [{ bearerAuth: [] }],
+  security: [{ cookie: [] }],
   request: {
     body: {
       content: {
@@ -168,7 +168,7 @@ registry.registerPath({
   path: "/organizations/{organizationId}",
   summary: "Update an organization",
   tags: ["Organizations"],
-  security: [{ bearerAuth: [] }],
+  security: [{ cookie: [] }],
   request: {
     params: updateOrganizationSchema.shape["params"],
     body: {
@@ -225,7 +225,7 @@ registry.registerPath({
 router.put(
   "/:organizationId",
   authMiddleware.authenticate,
-  authMiddleware.requireJobPostingRole(),
+  authMiddleware.requireAdminOrOwnerRole(["owner"]),
   validate(updateOrganizationInputSchema),
   organizationController.updateOrganization,
 );
@@ -235,7 +235,7 @@ registry.registerPath({
   path: "/organizations/{organizationId}",
   summary: "Delete an organization",
   tags: ["Organizations"],
-  security: [{ bearerAuth: [] }],
+  security: [{ cookie: [] }],
   request: {
     params: deleteOrganizationSchema.shape["params"],
   },
@@ -289,7 +289,7 @@ registry.registerPath({
 router.delete(
   "/:organizationId",
   authMiddleware.authenticate,
-  authMiddleware.requireJobPostingRole(), // Todo: Create admin & owner only middleware
+  authMiddleware.requireAdminOrOwnerRole(["owner"]),
   validate(deleteOrganizationSchema),
   organizationController.deleteOrganization,
 );
