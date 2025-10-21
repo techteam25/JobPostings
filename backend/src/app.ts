@@ -149,7 +149,7 @@ if (env.NODE_ENV === "development") {
  *                    type: string
  *
  */
-app.get("/health", async (_: Request, res: Response) => {
+app.get("/health", cors({ origin: "*" }), async (_: Request, res: Response) => {
   try {
     const isDatabaseHealthy = await checkDatabaseConnection();
     const healthStatus = {
