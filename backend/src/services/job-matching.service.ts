@@ -142,7 +142,8 @@ export class JobMatchingService extends BaseService {
       }
 
       // Get all active users with user role
-      const activeUsers = await this.userRepository.findActiveUsersByRole();
+      const activeUsers =
+        await this.userRepository.findActiveUsersIncludingProfile();
 
       // Get users who haven't applied for this job
       const jobApplications =
