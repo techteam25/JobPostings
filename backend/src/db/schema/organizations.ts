@@ -10,8 +10,6 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { z } from "zod";
 import { user } from "./users";
 import { jobInsights } from "./jobsDetails";
 
