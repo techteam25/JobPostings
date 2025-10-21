@@ -10,7 +10,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { relations, sql } from "drizzle-orm";
 
-import { session } from "./sessions";
+import { account, session } from "./sessions";
 import { educations } from "./educations";
 import { workExperiences } from "./workExperiences";
 import { userCertifications } from "./certifications";
@@ -40,7 +40,7 @@ export const user = mysqlTable(
 
     check(
       "status_must_be_valid",
-      sql`${table.status} IN ("active", "deactivated", "deleted")`,
+      sql`(${table.status} IN ("active", "deactivated", "deleted"))`,
     ),
     check(
       "deleted_status_requires_deleted_at",
@@ -80,6 +80,10 @@ export const userRelations = relations(user, ({ one, many }) => ({
   }),
   sessions: many(session),
   organizationMembers: many(organizationMembers),
+  account: one(account, {
+    fields: [user.id],
+    references: [account.userId],
+  }),
 }));
 
 export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
