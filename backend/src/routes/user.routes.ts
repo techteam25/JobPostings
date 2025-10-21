@@ -2,7 +2,7 @@ import { Router } from "express";
 import { UserController } from "@/controllers/user.controller";
 import { AuthMiddleware } from "@/middleware/auth.middleware";
 import { z } from "zod";
-import validate from "../middleware/validation.middleware";
+import validate from "@/middleware/validation.middleware";
 import {
   getUserSchema,
   changeUserPasswordSchema,
@@ -12,7 +12,10 @@ import {
 } from "@/validations/user.validation";
 import { registry } from "@/swagger/registry";
 import { apiResponseSchema, errorResponseSchema } from "@/types";
-import { selectUserProfileSchema, selectUserSchema } from "@/db/schema";
+import {
+  selectUserProfileSchema,
+  selectUserSchema,
+} from "@/validations/userProfile.validation";
 
 const router = Router();
 const userController = new UserController();
@@ -154,64 +157,6 @@ router.post(
 );
 
 registry.registerPath({
-  method: "post",
-  path: "/users/me/change-password",
-  tags: ["Users"],
-  summary: "Change Password",
-  description:
-    "Allow authenticated users to change their password after validating the current one.",
-  request: {
-    body: {
-      content: {
-        "application/json": {
-          schema: changeUserPasswordSchema.shape.body,
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: "Password changed successfully",
-      content: {
-        "application/json": {
-          schema: apiResponseSchema(z.object({ message: z.string() })),
-        },
-      },
-    },
-    400: {
-      description: "Validation error or incorrect current password",
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description: "Authentication required",
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    404: {
-      description: "User not found",
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-  },
-});
-
-router.post(
-  "/me/change-password",
-  validate(changeUserPasswordSchema),
-  userController.changePassword,
-);
-
-registry.registerPath({
   method: "patch",
   path: "/users/me/deactivate",
   tags: ["Users"],
@@ -287,15 +232,15 @@ router.delete(
 // Admin only routes for user management
 router.get(
   "/",
-  authMiddleware.requireRole(["admin"]),
+  authMiddleware.requireAdminOrOwnerRole(["admin", "owner"]),
   userController.getAllUsers,
 );
 
-router.get(
-  "/stats",
-  authMiddleware.requireRole(["admin"]),
-  userController.getUserStats,
-);
+// router.get(
+//   "/stats",
+//   authMiddleware.requireRole(["admin"]),
+//   userController.getUserStats,
+// );
 
 // User management routes (admin or self)
 router.get("/:id", validate(getUserSchema), userController.getUserById);
@@ -310,21 +255,21 @@ router.put(
 router.patch(
   "/:id/deactivate",
   validate(getUserSchema),
-  authMiddleware.requireRole(["admin"]),
+  authMiddleware.requireAdminOrOwnerRole(["admin", "owner"]),
   userController.deactivateUser,
 );
 
 router.patch(
   "/:id/activate",
   validate(getUserSchema),
-  authMiddleware.requireRole(["admin"]),
+  authMiddleware.requireAdminOrOwnerRole(["admin", "owner"]),
   userController.activateUser,
 );
 
 router.delete(
   "/:id",
   validate(getUserSchema),
-  authMiddleware.requireRole(["admin"]),
+  authMiddleware.requireAdminOrOwnerRole(["owner"]),
   userController.deleteUser,
 );
 
