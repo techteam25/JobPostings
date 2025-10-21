@@ -1,4 +1,4 @@
-import { and, count, eq, like, or } from "drizzle-orm";
+import { and, count, eq, like, or, inArray, sql } from "drizzle-orm";
 import { organizationMembers, organizations } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
@@ -76,7 +76,7 @@ export class OrganizationRepository extends BaseRepository<
             }
 
             // Add the creating user as the organization owner
-            const user = await tx
+            await tx
               .insert(organizationMembers)
               .values({
                 organizationId: orgId.id,
@@ -144,6 +144,24 @@ export class OrganizationRepository extends BaseRepository<
     );
   }
 
+  async checkHasElevatedRole(
+    userId: number,
+    roles: ("owner" | "admin" | "recruiter" | "member")[],
+  ): Promise<boolean> {
+    return await db
+      .select({ exists: sql`SELECT 1` })
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.userId, userId),
+          eq(organizationMembers.isActive, true),
+          inArray(organizationMembers.role, roles),
+        ),
+      )
+      .limit(1)
+      .then((result) => result.length > 0);
+  }
+
   // Get user's active organizations
   async getUserOrganizations(userId: number) {
     return db.query.organizationMembers.findMany({
@@ -155,5 +173,31 @@ export class OrganizationRepository extends BaseRepository<
         organization: true,
       },
     });
+  }
+
+  async getOrganizationMembersByRole(
+    organizationId: number,
+    role: "owner" | "admin" | "recruiter",
+  ) {
+    try {
+      return await withDbErrorHandling(
+        async () =>
+          await db.query.organizationMembers.findMany({
+            where: and(
+              eq(organizationMembers.organizationId, organizationId),
+              eq(organizationMembers.role, role),
+            ),
+            with: {
+              user: true,
+              organization: true,
+            },
+          }), // Filter active
+      );
+    } catch (error) {
+      throw new DatabaseError(
+        `Failed to fetch users by role: ${role}`,
+        error instanceof Error ? error : undefined,
+      );
+    }
   }
 }
