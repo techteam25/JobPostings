@@ -149,7 +149,7 @@ export class OrganizationRepository extends BaseRepository<
     roles: ("owner" | "admin" | "recruiter" | "member")[],
   ): Promise<boolean> {
     return await db
-      .select({ exists: sql`SELECT 1` })
+      .select({ exists: organizationMembers.id })
       .from(organizationMembers)
       .where(
         and(
