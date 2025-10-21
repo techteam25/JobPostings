@@ -47,8 +47,7 @@ export class JobService extends BaseService {
       );
       return allJobs.items.filter((job) => job.isActive);
     } catch (error) {
-      this.handleError(error);
-      return [];
+      return this.handleError(error);
     }
   }
 
@@ -82,7 +81,7 @@ export class JobService extends BaseService {
     options: { page?: number; limit?: number } = {},
     requesterId: number,
   ) {
-    // Additional check for employers - they can only see their own organization's jobs
+    // Todo: Additional check for employers - they can only see their own organization's jobs
     const organization =
       await this.organizationRepository.findByContact(requesterId);
     if (!organization) {
