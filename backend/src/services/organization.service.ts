@@ -85,4 +85,26 @@ export class OrganizationService extends BaseService {
   async isRolePermitted(userId: number) {
     return await this.organizationRepository.canPostJobs(userId);
   }
+
+  async getOrganizationMembersByRole(
+    organizationId: number,
+    role: "owner" | "admin" | "recruiter",
+  ) {
+    try {
+      return await this.organizationRepository.getOrganizationMembersByRole(
+        organizationId,
+        role,
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  async getOrganizationMember(sessionUserId: number) {
+    try {
+      return await this.organizationRepository.findByContact(sessionUserId);
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
 }
