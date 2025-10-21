@@ -1,4 +1,4 @@
-// noinspection JSUnusedGlobalSymbols
+// noinspection JSUnusedGlobalSymbols,DuplicatedCode
 
 import { eq, sql } from "drizzle-orm";
 
@@ -129,17 +129,14 @@ export const seedOrganizations = async () => {
       throw new Error("No organizations were created");
     }
 
-    const orgMemberInserts = await trx
-      .insert(organizationMembers)
-      .values(
-        createdOrgIds.map((orgId) => ({
-          userId: Number(owner.user.id),
-          organizationId: orgId.id,
-          role: "owner" as const,
-          isActive: true,
-        })),
-      )
-      .$returningId();
+    await trx.insert(organizationMembers).values(
+      createdOrgIds.map((orgId) => ({
+        userId: Number(owner.user.id),
+        organizationId: orgId.id,
+        role: "owner" as const,
+        isActive: true,
+      })),
+    );
   });
 };
 
@@ -155,6 +152,20 @@ export const seedJobs = async () => {
       // Reset auto-increment counters
       await t.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
       await t.execute(sql`ALTER TABLE job_details AUTO_INCREMENT = 1`);
+      await t.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+
+      const createdUser = await auth.api.signUpEmail({
+        body: {
+          email: "owner.user@example.com",
+          password: "Password@123",
+          name: faker.person.firstName() + " " + faker.person.lastName(),
+          image: faker.image.avatar(),
+        },
+      });
+
+      t.update(organizationMembers)
+        .set({ role: "owner" as const })
+        .where(eq(user.id, Number(createdUser.user.id)));
 
       await t
         .insert(organizations)
@@ -166,7 +177,6 @@ export const seedJobs = async () => {
             state: faker.location.state(),
             zipCode: faker.location.zipCode("#####"),
             phone: faker.phone.number({ style: "international" }),
-            contact: 1,
             url: faker.internet.url(),
             mission: faker.lorem.sentence(),
           })),
@@ -196,7 +206,7 @@ export const seedJobs = async () => {
               "AWS",
             ]),
           ),
-          employerId: 1, // faker.helpers.arrayElement(orgIds),
+          employerId: parseInt(createdUser.user.id), // faker.helpers.arrayElement(orgIds),
         })),
       );
     });
@@ -210,18 +220,47 @@ export const seedAdminUser = async () => {
 
   try {
     await db.transaction(async (t) => {
+      await t.delete(organizations);
       await t.delete(user);
 
       // Reset auto-increment counters
+      await t.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
       await t.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
 
-      await auth.api.signUpEmail({
+      const createdUser = await auth.api.signUpEmail({
         body: {
-          email: "normal.user@example.com",
+          email: "admin.user@example.com",
           password: "Password@123",
           name: faker.person.firstName() + " " + faker.person.lastName(),
           image: faker.image.avatar(),
         },
+      });
+
+      const [orgId] = await t
+        .insert(organizations)
+        .values(
+          Array.from({ length: 5 }).map(() => ({
+            name: faker.company.name(),
+            streetAddress: faker.location.streetAddress(),
+            city: faker.location.city(),
+            state: faker.location.state(),
+            zipCode: faker.location.zipCode("#####"),
+            phone: faker.phone.number({ style: "international" }),
+            url: faker.internet.url(),
+            mission: faker.lorem.sentence(),
+          })),
+        )
+        .$returningId();
+
+      if (!orgId) {
+        throw new Error("Failed to create organization for admin user");
+      }
+
+      await t.insert(organizationMembers).values({
+        userId: Number(createdUser.user.id),
+        organizationId: orgId.id,
+        role: "owner" as const,
+        isActive: true,
       });
     });
   } catch (error) {
