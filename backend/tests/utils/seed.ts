@@ -239,6 +239,9 @@ export const seedUserProfile = async () => {
       await trx.delete(user);
 
       await trx.execute(sql`ALTER TABLE user_profile AUTO_INCREMENT = 1`);
+      await trx.execute(sql`ALTER TABLE educations AUTO_INCREMENT = 1`);
+      await trx.execute(sql`ALTER TABLE work_experiences AUTO_INCREMENT = 1`);
+      await trx.execute(sql`ALTER TABLE certifications AUTO_INCREMENT = 1`);
       await trx.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
 
       const createdUser = await auth.api.signUpEmail({
@@ -250,7 +253,7 @@ export const seedUserProfile = async () => {
         },
       });
 
-      if (!createdUser || parseInt(createdUser.user.id)) {
+      if (!createdUser || !parseInt(createdUser.user.id)) {
         throw new Error(`Invalid insertId returned: ${createdUser.user.id}`);
       }
 
@@ -260,8 +263,6 @@ export const seedUserProfile = async () => {
       });
     });
   } catch (error) {
-    console.error(
-      `Error seeding user profile:, ${JSON.stringify(error, null, 2)}`,
-    );
+    console.error("Error seeding user profile: ", error);
   }
 };
