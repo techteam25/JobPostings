@@ -14,6 +14,7 @@ export const insertJobSchema = createInsertSchema(jobsDetails, {
     .string()
     .min(50, "Description must be at least 50 characters")
     .max(5000),
+  applicationDeadline: z.iso.datetime(),
   location: z.string().min(1, "Location is required").max(255).trim(),
   salaryMin: z.number().positive("Salary must be positive").optional(),
   salaryMax: z.number().positive("Salary must be positive").optional(),
