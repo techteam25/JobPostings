@@ -14,7 +14,6 @@ export const insertJobSchema = createInsertSchema(jobsDetails, {
     .string()
     .min(50, "Description must be at least 50 characters")
     .max(5000),
-  applicationDeadline: z.iso.datetime(),
   location: z.string().min(1, "Location is required").max(255).trim(),
   salaryMin: z.number().positive("Salary must be positive").optional(),
   salaryMax: z.number().positive("Salary must be positive").optional(),
@@ -54,7 +53,6 @@ export const updateJobInputSchema = insertJobSchema.partial().omit({
   id: true,
   createdAt: true,
   employerId: true,
-  postedById: true,
 });
 
 export const updateJobApplicationSchema = insertJobApplicationSchema
@@ -75,6 +73,10 @@ export const updateJobInsightsSchema = insertJobInsightsSchema
   .omit({ id: true });
 
 const createJobPayloadSchema = insertJobSchema
+  .omit({ applicationDeadline: true })
+  .extend({
+    applicationDeadline: z.iso.datetime(),
+  })
   .refine(
     (data) =>
       !data.salaryMax || !data.salaryMin || data.salaryMax >= data.salaryMin,
