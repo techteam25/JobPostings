@@ -197,7 +197,6 @@ export class JobController extends BaseController {
       const jobData = {
         ...req.body,
         employerId: req.userId!, // Todo: get employerId from user's organization
-        postedById: req.userId!,
         applicationDeadline: req.body.applicationDeadline
           ? new Date(req.body.applicationDeadline)
           : null,
@@ -233,7 +232,12 @@ export class JobController extends BaseController {
       // Authorization check is handled in service
       const job = await this.jobService.updateJob(
         jobId,
-        updateData,
+        {
+          ...updateData,
+          applicationDeadline: updateData.applicationDeadline
+            ? new Date(updateData.applicationDeadline)
+            : undefined,
+        },
         req.userId!,
       );
       return res.status(200).json({
