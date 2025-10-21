@@ -13,8 +13,8 @@ export const userProfileFixture = async () => {
     state: faker.location.state(),
     zipCode: faker.location.zipCode("#####"),
     country: faker.location.country(),
-    education: userEducationsFixture(),
-    workExperiences: workExperiencesFixture(),
+    education: await userEducationsFixture(),
+    workExperiences: await workExperiencesFixture(),
     certifications: userCertificationsFixture(),
   };
 };
