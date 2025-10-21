@@ -351,7 +351,7 @@ registry.registerPath({
 });
 router.delete(
   "/:jobId",
-  authMiddleware.requireJobPostingRole(), // Todo: Create admins, recruiter, & owner specific middleware
+  authMiddleware.requireJobPostingRole(),
   validate(deleteJobSchema),
   jobController.deleteJob,
 );
@@ -364,7 +364,7 @@ router.get(
 );
 
 router.patch(
-  "/applications/:applicationId/status", // Todo: Create admins, recruiter, & owner specific middleware
+  "/applications/:applicationId/status",
   authMiddleware.requireJobPostingRole(),
   validate(updateApplicationStatusSchema),
   jobController.updateApplicationStatus,
