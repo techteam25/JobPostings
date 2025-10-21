@@ -220,11 +220,13 @@ export const seedAdminUser = async () => {
 
   try {
     await db.transaction(async (t) => {
+      await t.delete(organizationMembers);
       await t.delete(organizations);
       await t.delete(user);
 
       // Reset auto-increment counters
       await t.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
+      await t.execute(sql`ALTER TABLE organization_members AUTO_INCREMENT = 1`);
       await t.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
 
       const createdUser = await auth.api.signUpEmail({
