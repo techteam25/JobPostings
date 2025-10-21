@@ -10,9 +10,11 @@ import { OrganizationService } from "@/services/organization.service";
 
 export class AuthMiddleware {
   private readonly organizationService: OrganizationService;
+  private readonly userService: UserService;
 
   constructor() {
     this.organizationService = new OrganizationService();
+    this.userService = new UserService();
   }
 
   authenticate = async (
@@ -101,6 +103,67 @@ export class AuthMiddleware {
     };
   };
 
+  requireAdminOrOwnerRole = (roles: string[]) => {
+    return async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        if (!req.userId) {
+          return res.status(401).json({
+            status: "error",
+            message: "Authentication required",
+          });
+        }
+
+        const user = await this.organizationService.getOrganizationMember(
+          req.userId,
+        );
+
+        if (!["owner", "admin"].some((role) => roles.includes(role))) {
+          return res.status(500).json({
+            status: "error",
+            message:
+              "Invalid roles configuration. This middleware should only include 'owner' or 'admin'",
+          });
+        }
+
+        if (!user) {
+          // User may be authenticated but not an organization member
+          return res.status(403).json({
+            status: "error",
+            message: "Insufficient permissions",
+          });
+        }
+
+        if (!roles.includes(user.role)) {
+          // Check if user's role is in the permitted roles
+          return res.status(403).json({
+            status: "error",
+            message: "Insufficient permissions",
+          });
+        }
+
+        // Fetch user to check role
+        const isPermitted = await this.userService.hasPrerequisiteRoles(
+          req.userId,
+          ["owner", "admin"],
+        );
+
+        if (!isPermitted) {
+          return res.status(403).json({
+            status: "error",
+            message: "Insufficient permissions",
+          });
+        }
+
+        return next();
+      } catch (error) {
+        return res.status(500).json({
+          status: "error",
+          message: "Error checking user permissions",
+        });
+      }
+    };
+  };
+
   // This will check for 'user' role (i.e., not pure employer)
   requireUserRole = () => {
     return async (req: Request, res: Response, next: NextFunction) => {
@@ -114,7 +177,7 @@ export class AuthMiddleware {
 
         // Fetch user to check role
         const userService = new UserService();
-        const user = await userService.getUserById(req.userId);
+        const userCanSeekJobs = await userService.canSeekJobs(req.userId);
 
         /*
         Scenario 1: Pure Job Seeker
@@ -132,7 +195,7 @@ export class AuthMiddleware {
         Has a record in userProfile ✓
         Has record(s) in organizationMembers ✓
          */
-        if (user && !user.profile) {
+        if (!userCanSeekJobs) {
           //
           return res.status(403).json({
             status: "error",
@@ -140,7 +203,6 @@ export class AuthMiddleware {
           });
         }
 
-        req.user = user;
         return next();
       } catch (error) {
         return res.status(500).json({
