@@ -2,63 +2,44 @@ import { and, count, eq, like, or, sql, ne } from "drizzle-orm";
 import {
   certifications,
   educations,
-  jobApplications,
-  NewUser,
-  NewUserProfile,
-  sessions,
-  UpdateUserProfile,
-  User,
   userCertifications,
   userProfile,
-  users,
+  user,
   workExperiences,
 } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
 import { DatabaseError } from "@/utils/errors";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
+import {
+  NewUserProfile,
+  UpdateUserProfile,
+  User,
+} from "@/validations/userProfile.validation";
 
-export class UserRepository extends BaseRepository<typeof users> {
+export class UserRepository extends BaseRepository<typeof user> {
   constructor() {
-    super(users);
-  }
-
-  async findByEmailWithPassword(email: string) {
-    try {
-      return await withDbErrorHandling(async () => {
-        const user = await db.query.users.findFirst({
-          where: and(eq(users.email, email)),
-        });
-        return user || undefined;
-      });
-    } catch (error) {
-      throw new DatabaseError(
-        `Failed to query user by email for login: ${email}`,
-        error instanceof Error ? error : undefined,
-      );
-    }
+    super(user);
   }
 
   async findByEmail(email: string): Promise<User | undefined> {
     try {
       return await withDbErrorHandling(
         async () =>
-          await db.query.users.findFirst({
+          await db.query.user.findFirst({
             columns: {
               id: true,
               email: true,
-              firstName: true,
-              lastName: true,
-              role: true,
-              organizationId: true,
-              isEmailVerified: true,
+              fullName: true,
+              image: true,
+              emailVerified: true,
               status: true,
               deletedAt: true,
               lastLoginAt: true,
               createdAt: true,
               updatedAt: true,
             },
-            where: and(eq(users.email, email), ne(users.status, "deleted")),
+            where: and(eq(user.email, email), ne(user.status, "deleted")),
           }),
       );
     } catch (error) {
@@ -73,8 +54,8 @@ export class UserRepository extends BaseRepository<typeof users> {
     try {
       return await withDbErrorHandling(
         async () =>
-          await db.query.users.findFirst({
-            where: and(eq(users.id, id), eq(users.status, "active")),
+          await db.query.user.findFirst({
+            where: and(eq(user.id, id), eq(user.status, "active")),
             with: {
               profile: {
                 with: {
@@ -90,11 +71,9 @@ export class UserRepository extends BaseRepository<typeof users> {
             columns: {
               id: true,
               email: true,
-              firstName: true,
-              lastName: true,
-              role: true,
-              organizationId: true,
-              isEmailVerified: true,
+              fullName: true,
+              emailVerified: true,
+              image: true,
               status: true,
               deletedAt: true,
               lastLoginAt: true,
@@ -111,28 +90,30 @@ export class UserRepository extends BaseRepository<typeof users> {
     }
   }
 
-  async findByIdWithPassword(
-    id: number,
-  ): Promise<(User & { passwordHash: string }) | undefined> {
+  async findByIdWithPassword(id: number): Promise<User | undefined> {
     try {
       return await withDbErrorHandling(
         async () =>
-          await db.query.users.findFirst({
-            where: eq(users.id, id),
+          await db.query.user.findFirst({
+            where: eq(user.id, id),
             columns: {
               id: true,
               email: true,
-              firstName: true,
-              lastName: true,
-              role: true,
-              organizationId: true,
-              isEmailVerified: true,
+              fullName: true,
+              image: true,
+              emailVerified: true,
               status: true,
               deletedAt: true,
               lastLoginAt: true,
               createdAt: true,
               updatedAt: true,
-              passwordHash: true,
+            },
+            with: {
+              account: {
+                columns: {
+                  password: true,
+                },
+              },
             },
           }),
       );
@@ -148,16 +129,13 @@ export class UserRepository extends BaseRepository<typeof users> {
     try {
       return await withDbErrorHandling(
         async () =>
-          await db.query.users.findFirst({
-            where: eq(users.id, id),
+          await db.query.user.findFirst({
+            where: eq(user.id, id),
             columns: {
               id: true,
               email: true,
-              firstName: true,
-              lastName: true,
-              role: true,
-              organizationId: true,
-              isEmailVerified: true,
+              fullName: true,
+              emailVerified: true,
               status: true,
               deletedAt: true,
               lastLoginAt: true,
@@ -172,16 +150,6 @@ export class UserRepository extends BaseRepository<typeof users> {
         error instanceof Error ? error : undefined,
       );
     }
-  }
-
-  async createUser(userData: NewUser): Promise<number> {
-    const [userId] = await withDbErrorHandling(
-      async () => await db.insert(users).values(userData).$returningId(),
-    );
-    if (!userId || isNaN(userId.id)) {
-      throw new DatabaseError(`Invalid insertId returned: ${userId?.id}`);
-    }
-    return userId.id;
   }
 
   async createProfile(
@@ -227,37 +195,6 @@ export class UserRepository extends BaseRepository<typeof users> {
     }
   }
 
-  async deleteSessionsByUserId(userId: number): Promise<void> {
-    try {
-      await withDbErrorHandling(async () => {
-        await db.delete(sessions).where(eq(sessions.userId, userId));
-      });
-    } catch (error) {
-      throw new DatabaseError(
-        `Failed to delete sessions for userId: ${userId}`,
-        error instanceof Error ? error : undefined,
-      );
-    }
-  }
-
-  async deleteUser(userId: number): Promise<void> {
-    // Check if user exists
-    await withDbErrorHandling(
-      async () =>
-        await db.transaction(async (tx) => {
-          const user = await tx.query.users.findFirst({
-            where: eq(users.id, userId),
-          });
-
-          if (!user) {
-            tx.rollback();
-          }
-          await tx.delete(userProfile).where(eq(userProfile.userId, userId));
-          await tx.delete(users).where(eq(users.id, userId));
-        }),
-    );
-  }
-
   async updateProfile(userId: number, profileData: UpdateUserProfile) {
     try {
       return await withDbErrorHandling(
@@ -269,8 +206,6 @@ export class UserRepository extends BaseRepository<typeof users> {
               certifications: certificationsData,
               ...userProfileData
             } = profileData;
-
-            console.log({ workExperiencesData, certificationsData });
 
             await tx.update(userProfile).set({ ...userProfileData, userId });
             const userProfileId = await tx
@@ -361,8 +296,8 @@ export class UserRepository extends BaseRepository<typeof users> {
               }
             }
 
-            return await tx.query.users.findFirst({
-              where: eq(users.id, userId),
+            return await tx.query.user.findFirst({
+              where: eq(user.id, userId),
               with: {
                 profile: {
                   with: {
@@ -378,11 +313,9 @@ export class UserRepository extends BaseRepository<typeof users> {
               columns: {
                 id: true,
                 email: true,
-                firstName: true,
-                lastName: true,
-                role: true,
-                organizationId: true,
-                isEmailVerified: true,
+                fullName: true,
+                emailVerified: true,
+                image: true,
                 status: true,
                 deletedAt: true,
                 lastLoginAt: true,
@@ -402,7 +335,6 @@ export class UserRepository extends BaseRepository<typeof users> {
 
   async searchUsers(
     searchTerm: string,
-    role: "user" | "employer" | "admin" | undefined,
     options: { page?: number; limit?: number } = {},
   ): Promise<{
     items: User[];
@@ -421,15 +353,10 @@ export class UserRepository extends BaseRepository<typeof users> {
       if (searchTerm) {
         conditions.push(
           or(
-            like(users.firstName, `%${searchTerm}%`),
-            like(users.lastName, `%${searchTerm}%`),
-            like(users.email, `%${searchTerm}%`),
+            like(user.fullName, `%${searchTerm}%`),
+            like(user.email, `%${searchTerm}%`),
           ),
         );
-      }
-
-      if (role) {
-        conditions.push(eq(users.role, role));
       }
 
       const whereCondition =
@@ -440,27 +367,25 @@ export class UserRepository extends BaseRepository<typeof users> {
           await db.transaction(async (tx) => {
             const items = await tx
               .select({
-                id: users.id,
-                firstName: users.firstName,
-                lastName: users.lastName,
-                email: users.email,
-                role: users.role,
-                organizationId: users.organizationId,
-                isEmailVerified: users.isEmailVerified,
-                status: users.status,
-                deletedAt: users.deletedAt,
-                lastLoginAt: users.lastLoginAt,
-                createdAt: users.createdAt,
-                updatedAt: users.updatedAt,
+                id: user.id,
+                fullName: user.fullName,
+                email: user.email,
+                image: user.image,
+                emailVerified: user.emailVerified,
+                status: user.status,
+                deletedAt: user.deletedAt,
+                lastLoginAt: user.lastLoginAt,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
               })
-              .from(users)
+              .from(user)
               .where(whereCondition)
               .limit(limit)
               .offset(offset);
 
             const [totalResult] = await tx
               .select({ count: count() })
-              .from(users)
+              .from(user)
               .where(whereCondition);
 
             return [items, totalResult];
@@ -480,47 +405,17 @@ export class UserRepository extends BaseRepository<typeof users> {
       };
     } catch (error) {
       throw new DatabaseError(
-        `Failed to search users with term: ${searchTerm}`,
+        `Failed to search user with term: ${searchTerm}`,
         error instanceof Error ? error : undefined,
       );
     }
   }
 
-  async findByRole(role: "user" | "employer" | "admin"): Promise<User[]> {
-    try {
-      return await withDbErrorHandling(
-        async () =>
-          await db
-            .select({
-              id: users.id,
-              email: users.email,
-              firstName: users.firstName,
-              lastName: users.lastName,
-              role: users.role,
-              organizationId: users.organizationId,
-              isEmailVerified: users.isEmailVerified,
-              status: users.status,
-              deletedAt: users.deletedAt,
-              lastLoginAt: users.lastLoginAt,
-              createdAt: users.createdAt,
-              updatedAt: users.updatedAt,
-            })
-            .from(users)
-            .where(and(eq(users.role, role), eq(users.status, "active"))), // Filter active
-      );
-    } catch (error) {
-      throw new DatabaseError(
-        `Failed to fetch users by role: ${role}`,
-        error instanceof Error ? error : undefined,
-      );
-    }
-  }
-
-  async findActiveUsersByRole() {
+  async findActiveUsersIncludingProfile() {
     try {
       return await withDbErrorHandling(async () =>
-        db.query.users.findMany({
-          where: eq(users.status, "active"),
+        db.query.user.findMany({
+          where: eq(user.status, "active"),
           with: {
             profile: {
               with: {
@@ -534,7 +429,7 @@ export class UserRepository extends BaseRepository<typeof users> {
       );
     } catch (error) {
       throw new DatabaseError(
-        "Failed to find active users by role",
+        "Failed to find active user by role",
         error instanceof Error ? error : undefined,
       );
     }
@@ -549,20 +444,19 @@ export class UserRepository extends BaseRepository<typeof users> {
         async () =>
           await db.transaction(async (tx) => {
             const [result] = await tx
-              .update(users)
+              .update(user)
               .set({
                 status: data.status,
                 updatedAt: new Date(),
               })
-              .where(eq(users.id, id));
+              .where(eq(user.id, id));
 
             if (!result.affectedRows && result.affectedRows === 0) {
               tx.rollback();
             }
 
-            return await tx.query.users.findFirst({
-              where: eq(users.id, id),
-              columns: { passwordHash: false },
+            return await tx.query.user.findFirst({
+              where: eq(user.id, id),
             });
           }),
       );
@@ -574,41 +468,11 @@ export class UserRepository extends BaseRepository<typeof users> {
     }
   }
 
-  async deleteUsersOwnAccount(
-    userId: number,
-    data: { status: "active" | "deactivated" | "deleted"; deletedAt: Date },
-  ) {
-    try {
-      return await withDbErrorHandling(
-        async () =>
-          await db.transaction(async (tx) => {
-            const [result] = await tx
-              .update(users)
-              .set({
-                status: data.status,
-                deletedAt: data.deletedAt,
-                updatedAt: new Date(),
-              })
-              .where(eq(users.id, userId));
-
-            if (!result.affectedRows && result.affectedRows === 0) {
-              tx.rollback();
-            }
-
-            await tx.delete(sessions).where(eq(sessions.userId, userId));
-
-            await tx
-              .delete(jobApplications)
-              .where(eq(jobApplications.applicantId, userId));
-
-            return true;
-          }),
-      );
-    } catch (error) {
-      throw new DatabaseError(
-        `Failed to delete account for user with id: ${userId}`,
-        error,
-      );
-    }
+  // Check if user can act as jobseeker
+  async canSeekJobs(userId: number): Promise<boolean> {
+    const profile = await db.query.userProfile.findFirst({
+      where: eq(userProfile.userId, userId),
+    });
+    return !!profile;
   }
 }
