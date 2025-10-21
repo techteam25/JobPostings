@@ -6,8 +6,6 @@ import {
   timestamp,
   varchar,
 } from "drizzle-orm/mysql-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { z } from "zod";
 import { relations } from "drizzle-orm";
 import { user } from "./users";
 
@@ -66,6 +64,7 @@ export const verification = mysqlTable("verification", {
     .notNull(),
 });
 
+// Relations
 export const sessionsRelations = relations(session, ({ one }) => ({
   user: one(user, {
     fields: [session.userId],
@@ -73,21 +72,9 @@ export const sessionsRelations = relations(session, ({ one }) => ({
   }),
 }));
 
-export const insertSessionSchema = createInsertSchema(session);
-export const selectSessionSchema = createSelectSchema(session);
-export const updateSessionSchema = insertSessionSchema.partial().omit({
-  id: true,
-  userId: true,
-  createdAt: true,
-});
-
-export const refreshTokenSchema = z.object({
-  body: z.object({
-    refreshToken: z.string().min(1, "Refresh token is required"),
+export const accountsRelations = relations(account, ({ one }) => ({
+  user: one(user, {
+    fields: [account.userId],
+    references: [user.id],
   }),
-});
-
-export type Session = z.infer<typeof selectSessionSchema>;
-export type NewSession = z.infer<typeof insertSessionSchema>;
-export type UpdateSession = z.infer<typeof updateSessionSchema>;
-export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>["body"];
+}));
