@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useForm } from "@tanstack/react-form";
 
 import { LoginInput, loginSchema } from "@/schemas/auth/login";
-import { useLoginUser } from "@/app/(auth)/sign-in/actions/use-login-user";
+import { useLoginUser } from "@/app/(auth)/sign-in/hooks/use-login-user";
 
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
