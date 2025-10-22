@@ -23,7 +23,7 @@ import {
   registrationSchema,
 } from "@/schemas/auth/registration";
 
-import { useRegisterUser } from "@/app/(auth)/sign-up/actions/use-register-user";
+import { useRegisterUser } from "@/app/(auth)/sign-up/hooks/use-register-user";
 
 export default function RegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -48,6 +48,7 @@ export default function RegistrationForm() {
     },
     onSubmit: async (values) => {
       await createUserAsyncAction(values.value);
+      form.reset();
     },
   });
 
