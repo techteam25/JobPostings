@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { db } from "@/db/connection";
 import logger from "@/logger";
+import { env } from "@/config/env";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -14,12 +15,16 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  // socialProviders: {
-  //   google: {
-  //     clientId: "client_id",
-  //     clientSecret: "client_secret",
-  //   },
-  // },
+  socialProviders: {
+    google: {
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+    },
+    linkedin: {
+      clientId: env.LINKEDIN_CLIENT_ID,
+      clientSecret: env.LINKEDIN_CLIENT_SECRET,
+    },
+  },
   user: {
     deleteUser: {
       enabled: true,
