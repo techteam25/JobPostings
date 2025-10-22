@@ -37,6 +37,7 @@ export default function LoginForm() {
     },
     onSubmit: async (values) => {
       await loginUserAsync(values.value);
+      form.reset();
     },
   });
 

@@ -48,6 +48,7 @@ export default function RegistrationForm() {
     },
     onSubmit: async (values) => {
       await createUserAsyncAction(values.value);
+      form.reset();
     },
   });
 

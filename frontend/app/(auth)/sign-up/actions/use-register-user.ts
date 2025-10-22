@@ -1,14 +1,12 @@
-import { AxiosResponse } from "axios";
 import { useMutation } from "@tanstack/react-query";
-
-import { instance } from "@/lib/axios-instance";
 
 import type {
   RegistrationInput,
   RegistrationData,
 } from "@/schemas/auth/registration";
-import type { ApiResponse } from "@/schemas/responses";
-import type { AuthTokens, User } from "@/schemas/responses/auth";
+import { authClient } from "@/lib/auth";
+import { redirect, RedirectType } from "next/navigation";
+import { toast } from "sonner";
 
 export const useRegisterUser = () => {
   const { mutateAsync: createUserAsync } = useMutation({
@@ -22,29 +20,30 @@ export const useRegisterUser = () => {
       };
 
       // Make the POST request to the registration endpoint
-      const response = await instance.post<
-        ApiResponse<{ user: User; tokens: AuthTokens }>,
-        AxiosResponse<ApiResponse<{ user: User; tokens: AuthTokens }>>,
-        RegistrationInput
-      >("/auth/register", payload, {
-        headers: {
-          "Content-Type": "application/json",
+      const { data, error } = await authClient.signUp.email(
+        {
+          email: payload.email,
+          password: payload.password,
+          name: payload.firstName + " " + payload.lastName,
+          callbackURL: "/",
         },
-      });
+        {
+          onSuccess: () => {
+            toast.success("Account creation successful!");
+            redirect("/", RedirectType.replace);
+          },
+          onError: () => {
+            toast.error("Account creation unsuccessful");
+          },
+        },
+      );
 
-      if (!response.data.success) {
-        throw new Error(response.data.message);
+      if (error) {
+        console.error(error);
+        toast.error("Account creation unsuccessful");
       }
 
-      return response.data;
-    },
-    onSuccess: (data) => {
-      console.log("User registered successfully:", data);
-      // Handle successful registration (e.g., redirect, show message)
-    },
-    onError: (error: any) => {
-      console.error("Error registering user:", error.message);
-      // Handle error (e.g., show error message)
+      return data;
     },
   });
 
