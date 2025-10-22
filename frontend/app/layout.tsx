@@ -4,8 +4,11 @@ import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
 
 import { Montserrat, Poppins } from "next/font/google";
-import "./globals.css";
+
 import Providers from "@/providers";
+
+import { Toaster } from "@/components/ui/sonner";
+import "./globals.css";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -36,6 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <div className="mx-auto max-w-7xl">
           <Providers>{children}</Providers>
         </div>
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );
