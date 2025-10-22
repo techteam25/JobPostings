@@ -1,13 +1,19 @@
 import type { NextFunction, Request, Response } from "express";
-import { UserService } from "@/services/user.service";
-import logger from "@/logger";
-import { SecurityUtils } from "@/utils/security";
+import { fromNodeHeaders } from "better-auth/node";
+
 import { ApiResponse } from "@/types";
+import { UserService } from "@/services/user.service";
+
+import logger from "@/logger";
+import { auth } from "@/utils/auth";
+import { OrganizationService } from "@/services/organization.service";
 
 export class AuthMiddleware {
-  private userService: UserService;
+  private readonly organizationService: OrganizationService;
+  private readonly userService: UserService;
 
   constructor() {
+    this.organizationService = new OrganizationService();
     this.userService = new UserService();
   }
 
@@ -17,13 +23,11 @@ export class AuthMiddleware {
     next: NextFunction,
   ) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        res.header(
-          "WWW-Authenticate",
-          `Bearer realm=${req.originalUrl} charset="UTF-8"`,
-        );
+      const session = await auth.api.getSession({
+        headers: fromNodeHeaders(req.headers),
+      });
 
+      if (!session) {
         return res.status(401).json({
           success: false,
           status: "error",
@@ -33,12 +37,7 @@ export class AuthMiddleware {
         });
       }
 
-      const token = authHeader.substring(7);
-      const decoded = SecurityUtils.verifyAccessToken(token);
-
-      const user = await this.userService.getUserById(decoded.userId);
-
-      if (user.status !== "active") {
+      if (session.user.status !== "active") {
         return res.status(403).json({
           success: false,
           status: "error",
@@ -49,8 +48,15 @@ export class AuthMiddleware {
       }
 
       // Attach user info to request object
-      req.user = user;
-      req.userId = decoded.userId;
+      req.user = {
+        ...session.user,
+        fullName: session.user.name,
+        id: parseInt(session.user.id),
+        image: session.user.image as string | null,
+        deletedAt: session.user.deletedAt as Date | null,
+        lastLoginAt: session.user.lastLoginAt as Date | null,
+      };
+      req.userId = parseInt(session.user.id);
 
       return next();
     } catch (error) {
@@ -65,7 +71,101 @@ export class AuthMiddleware {
     }
   };
 
-  requireRole = (roles: string[]) => {
+  requireJobPostingRole = () => {
+    return async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        if (!req.userId) {
+          return res.status(401).json({
+            status: "error",
+            message: "Authentication required",
+          });
+        }
+
+        // Fetch user to check role
+        const isPermitted = await this.organizationService.isRolePermitted(
+          req.userId,
+        );
+
+        if (!isPermitted) {
+          return res.status(403).json({
+            status: "error",
+            message: "Insufficient permissions",
+          });
+        }
+
+        return next();
+      } catch (error) {
+        return res.status(500).json({
+          status: "error",
+          message: "Error checking user permissions",
+        });
+      }
+    };
+  };
+
+  requireAdminOrOwnerRole = (roles: string[]) => {
+    return async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        if (!req.userId) {
+          return res.status(401).json({
+            status: "error",
+            message: "Authentication required",
+          });
+        }
+
+        const user = await this.organizationService.getOrganizationMember(
+          req.userId,
+        );
+
+        if (!["owner", "admin"].some((role) => roles.includes(role))) {
+          return res.status(500).json({
+            status: "error",
+            message:
+              "Invalid roles configuration. This middleware should only include 'owner' or 'admin'",
+          });
+        }
+
+        if (!user) {
+          // User may be authenticated but not an organization member
+          return res.status(403).json({
+            status: "error",
+            message: "Insufficient permissions",
+          });
+        }
+
+        if (!roles.includes(user.role)) {
+          // Check if user's role is in the permitted roles
+          return res.status(403).json({
+            status: "error",
+            message: "Insufficient permissions",
+          });
+        }
+
+        // Fetch user to check role
+        const isPermitted = await this.userService.hasPrerequisiteRoles(
+          req.userId,
+          ["owner", "admin"],
+        );
+
+        if (!isPermitted) {
+          return res.status(403).json({
+            status: "error",
+            message: "Insufficient permissions",
+          });
+        }
+
+        return next();
+      } catch (error) {
+        return res.status(500).json({
+          status: "error",
+          message: "Error checking user permissions",
+        });
+      }
+    };
+  };
+
+  // This will check for 'user' role (i.e., not pure employer)
+  requireUserRole = () => {
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
         if (!req.userId) {
@@ -77,16 +177,32 @@ export class AuthMiddleware {
 
         // Fetch user to check role
         const userService = new UserService();
-        const user = await userService.getUserById(req.userId);
+        const userCanSeekJobs = await userService.canSeekJobs(req.userId);
 
-        if (!roles.includes(user.role)) {
+        /*
+        Scenario 1: Pure Job Seeker
+        Has a record in users ✓
+        Has a record in userProfile ✓
+        No records in organizationMembers ✗
+
+        Scenario 2: Pure Employer
+        Has a record in users ✓
+        No record in userProfile ✗
+        Has record(s) in organizationMembers ✓
+
+        Scenario 3: Hybrid User (Freelancer/Consultant)
+        Has a record in users ✓
+        Has a record in userProfile ✓
+        Has record(s) in organizationMembers ✓
+         */
+        if (!userCanSeekJobs) {
+          //
           return res.status(403).json({
             status: "error",
             message: "Insufficient permissions",
           });
         }
 
-        req.user = user;
         return next();
       } catch (error) {
         return res.status(500).json({

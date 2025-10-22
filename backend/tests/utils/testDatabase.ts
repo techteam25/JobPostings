@@ -4,6 +4,7 @@ import mysql from "mysql2/promise";
 import { env } from "@/config/env";
 import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { NewJob, NewJobApplication } from "@/validations/job.validation";
 
 let testConnection: mysql.Pool | null = null;
 let testDb: (MySql2Database<typeof schema> & { $client: Pool }) | null = null;
@@ -58,7 +59,7 @@ export async function clearTestData() {
     // Clear in reverse order to respect foreign keys
     await db.delete(schema.jobApplications);
     await db.delete(schema.jobsDetails);
-    await db.delete(schema.users);
+    await db.delete(schema.user);
   } catch (error) {
     console.error("Failed to clear test data:", error);
     throw error;
@@ -66,43 +67,15 @@ export async function clearTestData() {
 }
 
 /**
- * Create test user data
- */
-export async function createTestUser(overrides: Partial<schema.NewUser> = {}) {
-  const { db } = createTestDatabase();
-
-  const defaultUser: schema.NewUser = {
-    email: `test${Date.now()}@example.com`,
-    firstName: "Test",
-    lastName: "User",
-    passwordHash: "hashedpassword123",
-    role: "user",
-    isEmailVerified: true,
-    status: "active",
-    ...overrides,
-  };
-
-  const [result] = await db.insert(schema.users).values(defaultUser);
-
-  // Get the inserted user
-  const [user] = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.id, result.insertId));
-
-  return user;
-}
-
-/**
  * Create test job data
  */
 export async function createTestJob(
   employerId: number,
-  overrides: Partial<schema.NewJob> = {},
+  overrides: Partial<NewJob> = {},
 ) {
   const { db } = createTestDatabase();
 
-  const defaultJob: schema.NewJob = {
+  const defaultJob: NewJob = {
     title: "Test Software Engineer Position",
     description:
       "This is a test job posting for a software engineer position with great benefits and competitive salary.",
@@ -136,11 +109,11 @@ export async function createTestJob(
 export async function createTestJobApplication(
   jobId: number,
   applicantId: number,
-  overrides: Partial<schema.NewJobApplication> = {},
+  overrides: Partial<NewJobApplication> = {},
 ) {
   const { db } = createTestDatabase();
 
-  const defaultApplication: schema.NewJobApplication = {
+  const defaultApplication: NewJobApplication = {
     jobId,
     applicantId,
     status: "pending",

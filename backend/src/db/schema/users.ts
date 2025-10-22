@@ -1,68 +1,51 @@
-import { organizations } from "./organizations";
-import { sessions } from "./sessions";
-import { auth } from "./auth";
-import { Education, educations, insertEducationsSchema } from "./educations";
-import {
-  insertWorkExperiencesSchema,
-  WorkExperience,
-  workExperiences,
-} from "./workExperiences";
-import {
-  Certification,
-  insertCertificationsSchema,
-  userCertifications,
-} from "./certifications";
 import {
   mysqlTable,
   varchar,
   timestamp,
-  mysqlEnum,
   text,
   boolean,
   int,
   check,
   index,
 } from "drizzle-orm/mysql-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
 
+import { account, session } from "./sessions";
+import { educations } from "./educations";
+import { workExperiences } from "./workExperiences";
+import { userCertifications } from "./certifications";
+import { organizationMembers } from "./organizations";
+
 // Users table
-export const users = mysqlTable(
+export const user = mysqlTable(
   "users",
   {
-    id: int("id").primaryKey().autoincrement(),
+    id: int("id").autoincrement().primaryKey(),
+    fullName: text("full_name").notNull(),
     email: varchar("email", { length: 255 }).notNull().unique(),
-    firstName: varchar("first_name", { length: 100 }).notNull(),
-    lastName: varchar("last_name", { length: 100 }).notNull(),
-    passwordHash: varchar("password_hash", { length: 255 }).notNull(),
-    role: mysqlEnum("role", ["user", "employer", "admin"])
-      .default("user")
+    emailVerified: boolean("email_verified").default(false).notNull(),
+    image: text("image"),
+    createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { fsp: 3 })
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
-    organizationId: int("organization_id").references(() => organizations.id, {
-      onDelete: "cascade",
-    }),
-    isEmailVerified: boolean("is_email_verified").default(false).notNull(),
-    status: mysqlEnum("status", ["active", "deactivated", "deleted"])
-      .default("active")
-      .notNull(),
-    deletedAt: timestamp("deleted_at"),
-    lastLoginAt: timestamp("last_login_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+    status: varchar("status", { length: 20 }).default("active").notNull(),
+    deletedAt: timestamp("deleted_at", { fsp: 3 }),
+    lastLoginAt: timestamp("last_login_at", { fsp: 3 }),
   },
   (table) => [
+    index("idx_users_status").on(table.status),
+    index("idx_users_email").on(table.email),
+
     check(
-      "employer_must_have_organization",
-      sql`(${table.role} != 'employer' OR ${table.organizationId} IS NOT NULL)`,
+      "status_must_be_valid",
+      sql`(${table.status} IN ("active", "deactivated", "deleted"))`,
     ),
     check(
       "deleted_status_requires_deleted_at",
       sql`(${table.status} != 'deleted' OR ${table.deletedAt} IS NOT NULL)`,
     ),
-    // Index for common filters (status-based queries)
-    index("idx_users_status").on(table.status),
-    index("idx_users_email").on(table.email), 
   ],
 );
 
@@ -70,7 +53,8 @@ export const userProfile = mysqlTable("user_profile", {
   id: int("id").primaryKey().autoincrement(),
   userId: int("user_id")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
   profilePicture: varchar("profile_picture", { length: 500 }),
   bio: text("bio"),
   resumeUrl: varchar("resume_url", { length: 255 }),
@@ -82,95 +66,32 @@ export const userProfile = mysqlTable("user_profile", {
   state: varchar("state", { length: 100 }),
   zipCode: varchar("zip_code", { length: 10 }),
   country: varchar("country", { length: 100 }).default("US"),
+  isProfilePublic: boolean("is_profile_public").default(true).notNull(),
+  isAvailableForWork: boolean("is_available_for_work").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
 
 // Relations
-export const userRelations = relations(users, ({ one, many }) => ({
+export const userRelations = relations(user, ({ one, many }) => ({
   profile: one(userProfile, {
-    fields: [users.id],
+    fields: [user.id],
     references: [userProfile.userId],
   }),
-  organization: one(organizations, {
-    fields: [users.organizationId],
-    references: [organizations.id],
+  sessions: many(session),
+  organizationMembers: many(organizationMembers),
+  account: one(account, {
+    fields: [user.id],
+    references: [account.userId],
   }),
-  sessions: many(sessions),
-  authProviders: many(auth),
 }));
 
 export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
-  user: one(users, {
+  user: one(user, {
     fields: [userProfile.userId],
-    references: [users.id],
+    references: [user.id],
   }),
   education: many(educations),
   workExperiences: many(workExperiences),
   certifications: many(userCertifications),
 }));
-
-// Zod schemas
-export const insertUserSchema = createInsertSchema(users, {
-  email: z.email("Invalid email format").toLowerCase(),
-  firstName: z.string().min(1, "First name is required").max(100).trim(),
-  lastName: z.string().min(1, "Last name is required").max(100).trim(),
-  role: z.enum(["user", "employer", "admin"]).default("user"),
-  organizationId: z.number().int().positive().nullable().optional(),
-  status: z.enum(["active", "deactivated", "deleted"]).default("active"),
-  deletedAt: z.date().optional(),
-});
-
-export const insertUserProfileSchema = createInsertSchema(userProfile, {
-  userId: z.number().int().positive(),
-  bio: z
-    .string()
-    .min(10, "Bio must be at least 10 characters")
-    .max(1000)
-    .optional(),
-  resumeUrl: z.url("Invalid resume URL").optional(),
-  linkedinUrl: z.url("Invalid LinkedIn URL").optional(),
-  portfolioUrl: z.url("Invalid portfolio URL").optional(),
-});
-
-export const selectUserSchema = createSelectSchema(users).omit({
-  passwordHash: true,
-});
-export const selectUserProfileSchema = createSelectSchema(userProfile);
-
-export const updateUserSchema = insertUserSchema
-  .partial()
-  .omit({ id: true, createdAt: true, passwordHash: true, updatedAt: true, deletedAt: true });
-
-export const updateUserProfileSchema = insertUserProfileSchema
-  .omit({ userId: true })
-  .extend({
-    educations: insertEducationsSchema
-      .omit({ userProfileId: true })
-      .array()
-      .default([]),
-    workExperiences: insertWorkExperiencesSchema
-      .omit({ userProfileId: true })
-      .array()
-      .default([]),
-    certifications: z.array(insertCertificationsSchema).default([]),
-  });
-
-// Type exports
-export type User = z.infer<typeof selectUserSchema> & { status: "active" | "deactivated" | "deleted" };
-export type NewUser = z.infer<typeof insertUserSchema>;
-export type UpdateUser = z.infer<typeof updateUserSchema>;
-export type UserProfile = z.infer<typeof selectUserProfileSchema>;
-export type NewUserProfile = z.infer<typeof insertUserProfileSchema>;
-export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
-
-// Get type with relations
-export type UserWithProfile = User & {
-  profile:
-    | (UserProfile & {
-        certifications: { certification: Certification }[] | null;
-        education: Education[] | null;
-        workExperiences: WorkExperience[] | null;
-      })
-    | null;
-};

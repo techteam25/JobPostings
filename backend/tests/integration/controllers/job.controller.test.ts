@@ -1,6 +1,11 @@
+// noinspection DuplicatedCode
+
 import { request, TestHelpers } from "@tests/utils/testHelpers";
-import { seedAdminUser, seedJobs, seedOrganizations } from "@tests/utils/seed";
-import { AuthTokens } from "@/types";
+import { seedAdminUser, seedJobs, seedUser } from "@tests/utils/seed";
+import { jobPostingFixture } from "@tests/utils/fixtures";
+import { jobsDetails } from "@/db/schema";
+import { sql } from "drizzle-orm";
+import { db } from "@/db/connection";
 
 describe("Job Controller Integration Tests", () => {
   describe("GET /jobs", () => {
@@ -40,42 +45,26 @@ describe("Job Controller Integration Tests", () => {
   });
 
   describe("POST /jobs", () => {
-    let userResponse: { data: { tokens: AuthTokens } };
+    let cookie: string;
 
     beforeEach(async () => {
-      await seedOrganizations();
       await seedAdminUser();
 
       const response = await request
-        .post("/api/auth/login")
-        .send({ email: "admin@example.com", password: "Password@123" });
+        .post("/api/auth/sign-in/email")
+        .send({ email: "admin.user@example.com", password: "Password@123" });
 
-      userResponse = response.body;
+      cookie = response.headers["set-cookie"]
+        ? response.headers["set-cookie"][0]!
+        : "";
     });
 
     it("should create a single job returning 200", async () => {
-      const newJob = {
-        title: "Software Engineer",
-        description:
-          "We are looking for a skilled Software Engineer to join our team. The ideal candidate will have experience in building high-quality applications.",
-        location: "New York, NY",
-        jobType: "full-time",
-        compensationType: "paid",
-        experience: "mid",
-        salaryMin: 60000.0,
-        salaryMax: 90000.0,
-        currency: "USD",
-        isRemote: false,
-        applicationDeadline: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000,
-        ).toISOString(), // 30 days from now
-        skills: "JavaScript, TypeScript, Node.js",
-        employerId: 1, // Assuming organization with ID 1 exists
-      };
+      const newJob = await jobPostingFixture();
 
       const response = await request
         .post("/api/jobs")
-        .set("Authorization", `Bearer ${userResponse.data.tokens.accessToken}`)
+        .set("Cookie", cookie)
         .send(newJob);
 
       TestHelpers.validateApiResponse(response, 201);
@@ -140,7 +129,7 @@ describe("Job Controller Integration Tests", () => {
 
       const response = await request
         .post("/api/jobs")
-        .set("Authorization", `Bearer ${userResponse.data.tokens.accessToken}`)
+        .set("Cookie", cookie)
         .send(invalidJob);
 
       expect(response.status).toBe(400);
@@ -157,24 +146,7 @@ describe("Job Controller Integration Tests", () => {
     });
 
     it("should return 401 when creating a job without authentication", async () => {
-      const newJob = {
-        title: "Software Engineer",
-        description:
-          "We are looking for a skilled Software Engineer to join our team. The ideal candidate will have experience in building high-quality applications.",
-        location: "New York, NY",
-        jobType: "full-time",
-        compensationType: "paid",
-        experience: "mid",
-        salaryMin: 60000.0,
-        salaryMax: 90000.0,
-        currency: "USD",
-        isRemote: false,
-        applicationDeadline: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000,
-        ).toISOString(), // 30 days from now
-        skills: "JavaScript, TypeScript, Node.js",
-        employerId: 1, // Assuming organization with ID 1 exists
-      };
+      const newJob = await jobPostingFixture();
 
       const response = await request.post("/api/jobs").send(newJob);
 
@@ -188,46 +160,22 @@ describe("Job Controller Integration Tests", () => {
 
     it("should return 403 when a non-admin user attempts to create a job", async () => {
       // Seed a regular user
-      await request.post("/api/auth/register").send({
-        name: "Regular User",
-        email: "regular@example.com",
-        password: "Password@123",
-        firstName: "Regular",
-        lastName: "User",
-        role: "user",
-        organizationId: 1,
-      });
+      await seedUser();
 
-      const loginResponse = await request.post("/api/auth/login").send({
-        email: "regular@example.com",
+      const loginResponse = await request.post("/api/auth/sign-in/email").send({
+        email: "normal.user@example.com",
         password: "Password@123",
       });
 
-      const newJob = {
-        title: "Software Engineer",
-        description:
-          "We are looking for a skilled Software Engineer to join our team. The ideal candidate will have experience in building high-quality applications.",
-        location: "New York, NY",
-        jobType: "full-time",
-        compensationType: "paid",
-        experience: "mid",
-        salaryMin: 60000.0,
-        salaryMax: 90000.0,
-        currency: "USD",
-        isRemote: false,
-        applicationDeadline: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000,
-        ).toISOString(), // 30 days from now
-        skills: "JavaScript, TypeScript, Node.js",
-        employerId: 1, // Assuming organization with ID 1 exists
-      };
+      cookie = loginResponse.headers["set-cookie"]
+        ? loginResponse.headers["set-cookie"][0]!
+        : "";
+
+      const newJob = await jobPostingFixture();
 
       const response = await request
         .post("/api/jobs")
-        .set(
-          "Authorization",
-          `Bearer ${loginResponse.body.data.tokens.accessToken}`,
-        )
+        .set("Cookie", cookie)
         .send(newJob);
 
       TestHelpers.validateApiResponse(response, 403);
@@ -239,17 +187,26 @@ describe("Job Controller Integration Tests", () => {
   });
 
   describe("PUT /jobs/:jobId", () => {
-    let userResponse: { data: { tokens: AuthTokens } };
+    let cookie: string;
 
     beforeEach(async () => {
-      await seedJobs();
+      await db.delete(jobsDetails);
+
+      // Reset auto-increment counters
+      await db.execute(sql`ALTER TABLE job_details AUTO_INCREMENT = 1`);
+
       await seedAdminUser();
 
-      const response = await request
-        .post("/api/auth/login")
-        .send({ email: "admin@example.com", password: "Password@123" });
+      const response = await request.post("/api/auth/sign-in/email").send({
+        email: "admin.user@example.com",
+        password: "Password@123",
+      });
 
-      userResponse = response.body;
+      cookie = response.headers["set-cookie"]![0]!;
+
+      const newJob = await jobPostingFixture();
+
+      await request.post("/api/jobs").set("Cookie", cookie).send(newJob);
     });
 
     it("should update a job returning 200", async () => {
@@ -260,8 +217,10 @@ describe("Job Controller Integration Tests", () => {
       };
       const response = await request
         .put("/api/jobs/1")
-        .set("Authorization", `Bearer ${userResponse.data.tokens.accessToken}`)
+        .set("Cookie", cookie)
         .send(updatedJob);
+
+      console.log(JSON.stringify(response.body, null, 2));
 
       TestHelpers.validateApiResponse(response, 200);
 
@@ -279,23 +238,32 @@ describe("Job Controller Integration Tests", () => {
   });
 
   describe("DELETE /jobs/:jobId", () => {
-    let userResponse: { data: { tokens: AuthTokens } };
+    let cookie: string;
 
     beforeEach(async () => {
-      await seedJobs();
+      await db.delete(jobsDetails);
+
+      // Reset auto-increment counters
+      await db.execute(sql`ALTER TABLE job_details AUTO_INCREMENT = 1`);
+
       await seedAdminUser();
 
-      const response = await request
-        .post("/api/auth/login")
-        .send({ email: "admin@example.com", password: "Password@123" });
+      const response = await request.post("/api/auth/sign-in/email").send({
+        email: "admin.user@example.com",
+        password: "Password@123",
+      });
 
-      userResponse = response.body;
+      cookie = response.headers["set-cookie"]![0]!;
+
+      const newJob = await jobPostingFixture();
+
+      await request.post("/api/jobs").set("Cookie", cookie).send(newJob);
     });
 
     it("should delete a job returning 200", async () => {
       const response = await request
         .delete("/api/jobs/1")
-        .set("Authorization", `Bearer ${userResponse.data.tokens.accessToken}`);
+        .set("Cookie", cookie);
 
       TestHelpers.validateApiResponse(response, 200);
       expect(response.body).toHaveProperty("success", true);

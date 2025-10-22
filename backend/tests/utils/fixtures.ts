@@ -13,8 +13,8 @@ export const userProfileFixture = async () => {
     state: faker.location.state(),
     zipCode: faker.location.zipCode("#####"),
     country: faker.location.country(),
-    education: userEducationsFixture(),
-    workExperiences: workExperiencesFixture(),
+    education: await userEducationsFixture(),
+    workExperiences: await workExperiencesFixture(),
     certifications: userCertificationsFixture(),
   };
 };
@@ -53,4 +53,52 @@ export const userCertificationsFixture = () => {
       certificationName: "Certified Kubernetes Developer",
     },
   ];
+};
+
+export const userFixture = async () => {
+  const { faker } = await import("@faker-js/faker");
+  return {
+    name: faker.person.fullName(),
+    email: faker.internet.email(),
+    image: faker.image.avatar(),
+    password: "Password@123",
+    // status: "active" as const,
+  };
+};
+
+export const organizationFixture = async () => {
+  const { faker } = await import("@faker-js/faker");
+
+  return {
+    name: faker.company.name(),
+    streetAddress: faker.location.streetAddress(),
+    city: faker.location.city(),
+    state: faker.location.state(),
+    zipCode: faker.location.zipCode("#####"),
+    phone: faker.phone.number({ style: "national" }),
+    url: faker.internet.url(),
+    mission: faker.lorem.sentence(),
+  };
+};
+
+export const jobPostingFixture = async () => {
+  const { faker } = await import("@faker-js/faker");
+
+  return {
+    title: "Software Engineer",
+    description: faker.lorem.paragraph(),
+    location: faker.location.city() + ", " + faker.location.state(),
+    jobType: "full-time",
+    compensationType: "paid",
+    experience: "mid",
+    salaryMin: 60000.0,
+    salaryMax: 90000.0,
+    currency: "USD",
+    isRemote: false,
+    applicationDeadline: new Date(
+      Date.now() + 30 * 24 * 60 * 60 * 1000,
+    ).toISOString(), // 30 days from now
+    skills: "JavaScript, TypeScript, Node.js",
+    employerId: 1, // Assuming organization with ID 1 exists
+  };
 };

@@ -7,7 +7,7 @@ import {
   Job,
   UpdateJob,
   UpdateJobApplication,
-} from "@/db/schema";
+} from "@/validations/job.validation";
 import {
   NotFoundError,
   ForbiddenError,
@@ -41,11 +41,13 @@ export class JobService extends BaseService {
 
   async getActiveJobsByOrganization(organizationId: number): Promise<Job[]> {
     try {
-      const allJobs = await this.jobRepository.findJobsByEmployer(organizationId, { limit: 10000 });
-      return allJobs.items.filter(job => job.isActive);
+      const allJobs = await this.jobRepository.findJobsByEmployer(
+        organizationId,
+        { limit: 10000 },
+      );
+      return allJobs.items.filter((job) => job.isActive);
     } catch (error) {
-      this.handleError(error);
-      return [];
+      return this.handleError(error);
     }
   }
 
@@ -79,7 +81,7 @@ export class JobService extends BaseService {
     options: { page?: number; limit?: number } = {},
     requesterId: number,
   ) {
-    // Additional check for employers - they can only see their own organization's jobs
+    // Todo: Additional check for employers - they can only see their own organization's jobs
     const organization =
       await this.organizationRepository.findByContact(requesterId);
     if (!organization) {
@@ -98,6 +100,7 @@ export class JobService extends BaseService {
   }
 
   async createJob(jobData: NewJob): Promise<Job> {
+    // Todo Fetch this from organizationMembers table
     // Validate employer exists
     const employer = await this.organizationRepository.findById(
       jobData.employerId,
@@ -433,7 +436,6 @@ export class JobService extends BaseService {
       this.handleError(error);
     }
   }
-
 
   // Dashboard and Statistics Methods
   // async getJobStatistics() {

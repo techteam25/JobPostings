@@ -1,4 +1,10 @@
-import { mysqlTable, varchar, int, primaryKey, foreignKey } from "drizzle-orm/mysql-core";
+import {
+  mysqlTable,
+  varchar,
+  int,
+  primaryKey,
+  foreignKey,
+} from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 import { userProfile } from "./users";
@@ -56,19 +62,3 @@ export const userToCertificationsRelations = relations(
     }),
   }),
 );
-
-// Zod schemas
-export const selectCertificationsSchema = createSelectSchema(certifications);
-export const insertCertificationsSchema = createInsertSchema(certifications, {
-  certificationName: z
-    .string()
-    .min(1, "Certification name is required")
-    .max(100),
-});
-export const updateCertificationsSchema = createUpdateSchema(certifications).omit({
-  id: true,
-});
-
-export type Certification = z.infer<typeof selectCertificationsSchema>;
-export type NewCertification = z.infer<typeof insertCertificationsSchema>;
-export type UpdateCertification = z.infer<typeof updateCertificationsSchema>;

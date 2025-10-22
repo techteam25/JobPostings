@@ -4,12 +4,13 @@ import { AuthMiddleware } from "@/middleware/auth.middleware";
 import validate from "../middleware/validation.middleware";
 import {
   createOrganizationSchema,
-  updateOrganizationSchema,
+  updateOrganizationInputSchema,
   getOrganizationSchema,
   deleteOrganizationSchema,
+  updateOrganizationSchema,
 } from "@/validations/organization.validation";
 import { registry, z } from "@/swagger/registry";
-import { selectOrganizationSchema } from "@/db/schema";
+import { selectOrganizationSchema } from "@/validations/organization.validation";
 import {
   apiResponseSchema,
   errorResponseSchema,
@@ -109,7 +110,7 @@ registry.registerPath({
   path: "/organizations",
   summary: "Create a new organization",
   tags: ["Organizations"],
-  security: [{ bearerAuth: [] }],
+  security: [{ cookie: [] }],
   request: {
     body: {
       content: {
@@ -158,7 +159,6 @@ registry.registerPath({
 router.post(
   "/",
   authMiddleware.authenticate,
-  authMiddleware.requireRole(["admin", "employer"]),
   validate(createOrganizationSchema),
   organizationController.createOrganization,
 );
@@ -168,7 +168,7 @@ registry.registerPath({
   path: "/organizations/{organizationId}",
   summary: "Update an organization",
   tags: ["Organizations"],
-  security: [{ bearerAuth: [] }],
+  security: [{ cookie: [] }],
   request: {
     params: updateOrganizationSchema.shape["params"],
     body: {
@@ -225,8 +225,8 @@ registry.registerPath({
 router.put(
   "/:organizationId",
   authMiddleware.authenticate,
-  authMiddleware.requireRole(["admin", "employer"]),
-  validate(updateOrganizationSchema),
+  authMiddleware.requireAdminOrOwnerRole(["owner"]),
+  validate(updateOrganizationInputSchema),
   organizationController.updateOrganization,
 );
 
@@ -235,7 +235,7 @@ registry.registerPath({
   path: "/organizations/{organizationId}",
   summary: "Delete an organization",
   tags: ["Organizations"],
-  security: [{ bearerAuth: [] }],
+  security: [{ cookie: [] }],
   request: {
     params: deleteOrganizationSchema.shape["params"],
   },
@@ -289,7 +289,7 @@ registry.registerPath({
 router.delete(
   "/:organizationId",
   authMiddleware.authenticate,
-  authMiddleware.requireRole(["admin"]),
+  authMiddleware.requireAdminOrOwnerRole(["owner"]),
   validate(deleteOrganizationSchema),
   organizationController.deleteOrganization,
 );

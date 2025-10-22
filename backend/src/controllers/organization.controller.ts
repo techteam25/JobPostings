@@ -8,7 +8,10 @@ import {
   UpdateOrganizationSchema,
 } from "@/validations/organization.validation";
 import { ApiResponse, PaginatedResponse } from "@/types";
-import { Organization } from "@/db/schema";
+import {
+  Organization,
+  OrganizationMember,
+} from "@/validations/organization.validation";
 
 export class OrganizationController extends BaseController {
   private organizationService: OrganizationService;
@@ -78,12 +81,17 @@ export class OrganizationController extends BaseController {
 
   createOrganization = async (
     req: Request<{}, {}, CreateOrganizationSchema["body"]>,
-    res: Response<ApiResponse<Organization>>,
+    res: Response<
+      ApiResponse<Organization & { members: OrganizationMember[] }>
+    >,
   ) => {
     try {
       const organizationData = req.body;
-      const organization =
-        await this.organizationService.createOrganization(organizationData);
+      const userId = req.userId;
+      const organization = await this.organizationService.createOrganization(
+        organizationData,
+        userId!,
+      );
 
       return res.status(201).json({
         success: true,

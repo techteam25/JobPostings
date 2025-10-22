@@ -1,33 +1,31 @@
 import { Request, Response } from "express";
 import { UserService } from "@/services/user.service";
-import { AuthService } from "@/services/auth.service";
 import { BaseController } from "./base.controller";
-import { ValidationError, ForbiddenError, NotFoundError } from "@/utils/errors";
+import { ValidationError, NotFoundError, ForbiddenError } from "@/utils/errors";
+import {
+  ChangePasswordSchema,
+  CreateUserProfile,
+  GetUserSchema,
+  UserQuerySchema,
+  DeleteSelfSchema,
+  DeleteUserSchema,
+} from "@/validations/user.validation";
+import { ApiResponse } from "@/types";
+import { auth } from "@/utils/auth";
 import {
   UpdateUser,
   UpdateUserProfile,
   User,
   UserProfile,
   UserWithProfile,
-} from "@/db/schema";
-import {
-  ChangePasswordSchema,
-  CreateUserProfile,
-  GetUserSchema,
-  UserEmailSchema,
-  UserQuerySchema,
-  DeleteSelfSchema,
-} from "@/validations/user.validation";
-import { ApiResponse } from "@/types";
+} from "@/validations/userProfile.validation";
 
 export class UserController extends BaseController {
   private userService: UserService;
-  private authService: AuthService;
 
   constructor() {
     super();
     this.userService = new UserService();
-    this.authService = new AuthService();
   }
 
   getAllUsers = async (
@@ -41,7 +39,6 @@ export class UserController extends BaseController {
         page,
         limit,
         searchTerm,
-        role: req.user?.role,
       });
 
       this.sendPaginatedResponse(
@@ -91,7 +88,7 @@ export class UserController extends BaseController {
       );
     }
 
-    if (req.user.role !== "admin" && req.user.id !== id) {
+    if (req.user.id !== id) {
       return this.handleControllerError(
         res,
         new ForbiddenError("You can only update your own account"),
@@ -99,12 +96,7 @@ export class UserController extends BaseController {
     }
 
     const updateData = req.body;
-    const user = await this.userService.updateUser(
-      id,
-      updateData,
-      req.user.id,
-      req.user.role,
-    );
+    const user = await this.userService.updateUser(id, updateData);
 
     return this.sendSuccess<User>(res, user, "User updated successfully");
   };
@@ -115,6 +107,7 @@ export class UserController extends BaseController {
   ) => {
     try {
       const profileData = req.body;
+
       const profile = await this.userService.createUserProfile(
         req.userId!,
         profileData,
@@ -129,6 +122,8 @@ export class UserController extends BaseController {
           timestamp: new Date().toISOString(),
         });
       }
+
+      // console.log({ profile });
 
       return res.status(201).json({
         success: true,
@@ -157,8 +152,6 @@ export class UserController extends BaseController {
         req.userId!,
         profileData,
       );
-
-      console.log({ profileData });
 
       if (!user) {
         return res.status(400).json({
@@ -291,16 +284,16 @@ export class UserController extends BaseController {
 
     const { currentPassword } = req.body;
 
-    await this.userService.deleteSelf(req.userId, currentPassword);
+    await this.userService.deleteSelf(req.userId, currentPassword); // Todo: replace currentPassword with actual confirmation token
 
     return this.sendSuccess(res, null, "Account deleted successfully", 204);
   };
 
   deleteUser = async (
-    req: Request<{}, {}, UserEmailSchema["body"]>,
+    req: Request<GetUserSchema["params"], {}, DeleteUserSchema["body"]>,
     res: Response,
   ) => {
-    const { email } = req.body;
+    const { token } = req.body;
 
     if (!req.user) {
       return this.handleControllerError(
@@ -309,29 +302,37 @@ export class UserController extends BaseController {
       );
     }
 
-    const result = await this.authService.deleteUser({ email });
+    // Todo:
+    //  This is an admin only action, can admins delete user?
+    //  How would this be different with deleteSelf?
+
+    const result = await auth.api.deleteUser({
+      body: {
+        token,
+      },
+    });
     return this.sendSuccess(res, result, "User deleted successfully", 200);
   };
 
-  getUserStats = async (_: Request, res: Response) => {
-    const stats = {
-      totalUsers: await this.userService.getUsersByRole("user"),
-      totalEmployers: await this.userService.getUsersByRole("employer"),
-      totalAdmins: await this.userService.getUsersByRole("admin"),
-    };
-
-    return this.sendSuccess(
-      res,
-      {
-        users: stats.totalUsers.length,
-        employers: stats.totalEmployers.length,
-        admins: stats.totalAdmins.length,
-        total:
-          stats.totalUsers.length +
-          stats.totalEmployers.length +
-          stats.totalAdmins.length,
-      },
-      "User statistics retrieved successfully",
-    );
-  };
+  // getUserStats = async (_: Request, res: Response) => {
+  //   const stats = {
+  //     totalUsers: await this.userService.getUsersByRole("user"),
+  //     totalEmployers: await this.userService.getUsersByRole("employer"),
+  //     totalAdmins: await this.userService.getUsersByRole("admin"),
+  //   };
+  //
+  //   return this.sendSuccess(
+  //     res,
+  //     {
+  //       users: stats.totalUsers.length,
+  //       employers: stats.totalEmployers.length,
+  //       admins: stats.totalAdmins.length,
+  //       total:
+  //         stats.totalUsers.length +
+  //         stats.totalEmployers.length +
+  //         stats.totalAdmins.length,
+  //     },
+  //     "User statistics retrieved successfully",
+  //   );
+  // };
 }

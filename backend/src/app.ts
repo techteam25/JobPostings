@@ -1,25 +1,54 @@
 import express from "express";
-import type { Application, Request, Response, NextFunction } from "express";
-import { rateLimit } from "express-rate-limit";
-import { RedisStore } from "rate-limit-redis";
 import cors from "cors";
+import helmet from "helmet";
+
+import { rateLimit } from "express-rate-limit";
+import { toNodeHandler } from "better-auth/node";
+
+import { RedisStore } from "rate-limit-redis";
+import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
+
+import type { Application, Request, Response, NextFunction } from "express";
 
 import pinoHttp from "pino-http";
 import swaggerUi from "swagger-ui-express";
 
-import { checkDatabaseConnection } from "./db/connection";
-import { env } from "./config/env";
-import { errorHandler } from "./middleware/error.middleware";
-
-import apiRoutes from "./routes";
+import apiRoutes from "@/routes";
 import logger from "@/logger";
+
+import { auth } from "@/utils/auth";
+import { checkDatabaseConnection } from "@/db/connection";
+import { env } from "@/config/env";
+import { errorHandler } from "@/middleware/error.middleware";
 import { redisClient } from "@/config/redis";
-import authRoutes from "@/routes/auth.routes";
-import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
 import { registry } from "@/swagger/registry";
 
 // Create Express application
 const app: Application = express();
+
+app.use(
+  cors({
+    origin: ["http://localhost:3000"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-requested-with"],
+    exposedHeaders: ["set-cookie"],
+    credentials: true,
+  }),
+);
+app.use(helmet());
+
+// Mount Better-Auth routes
+app.all("/api/auth/*splat", toNodeHandler(auth));
+
+// Attach pino HTTP logger middleware
+app.use(pinoHttp({ logger }));
+
+// Rate limiting middleware
+// app.use(globalLimiter); // All routes
+
+// Basic middleware
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -38,19 +67,6 @@ const globalLimiter = rateLimit({
   }),
 });
 
-// Limiter for auth routes
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 5, // Only 5 login attempts per 15 minutes
-  skipSuccessfulRequests: true, // Don't count successful logins
-  skipFailedRequests: false, // Count failed attempts
-  message: "Too many login attempts, please try again later.",
-  // Redis store configuration
-  store: new RedisStore({
-    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
-  }),
-});
-
 // Generate the OpenAPI document
 const generator = new OpenApiGeneratorV3(registry.definitions);
 const swaggerOptions = generator.generateDocument({
@@ -63,41 +79,7 @@ const swaggerOptions = generator.generateDocument({
   servers: [{ url: `http://${env.HOST}:${env.PORT}` }],
 });
 
-app.use(cors({
-    origin: ["http://localhost:3000"],
-    credentials: true,
-}));
-
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerOptions));
-
-// Attach pino HTTP logger middleware
-app.use(pinoHttp({ logger }));
-
-// Rate limiting middleware
-// app.use(globalLimiter); // All routes
-
-// Basic middleware
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-// CORS middleware (basic setup)
-app.use((req: Request, res: Response, next: NextFunction) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-  );
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization",
-  );
-
-  if (req.method === "OPTIONS") {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
 
 // Request logging middleware (development only)
 if (env.NODE_ENV === "development") {
@@ -167,7 +149,7 @@ if (env.NODE_ENV === "development") {
  *                    type: string
  *
  */
-app.get("/health", async (_: Request, res: Response) => {
+app.get("/health", cors({ origin: "*" }), async (_: Request, res: Response) => {
   try {
     const isDatabaseHealthy = await checkDatabaseConnection();
     const healthStatus = {
@@ -197,7 +179,6 @@ app.get("/health", async (_: Request, res: Response) => {
 });
 
 // Mount API routes
-app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api", globalLimiter, apiRoutes);
 
 // 404 handler
