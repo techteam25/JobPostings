@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { LoginInput } from "@/schemas/auth/login";
 import { authClient } from "@/lib/auth";
@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { redirect, RedirectType } from "next/navigation";
 
 export const useLoginUser = () => {
+  const queryClient = useQueryClient();
+
   const { mutateAsync: loginUserAsync } = useMutation({
     mutationFn: async (payload: LoginInput) => {
       // Make the POST request to the login endpoint
@@ -17,6 +19,7 @@ export const useLoginUser = () => {
         {
           onSuccess: () => {
             toast.success("Login successful!");
+            queryClient.invalidateQueries({ queryKey: ["get-user-session"] });
             redirect("/", RedirectType.replace);
           },
           onError: (error) => {

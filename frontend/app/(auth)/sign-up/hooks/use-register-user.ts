@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type {
   RegistrationInput,
@@ -9,6 +9,8 @@ import { redirect, RedirectType } from "next/navigation";
 import { toast } from "sonner";
 
 export const useRegisterUser = () => {
+  const queryClient = useQueryClient();
+
   const { mutateAsync: createUserAsync } = useMutation({
     mutationFn: async (formData: RegistrationData) => {
       const payload: RegistrationInput = {
@@ -30,6 +32,7 @@ export const useRegisterUser = () => {
         {
           onSuccess: () => {
             toast.success("Account creation successful!");
+            queryClient.invalidateQueries({ queryKey: ["get-user-session"] });
             redirect("/", RedirectType.replace);
           },
           onError: () => {
