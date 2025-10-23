@@ -124,7 +124,7 @@ export default function Navbar() {
                 </div>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild className="hover:bg-muted/80">
                 <Button
                   variant="link"
                   className="text-foreground cursor-pointer focus-visible:ring-0"
