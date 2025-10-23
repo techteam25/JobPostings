@@ -11,39 +11,42 @@ import { toast } from "sonner";
 export const useRegisterUser = () => {
   const queryClient = useQueryClient();
 
-  const { mutateAsync: createUserAsync, isPending } = useMutation({
-    mutationFn: async (formData: RegistrationData) => {
-      const payload: RegistrationInput = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        password: formData.password,
-        role: formData.accountType,
-      };
+  const { mutateAsync: createUserAsync, isPending: isRegistrationPending } =
+    useMutation({
+      mutationFn: async (formData: RegistrationData) => {
+        const payload: RegistrationInput = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          role: formData.accountType,
+        };
 
-      // Make the POST request to the registration endpoint
-      const { data } = await authClient.signUp.email(
-        {
-          email: payload.email,
-          password: payload.password,
-          name: payload.firstName + " " + payload.lastName,
-          callbackURL: "/",
-        },
-        {
-          onSuccess: () => {
-            toast.success("Account creation successful!");
-            queryClient.invalidateQueries({ queryKey: ["get-user-session"] });
-            redirect("/", RedirectType.replace);
+        // Make the POST request to the registration endpoint
+        const { data } = await authClient.signUp.email(
+          {
+            email: payload.email,
+            password: payload.password,
+            name: payload.firstName + " " + payload.lastName,
+            callbackURL: "/",
           },
-          onError: (error) => {
-            toast.error(error.error.message || "Account creation unsuccessful");
+          {
+            onSuccess: () => {
+              toast.success("Account creation successful!");
+              queryClient.invalidateQueries({ queryKey: ["get-user-session"] });
+              redirect("/", RedirectType.replace);
+            },
+            onError: (error) => {
+              toast.error(
+                error.error.message || "Account creation unsuccessful",
+              );
+            },
           },
-        },
-      );
+        );
 
-      return data;
-    },
-  });
+        return data;
+      },
+    });
 
-  return { createUserAsync, isPending };
+  return { createUserAsync, isRegistrationPending };
 };
