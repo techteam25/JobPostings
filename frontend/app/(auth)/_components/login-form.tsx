@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FcGoogle } from "react-icons/fc";
+import { Loader2 } from "lucide-react";
 
 const loginInput: LoginInput = {
   email: "",
@@ -27,7 +28,7 @@ const loginInput: LoginInput = {
 };
 
 export default function LoginForm() {
-  const loginUserAsync = useLoginUser();
+  const { loginUserAsync, isPending: isLoginPending } = useLoginUser();
 
   const [showPassword, setShowPassword] = useState(false);
   const form = useForm({
@@ -175,7 +176,13 @@ export default function LoginForm() {
                     },
                   )}
                 >
-                  Login
+                  {isLoginPending ? (
+                    <span>
+                      <Loader2 className="size-5 animate-spin" />
+                    </span>
+                  ) : (
+                    <span>Login</span>
+                  )}
                 </Button>
               )}
             />

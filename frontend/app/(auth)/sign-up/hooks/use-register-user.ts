@@ -11,7 +11,7 @@ import { toast } from "sonner";
 export const useRegisterUser = () => {
   const queryClient = useQueryClient();
 
-  const { mutateAsync: createUserAsync } = useMutation({
+  const { mutateAsync: createUserAsync, isPending } = useMutation({
     mutationFn: async (formData: RegistrationData) => {
       const payload: RegistrationInput = {
         firstName: formData.firstName,
@@ -22,7 +22,7 @@ export const useRegisterUser = () => {
       };
 
       // Make the POST request to the registration endpoint
-      const { data, error } = await authClient.signUp.email(
+      const { data } = await authClient.signUp.email(
         {
           email: payload.email,
           password: payload.password,
@@ -35,20 +35,15 @@ export const useRegisterUser = () => {
             queryClient.invalidateQueries({ queryKey: ["get-user-session"] });
             redirect("/", RedirectType.replace);
           },
-          onError: () => {
-            toast.error("Account creation unsuccessful");
+          onError: (error) => {
+            toast.error(error.error.message || "Account creation unsuccessful");
           },
         },
       );
-
-      if (error) {
-        console.error(error);
-        toast.error("Account creation unsuccessful");
-      }
 
       return data;
     },
   });
 
-  return createUserAsync;
+  return { createUserAsync, isPending };
 };

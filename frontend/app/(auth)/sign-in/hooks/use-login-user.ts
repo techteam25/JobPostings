@@ -8,7 +8,7 @@ import { redirect, RedirectType } from "next/navigation";
 export const useLoginUser = () => {
   const queryClient = useQueryClient();
 
-  const { mutateAsync: loginUserAsync } = useMutation({
+  const { mutateAsync: loginUserAsync, isPending } = useMutation({
     mutationFn: async (payload: LoginInput) => {
       // Make the POST request to the login endpoint
       const { data } = await authClient.signIn.email(
@@ -23,7 +23,7 @@ export const useLoginUser = () => {
             redirect("/", RedirectType.replace);
           },
           onError: (error) => {
-            toast.error(error.error.message);
+            toast.error(error.error.message || "Login unsuccessful");
           },
         },
       );
@@ -32,5 +32,5 @@ export const useLoginUser = () => {
     },
   });
 
-  return loginUserAsync;
+  return { loginUserAsync, isPending };
 };

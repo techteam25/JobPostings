@@ -24,12 +24,14 @@ import {
 } from "@/schemas/auth/registration";
 
 import { useRegisterUser } from "@/app/(auth)/sign-up/hooks/use-register-user";
+import { Loader2 } from "lucide-react";
 
 export default function RegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const createUserAsyncAction = useRegisterUser();
+  const { createUserAsync, isPending: isRegistrationPending } =
+    useRegisterUser();
 
   const registrationInput: RegistrationData = {
     firstName: "",
@@ -47,7 +49,7 @@ export default function RegistrationForm() {
       onChange: registrationSchema,
     },
     onSubmit: async (values) => {
-      await createUserAsyncAction(values.value);
+      await createUserAsync(values.value);
       form.reset();
     },
   });
@@ -361,7 +363,13 @@ export default function RegistrationForm() {
                   },
                 )}
               >
-                Register
+                {isRegistrationPending ? (
+                  <span>
+                    <Loader2 className="size-5 animate-spin" />
+                  </span>
+                ) : (
+                  <span>Register</span>
+                )}
               </Button>
             )}
           />
