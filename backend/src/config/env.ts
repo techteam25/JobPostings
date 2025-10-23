@@ -11,6 +11,8 @@ enum LogLevel {
 // Define the schema for environment variables
 const envSchema = z.object({
   // Server configuration
+  SERVER_URL: z.url(),
+  FRONTEND_URL: z.url(),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
@@ -52,6 +54,31 @@ const envSchema = z.object({
 
   // Better auth configuration
   BETTER_AUTH_SECRET: z.string(),
+
+  // GOOGLE AUTH
+  GOOGLE_CLIENT_ID: z.string().min(1, "Google Client ID is required"),
+  GOOGLE_CLIENT_SECRET: z.string().min(1, "Google Client Secret is required"),
+
+  // LinkedIn AUTH
+  LINKEDIN_CLIENT_ID: z.string().min(1, "LinkedIn Client ID is required"),
+  LINKEDIN_CLIENT_SECRET: z
+    .string()
+    .min(1, "LinkedIn Client Secret is required"),
+
+  // Firebase Configuration
+  FIREBASE_PROJECT_ID: z.string().min(1, "Firebase Project Id is required"),
+  FIREBASE_API_KEY: z.string().min(1, "Firebase API Key is required"),
+  FIREBASE_AUTH_DOMAIN: z.string().min(1, "Firebase Auth domain is required"),
+  FIREBASE_STORAGE_BUCKET: z
+    .string()
+    .min(1, "Firebase storage bucket is required"),
+  FIREBASE_MESSAGING_SENDER_ID: z
+    .string()
+    .min(1, "Firebase Messaging Sender Id is required"),
+  FIREBASE_APP_ID: z.string().min(1, "Firebase App Id is required"),
+  FIREBASE_MEASUREMENT_ID: z
+    .string()
+    .min(1, "Firebase Measurement Id is required"),
 });
 
 // Type inference from the schema
@@ -74,25 +101,56 @@ function validateEnv(): Env {
 
         // Return partial config for testing
         return {
+          // Server configuration
+          SERVER_URL: process.env.SERVER_URL || "http://localhost:5500",
+          FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",
           NODE_ENV: "development",
           PORT: 0,
           HOST: "1.1.1.1",
+
+          // Database configuration
           DB_HOST: process.env.DB_HOST || "127.0.0.1",
           DB_PORT: parseInt(process.env.DB_PORT || "0000"),
           DB_NAME: process.env.DB_NAME || "",
           DB_USER: process.env.DB_USER || "",
           DB_PASSWORD: process.env.DB_PASSWORD || "",
+
+          // JWT Secret configuration
           JWT_SECRET: process.env.JWT_SECRET || "",
           JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || "",
+
+          // Logger Configuration
           LOG_LEVEL: (process.env.LOG_LEVEL as LogLevel) || "info",
+
+          // Redis configuration
           REDIS_URL: process.env.REDIS_URL || "redis://localhost:6379",
+
+          // Email service configuration
           SMTP_HOST: process.env.SMTP_HOST || "smtp.example.com",
           SMTP_PORT: parseInt(process.env.SMTP_PORT || "587"),
           SMTP_SECURE: process.env.SMTP_SECURE === "true",
           SMTP_USER: process.env.SMTP_USER || "",
           SMTP_PASS: process.env.SMTP_PASS || "",
           EMAIL_FROM: process.env.EMAIL_FROM || "",
+
+          // Better auth configuration
           BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET || "",
+
+          // OAuth configuration
+          GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
+          GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || "",
+          LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID || "",
+          LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET || "",
+
+          // Firebase Configuration
+          FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID || "",
+          FIREBASE_API_KEY: process.env.FIREBASE_API_KEY || "",
+          FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN || "",
+          FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET || "",
+          FIREBASE_MESSAGING_SENDER_ID:
+            process.env.FIREBASE_MESSAGING_SENDER_ID || "",
+          FIREBASE_APP_ID: process.env.FIREBASE_APP_ID || "",
+          FIREBASE_MEASUREMENT_ID: process.env.FIREBASE_MEASUREMENT_ID || "",
         };
       }
 

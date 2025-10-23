@@ -4,37 +4,53 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { z } from "zod";
 
 import { db } from "@/db/connection";
-import logger from "@/logger";
+import { env } from "@/config/env";
+
+import { EmailService } from "@/services/email.service";
+
+const emailService = new EmailService();
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "mysql",
   }),
-  trustedOrigins: ["http://localhost:3000"],
+  trustedOrigins: [env.FRONTEND_URL],
   emailAndPassword: {
     enabled: true,
+    requireEmailVerification: true,
   },
-  // socialProviders: {
-  //   google: {
-  //     clientId: "client_id",
-  //     clientSecret: "client_secret",
-  //   },
-  // },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, token }) => {
+      await emailService.sendEmailVerification(user.email, user.name, token);
+    },
+  },
+  account: {
+    accountLinking: {
+      enabled: true,
+    },
+  },
+  socialProviders: {
+    google: {
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+    },
+    linkedin: {
+      clientId: env.LINKEDIN_CLIENT_ID,
+      clientSecret: env.LINKEDIN_CLIENT_SECRET,
+    },
+  },
   user: {
     deleteUser: {
       enabled: true,
-      sendDeleteAccountVerification: async (
-        {
-          // Todo: implement sendDeleteAccountVerification
-          user, // The user object
-          url, // The auto-generated URL for deletion
-          token, // The verification token  (can be used to generate custom URL)
-        },
-        request, // The original request object (optional)
-      ) => {
-        // Your email sending logic here
-        // Example: sendEmail(data.user.email, "Verify Deletion", data.url);
-        logger.info({ user, url, token });
+      sendDeleteAccountVerification: async ({ user, url, token }) => {
+        await emailService.sendDeleteAccountEmailVerification(
+          user.email,
+          user.name,
+          url,
+          token,
+        );
       },
     },
     fields: {

@@ -24,12 +24,21 @@ import {
 } from "@/schemas/auth/registration";
 
 import { useRegisterUser } from "@/app/(auth)/sign-up/hooks/use-register-user";
+import {
+  useGoogleAuth,
+  useLinkedInAuth,
+} from "@/app/(auth)/sign-in/hooks/use-social";
+
+import { Loader2 } from "lucide-react";
 
 export default function RegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const createUserAsyncAction = useRegisterUser();
+  const { createUserAsync, isRegistrationPending } = useRegisterUser();
+  const { isGoogleSignInPending, signInWithGoogleAsync } = useGoogleAuth();
+  const { isLinkedInSignInPending, signInWithLinkedInAsync } =
+    useLinkedInAuth();
 
   const registrationInput: RegistrationData = {
     firstName: "",
@@ -47,7 +56,7 @@ export default function RegistrationForm() {
       onChange: registrationSchema,
     },
     onSubmit: async (values) => {
-      await createUserAsyncAction(values.value);
+      await createUserAsync(values.value);
       form.reset();
     },
   });
@@ -361,7 +370,13 @@ export default function RegistrationForm() {
                   },
                 )}
               >
-                Register
+                {isRegistrationPending ? (
+                  <span>
+                    <Loader2 className="size-5 animate-spin" />
+                  </span>
+                ) : (
+                  <span>Register</span>
+                )}
               </Button>
             )}
           />
@@ -382,17 +397,21 @@ export default function RegistrationForm() {
         {/* Social Sign Up */}
         <div className="grid grid-cols-2 gap-3">
           <Button
+            disabled={isGoogleSignInPending}
             variant="ghost"
             type="button"
             className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
+            onClick={async () => signInWithGoogleAsync()}
           >
             <FcGoogle className="size-6" />
             Google
           </Button>
           <Button
+            disabled={isLinkedInSignInPending}
             variant="ghost"
             type="button"
             className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
+            onClick={async () => signInWithLinkedInAsync()}
           >
             <BsLinkedin className="size-6 text-[#0072b1]" />
             LinkedIn

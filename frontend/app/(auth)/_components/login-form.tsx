@@ -2,23 +2,29 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 
 import { useForm } from "@tanstack/react-form";
+import { cn } from "@/lib/utils";
 
 import { LoginInput, loginSchema } from "@/schemas/auth/login";
 import { useLoginUser } from "@/app/(auth)/sign-in/hooks/use-login-user";
+import {
+  useGoogleAuth,
+  useLinkedInAuth,
+} from "@/app/(auth)/sign-in/hooks/use-social";
 
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { FieldInfo } from "@/components/common/FieldInfo";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { FieldInfo } from "@/components/common/FieldInfo";
+
 import { BsEye, BsEyeSlash, BsLinkedin } from "react-icons/bs";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { FcGoogle } from "react-icons/fc";
+import { Loader2 } from "lucide-react";
 
 import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
-import { Checkbox } from "@/components/ui/checkbox";
-import { FcGoogle } from "react-icons/fc";
 
 const loginInput: LoginInput = {
   email: "",
@@ -27,7 +33,10 @@ const loginInput: LoginInput = {
 };
 
 export default function LoginForm() {
-  const loginUserAsync = useLoginUser();
+  const { loginUserAsync, isLoginPending } = useLoginUser();
+  const { isGoogleSignInPending, signInWithGoogleAsync } = useGoogleAuth();
+  const { isLinkedInSignInPending, signInWithLinkedInAsync } =
+    useLinkedInAuth();
 
   const [showPassword, setShowPassword] = useState(false);
   const form = useForm({
@@ -175,7 +184,13 @@ export default function LoginForm() {
                     },
                   )}
                 >
-                  Login
+                  {isLoginPending ? (
+                    <span>
+                      <Loader2 className="size-5 animate-spin" />
+                    </span>
+                  ) : (
+                    <span>Login</span>
+                  )}
                 </Button>
               )}
             />
@@ -194,17 +209,21 @@ export default function LoginForm() {
           {/* Social Sign Up */}
           <div className="grid grid-cols-2 gap-3">
             <Button
+              disabled={isGoogleSignInPending}
               variant="ghost"
               type="button"
               className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
+              onClick={async () => await signInWithGoogleAsync()}
             >
               <FcGoogle className="size-6" />
               Google
             </Button>
             <Button
+              disabled={isLinkedInSignInPending}
               variant="ghost"
               type="button"
               className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
+              onClick={async () => await signInWithLinkedInAsync()}
             >
               <BsLinkedin className="size-6 text-[#0072b1]" />
               LinkedIn

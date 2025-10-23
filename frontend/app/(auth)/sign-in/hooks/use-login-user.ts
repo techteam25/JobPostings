@@ -8,29 +8,30 @@ import { redirect, RedirectType } from "next/navigation";
 export const useLoginUser = () => {
   const queryClient = useQueryClient();
 
-  const { mutateAsync: loginUserAsync } = useMutation({
-    mutationFn: async (payload: LoginInput) => {
-      // Make the POST request to the login endpoint
-      const { data } = await authClient.signIn.email(
-        {
-          email: payload.email,
-          password: payload.password,
-        },
-        {
-          onSuccess: () => {
-            toast.success("Login successful!");
-            queryClient.invalidateQueries({ queryKey: ["get-user-session"] });
-            redirect("/", RedirectType.replace);
+  const { mutateAsync: loginUserAsync, isPending: isLoginPending } =
+    useMutation({
+      mutationFn: async (payload: LoginInput) => {
+        // Make the POST request to the login endpoint
+        const { data } = await authClient.signIn.email(
+          {
+            email: payload.email,
+            password: payload.password,
           },
-          onError: (error) => {
-            toast.error(error.error.message);
+          {
+            onSuccess: () => {
+              toast.success("Login successful!");
+              queryClient.invalidateQueries({ queryKey: ["get-user-session"] });
+              redirect("/", RedirectType.replace);
+            },
+            onError: (error) => {
+              toast.error(error.error.message || "Login unsuccessful");
+            },
           },
-        },
-      );
+        );
 
-      return data;
-    },
-  });
+        return data;
+      },
+    });
 
-  return loginUserAsync;
+  return { loginUserAsync, isLoginPending };
 };
