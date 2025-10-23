@@ -11,6 +11,8 @@ enum LogLevel {
 // Define the schema for environment variables
 const envSchema = z.object({
   // Server configuration
+  SERVER_URL: z.url(),
+  FRONTEND_URL: z.url(),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
@@ -84,6 +86,8 @@ function validateEnv(): Env {
 
         // Return partial config for testing
         return {
+          SERVER_URL: process.env.SERVER_URL || "http://localhost:5500",
+          FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",
           NODE_ENV: "development",
           PORT: 0,
           HOST: "1.1.1.1",
