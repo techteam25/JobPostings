@@ -8,8 +8,8 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=jobpostings
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
   redis:
     image: redis:8.2-alpine
     container_name: redis-container
@@ -19,3 +19,15 @@ services:
     ports:
       - "6379:6379"
     command: redis-server --requirepass ${REDIS_PWD}
+
+  typesense:
+    image: typesense/typesense:30.0.rc26
+    restart: on-failure
+    ports:
+      - "8108:8108"
+    volumes:
+      - ./typesense-data:/data
+    command: '--data-dir /data --api-key=${TYPESENSE_API_KEY} --enable-cors'
+
+volumes:
+  typesense-data:
