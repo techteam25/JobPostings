@@ -120,4 +120,33 @@ Tech Team`,
       console.error(error);
     }
   }
+
+  async sendDeleteAccountEmailVerification(
+    email: string,
+    name: string,
+    url: string,
+    token: string,
+  ): Promise<void> {
+    const template = await this.loadTemplate("deleteEmail");
+
+    // const verificationLink = `${env.SERVER_URL}/api/auth/delete-user?token=${token}&callbackURL=${env.FRONTEND_URL}/`;
+    const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+    const htmlContent = template
+      .replace("{{name}}", name)
+      .replace("{{verificationLink}}", url)
+      .replace("{{logoPath}}", logoPath);
+    try {
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: "Account deletion request",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 }

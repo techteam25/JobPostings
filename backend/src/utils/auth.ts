@@ -4,7 +4,6 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { z } from "zod";
 
 import { db } from "@/db/connection";
-import logger from "@/logger";
 import { env } from "@/config/env";
 
 import { EmailService } from "@/services/email.service";
@@ -23,8 +22,13 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
-    sendVerificationEmail: async ({ user, url, token }, request) => {
+    sendVerificationEmail: async ({ user, token }) => {
       await emailService.sendEmailVerification(user.email, user.name, token);
+    },
+  },
+  account: {
+    accountLinking: {
+      enabled: true,
     },
   },
   socialProviders: {
@@ -40,18 +44,13 @@ export const auth = betterAuth({
   user: {
     deleteUser: {
       enabled: true,
-      sendDeleteAccountVerification: async (
-        {
-          // Todo: implement sendDeleteAccountVerification
-          user, // The user object
-          url, // The auto-generated URL for deletion
-          token, // The verification token  (can be used to generate custom URL)
-        },
-        request, // The original request object (optional)
-      ) => {
-        // Your email sending logic here
-        // Example: sendEmail(data.user.email, "Verify Deletion", data.url);
-        logger.info({ user, url, token });
+      sendDeleteAccountVerification: async ({ user, url, token }) => {
+        await emailService.sendDeleteAccountEmailVerification(
+          user.email,
+          user.name,
+          url,
+          token,
+        );
       },
     },
     fields: {
