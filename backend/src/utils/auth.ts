@@ -7,6 +7,10 @@ import { db } from "@/db/connection";
 import logger from "@/logger";
 import { env } from "@/config/env";
 
+import { EmailService } from "@/services/email.service";
+
+const emailService = new EmailService();
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "mysql",
@@ -14,6 +18,14 @@ export const auth = betterAuth({
   trustedOrigins: ["http://localhost:3000"],
   emailAndPassword: {
     enabled: true,
+    requireEmailVerification: true,
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url, token }, request) => {
+      await emailService.sendEmailVerification(user.email, user.name, token);
+    },
   },
   socialProviders: {
     google: {
