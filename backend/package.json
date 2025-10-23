@@ -21,7 +21,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:drop": "drizzle-kit drop"
+    "db:drop": "drizzle-kit drop",
+    "services:up": "docker compose up -d",
+    "services:down": "docker compose down -v"
   },
   "private": true,
   "devDependencies": {
