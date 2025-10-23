@@ -1,8 +1,11 @@
 import { env } from "@/env";
 import { authClient } from "@/lib/auth";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export const useGoogleAuth = () => {
+  const queryClient = useQueryClient();
+
   const {
     mutateAsync: signInWithGoogleAsync,
     isPending: isGoogleSignInPending,
@@ -12,12 +15,21 @@ export const useGoogleAuth = () => {
         provider: "google",
         callbackURL: `${env.NEXT_PUBLIC_FRONTEND_URL}/`,
       }),
+
+    onError: (error) => {
+      toast.error(error.message || "Login unsuccessful");
+    },
+    onSuccess: async () => {
+      toast.success("Login successful!");
+      await queryClient.invalidateQueries({ queryKey: ["get-user-session"] });
+    },
   });
 
   return { signInWithGoogleAsync, isGoogleSignInPending };
 };
 
 export const useLinkedInAuth = () => {
+  const queryClient = useQueryClient();
   const {
     mutateAsync: signInWithLinkedInAsync,
     isPending: isLinkedInSignInPending,
@@ -27,6 +39,14 @@ export const useLinkedInAuth = () => {
         provider: "linkedin",
         callbackURL: `${env.NEXT_PUBLIC_FRONTEND_URL}/`,
       }),
+
+    onError: (error) => {
+      toast.error(error.message || "Login unsuccessful");
+    },
+    onSuccess: async () => {
+      toast.success("Login successful!");
+      await queryClient.invalidateQueries({ queryKey: ["get-user-session"] });
+    },
   });
 
   return { signInWithLinkedInAsync, isLinkedInSignInPending };
