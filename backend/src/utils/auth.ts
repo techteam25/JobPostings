@@ -14,7 +14,7 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "mysql",
   }),
-  trustedOrigins: ["http://localhost:3000"],
+  trustedOrigins: [env.FRONTEND_URL],
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
