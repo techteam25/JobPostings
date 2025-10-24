@@ -13,6 +13,7 @@ import {
   CreateJobSchema,
   DeleteJobSchema,
   GetJobSchema,
+  type JobWithSkills,
   UpdateJobSchema,
 } from "@/validations/job.validation";
 import { GetOrganizationSchema } from "@/validations/organization.validation";
@@ -24,6 +25,7 @@ import {
   UpdateJobApplication,
 } from "@/validations/job.validation";
 import { ApiResponse, PaginatedResponse } from "@/types";
+import { buildPaginationMeta } from "@/utils/build-search-pagination";
 
 export class JobController extends BaseController {
   private jobService: JobService;
@@ -71,11 +73,15 @@ export class JobController extends BaseController {
     try {
       const {
         page,
-        limit,
+        limit = 10,
         q,
         jobType,
         sortBy,
-        location,
+        city,
+        state,
+        country,
+        zipcode,
+        experience,
         isRemote,
         order,
         status,
@@ -87,15 +93,22 @@ export class JobController extends BaseController {
         q,
         jobType,
         sortBy,
-        location,
+        city,
+        state,
+        country,
+        zipcode,
+        experience,
         isRemote,
         order,
         status,
       });
+
+      const pagination = buildPaginationMeta(result, limit);
+
       this.sendPaginatedResponse(
         res,
-        result.items,
-        result.pagination,
+        result.hits ?? [],
+        pagination,
         "Jobs retrieved successfully",
       );
     } catch (error) {
@@ -191,7 +204,7 @@ export class JobController extends BaseController {
 
   createJob = async (
     req: Request<{}, {}, CreateJobSchema["body"]>,
-    res: Response<ApiResponse<Job>>,
+    res: Response<ApiResponse<JobWithSkills>>,
   ) => {
     try {
       const jobData = {
