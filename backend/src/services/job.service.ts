@@ -1,13 +1,18 @@
+import { BaseService } from "./base.service";
+import { JobInsightsRepository } from "@/repositories/jobInsights.repository";
 import { JobRepository } from "@/repositories/job.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
-import { BaseService } from "./base.service";
-import {
+import { TypesenseService } from "@/services/typesense.service/typesense.service";
+
+import type {
   NewJob,
   NewJobApplication,
   Job,
   UpdateJob,
   UpdateJobApplication,
+  JobWithSkills,
 } from "@/validations/job.validation";
+
 import {
   NotFoundError,
   ForbiddenError,
@@ -16,19 +21,22 @@ import {
 } from "@/utils/errors";
 import { SecurityUtils } from "@/utils/security";
 import { AppError, ErrorCode } from "@/utils/errors";
-import { JobInsightsRepository } from "@/repositories/jobInsights.repository";
+
 import { SearchParams } from "@/validations/base.validation";
+import { jobIndexerQueue } from "@/utils/bullmq.utils";
 
 export class JobService extends BaseService {
   private jobRepository: JobRepository;
   private organizationRepository: OrganizationRepository;
   private jobInsightsRepository: JobInsightsRepository;
+  private typesenseService: TypesenseService;
 
   constructor() {
     super();
     this.jobRepository = new JobRepository();
     this.organizationRepository = new OrganizationRepository();
     this.jobInsightsRepository = new JobInsightsRepository();
+    this.typesenseService = new TypesenseService();
   }
 
   async getAllActiveJobs(options: { page?: number; limit?: number } = {}) {
@@ -53,7 +61,23 @@ export class JobService extends BaseService {
 
   async searchJobs(filters: SearchParams["query"]) {
     try {
-      return await this.jobRepository.searchJobs(filters);
+      const { q, page = 1, limit = 10, ...rest } = filters;
+      const offset = (page - 1) * limit;
+
+      const filterQuery = Object.entries(rest)
+        .filter(([_, value]) => value)
+        .map(([key, value]) => `${key}:${value}`)
+        .join(" && ");
+
+      const parts: string[] = [];
+      if (filterQuery) parts.push(`filter_by=${filterQuery}`);
+      const filterString = parts.join("&");
+
+      return await this.typesenseService.searchJobsCollection(q, filterString, {
+        limit,
+        offset,
+        page,
+      });
     } catch (error) {
       this.handleError(error);
     }
@@ -99,7 +123,7 @@ export class JobService extends BaseService {
     return await this.jobRepository.findJobsByEmployer(employerId, options);
   }
 
-  async createJob(jobData: NewJob): Promise<Job> {
+  async createJob(jobData: NewJob): Promise<JobWithSkills> {
     // Todo Fetch this from organizationMembers table
     // Validate employer exists
     const employer = await this.organizationRepository.findById(
@@ -117,15 +141,29 @@ export class JobService extends BaseService {
       ...jobData,
       title: SecurityUtils.sanitizeInput(jobData.title),
       description: SecurityUtils.sanitizeInput(jobData.description),
-      location: SecurityUtils.sanitizeInput(jobData.location),
-      skills: jobData.skills ? this.processSkillsArray(jobData.skills) : null,
+      city: SecurityUtils.sanitizeInput(jobData.city),
+      country: SecurityUtils.sanitizeInput(jobData.country),
       experience: jobData.experience
         ? SecurityUtils.sanitizeInput(jobData.experience)
         : null,
     };
 
     const jobId = await this.jobRepository.create(sanitizedData);
-    return await this.getJobById(jobId);
+
+    const createdJob = await this.jobRepository.findJobByIdWithSkills(jobId);
+
+    if (!createdJob) {
+      throw new AppError(
+        "Failed to retrieve created job",
+        500,
+        ErrorCode.DATABASE_ERROR,
+      );
+    }
+
+    // Enqueue job for indexing in Typesense
+    await jobIndexerQueue.add("indexJob", { createdJob });
+
+    return createdJob;
   }
 
   async updateJob(
@@ -162,11 +200,11 @@ export class JobService extends BaseService {
       description: updateData.description
         ? SecurityUtils.sanitizeInput(updateData.description)
         : undefined,
-      location: updateData.location
-        ? SecurityUtils.sanitizeInput(updateData.location)
+      location: updateData.city
+        ? SecurityUtils.sanitizeInput(updateData.city)
         : undefined,
-      requiredSkills: updateData.skills
-        ? this.processSkillsArray(updateData.skills)
+      requiredSkills: updateData.state
+        ? this.processSkillsArray(updateData.state)
         : undefined,
     };
 
@@ -175,7 +213,20 @@ export class JobService extends BaseService {
       throw new AppError("Failed to update job", 500, ErrorCode.DATABASE_ERROR);
     }
 
-    return await this.getJobById(id);
+    const updatedJob = await this.jobRepository.findJobByIdWithSkills(id);
+
+    if (!updatedJob) {
+      throw new AppError(
+        "Failed to retrieve created job",
+        500,
+        ErrorCode.DATABASE_ERROR,
+      );
+    }
+
+    // Update job indexes in Typesense
+    await jobIndexerQueue.add("updateJobIndex", { id, updatedJob });
+
+    return updatedJob;
   }
 
   async deleteJob(id: number, requesterId: number): Promise<void> {
@@ -210,6 +261,9 @@ export class JobService extends BaseService {
     if (!success) {
       throw new AppError("Failed to delete job", 500, ErrorCode.DATABASE_ERROR);
     }
+
+    // Delete job indexes in Typesense
+    await jobIndexerQueue.add("deleteJobIndex", { id });
   }
 
   // Job Application Methods
