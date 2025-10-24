@@ -82,7 +82,7 @@ export class JobController extends BaseController {
         country,
         zipcode,
         experience,
-        isRemote,
+        includeRemote,
         order,
         status,
       } = req.query;
@@ -98,7 +98,7 @@ export class JobController extends BaseController {
         country,
         zipcode,
         experience,
-        isRemote,
+        includeRemote,
         order,
         status,
       });
@@ -107,7 +107,7 @@ export class JobController extends BaseController {
 
       this.sendPaginatedResponse(
         res,
-        result.hits ?? [],
+        result.hits?.map((h) => h.document) ?? [],
         pagination,
         "Jobs retrieved successfully",
       );
