@@ -12,4 +12,5 @@ export const typesenseClient = new Typesense.Client({
   ],
   apiKey: env.TYPESENSE_API_KEY,
   connectionTimeoutSeconds: 2,
+  healthcheckIntervalSeconds: 30,
 });
