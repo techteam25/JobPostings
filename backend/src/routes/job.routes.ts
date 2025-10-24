@@ -162,6 +162,7 @@ router.post(
 router.patch(
   "/applications/:applicationId/withdraw",
   authMiddleware.requireUserRole(),
+  authMiddleware.requireApplicationOwnership(),
   validate(getJobSchema),
   jobController.withdrawApplication,
 );

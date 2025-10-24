@@ -352,26 +352,23 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       async () =>
         await db
           .select({
-            application: {
-              id: jobApplications.id,
-              jobId: jobApplications.jobId,
-              reviewedAt: jobApplications.reviewedAt,
-            },
-            job: {
-              id: jobsDetails.id,
-              title: jobsDetails.title,
-              location: jobsDetails.location,
-              jobType: jobsDetails.jobType,
-              employerId: jobsDetails.employerId,
-            },
-            user: {
+            application: jobApplications,
+            job: jobsDetails,
+            applicant: {
               id: user.id,
+              email: user.email,
+              fullName: user.fullName,
+            },
+            employer: {
+              id: organizations.id,
+              name: organizations.name,
             },
           })
           .from(jobApplications)
           .where(eq(jobApplications.id, applicationId))
           .innerJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
-          .innerJoin(user, eq(jobApplications.applicantId, user.id)),
+          .innerJoin(user, eq(jobApplications.applicantId, user.id))
+          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id)),
     );
   }
 

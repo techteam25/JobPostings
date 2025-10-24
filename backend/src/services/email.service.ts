@@ -46,19 +46,18 @@ export class EmailService extends BaseService {
     firstName: string,
   ): Promise<void> {
     try {
+      const template = await this.loadTemplate("accountDeactivation");
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      const htmlContent = template
+        .replace("{{firstName}}", firstName)
+        .replace("{{logoPath}}", logoPath);
+
       const mailOptions = {
         from: env.EMAIL_FROM,
         to: email,
         subject: "Account Deactivation Confirmation",
-        text: `Dear ${firstName},
-
-Your account has been successfully deactivated. If you did not initiate this action, please contact support immediately.
-
-Best regards,
-Tech Team`,
-        html: `<p>Dear ${firstName},</p>
-<p>Your account has been successfully deactivated. If you did not initiate this action, please contact support immediately.</p>
-<p>Best regards,<br>Tech Team</p>`,
+        html: htmlContent,
       };
 
       await this.transporter.sendMail(mailOptions);
@@ -72,19 +71,18 @@ Tech Team`,
     firstName: string,
   ): Promise<void> {
     try {
+      const template = await this.loadTemplate("accountDeletionConfirmation");
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      const htmlContent = template
+        .replace("{{firstName}}", firstName)
+        .replace("{{logoPath}}", logoPath);
+
       const mailOptions = {
         from: env.EMAIL_FROM,
         to: email,
         subject: "Account Deletion Confirmation",
-        text: `Dear ${firstName},
-
-Your account has been successfully deleted. If you did not initiate this action, please contact support immediately.
-
-Best regards,
-Tech Team`,
-        html: `<p>Dear ${firstName},</p>
-<p>Your account has been successfully deleted. If you did not initiate this action, please contact support immediately.</p>
-<p>Best regards,<br>Tech Team</p>`,
+        html: htmlContent,
       };
 
       await this.transporter.sendMail(mailOptions);
@@ -129,7 +127,6 @@ Tech Team`,
   ): Promise<void> {
     const template = await this.loadTemplate("deleteEmail");
 
-    // const verificationLink = `${env.SERVER_URL}/api/auth/delete-user?token=${token}&callbackURL=${env.FRONTEND_URL}/`;
     const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
 
     const htmlContent = template
@@ -147,6 +144,35 @@ Tech Team`,
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
       console.error(error);
+    }
+  }
+
+  async sendApplicationWithdrawalConfirmation(
+    email: string,
+    firstName: string,
+    jobTitle: string,
+    companyName: string,
+  ): Promise<void> {
+    try {
+      const template = await this.loadTemplate("applicationWithdrawal");
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      const htmlContent = template
+        .replace("{{firstName}}", firstName)
+        .replace("{{jobTitle}}", jobTitle)
+        .replace("{{companyName}}", companyName)
+        .replace("{{logoPath}}", logoPath);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: "Application Withdrawal Confirmation",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      this.handleError(error);
     }
   }
 }
