@@ -24,6 +24,7 @@ import { AppError, ErrorCode } from "@/utils/errors";
 
 import { SearchParams } from "@/validations/base.validation";
 import { jobIndexerQueue } from "@/utils/bullmq.utils";
+import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
 
 export class JobService extends BaseService {
   private jobRepository: JobRepository;
@@ -61,13 +62,28 @@ export class JobService extends BaseService {
 
   async searchJobs(filters: SearchParams["query"]) {
     try {
-      const { q, page = 1, limit = 10, ...rest } = filters;
+      const {
+        q,
+        page = 1,
+        limit = 10,
+        includeRemote,
+        city,
+        state,
+        country,
+        skills,
+        jobType,
+        ...rest
+      } = filters;
       const offset = (page - 1) * limit;
 
-      const filterQuery = Object.entries(rest)
-        .filter(([_, value]) => value)
-        .map(([key, value]) => `${key}:${value}`)
-        .join(" && ");
+      const queryBuilder = new TypesenseQueryBuilder()
+        .addLocationFilters({ city, state, country }, includeRemote)
+        .addSkillFilters(skills, true) // AND logic
+        .addArrayFilter("jobType", jobType, true) // OR logic
+        .addSingleFilter("status", rest.status)
+        .addSingleFilter("experience", rest.experience);
+
+      const filterQuery = queryBuilder.build();
 
       const parts: string[] = [];
       if (filterQuery) parts.push(`filter_by=${filterQuery}`);
