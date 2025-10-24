@@ -23,7 +23,8 @@
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
     "services:up": "docker compose up -d",
-    "services:down": "docker compose down -v"
+    "services:down": "docker compose down",
+    "services:purge": "docker compose down -v --rmi all --remove-orphans"
   },
   "private": true,
   "devDependencies": {
@@ -63,6 +64,7 @@
     "@asteasolutions/zod-to-openapi": "^8.1.0",
     "bcrypt": "^6.0.0",
     "better-auth": "^1.3.28",
+    "bullmq": "^5.61.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.5",
