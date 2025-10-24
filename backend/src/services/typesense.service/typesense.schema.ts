@@ -1,9 +1,10 @@
 import { typesenseClient } from "@/config/typesense-client";
+
 import { JOBS_COLLECTION } from "@/services/typesense.service/constants";
 
 export const createPostedJobsSchema = async () => {
   const collections = await typesenseClient.collections().retrieve();
-  const exists = collections.some((c) => c.name === "jobs");
+  const exists = collections.some((c) => c.name === JOBS_COLLECTION);
 
   if (!exists) {
     return await typesenseClient.collections().create({

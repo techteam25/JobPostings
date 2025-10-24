@@ -6,23 +6,7 @@ import { JobWithSkills } from "@/validations/job.validation";
 import { typesenseClient } from "@/config/typesense-client";
 
 import logger from "@/logger";
-import { PaginationMeta } from "@/types";
-
-type JobDocument = {
-  id: string;
-  title: string;
-  company: string;
-  description: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  isRemote: boolean;
-  status: string;
-  experience?: string;
-  jobType: string;
-  skills: string[];
-  createdAt: number;
-};
+import { JobDocumentType } from "@/validations/base.validation";
 
 type SortDirection = "asc" | "desc";
 type MetaSearchParams = {
@@ -94,9 +78,9 @@ export class TypesenseService {
       limit: 10,
       offset: 0,
     },
-  ): Promise<SearchResponse<JobDocument>> {
+  ): Promise<SearchResponse<JobDocumentType>> {
     return await typesenseClient
-      .collections<JobDocument>(JOBS_COLLECTION)
+      .collections<JobDocumentType>(JOBS_COLLECTION)
       .documents()
       .search({
         q,
