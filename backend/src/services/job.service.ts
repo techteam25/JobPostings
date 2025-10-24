@@ -5,6 +5,7 @@ import {
   NewJob,
   NewJobApplication,
   Job,
+  JobApplication,
   UpdateJob,
   UpdateJobApplication,
 } from "@/validations/job.validation";
@@ -43,7 +44,7 @@ export class JobService extends BaseService {
     try {
       const allJobs = await this.jobRepository.findJobsByEmployer(
         organizationId,
-        { limit: 10000 },
+        { limit: 10000 }
       );
       return allJobs.items.filter((job) => job.isActive);
     } catch (error) {
@@ -79,20 +80,20 @@ export class JobService extends BaseService {
   async getJobsByEmployer(
     employerId: number,
     options: { page?: number; limit?: number } = {},
-    requesterId: number,
+    requesterId: number
   ) {
     // Todo: Additional check for employers - they can only see their own organization's jobs
     const organization =
       await this.organizationRepository.findByContact(requesterId);
     if (!organization) {
       return this.handleError(
-        new ForbiddenError("You do not belong to any organization"),
+        new ForbiddenError("You do not belong to any organization")
       );
     }
 
     if (organization.id !== employerId) {
       return this.handleError(
-        new ForbiddenError("You can only view jobs for your organization"),
+        new ForbiddenError("You can only view jobs for your organization")
       );
     }
 
@@ -103,12 +104,12 @@ export class JobService extends BaseService {
     // Todo Fetch this from organizationMembers table
     // Validate employer exists
     const employer = await this.organizationRepository.findById(
-      jobData.employerId,
+      jobData.employerId
     );
 
     if (!employer) {
       return this.handleError(
-        new NotFoundError("Organization", jobData.employerId),
+        new NotFoundError("Organization", jobData.employerId)
       );
     }
 
@@ -131,7 +132,7 @@ export class JobService extends BaseService {
   async updateJob(
     id: number,
     updateData: UpdateJob,
-    requesterId: number,
+    requesterId: number
   ): Promise<Job> {
     const job = await this.getJobById(id);
 
@@ -149,7 +150,7 @@ export class JobService extends BaseService {
 
     if (job.employerId !== organization.id) {
       throw new ForbiddenError(
-        "You can only update jobs posted by your organization",
+        "You can only update jobs posted by your organization"
       );
     }
 
@@ -195,7 +196,7 @@ export class JobService extends BaseService {
 
     if (job.employerId !== organization.id) {
       throw new ForbiddenError(
-        "You can only delete jobs posted by your organization",
+        "You can only delete jobs posted by your organization"
       );
     }
 
@@ -214,13 +215,13 @@ export class JobService extends BaseService {
 
   // Job Application Methods
   async applyForJob(
-    applicationData: NewJobApplication,
+    applicationData: NewJobApplication
   ): Promise<{ applicationId: number; message: string }> {
     // Check if job exists and is active
     const job = await this.getJobById(applicationData.jobId);
     if (!job.isActive) {
       return this.handleError(
-        new ValidationError("This job is no longer accepting applications"),
+        new ValidationError("This job is no longer accepting applications")
       );
     }
 
@@ -230,19 +231,19 @@ export class JobService extends BaseService {
       new Date() > new Date(job.applicationDeadline)
     ) {
       return this.handleError(
-        new ValidationError("The application deadline has passed"),
+        new ValidationError("The application deadline has passed")
       );
     }
 
     // Check if user has already applied
     const hasApplied = await this.jobRepository.hasUserAppliedToJob(
       applicationData.applicantId,
-      applicationData.jobId,
+      applicationData.jobId
     );
 
     if (hasApplied) {
       return this.handleError(
-        new ConflictError("You have already applied for this job"),
+        new ConflictError("You have already applied for this job")
       );
     }
 
@@ -250,7 +251,7 @@ export class JobService extends BaseService {
     const sanitizedData = {
       ...applicationData,
       coverLetter: SecurityUtils.sanitizeInput(
-        applicationData.coverLetter ?? "",
+        applicationData.coverLetter ?? ""
       ),
     };
 
@@ -262,8 +263,8 @@ export class JobService extends BaseService {
         new AppError(
           "Failed to submit application",
           500,
-          ErrorCode.DATABASE_ERROR,
-        ),
+          ErrorCode.DATABASE_ERROR
+        )
       );
     }
 
@@ -276,7 +277,7 @@ export class JobService extends BaseService {
   async getJobApplications(
     jobId: number,
     { page, limit, status }: SearchParams["query"],
-    requesterId: number,
+    requesterId: number
   ) {
     // Authorization check - only admin or employer who posted the job can view applications
     const [job, organization] = await Promise.all([
@@ -286,15 +287,15 @@ export class JobService extends BaseService {
 
     if (!organization) {
       return this.handleError(
-        new ForbiddenError("You do not belong to any organization"),
+        new ForbiddenError("You do not belong to any organization")
       );
     }
 
     if (job.employerId !== organization.id) {
       return this.handleError(
         new ForbiddenError(
-          "You can only view applications for jobs posted by your organization",
-        ),
+          "You can only view applications for jobs posted by your organization"
+        )
       );
     }
 
@@ -307,7 +308,7 @@ export class JobService extends BaseService {
 
   async getUserApplications(
     userId: number,
-    { page, limit, status }: SearchParams["query"],
+    { page, limit, status }: SearchParams["query"]
   ) {
     try {
       return await this.jobRepository.findApplicationsByUser(userId, {
@@ -323,7 +324,7 @@ export class JobService extends BaseService {
   async updateApplicationStatus(
     applicationId: number,
     data: UpdateJobApplication,
-    requesterId: number,
+    requesterId: number
   ): Promise<{ message: string }> {
     // Get application details
     const [application] =
@@ -341,15 +342,15 @@ export class JobService extends BaseService {
 
     if (!organization) {
       return this.handleError(
-        new ForbiddenError("You do not belong to any organization"),
+        new ForbiddenError("You do not belong to any organization")
       );
     }
 
     if (organization.id !== job.employerId) {
       return this.handleError(
         new ForbiddenError(
-          "You can only update applications for jobs posted by your organization",
-        ),
+          "You can only update applications for jobs posted by your organization"
+        )
       );
     }
 
@@ -370,64 +371,78 @@ export class JobService extends BaseService {
 
     const success = await this.jobRepository.updateApplicationStatus(
       applicationId,
-      data,
+      data
     );
     if (!success) {
       return this.handleError(
         new AppError(
           "Failed to update application status",
           500,
-          ErrorCode.DATABASE_ERROR,
-        ),
+          ErrorCode.DATABASE_ERROR
+        )
       );
     }
 
     return { message: "Application status updated successfully" };
   }
 
-  async withdrawApplication(
-    applicationId: number,
-    userId: number,
-  ): Promise<{ message: string }> {
-    const application =
-      await this.jobRepository.findApplicationById(applicationId);
-    if (!application) {
-      return this.handleError(new NotFoundError("Application", applicationId));
-    }
+async withdrawApplication(
+  applicationId: number,
+  userId: number
+): Promise<{
+  message: string;
+  applicationDetails: {
+    userEmail: string;
+    userFirstName: string;
+    jobTitle: string;
+    companyName: string;
+  };
+}> {
+  const [applicationData] = await this.jobRepository.findApplicationById(
+    applicationId
+  );
 
-    // Check if user owns this application
-    if ((application as any).applicantId !== userId) {
-      return this.handleError(
-        new ForbiddenError("You can only withdraw your own applications"),
-      );
-    }
-
-    // Check if application can be withdrawn
-    if (["hired", "rejected"].includes((application as any).status)) {
-      return this.handleError(
-        new ValidationError("Cannot withdraw application with final status"),
-      );
-    }
-
-    const success = await this.jobRepository.updateApplicationStatus(
-      applicationId,
-      {
-        status: "withdrawn",
-      } as any,
-    );
-
-    if (!success) {
-      return this.handleError(
-        new AppError(
-          "Failed to withdraw application",
-          500,
-          ErrorCode.DATABASE_ERROR,
-        ),
-      );
-    }
-
-    return { message: "Application withdrawn successfully" };
+  if (!applicationData) {
+    return this.handleError(new NotFoundError("Application", applicationId));
   }
+
+  const { application, job, applicant, employer } = applicationData;
+
+  // Check for non-withdrawable statuses
+  if (["hired", "rejected"].includes(application.status)) {
+    return this.handleError(
+      new ValidationError("Cannot withdraw application with final status")
+    );
+  }
+
+  // Update status
+  const success = await this.jobRepository.updateApplicationStatus(
+    applicationId,
+    { status: "withdrawn" }
+  );
+
+  if (!success) {
+    return this.handleError(
+      new AppError(
+        "Failed to withdraw application",
+        500,
+        ErrorCode.DATABASE_ERROR
+      )
+    );
+  }
+
+  // Return typed response
+  return {
+    message: "Application withdrawn successfully",
+    applicationDetails: {
+      userEmail: applicant.email,
+      userFirstName: applicant.fullName?.split(" ")[0] ?? "",
+      jobTitle: job.title,
+      companyName: employer?.name ?? "Company",
+    },
+  };
+}
+
 
   async deleteJobApplicationsByUserId(userId: number): Promise<void> {
     try {

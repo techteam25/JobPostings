@@ -3,6 +3,8 @@ import { fromNodeHeaders } from "better-auth/node";
 
 import { ApiResponse } from "@/types";
 import { UserService } from "@/services/user.service";
+import { JobRepository } from "@/repositories/job.repository";
+import { ForbiddenError } from "@/utils/errors";
 
 import logger from "@/logger";
 import { auth } from "@/utils/auth";
@@ -11,10 +13,13 @@ import { OrganizationService } from "@/services/organization.service";
 export class AuthMiddleware {
   private readonly organizationService: OrganizationService;
   private readonly userService: UserService;
+  private readonly jobRepository: JobRepository;
+
 
   constructor() {
     this.organizationService = new OrganizationService();
     this.userService = new UserService();
+    this.jobRepository = new JobRepository();
   }
 
   authenticate = async (
@@ -225,5 +230,58 @@ export class AuthMiddleware {
       });
     }
     return next();
+  };
+
+  requireApplicationOwnership = () => {
+    return async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        if (!req.userId) {
+          return res.status(401).json({
+            status: "error",
+            message: "Authentication required",
+          });
+        }
+
+        // Extract applicationId from request params or body
+        const applicationId = parseInt(
+          (req.params.applicationId || req.body.applicationId) as string
+        );
+
+        if (!applicationId) {
+          return res.status(400).json({
+            status: "error",
+            message: "Application ID is required",
+          });
+        }
+
+        // Fetch application details
+        const [applicationData] = await this.jobRepository.findApplicationById(
+          applicationId
+        );
+
+        if (!applicationData) {
+          return res.status(404).json({
+            status: "error",
+            message: "Application not found",
+          });
+        }
+
+        // Check ownership
+        if (applicationData.application.applicantId !== req.userId) {
+          return res.status(403).json({
+            status: "error",
+            message: "You can only withdraw your own applications",
+          });
+        }
+
+        return next();
+      } catch (error) {
+        logger.error(error);
+        return res.status(500).json({
+          status: "error",
+          message: "Error checking application ownership",
+        });
+      }
+    };
   };
 }
