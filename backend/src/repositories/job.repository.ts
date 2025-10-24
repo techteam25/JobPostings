@@ -1,4 +1,4 @@
-import { and, desc, eq, like, or, sql, SQL } from "drizzle-orm";
+import { and, desc, eq, sql, SQL } from "drizzle-orm";
 import {
   jobApplications,
   jobInsights,
@@ -48,95 +48,6 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       jobsDetails,
       eq(jobsDetails.isActive, true),
     );
-    const pagination = calculatePagination(total, page, limit);
-
-    return { items, pagination };
-  }
-
-  async searchJobs(filters: {
-    searchTerm?: string;
-    jobType?: string;
-    location?: string;
-    experienceLevel?: string;
-    isRemote?: boolean;
-    page?: number;
-    limit?: number;
-  }) {
-    const {
-      searchTerm,
-      jobType,
-      location,
-      experienceLevel,
-      isRemote,
-      page = 1,
-      limit = 10,
-    } = filters;
-    const offset = (page - 1) * limit;
-
-    let whereConditions: (SQL<unknown> | undefined)[] = [
-      eq(jobsDetails.isActive, true),
-    ];
-
-    if (searchTerm) {
-      whereConditions.push(
-        or(
-          like(jobsDetails.title, `%${searchTerm}%`),
-          like(jobsDetails.description, `%${searchTerm}%`),
-        ),
-      );
-    }
-
-    if (jobType) {
-      whereConditions.push(
-        eq(
-          jobsDetails.jobType,
-          jobType as
-            | "full-time"
-            | "part-time"
-            | "contract"
-            | "volunteer"
-            | "internship",
-        ),
-      );
-    }
-
-    if (location) {
-      whereConditions.push(like(jobsDetails.location, `%${location}%`));
-    }
-
-    if (experienceLevel) {
-      whereConditions.push(eq(jobsDetails.experience, experienceLevel));
-    }
-
-    if (isRemote !== undefined) {
-      whereConditions.push(eq(jobsDetails.isRemote, isRemote));
-    }
-
-    const whereCondition = and(
-      ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[]),
-    );
-
-    const items = await withDbErrorHandling(
-      async () =>
-        await db
-          .select({
-            job: jobsDetails,
-            employer: {
-              id: organizations.id,
-              name: organizations.name,
-              city: organizations.city,
-              state: organizations.state,
-            },
-          })
-          .from(jobsDetails)
-          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
-          .where(whereCondition)
-          .orderBy(desc(jobsDetails.createdAt))
-          .limit(limit)
-          .offset(offset),
-    );
-
-    const total = await countRecords(jobsDetails, whereCondition);
     const pagination = calculatePagination(total, page, limit);
 
     return { items, pagination };
@@ -301,7 +212,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
             job: {
               id: jobsDetails.id,
               title: jobsDetails.title,
-              location: jobsDetails.location,
+              city: jobsDetails.city,
+              state: jobsDetails.state,
+              country: jobsDetails.country,
+              zipcode: jobsDetails.zipcode,
+              isRemote: jobsDetails.isRemote,
               jobType: jobsDetails.jobType,
             },
             employer: {
@@ -360,7 +275,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
             job: {
               id: jobsDetails.id,
               title: jobsDetails.title,
-              location: jobsDetails.location,
+              city: jobsDetails.city,
+              state: jobsDetails.state,
+              country: jobsDetails.country,
+              zipcode: jobsDetails.zipcode,
+              isRemote: jobsDetails.isRemote,
               jobType: jobsDetails.jobType,
               employerId: jobsDetails.employerId,
             },
@@ -400,11 +319,33 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     });
   }
 
-  async deleteByUserId(userId: number) {
+  async findJobByIdWithSkills(jobId: number) {
     return withDbErrorHandling(async () => {
-      await db
-        .delete(jobApplications)
-        .where(eq(jobApplications.applicantId, userId));
+      const jobWithSkills = await db.query.jobsDetails.findFirst({
+        where: eq(jobsDetails.id, jobId),
+        with: {
+          skills: {
+            with: {
+              skill: {
+                columns: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!jobWithSkills) {
+        throw new Error(`Job with Id: ${jobId} not found`);
+      }
+
+      const skillsArray = jobWithSkills.skills.map((s) => s.skill.name);
+
+      return {
+        ...jobWithSkills,
+        skills: skillsArray,
+      };
     });
   }
 }
