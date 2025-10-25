@@ -19,6 +19,10 @@ import { SecurityUtils } from "@/utils/security";
 import { AppError, ErrorCode } from "@/utils/errors";
 import { JobInsightsRepository } from "@/repositories/jobInsights.repository";
 import { SearchParams } from "@/validations/base.validation";
+import Redis from "ioredis";
+
+// Initialize Redis client using REDIS_URL
+const redis = new Redis(process.env.REDIS_URL || "");
 
 export class JobService extends BaseService {
   private jobRepository: JobRepository;
@@ -34,7 +38,22 @@ export class JobService extends BaseService {
 
   async getAllActiveJobs(options: { page?: number; limit?: number } = {}) {
     try {
-      return await this.jobRepository.findActiveJobs(options);
+      const { page = 1, limit = 10 } = options;
+      const cacheKey = `jobs:active:${page}:${limit}`;
+
+      // Check cache
+      const cachedResult = await redis.get(cacheKey);
+      if (cachedResult) {
+        return JSON.parse(cachedResult);
+      }
+
+      // Fetch from database
+      const result = await this.jobRepository.findActiveJobs(options);
+
+      // Cache result for 5 minutes
+      await redis.setex(cacheKey, 300, JSON.stringify(result));
+
+      return result;
     } catch (error) {
       this.handleError(error);
     }
@@ -61,11 +80,23 @@ export class JobService extends BaseService {
   }
 
   async getJobById(id: number): Promise<Job> {
+    const cacheKey = `job:${id}`;
+
+    // Check cache
+    const cachedJob = await redis.get(cacheKey);
+    if (cachedJob) {
+      return JSON.parse(cachedJob);
+    }
+
     const job = await this.jobRepository.findById(id);
 
     if (!job) {
       return this.handleError(new NotFoundError("Job", id));
     }
+
+    // Cache job for 5 minutes
+    await redis.setex(cacheKey, 300, JSON.stringify(job));
+
     return job;
   }
 
@@ -74,7 +105,10 @@ export class JobService extends BaseService {
     if (!job) {
       return this.handleError(new NotFoundError("Job", jobId));
     }
-    await this.jobInsightsRepository.incrementJobViews(jobId);
+    // Only increment views for active jobs
+    if (job.isActive) {
+      await this.jobInsightsRepository.incrementJobViews(jobId);
+    }
   }
 
   async getJobsByEmployer(
@@ -126,6 +160,10 @@ export class JobService extends BaseService {
     };
 
     const jobId = await this.jobRepository.create(sanitizedData);
+
+    // Invalidate active jobs cache
+    await this.invalidateActiveJobsCache();
+
     return await this.getJobById(jobId);
   }
 
@@ -176,6 +214,10 @@ export class JobService extends BaseService {
       throw new AppError("Failed to update job", 500, ErrorCode.DATABASE_ERROR);
     }
 
+    // Invalidate caches
+    await redis.del(`job:${id}`);
+    await this.invalidateActiveJobsCache();
+
     return await this.getJobById(id);
   }
 
@@ -210,6 +252,10 @@ export class JobService extends BaseService {
     const success = await this.jobRepository.delete(id);
     if (!success) {
       throw new AppError("Failed to delete job", 500, ErrorCode.DATABASE_ERROR);
+
+      // Invalidate caches
+      await redis.del(`job:${id}`);
+      await this.invalidateActiveJobsCache();
     }
   }
 
@@ -386,63 +432,61 @@ export class JobService extends BaseService {
     return { message: "Application status updated successfully" };
   }
 
-async withdrawApplication(
-  applicationId: number,
-  userId: number
-): Promise<{
-  message: string;
-  applicationDetails: {
-    userEmail: string;
-    userFirstName: string;
-    jobTitle: string;
-    companyName: string;
-  };
-}> {
-  const [applicationData] = await this.jobRepository.findApplicationById(
-    applicationId
-  );
-
-  if (!applicationData) {
-    return this.handleError(new NotFoundError("Application", applicationId));
-  }
-
-  const { application, job, applicant, employer } = applicationData;
-
-  // Check for non-withdrawable statuses
-  if (["hired", "rejected"].includes(application.status)) {
-    return this.handleError(
-      new ValidationError("Cannot withdraw application with final status")
-    );
-  }
-
-  // Update status
-  const success = await this.jobRepository.updateApplicationStatus(
-    applicationId,
-    { status: "withdrawn" }
-  );
-
-  if (!success) {
-    return this.handleError(
-      new AppError(
-        "Failed to withdraw application",
-        500,
-        ErrorCode.DATABASE_ERROR
-      )
-    );
-  }
-
-  // Return typed response
-  return {
-    message: "Application withdrawn successfully",
+  async withdrawApplication(
+    applicationId: number,
+    userId: number
+  ): Promise<{
+    message: string;
     applicationDetails: {
-      userEmail: applicant.email,
-      userFirstName: applicant.fullName?.split(" ")[0] ?? "",
-      jobTitle: job.title,
-      companyName: employer?.name ?? "Company",
-    },
-  };
-}
+      userEmail: string;
+      userFirstName: string;
+      jobTitle: string;
+      companyName: string;
+    };
+  }> {
+    const [applicationData] =
+      await this.jobRepository.findApplicationById(applicationId);
 
+    if (!applicationData) {
+      return this.handleError(new NotFoundError("Application", applicationId));
+    }
+
+    const { application, job, applicant, employer } = applicationData;
+
+    // Check for non-withdrawable statuses
+    if (["hired", "rejected"].includes(application.status)) {
+      return this.handleError(
+        new ValidationError("Cannot withdraw application with final status")
+      );
+    }
+
+    // Update status
+    const success = await this.jobRepository.updateApplicationStatus(
+      applicationId,
+      { status: "withdrawn" }
+    );
+
+    if (!success) {
+      return this.handleError(
+        new AppError(
+          "Failed to withdraw application",
+          500,
+          ErrorCode.DATABASE_ERROR
+        )
+      );
+    }
+
+    // Return typed response
+    return {
+      message: "Application withdrawn successfully",
+      applicationDetails: {
+        userEmail: applicant.email,
+        userFirstName: applicant.fullName?.split(" ")[0] ?? "",
+        jobTitle: job.title,
+        companyName: employer?.name ?? "Company",
+      },
+    };
+  }
 
   async deleteJobApplicationsByUserId(userId: number): Promise<void> {
     try {
@@ -597,6 +641,14 @@ async withdrawApplication(
         .map((skill) => skill.trim())
         .filter(Boolean);
       return JSON.stringify(skillsArray);
+    }
+  }
+
+    private async invalidateActiveJobsCache(): Promise<void> {
+    // Invalidate all active jobs cache
+    const keys = await redis.keys("jobs:active:*");
+    if (keys.length > 0) {
+      await redis.del(keys);
     }
   }
 }
