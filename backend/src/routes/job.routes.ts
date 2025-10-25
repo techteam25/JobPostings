@@ -12,6 +12,7 @@ import {
   getJobSchema,
   deleteJobSchema,
   updateJobSchema,
+  applyForJobSchema,
 } from "@/validations/job.validation";
 import { searchParams } from "@/validations/base.validation";
 import { updateApplicationStatusSchema } from "@/validations/jobApplications.validation";
@@ -155,7 +156,7 @@ router.get(
 router.post(
   "/:jobId/apply",
   authMiddleware.requireUserRole(),
-  validate(getJobSchema),
+  validate(applyForJobSchema),
   jobController.applyForJob,
 );
 

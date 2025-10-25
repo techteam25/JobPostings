@@ -66,6 +66,20 @@ export const updateJobApplicationSchema = insertJobApplicationSchema
     updatedAt: true,
     reviewedAt: true,
     reviewedBy: true,
+  })
+  .extend({
+    status: z
+      .enum([
+        "pending",
+        "reviewed",
+        "shortlisted",
+        "interviewing",
+        "rejected",
+        "hired",
+        "withdrawn",
+      ])
+      .optional(),
+    notes: z.string().max(5000, "Notes must not exceed 5000 characters").optional(),
   });
 
 export const updateJobInsightsSchema = insertJobInsightsSchema
@@ -123,6 +137,20 @@ export const deleteJobSchema = z.object({
   query: z.object({}).strict(),
 });
 
+export const applyForJobSchema = z.object({
+  body: z.object({
+    coverLetter: z
+      .string()
+      .min(50, "Cover letter must be at least 50 characters")
+      .max(2000, "Cover letter must not exceed 2000 characters")
+      .optional(),
+    resumeUrl: z.url("Invalid resume URL").optional(),
+    customAnswers: z.string().max(5000, "Custom answers must not exceed 5000 characters").optional(),
+  }).strict(),
+  params: jobIdParamSchema,
+  query: z.object({}).strict(),
+});
+
 // Type exports
 export type Job = z.infer<typeof selectJobSchema>;
 export type JobInsight = z.infer<typeof selectJobInsightsSchema>;
@@ -140,3 +168,4 @@ export type CreateJobSchema = z.infer<typeof createJobSchema>;
 export type GetJobSchema = z.infer<typeof getJobSchema>;
 export type UpdateJobSchema = z.infer<typeof updateJobSchema>;
 export type DeleteJobSchema = z.infer<typeof deleteJobSchema>;
+export type ApplyForJobSchema = z.infer<typeof applyForJobSchema>;

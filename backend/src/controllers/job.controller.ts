@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-
 import { JobService } from "@/services/job.service";
 import { JobMatchingService } from "@/services/job-matching.service";
 import { BaseController } from "./base.controller";
@@ -14,15 +13,15 @@ import {
   DeleteJobSchema,
   GetJobSchema,
   UpdateJobSchema,
-} from "@/validations/job.validation";
-import { GetOrganizationSchema } from "@/validations/organization.validation";
-import { SearchParams } from "@/validations/base.validation";
-import { GetJobApplicationSchema } from "@/validations/jobApplications.validation";
-import {
+  ApplyForJobSchema,
+  applyForJobSchema,
   Job,
   JobWithEmployer,
   UpdateJobApplication,
 } from "@/validations/job.validation";
+import { GetOrganizationSchema } from "@/validations/organization.validation";
+import { SearchParams } from "@/validations/base.validation";
+import { GetJobApplicationSchema, JobApplication } from "@/validations/jobApplications.validation";
 import { ApiResponse, PaginatedResponse } from "@/types";
 
 export class JobController extends BaseController {
@@ -92,14 +91,14 @@ export class JobController extends BaseController {
         order,
         status,
       });
-      this.sendPaginatedResponse(
+      return this.sendPaginatedResponse(
         res,
         result.items,
         result.pagination,
         "Jobs retrieved successfully"
       );
     } catch (error) {
-      this.handleControllerError(res, error, "Failed to search jobs");
+      return this.handleControllerError(res, error, "Failed to search jobs");
     }
   };
 
@@ -143,7 +142,10 @@ export class JobController extends BaseController {
     }
   };
 
-  getRecommendedJobs = async (req: Request, res: Response) => {
+  getRecommendedJobs = async (
+    req: Request<{}, {}, {}, SearchParams["query"]>,
+    res: Response<PaginatedResponse<JobWithEmployer>>
+  ) => {
     try {
       const userId = req.userId;
       const { page, limit } = this.extractPaginationParams(req);
@@ -176,8 +178,8 @@ export class JobController extends BaseController {
   };
 
   getSimilarJobs = async (
-    req: Request<GetJobSchema["params"]>,
-    res: Response
+    req: Request<GetJobSchema["params"], {}, {}, {}>,
+    res: Response<ApiResponse<JobWithEmployer[]>>
   ) => {
     try {
       const jobId = Number(req.params.jobId);
@@ -185,9 +187,9 @@ export class JobController extends BaseController {
       // const { limit = 5 } = req.query;
       const result = await this.jobMatchingService.getSimilarJobs(jobId, 5);
 
-      this.sendSuccess(res, result, "Similar jobs retrieved successfully");
+      return this.sendSuccess(res, result, "Similar jobs retrieved successfully");
     } catch (error) {
-      this.handleControllerError(res, error, "Failed to retrieve similar jobs");
+      return this.handleControllerError(res, error, "Failed to retrieve similar jobs");
     }
   };
 
@@ -260,7 +262,7 @@ export class JobController extends BaseController {
   };
 
   deleteJob = async (
-    req: Request<DeleteJobSchema["params"]>,
+    req: Request<DeleteJobSchema["params"], {}, {}, {}>,
     res: Response<ApiResponse<void>>
   ) => {
     try {
@@ -272,7 +274,7 @@ export class JobController extends BaseController {
         message: "Job deleted successfully",
         timestamp: new Date().toISOString(),
       });
-    } catch (error: unknown) {
+    } catch (error) {
       return res.status(500).json({
         success: false,
         message: "Failed to delete job",
@@ -290,7 +292,7 @@ export class JobController extends BaseController {
       {},
       SearchParams["query"]
     >,
-    res: Response
+    res: Response<PaginatedResponse<Job>>
   ) => {
     try {
       const organizationId = Number(req.params.organizationId);
@@ -303,14 +305,14 @@ export class JobController extends BaseController {
         req.userId!
       );
 
-      this.sendPaginatedResponse(
+      return this.sendPaginatedResponse(
         res,
         result.items,
         result.pagination,
         "Jobs retrieved successfully"
       );
     } catch (error) {
-      this.handleControllerError(res, error, "Failed to retrieve jobs");
+      return this.handleControllerError(res, error, "Failed to retrieve jobs");
     }
   };
 
@@ -321,38 +323,66 @@ export class JobController extends BaseController {
       {},
       SearchParams["query"]
     >,
-    res: Response
+    res: Response<PaginatedResponse<Job>>
   ) => {
-    const { page, limit } = req.query;
-    const organizationId = Number(req.params.organizationId);
+    try {
+      const { page, limit } = req.query;
+      const organizationId = Number(req.params.organizationId);
 
-    if (!organizationId) {
-      return this.handleControllerError(
-        res,
-        new ForbiddenError(
-          "You must be associated with an organization to view jobs"
-        )
+      if (!organizationId) {
+        return this.handleControllerError(
+          res,
+          new ForbiddenError(
+            "You must be associated with an organization to view jobs"
+          )
+        );
+      }
+
+      const result = await this.jobService.getJobsByEmployer(
+        organizationId,
+        { page, limit },
+        req.userId!
       );
+
+      return this.sendPaginatedResponse(
+        res,
+        result.items,
+        result.pagination,
+        "Your jobs retrieved successfully"
+      );
+    } catch (error) {
+      return this.handleControllerError(res, error, "Failed to retrieve jobs");
     }
-
-    const result = await this.jobService.getJobsByEmployer(
-      organizationId,
-      { page, limit },
-      req.userId!
-    );
-
-    return this.sendPaginatedResponse(
-      res,
-      result.items,
-      result.pagination,
-      "Your jobs retrieved successfully"
-    );
   };
 
   // Job Application Methods
-  applyForJob = async (req: Request<GetJobSchema["params"]>, res: Response) => {
+  applyForJob = async (
+    req: Request<
+      ApplyForJobSchema["params"],
+      {},
+      ApplyForJobSchema["body"],
+      {}
+    >,
+    res: Response<ApiResponse<{ applicationId: number; message: string }>>
+  ) => {
     try {
       const jobId = Number(req.params.jobId);
+
+      // Validate request with schema (optional if using middleware)
+      const parsed = applyForJobSchema.safeParse({
+        body: req.body,
+        params: req.params,
+        query: req.query,
+      });
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid request data",
+          error: JSON.stringify(parsed.error.issues),
+          status: "error",
+          timestamp: new Date().toISOString(),
+        });
+      }
 
       const applicationData = {
         ...req.body,
@@ -361,9 +391,9 @@ export class JobController extends BaseController {
       };
 
       const result = await this.jobService.applyForJob(applicationData);
-      this.sendSuccess(res, result, "Application submitted successfully", 201);
+      return this.sendSuccess(res, result, "Application submitted successfully", 201);
     } catch (error) {
-      this.handleControllerError(
+      return this.handleControllerError(
         res,
         error,
         "Failed to submit application",
@@ -387,20 +417,24 @@ export class JobController extends BaseController {
         req.userId!
       );
 
-      this.sendPaginatedResponse(
+      return this.sendPaginatedResponse(
         res,
         result.items,
         result.pagination,
         "Applications retrieved successfully"
       );
     } catch (error) {
-      this.handleControllerError(res, error, "Failed to retrieve applications");
+      return this.handleControllerError(res, error, "Failed to retrieve applications");
     }
   };
 
   getUserApplications = async (
     req: Request<{}, {}, {}, SearchParams["query"]>,
-    res: Response
+    res: Response<PaginatedResponse<{
+      application: JobApplication;
+      job: { id: number; title: string; location: string; jobType: string };
+      employer: { id: number; name: string };
+    }>>
   ) => {
     try {
       const userId = req.userId!;
@@ -411,14 +445,14 @@ export class JobController extends BaseController {
         limit,
         status,
       });
-      this.sendPaginatedResponse(
+      return this.sendPaginatedResponse(
         res,
         result.items,
         result.pagination,
         "Your applications retrieved successfully"
       );
     } catch (error) {
-      this.handleControllerError(res, error, "Failed to retrieve applications");
+      return this.handleControllerError(res, error, "Failed to retrieve applications");
     }
   };
 
@@ -437,9 +471,9 @@ export class JobController extends BaseController {
         req.userId!
       );
 
-      this.sendSuccess(res, result, "Application status updated successfully");
+      return this.sendSuccess(res, result, "Application status updated successfully");
     } catch (error) {
-      this.handleControllerError(
+      return this.handleControllerError(
         res,
         error,
         "Failed to update application status"
@@ -448,8 +482,16 @@ export class JobController extends BaseController {
   };
 
   withdrawApplication = async (
-    req: Request<GetJobApplicationSchema["params"]>,
-    res: Response
+    req: Request<GetJobApplicationSchema["params"], {}, {}, {}>,
+    res: Response<ApiResponse<{
+      message: string;
+      applicationDetails: {
+        userEmail: string;
+        userFirstName: string;
+        jobTitle: string;
+        companyName: string;
+      };
+    }>>
   ) => {
     try {
       const applicationId = Number(req.params.applicationId);
@@ -458,9 +500,9 @@ export class JobController extends BaseController {
         applicationId,
         req.userId!
       );
-      this.sendSuccess(res, result, "Application withdrawn successfully");
+      return this.sendSuccess(res, result, "Application withdrawn successfully");
     } catch (error) {
-      this.handleControllerError(res, error, "Failed to withdraw application");
+      return this.handleControllerError(res, error, "Failed to withdraw application");
     }
   };
 

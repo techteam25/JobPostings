@@ -54,12 +54,9 @@ export class BaseController {
     return res.status(error.statusCode).json(response);
   }
 
-  protected extractPaginationParams(req: Request) {
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(
-      1,
-      Math.max(100, parseInt(req.query.limit as string) || 10),
-    );
+  protected extractPaginationParams(req: Request<any, any, any, any>) {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 10));
 
     return { page, limit };
   }
@@ -121,7 +118,7 @@ export class BaseController {
     const genericError = new AppError(
       defaultMessage,
       defaultStatusCode,
-      ErrorCode.INTERNAL_ERROR,
+      ErrorCode.INTERNAL_.INTERNAL_ERROR,
       true,
       error,
     );

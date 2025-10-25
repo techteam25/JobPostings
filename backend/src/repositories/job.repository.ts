@@ -41,12 +41,12 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .where(eq(jobsDetails.isActive, true))
           .orderBy(desc(jobsDetails.createdAt))
           .limit(limit)
-          .offset(offset),
+          .offset(offset)
     );
 
     const total = await countRecords(
       jobsDetails,
-      eq(jobsDetails.isActive, true),
+      eq(jobsDetails.isActive, true)
     );
     const pagination = calculatePagination(total, page, limit);
 
@@ -81,8 +81,8 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       whereConditions.push(
         or(
           like(jobsDetails.title, `%${searchTerm}%`),
-          like(jobsDetails.description, `%${searchTerm}%`),
-        ),
+          like(jobsDetails.description, `%${searchTerm}%`)
+        )
       );
     }
 
@@ -95,8 +95,8 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
             | "part-time"
             | "contract"
             | "volunteer"
-            | "internship",
-        ),
+            | "internship"
+        )
       );
     }
 
@@ -113,7 +113,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     }
 
     const whereCondition = and(
-      ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[]),
+      ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[])
     );
 
     const items = await withDbErrorHandling(
@@ -133,7 +133,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .where(whereCondition)
           .orderBy(desc(jobsDetails.createdAt))
           .limit(limit)
-          .offset(offset),
+          .offset(offset)
     );
 
     const total = await countRecords(jobsDetails, whereCondition);
@@ -144,7 +144,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
 
   async findJobsByEmployer(
     employerId: number,
-    options: { page?: number; limit?: number } = {},
+    options: { page?: number; limit?: number } = {}
   ) {
     const { page = 1, limit = 10 } = options;
     const offset = (page - 1) * limit;
@@ -159,7 +159,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .where(whereCondition)
           .orderBy(desc(jobsDetails.createdAt))
           .limit(limit)
-          .offset(offset),
+          .offset(offset)
     );
 
     const total = await countRecords(jobsDetails, whereCondition);
@@ -186,7 +186,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
           .leftJoin(jobApplications, eq(jobsDetails.id, jobApplications.jobId))
           .leftJoin(user, eq(jobApplications.applicantId, user.id))
-          .where(eq(jobsDetails.id, jobId)),
+          .where(eq(jobsDetails.id, jobId))
     );
   }
 
@@ -199,19 +199,22 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .values(applicationData)
           .$returningId();
 
-        await transaction.update(jobInsights).set({
-          viewCount: sql`(${jobInsights.applicationCount} + 1)`,
-        });
+        await transaction
+          .update(jobInsights)
+          .set({
+            applicationCount: sql`${jobInsights.applicationCount} + 1`,
+          })
+          .where(eq(jobInsights.job, applicationData.jobId));
 
         return applicationId;
-      }),
+      })
     );
     return result?.id;
   }
 
   async findApplicationsByJob(
     jobId: number,
-    options: { page?: number; limit?: number; status?: string } = {},
+    options: { page?: number; limit?: number; status?: string } = {}
   ) {
     const { page = 1, limit = 10, status } = options;
     const offset = (page - 1) * limit;
@@ -224,7 +227,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     }
 
     const where = and(
-      ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[]),
+      ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[])
     );
 
     const items = await withDbErrorHandling(
@@ -243,7 +246,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .where(where)
           .orderBy(desc(jobApplications.appliedAt))
           .limit(limit)
-          .offset(offset),
+          .offset(offset)
     );
 
     const total = await countRecords(jobApplications, where);
@@ -265,7 +268,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
         | "rejected"
         | "hired"
         | "withdrawn";
-    } = {},
+    } = {}
   ) {
     const { page = 1, limit = 10, status } = options;
     const offset = (page - 1) * limit;
@@ -284,13 +287,13 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
             | "interviewing"
             | "rejected"
             | "hired"
-            | "withdrawn",
-        ),
+            | "withdrawn"
+        )
       );
     }
 
     const where = and(
-      ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[]),
+      ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[])
     );
 
     const items = await withDbErrorHandling(
@@ -315,7 +318,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .where(where)
           .orderBy(desc(jobApplications.appliedAt))
           .limit(limit)
-          .offset(offset),
+          .offset(offset)
     );
 
     const total = await countRecords(jobApplications, where);
@@ -326,25 +329,24 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
 
   async updateApplicationStatus(
     applicationId: number,
-    updateData: UpdateJobApplication,
+    updateData: UpdateJobApplication & { notes?: string; reviewedAt?: Date }
   ) {
-    // const updateData: any = { status };
-    // if (status === "reviewed") {
-    //   updateData.reviewedAt = new Date();
-    // }
-    // if (notes) {
-    //   updateData.notes = notes;
-    // }
+    const finalUpdateData = {
+      ...updateData,
+      ...(updateData.status === "reviewed" && !updateData.reviewedAt
+        ? { reviewedAt: new Date() }
+        : {}),
+    };
 
     const result = await withDbErrorHandling(
       async () =>
         await db
           .update(jobApplications)
-          .set(updateData)
-          .where(eq(jobApplications.id, applicationId)),
+          .set(finalUpdateData)
+          .where(eq(jobApplications.id, applicationId))
     );
 
-    return (result as any).affectedRows > 0;
+    return result[0].affectedRows > 0;
   }
 
   async findApplicationById(applicationId: number) {
@@ -368,7 +370,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .where(eq(jobApplications.id, applicationId))
           .innerJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
           .innerJoin(user, eq(jobApplications.applicantId, user.id))
-          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id)),
+          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
     );
   }
 
@@ -381,11 +383,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .where(
             and(
               eq(jobApplications.applicantId, userId),
-              eq(jobApplications.jobId, jobId),
-            ),
+              eq(jobApplications.jobId, jobId)
+            )
           )
           .limit(1)
-          .then((result) => result.length > 0),
+          .then((result) => result.length > 0)
     );
   }
 

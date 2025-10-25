@@ -9,7 +9,6 @@ const jobApplicationPayload = z.object({
     .max(2000, "Cover letter must not exceed 2000 characters")
     .optional(),
   resumeUrl: z.url("Invalid resume URL").optional(),
-  customAnswers: z.string().max(5000).optional(),
   notes: z.string().max(5000).optional(),
 });
 
@@ -46,3 +45,9 @@ export const deleteJobApplicationSchema = z.object({
 });
 
 export type GetJobApplicationSchema = z.infer<typeof getJobApplicationSchema>;
+export type JobApplicationPayload = z.infer<typeof jobApplicationPayload>;
+export type UpdateApplicationStatusSchema = z.infer<typeof updateApplicationStatusSchema>;
+export type DeleteJobApplicationSchema = z.infer<typeof deleteJobApplicationSchema>;
+export type ApplicationIdParamSchema = z.infer<typeof applicationIdParamSchema>;
+export type JobApplication = z.infer<typeof jobApplicationPayload>;
+export type UpdateJobApplication = z.infer<typeof jobApplicationPayload>;
