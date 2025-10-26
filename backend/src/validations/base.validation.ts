@@ -26,13 +26,7 @@ export const searchParams = z.object({
         "withdrawn",
       ])
       .optional(),
-    order: z
-      .string()
-      .optional()
-      .refine(
-        (val) => !val || ["asc", "desc"].includes(val),
-        "Order must be either 'asc' or 'desc'",
-      ),
+    order: z.enum(["asc", "desc"]).optional(),
   }),
   params: z.object({}).strict(),
 });

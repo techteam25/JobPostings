@@ -20,7 +20,7 @@ import {
   UpdateJobApplication,
 } from "@/validations/job.validation";
 import { GetOrganizationSchema } from "@/validations/organization.validation";
-import { SearchParams } from "@/validations/base.validation";
+import { SearchParams, searchParams } from "@/validations/base.validation";
 import { GetJobApplicationSchema, JobApplication } from "@/validations/jobApplications.validation";
 import { ApiResponse, PaginatedResponse } from "@/types";
 
@@ -65,32 +65,11 @@ export class JobController extends BaseController {
 
   searchJobs = async (
     req: Request<{}, {}, {}, SearchParams["query"]>,
-    res: Response
+    res: Response<PaginatedResponse<JobWithEmployer>>
   ) => {
     try {
-      const {
-        page,
-        limit,
-        q,
-        jobType,
-        sortBy,
-        location,
-        isRemote,
-        order,
-        status,
-      } = req.query;
-
-      const result = await this.jobService.searchJobs({
-        page,
-        limit,
-        q,
-        jobType,
-        sortBy,
-        location,
-        isRemote,
-        order,
-        status,
-      });
+      const { query } = searchParams.parse(req);
+      const result = await this.jobService.searchJobs(query);
       return this.sendPaginatedResponse(
         res,
         result.items,
@@ -103,7 +82,7 @@ export class JobController extends BaseController {
   };
 
   getJobById = async (
-    req: Request<GetJobSchema["params"]>,
+    req: Request<GetJobSchema["params"], {}, {}, {}>,
     res: Response<ApiResponse<Job>>
   ) => {
     try {
@@ -198,15 +177,17 @@ export class JobController extends BaseController {
     res: Response<ApiResponse<Job>>
   ) => {
     try {
-      const jobData = {
-        ...req.body,
-        employerId: req.userId!, // Todo: get employerId from user's organization
-        applicationDeadline: req.body.applicationDeadline
-          ? new Date(req.body.applicationDeadline)
+      const { organizationId, ...jobData } = req.body;
+      const job = await this.jobService.createJob(
+         {
+        ...jobData,
+        employerId: organizationId!, // Done: get employerId from user's organization
+        applicationDeadline: jobData.applicationDeadline
+          ? new Date(jobData.applicationDeadline)
           : null,
-      };
-
-      const job = await this.jobService.createJob(jobData);
+      },
+      req.userId!
+    );
 
       return res.status(201).json({
         success: true,
@@ -226,7 +207,7 @@ export class JobController extends BaseController {
   };
 
   updateJob = async (
-    req: Request<UpdateJobSchema["params"], {}, UpdateJobSchema["body"]>,
+    req: Request<UpdateJobSchema["params"], {}, UpdateJobSchema["body"], {}>,
     res: Response<ApiResponse<Job>>
   ) => {
     try {
@@ -457,8 +438,8 @@ export class JobController extends BaseController {
   };
 
   updateApplicationStatus = async (
-    req: Request<GetJobApplicationSchema["params"], {}, UpdateJobApplication>,
-    res: Response
+    req: Request<GetJobApplicationSchema["params"], {}, UpdateJobApplication, {}>,
+    res: Response<ApiResponse<{ message: string }>>
   ) => {
     try {
       const applicationId = Number(req.params.applicationId);

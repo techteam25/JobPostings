@@ -168,6 +168,15 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     return { items, pagination };
   }
 
+  async countActiveJobsByEmployer(employerId: number): Promise<number> {
+    const whereCondition = and(
+      eq(jobsDetails.employerId, employerId),
+      eq(jobsDetails.isActive, true)
+    );
+
+    return await countRecords(jobsDetails, whereCondition);
+  }
+
   async findJobWithApplications(jobId: number) {
     return withDbErrorHandling(
       async () =>

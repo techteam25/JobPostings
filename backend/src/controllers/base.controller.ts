@@ -118,7 +118,7 @@ export class BaseController {
     const genericError = new AppError(
       defaultMessage,
       defaultStatusCode,
-      ErrorCode.INTERNAL_.INTERNAL_ERROR,
+      ErrorCode.INTERNAL_ERROR,
       true,
       error,
     );

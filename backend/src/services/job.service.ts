@@ -5,6 +5,7 @@ import {
   NewJob,
   NewJobApplication,
   Job,
+  JobWithEmployer,
   JobApplication,
   UpdateJob,
   UpdateJobApplication,
@@ -14,11 +15,13 @@ import {
   ForbiddenError,
   ConflictError,
   ValidationError,
+  AppError,
+  ErrorCode,
 } from "@/utils/errors";
 import { SecurityUtils } from "@/utils/security";
-import { AppError, ErrorCode } from "@/utils/errors";
 import { JobInsightsRepository } from "@/repositories/jobInsights.repository";
 import { SearchParams } from "@/validations/base.validation";
+import { OrganizationService } from "./organization.service";
 import Redis from "ioredis";
 
 // Initialize Redis client using REDIS_URL
@@ -28,12 +31,14 @@ export class JobService extends BaseService {
   private jobRepository: JobRepository;
   private organizationRepository: OrganizationRepository;
   private jobInsightsRepository: JobInsightsRepository;
+  private organizationService: OrganizationService;
 
   constructor() {
     super();
     this.jobRepository = new JobRepository();
     this.organizationRepository = new OrganizationRepository();
     this.jobInsightsRepository = new JobInsightsRepository();
+    this.organizationService = new OrganizationService();
   }
 
   async getAllActiveJobs(options: { page?: number; limit?: number } = {}) {
@@ -71,12 +76,22 @@ export class JobService extends BaseService {
     }
   }
 
-  async searchJobs(filters: SearchParams["query"]) {
-    try {
-      return await this.jobRepository.searchJobs(filters);
-    } catch (error) {
-      this.handleError(error);
-    }
+  async searchJobs(filters: {
+    page?: number;
+    limit?: number;
+    q?: string;
+    jobType?: string;
+    sortBy?: string;
+    location?: string;
+    isRemote?: boolean;
+    order?: "asc" | "desc";
+    status?: string;
+  }) {
+    const { q: searchTerm, ...rest } = filters;
+    return await this.jobRepository.searchJobs({
+      searchTerm,
+      ...rest,
+    });
   }
 
   async getJobById(id: number): Promise<Job> {
@@ -113,37 +128,65 @@ export class JobService extends BaseService {
 
   async getJobsByEmployer(
     employerId: number,
-    options: { page?: number; limit?: number } = {},
-    requesterId: number
+    options: { page?: number; limit?: number },
+    userId: number
   ) {
-    // Todo: Additional check for employers - they can only see their own organization's jobs
-    const organization =
-      await this.organizationRepository.findByContact(requesterId);
+    // Done: Additional check for employers - they can only see their own organization's jobs
+    const organization = await this.organizationRepository.findById(employerId);
     if (!organization) {
+      return this.handleError(new NotFoundError("Organization", employerId));
+    }
+    const isMember = await this.organizationRepository.findByContact(userId);
+    if (!isMember || isMember.id !== employerId) {
       return this.handleError(
-        new ForbiddenError("You do not belong to any organization")
+        new ForbiddenError(
+          "You are not authorized to view jobs for this organization"
+        )
       );
     }
-
-    if (organization.id !== employerId) {
-      return this.handleError(
-        new ForbiddenError("You can only view jobs for your organization")
-      );
-    }
-
     return await this.jobRepository.findJobsByEmployer(employerId, options);
   }
 
-  async createJob(jobData: NewJob): Promise<Job> {
+  async createJob(jobData: NewJob, userId: number): Promise<Job> {
     // Todo Fetch this from organizationMembers table
     // Validate employer exists
-    const employer = await this.organizationRepository.findById(
+    const organization = await this.organizationRepository.findById(
       jobData.employerId
     );
-
-    if (!employer) {
+    if (!organization) {
       return this.handleError(
         new NotFoundError("Organization", jobData.employerId)
+      );
+    }
+    if (organization.status !== "active") {
+      return this.handleError(new ForbiddenError("Organization is not active"));
+    }
+    if (organization.subscriptionStatus === "expired") {
+      return this.handleError(
+        new ForbiddenError("Organization subscription has expired")
+      );
+    }
+    const activeJobCount = await this.jobRepository.countActiveJobsByEmployer(
+      jobData.employerId
+    );
+    if (
+      organization.jobPostingLimit !== null &&
+      activeJobCount >= organization.jobPostingLimit
+    ) {
+      return this.handleError(
+        new ForbiddenError("Organization has reached its job posting limit")
+      );
+    }
+    const membership = await this.organizationRepository.findByContact(userId);
+    if (!membership || membership.id !== jobData.employerId) {
+      return this.handleError(
+        new ForbiddenError("You are not a member of this organization")
+      );
+    }
+    const canPostJobs = await this.organizationService.isRolePermitted(userId);
+    if (!canPostJobs) {
+      return this.handleError(
+        new ForbiddenError("You do not have permission to create jobs")
       );
     }
 
@@ -168,27 +211,38 @@ export class JobService extends BaseService {
   }
 
   async updateJob(
-    id: number,
+    jobId: number,
     updateData: UpdateJob,
-    requesterId: number
+    userId: number
   ): Promise<Job> {
-    const job = await this.getJobById(id);
+    const job = await this.getJobById(jobId);
 
     if (!job) {
-      throw new NotFoundError("Job", id);
+      throw new NotFoundError("Job", jobId);
     }
 
     // Authorization check - only admin or employer who posted the job can update
-    const organization =
-      await this.organizationRepository.findByContact(requesterId);
+    const organization = await this.organizationRepository.findById(
+      job.employerId
+    );
 
     if (!organization) {
-      throw new ForbiddenError("You do not belong to any organization");
+      return this.handleError(
+        new NotFoundError("Organization", job.employerId)
+      );
     }
-
-    if (job.employerId !== organization.id) {
-      throw new ForbiddenError(
-        "You can only update jobs posted by your organization"
+    const isMember = await this.organizationRepository.findByContact(userId);
+    if (!isMember || isMember.id !== job.employerId) {
+      return this.handleError(
+        new ForbiddenError(
+          "You are not authorized to update jobs for this organization"
+        )
+      );
+    }
+    const canPostJobs = await this.organizationService.isRolePermitted(userId);
+    if (!canPostJobs) {
+      return this.handleError(
+        new ForbiddenError("You do not have permission to update jobs")
       );
     }
 
@@ -209,52 +263,65 @@ export class JobService extends BaseService {
         : undefined,
     };
 
-    const success = await this.jobRepository.update(id, sanitizedData);
-    if (!success) {
-      throw new AppError("Failed to update job", 500, ErrorCode.DATABASE_ERROR);
+    const updatedJob = await this.jobRepository.update(jobId, sanitizedData);
+    if (!updatedJob) {
+      return this.handleError(
+        new AppError("Failed to update job", 500, ErrorCode.DATABASE_ERROR)
+      );
     }
 
     // Invalidate caches
-    await redis.del(`job:${id}`);
+    await redis.del(`job:${jobId}`);
     await this.invalidateActiveJobsCache();
 
-    return await this.getJobById(id);
+    return await this.getJobById(jobId);
   }
 
-  async deleteJob(id: number, requesterId: number): Promise<void> {
-    const job = await this.getJobById(id);
+  async deleteJob(jobId: number, userId: number): Promise<void> {
+    const job = await this.getJobById(jobId);
 
     if (!job) {
-      throw new NotFoundError("Job", id);
+      throw new NotFoundError("Job", jobId);
     }
 
     // Authorization check - only admin or employer who posted the job can delete
-    const organization =
-      await this.organizationRepository.findByContact(requesterId);
+    const organization = await this.organizationRepository.findById(
+      job.employerId
+    );
 
     if (!organization) {
-      throw new ForbiddenError("You do not belong to any organization");
+      return this.handleError(
+        new NotFoundError("Organization", job.employerId)
+      );
     }
-
-    if (job.employerId !== organization.id) {
-      throw new ForbiddenError(
-        "You can only delete jobs posted by your organization"
+    const isMember = await this.organizationRepository.findByContact(userId);
+    if (!isMember || isMember.id !== job.employerId) {
+      return this.handleError(
+        new ForbiddenError(
+          "You are not authorized to delete jobs for this organization"
+        )
+      );
+    }
+    const canPostJobs = await this.organizationService.isRolePermitted(userId);
+    if (!canPostJobs) {
+      return this.handleError(
+        new ForbiddenError("You do not have permission to delete jobs")
       );
     }
 
     // Check if job has applications - if so, prevent deletion
-    const applications = await this.jobRepository.findApplicationsByJob(id);
+    const applications = await this.jobRepository.findApplicationsByJob(jobId);
 
     if (applications.items.length > 0) {
       throw new ForbiddenError("Cannot delete job with existing applications");
     }
 
-    const success = await this.jobRepository.delete(id);
+    const success = await this.jobRepository.delete(jobId);
     if (!success) {
       throw new AppError("Failed to delete job", 500, ErrorCode.DATABASE_ERROR);
 
       // Invalidate caches
-      await redis.del(`job:${id}`);
+      await redis.del(`job:${jobId}`);
       await this.invalidateActiveJobsCache();
     }
   }
@@ -323,12 +390,12 @@ export class JobService extends BaseService {
   async getJobApplications(
     jobId: number,
     { page, limit, status }: SearchParams["query"],
-    requesterId: number
+    userId: number
   ) {
     // Authorization check - only admin or employer who posted the job can view applications
     const [job, organization] = await Promise.all([
       this.getJobById(jobId),
-      this.organizationRepository.findByContact(requesterId),
+      this.organizationRepository.findByContact(userId),
     ]);
 
     if (!organization) {
@@ -457,6 +524,11 @@ export class JobService extends BaseService {
     if (["hired", "rejected"].includes(application.status)) {
       return this.handleError(
         new ValidationError("Cannot withdraw application with final status")
+      );
+    }
+    if (applicationData.application.applicantId !== userId) {
+      return this.handleError(
+        new ForbiddenError("You can only withdraw your own applications")
       );
     }
 
@@ -644,7 +716,7 @@ export class JobService extends BaseService {
     }
   }
 
-    private async invalidateActiveJobsCache(): Promise<void> {
+  private async invalidateActiveJobsCache(): Promise<void> {
     // Invalidate all active jobs cache
     const keys = await redis.keys("jobs:active:*");
     if (keys.length > 0) {

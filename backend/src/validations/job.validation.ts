@@ -87,9 +87,10 @@ export const updateJobInsightsSchema = insertJobInsightsSchema
   .omit({ id: true });
 
 const createJobPayloadSchema = insertJobSchema
-  .omit({ applicationDeadline: true })
+  .omit({ applicationDeadline: true, employerId: true })
   .extend({
-    applicationDeadline: z.iso.datetime(),
+    applicationDeadline: z.iso.datetime().optional(),
+    organizationId: z.number().int().positive("Organization ID is required"),
   })
   .refine(
     (data) =>
@@ -145,7 +146,6 @@ export const applyForJobSchema = z.object({
       .max(2000, "Cover letter must not exceed 2000 characters")
       .optional(),
     resumeUrl: z.url("Invalid resume URL").optional(),
-    customAnswers: z.string().max(5000, "Custom answers must not exceed 5000 characters").optional(),
   }).strict(),
   params: jobIdParamSchema,
   query: z.object({}).strict(),
