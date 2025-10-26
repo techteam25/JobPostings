@@ -1,5 +1,7 @@
 import { JobRepository } from "@/repositories/job.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
+import { UserRepository } from "@/repositories/user.repository";
+import { EmailService } from "@/services/email.service";
 import { BaseService } from "./base.service";
 import {
   NewJob,
@@ -30,15 +32,19 @@ const redis = new Redis(process.env.REDIS_URL || "");
 export class JobService extends BaseService {
   private jobRepository: JobRepository;
   private organizationRepository: OrganizationRepository;
+  private userRepository: UserRepository;
   private jobInsightsRepository: JobInsightsRepository;
   private organizationService: OrganizationService;
+  private emailService: EmailService;
 
   constructor() {
     super();
     this.jobRepository = new JobRepository();
     this.organizationRepository = new OrganizationRepository();
+    this.userRepository = new UserRepository();
     this.jobInsightsRepository = new JobInsightsRepository();
     this.organizationService = new OrganizationService();
+    this.emailService = new EmailService();
   }
 
   async getAllActiveJobs(options: { page?: number; limit?: number } = {}) {
@@ -94,8 +100,8 @@ export class JobService extends BaseService {
     });
   }
 
-  async getJobById(id: number): Promise<Job> {
-    const cacheKey = `job:${id}`;
+  async getJobById(organizationId: number): Promise<Job> {
+    const cacheKey = `job:${organizationId}`;
 
     // Check cache
     const cachedJob = await redis.get(cacheKey);
@@ -103,10 +109,10 @@ export class JobService extends BaseService {
       return JSON.parse(cachedJob);
     }
 
-    const job = await this.jobRepository.findById(id);
+    const job = await this.jobRepository.findById(organizationId);
 
     if (!job) {
-      return this.handleError(new NotFoundError("Job", id));
+      return this.handleError(new NotFoundError("Job", organizationId));
     }
 
     // Cache job for 5 minutes
@@ -221,31 +227,6 @@ export class JobService extends BaseService {
       throw new NotFoundError("Job", jobId);
     }
 
-    // Authorization check - only admin or employer who posted the job can update
-    const organization = await this.organizationRepository.findById(
-      job.employerId
-    );
-
-    if (!organization) {
-      return this.handleError(
-        new NotFoundError("Organization", job.employerId)
-      );
-    }
-    const isMember = await this.organizationRepository.findByContact(userId);
-    if (!isMember || isMember.id !== job.employerId) {
-      return this.handleError(
-        new ForbiddenError(
-          "You are not authorized to update jobs for this organization"
-        )
-      );
-    }
-    const canPostJobs = await this.organizationService.isRolePermitted(userId);
-    if (!canPostJobs) {
-      return this.handleError(
-        new ForbiddenError("You do not have permission to update jobs")
-      );
-    }
-
     // Sanitize update data
     const sanitizedData = {
       ...updateData,
@@ -281,48 +262,54 @@ export class JobService extends BaseService {
     const job = await this.getJobById(jobId);
 
     if (!job) {
-      throw new NotFoundError("Job", jobId);
+      return this.handleError(new NotFoundError("Job", jobId));
     }
 
-    // Authorization check - only admin or employer who posted the job can delete
-    const organization = await this.organizationRepository.findById(
-      job.employerId
-    );
+    // Fetch user and organization details for email notification
+    const [user, organization] = await Promise.all([
+      this.userRepository.findById(userId),
+      this.organizationRepository.findById(job.employerId),
+    ]);
 
+    if (!user) {
+      return this.handleError(new NotFoundError("User", userId));
+    }
     if (!organization) {
-      return this.handleError(
-        new NotFoundError("Organization", job.employerId)
-      );
-    }
-    const isMember = await this.organizationRepository.findByContact(userId);
-    if (!isMember || isMember.id !== job.employerId) {
-      return this.handleError(
-        new ForbiddenError(
-          "You are not authorized to delete jobs for this organization"
-        )
-      );
-    }
-    const canPostJobs = await this.organizationService.isRolePermitted(userId);
-    if (!canPostJobs) {
-      return this.handleError(
-        new ForbiddenError("You do not have permission to delete jobs")
-      );
+      return this.handleError(new NotFoundError("Organization", job.employerId));
     }
 
     // Check if job has applications - if so, prevent deletion
     const applications = await this.jobRepository.findApplicationsByJob(jobId);
 
     if (applications.items.length > 0) {
-      throw new ForbiddenError("Cannot delete job with existing applications");
+      return this.handleError(
+        new ForbiddenError("Cannot delete job with existing applications")
+      );
     }
 
     const success = await this.jobRepository.delete(jobId);
     if (!success) {
-      throw new AppError("Failed to delete job", 500, ErrorCode.DATABASE_ERROR);
+      return this.handleError(
+        new AppError("Failed to delete job", 500, ErrorCode.DATABASE_ERROR)
+      );
+    }
 
-      // Invalidate caches
-      await redis.del(`job:${jobId}`);
-      await this.invalidateActiveJobsCache();
+    // Invalidate caches
+    await redis.del(`job:${jobId}`);
+    await this.invalidateActiveJobsCache();
+
+    // Send email notification
+    try {
+      const firstName = user.fullName?.split(" ")[0] || "User";
+      await this.emailService.sendJobDeletionConfirmation(
+        user.email,
+        firstName,
+        job.title,
+        organization.name || "Company"
+      );
+    } catch (error) {
+      // Log email error but don't fail the deletion
+      console.error("Failed to send job deletion email:", error);
     }
   }
 
@@ -392,26 +379,6 @@ export class JobService extends BaseService {
     { page, limit, status }: SearchParams["query"],
     userId: number
   ) {
-    // Authorization check - only admin or employer who posted the job can view applications
-    const [job, organization] = await Promise.all([
-      this.getJobById(jobId),
-      this.organizationRepository.findByContact(userId),
-    ]);
-
-    if (!organization) {
-      return this.handleError(
-        new ForbiddenError("You do not belong to any organization")
-      );
-    }
-
-    if (job.employerId !== organization.id) {
-      return this.handleError(
-        new ForbiddenError(
-          "You can only view applications for jobs posted by your organization"
-        )
-      );
-    }
-
     return await this.jobRepository.findApplicationsByJob(jobId, {
       page,
       limit,
@@ -446,27 +413,6 @@ export class JobService extends BaseService {
     if (!application) {
       return this.handleError(new NotFoundError("Application", applicationId));
     }
-
-    // Authorization check - only admin or employer who posted the job can delete
-    const [job, organization] = await Promise.all([
-      this.getJobById(application.job.id),
-      this.organizationRepository.findByContact(requesterId),
-    ]);
-
-    if (!organization) {
-      return this.handleError(
-        new ForbiddenError("You do not belong to any organization")
-      );
-    }
-
-    if (organization.id !== job.employerId) {
-      return this.handleError(
-        new ForbiddenError(
-          "You can only update applications for jobs posted by your organization"
-        )
-      );
-    }
-
     // const updateData: any = { status };
     //
     // if (status === "reviewed" && !application?.application?.reviewedAt) {

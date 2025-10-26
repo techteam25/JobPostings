@@ -4,7 +4,7 @@ import { fromNodeHeaders } from "better-auth/node";
 import { ApiResponse } from "@/types";
 import { UserService } from "@/services/user.service";
 import { JobRepository } from "@/repositories/job.repository";
-import { ForbiddenError } from "@/utils/errors";
+import { ForbiddenError, NotFoundError } from "@/utils/errors";
 
 import logger from "@/logger";
 import { auth } from "@/utils/auth";
@@ -15,7 +15,6 @@ export class AuthMiddleware {
   private readonly userService: UserService;
   private readonly jobRepository: JobRepository;
 
-
   constructor() {
     this.organizationService = new OrganizationService();
     this.userService = new UserService();
@@ -25,7 +24,7 @@ export class AuthMiddleware {
   authenticate = async (
     req: Request,
     res: Response<ApiResponse<void>>,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     try {
       const session = await auth.api.getSession({
@@ -86,20 +85,65 @@ export class AuthMiddleware {
           });
         }
 
-        // Fetch user to check role
-        const isPermitted = await this.organizationService.isRolePermitted(
-          req.userId,
-        );
+        // Extract jobId from params or body
+        const jobId = parseInt((req.params.jobId || req.body.jobId) as string);
 
-        if (!isPermitted) {
-          return res.status(403).json({
-            status: "error",
-            message: "Insufficient permissions",
-          });
+        if (jobId) {
+          // Fetch job to get employerId
+          const job = await this.jobRepository.findById(jobId);
+          if (!job) {
+            return res.status(404).json({
+              status: "error",
+              message: "Job not found",
+            });
+          }
+
+          // Check organization existence
+          const organization =
+            await this.organizationService.getOrganizationById(job.employerId);
+          if (!organization) {
+            return res.status(404).json({
+              status: "error",
+              message: "Organization not found",
+            });
+          }
+
+          // Check membership
+          const isMember = await this.organizationService.getOrganizationMember(
+            req.userId
+          );
+          if (!isMember || isMember.organizationId !== job.employerId) {
+            return res.status(403).json({
+              status: "error",
+              message:
+                "You are not authorized to perform actions for this organization",
+            });
+          }
+
+          // Check role permissions
+          const permittedRoles = ["owner", "admin", "recruiter"];
+          if (!permittedRoles.includes(isMember.role)) {
+            return res.status(403).json({
+              status: "error",
+              message: "You do not have permission to perform this action",
+            });
+          }
+        } else {
+          // Fallback for non-job-specific routes (e.g., createJob)
+          const isPermitted = await this.organizationService.isRolePermitted(
+            req.userId
+          );
+          if (!isPermitted) {
+            return res.status(403).json({
+              status: "error",
+              message: "You do not have permission to perform this action",
+            });
+          }
         }
 
         return next();
       } catch (error) {
+        logger.error(error);
         return res.status(500).json({
           status: "error",
           message: "Error checking user permissions",
@@ -119,7 +163,7 @@ export class AuthMiddleware {
         }
 
         const user = await this.organizationService.getOrganizationMember(
-          req.userId,
+          req.userId
         );
 
         if (!["owner", "admin"].some((role) => roles.includes(role))) {
@@ -149,7 +193,7 @@ export class AuthMiddleware {
         // Fetch user to check role
         const isPermitted = await this.userService.hasPrerequisiteRoles(
           req.userId,
-          ["owner", "admin"],
+          ["owner", "admin"]
         );
 
         if (!isPermitted) {
@@ -221,7 +265,7 @@ export class AuthMiddleware {
   requireActiveUser = async (
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     if (!req.user || req.user.status !== "active") {
       return res.status(403).json({
@@ -255,9 +299,8 @@ export class AuthMiddleware {
         }
 
         // Fetch application details
-        const [applicationData] = await this.jobRepository.findApplicationById(
-          applicationId
-        );
+        const [applicationData] =
+          await this.jobRepository.findApplicationById(applicationId);
 
         if (!applicationData) {
           return res.status(404).json({
@@ -283,5 +326,5 @@ export class AuthMiddleware {
         });
       }
     };
-  }; 
+  };
 }

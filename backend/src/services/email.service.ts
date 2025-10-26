@@ -175,4 +175,33 @@ export class EmailService extends BaseService {
       this.handleError(error);
     }
   }
+
+  async sendJobDeletionConfirmation(
+    email: string,
+    firstName: string,
+    jobTitle: string,
+    companyName: string,
+  ): Promise<void> {
+    try {
+      const template = await this.loadTemplate("jobDeletionConfirmation");
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      const htmlContent = template
+        .replace("{{firstName}}", firstName)
+        .replace("{{jobTitle}}", jobTitle)
+        .replace("{{companyName}}", companyName)
+        .replace("{{logoPath}}", logoPath);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: "Job Deletion Confirmation",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
 }

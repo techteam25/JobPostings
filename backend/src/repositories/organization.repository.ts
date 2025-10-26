@@ -126,6 +126,29 @@ export class OrganizationRepository extends BaseRepository<
     );
   }
 
+  async findMemberByUserIdAndOrgId(userId: number, organizationId: number) {
+    return await withDbErrorHandling(
+      async () =>
+        await db.query.organizationMembers.findFirst({
+          where: and(
+            eq(organizationMembers.userId, userId),
+            eq(organizationMembers.organizationId, organizationId),
+          ),
+          with: {
+            user: {
+              columns: {
+                id: true,
+                fullName: true,
+                email: true,
+                emailVerified: true,
+                status: true,
+              },
+            },
+          },
+        }),
+    );
+  }
+
   async canPostJobs(userId: number): Promise<boolean> {
     const memberships = await db.query.organizationMembers.findMany({
       where: and(
