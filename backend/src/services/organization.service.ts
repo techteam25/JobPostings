@@ -1,6 +1,9 @@
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { BaseService } from "./base.service";
-import { NewOrganization } from "@/validations/organization.validation";
+import {
+  NewOrganization,
+  OrganizationJobApplicationsResponse,
+} from "@/validations/organization.validation";
 import { ConflictError, NotFoundError } from "@/utils/errors";
 
 export class OrganizationService extends BaseService {
@@ -86,6 +89,16 @@ export class OrganizationService extends BaseService {
     return await this.organizationRepository.canPostJobs(userId);
   }
 
+  async isRolePermittedToRejectApplications(
+    userId: number,
+    organizationId: number,
+  ) {
+    return await this.organizationRepository.canRejectJobApplications(
+      userId,
+      organizationId,
+    );
+  }
+
   async getOrganizationMembersByRole(
     organizationId: number,
     role: "owner" | "admin" | "recruiter",
@@ -103,6 +116,22 @@ export class OrganizationService extends BaseService {
   async getOrganizationMember(sessionUserId: number) {
     try {
       return await this.organizationRepository.findByContact(sessionUserId);
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  async getJobApplicationForOrganization(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+  ): Promise<OrganizationJobApplicationsResponse> {
+    try {
+      return await this.organizationRepository.getJobApplicationForOrganization(
+        organizationId,
+        jobId,
+        applicationId,
+      );
     } catch (error) {
       this.handleError(error);
     }
