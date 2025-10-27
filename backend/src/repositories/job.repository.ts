@@ -128,6 +128,9 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
 
         // Initialize job skills if provided
         if (skillsPayload && skillsPayload.length > 0) {
+          // Delete existing job-skill associations
+          await transaction.delete(jobSkills).where(eq(jobSkills.jobId, jobId));
+
           const skillUpdate = skillsPayload.map((name) => ({
             name,
           }));
