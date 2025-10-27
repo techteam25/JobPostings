@@ -4,13 +4,13 @@ import { JobRepository } from "@/repositories/job.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { TypesenseService } from "@/services/typesense.service/typesense.service";
 
-import type {
-  NewJob,
+import {
   NewJobApplication,
   Job,
   UpdateJob,
   UpdateJobApplication,
   JobWithSkills,
+  CreateJobSchema,
 } from "@/validations/job.validation";
 
 import {
@@ -25,6 +25,7 @@ import { AppError, ErrorCode } from "@/utils/errors";
 import { SearchParams } from "@/validations/base.validation";
 import { jobIndexerQueue } from "@/utils/bullmq.utils";
 import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
+import logger from "@/logger";
 
 export class JobService extends BaseService {
   private jobRepository: JobRepository;
@@ -139,7 +140,7 @@ export class JobService extends BaseService {
     return await this.jobRepository.findJobsByEmployer(employerId, options);
   }
 
-  async createJob(jobData: NewJob): Promise<JobWithSkills> {
+  async createJob(jobData: CreateJobSchema["body"]): Promise<JobWithSkills> {
     // Todo Fetch this from organizationMembers table
     // Validate employer exists
     const employer = await this.organizationRepository.findById(
@@ -162,13 +163,14 @@ export class JobService extends BaseService {
       experience: jobData.experience
         ? SecurityUtils.sanitizeInput(jobData.experience)
         : null,
+      applicationDeadline: jobData.applicationDeadline
+        ? new Date(jobData.applicationDeadline)
+        : null,
     };
 
-    const jobId = await this.jobRepository.create(sanitizedData);
+    const jobWithSkills = await this.jobRepository.createJob(sanitizedData);
 
-    const createdJob = await this.jobRepository.findJobByIdWithSkills(jobId);
-
-    if (!createdJob) {
+    if (!jobWithSkills) {
       throw new AppError(
         "Failed to retrieve created job",
         500,
@@ -177,9 +179,9 @@ export class JobService extends BaseService {
     }
 
     // Enqueue job for indexing in Typesense
-    await jobIndexerQueue.add("indexJob", { createdJob });
+    await jobIndexerQueue.add("indexJob", jobWithSkills);
 
-    return createdJob;
+    return jobWithSkills;
   }
 
   async updateJob(
@@ -224,7 +226,7 @@ export class JobService extends BaseService {
         : undefined,
     };
 
-    const success = await this.jobRepository.update(id, sanitizedData);
+    const success = await this.jobRepository.updateJob(sanitizedData, id);
     if (!success) {
       throw new AppError("Failed to update job", 500, ErrorCode.DATABASE_ERROR);
     }
