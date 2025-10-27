@@ -1,5 +1,11 @@
 import { and, count, eq, like, or, inArray, sql } from "drizzle-orm";
-import { organizationMembers, organizations } from "@/db/schema";
+import {
+  jobApplications,
+  jobsDetails,
+  organizationMembers,
+  organizations,
+  user,
+} from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
 import { calculatePagination } from "@/db/utils";
@@ -144,6 +150,28 @@ export class OrganizationRepository extends BaseRepository<
     );
   }
 
+  async canRejectJobApplications(
+    userId: number,
+    organizationId: number,
+  ): Promise<boolean> {
+    const memberships = await db.query.organizationMembers.findMany({
+      where: and(
+        eq(organizationMembers.userId, userId),
+        eq(organizationMembers.organizationId, organizationId),
+        eq(organizationMembers.isActive, true),
+      ),
+      with: {
+        organization: true,
+      },
+    });
+
+    return memberships.some(
+      (m) =>
+        ["active", "trial"].includes(m.organization?.subscriptionStatus) &&
+        ["owner", "admin"].includes(m.role),
+    );
+  }
+
   async checkHasElevatedRole(
     userId: number,
     roles: ("owner" | "admin" | "recruiter" | "member")[],
@@ -199,5 +227,47 @@ export class OrganizationRepository extends BaseRepository<
         error instanceof Error ? error : undefined,
       );
     }
+  }
+
+  async getJobApplicationForOrganization(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+  ) {
+    return await withDbErrorHandling(async () => {
+      const [application] = await db
+        .select({
+          id: jobApplications.id,
+          jobId: jobApplications.jobId,
+          resumeUrl: jobApplications.resumeUrl,
+          coverLetter: jobApplications.coverLetter,
+          status: jobApplications.status,
+          appliedAt: jobApplications.createdAt,
+          jobTitle: jobsDetails.title,
+          description: jobsDetails.description,
+          city: jobsDetails.city,
+          state: jobsDetails.state,
+          country: jobsDetails.country,
+          zipcode: jobsDetails.zipcode,
+          jobType: jobsDetails.jobType,
+          compensationType: jobsDetails.compensationType,
+          isRemote: jobsDetails.isRemote,
+          isActive: jobsDetails.isActive,
+          applicationDeadline: jobsDetails.applicationDeadline,
+          experience: jobsDetails.experience,
+          organizationId: organizations.id,
+          organizationName: organizations.name,
+        })
+        .from(jobApplications)
+        .innerJoin(jobsDetails, eq(jobsDetails.id, jobId))
+        .innerJoin(organizations, eq(organizations.id, organizationId))
+        .where(eq(jobApplications.id, applicationId));
+
+      if (!application) {
+        throw new DatabaseError("Job application not found for organization");
+      }
+
+      return application;
+    });
   }
 }
