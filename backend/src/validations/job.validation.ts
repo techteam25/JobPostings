@@ -51,11 +51,16 @@ export const selectJobInsightsSchema = createSelectSchema(jobInsights);
 export const selectJobApplicationSchema = createSelectSchema(jobApplications);
 export const selectJobSkillsSchema = createSelectSchema(skills);
 
-export const updateJobInputSchema = insertJobSchema.partial().omit({
-  id: true,
-  createdAt: true,
-  employerId: true,
-});
+export const updateJobInputSchema = insertJobSchema
+  .partial()
+  .omit({
+    id: true,
+    createdAt: true,
+    employerId: true,
+  })
+  .extend({
+    skills: z.array(z.string()).optional(),
+  });
 
 export const updateJobApplicationSchema = insertJobApplicationSchema
   .partial()
@@ -78,6 +83,7 @@ const createJobPayloadSchema = insertJobSchema
   .omit({ applicationDeadline: true })
   .extend({
     applicationDeadline: z.iso.datetime(),
+    skills: z.array(z.string()),
   });
 
 const jobIdParamSchema = z.object({
@@ -122,7 +128,10 @@ export type JobWithEmployer = {
   job: Job;
   employer: Pick<Organization, "id" | "name" | "city" | "state"> | null;
 }[];
-export type JobWithSkills = Job & { skills: JobSkills["name"][] };
+export type JobWithSkills = Job & {
+  skills: JobSkills["name"][];
+  employer: { name: string };
+};
 export type CreateJobSchema = z.infer<typeof createJobSchema>;
 export type GetJobSchema = z.infer<typeof getJobSchema>;
 export type UpdateJobSchema = z.infer<typeof updateJobSchema>;
