@@ -8,7 +8,7 @@ import { TypesenseService } from "@/services/typesense.service/typesense.service
 
 const typesenseService = new TypesenseService();
 
-const jobIndexerQueueEvents = new QueueEvents("jobIndexQueue", {
+export const jobIndexerQueueEvents = new QueueEvents("jobIndexQueue", {
   connection: { url: env.REDIS_URL },
 });
 const emailSenderQueueEvents = new QueueEvents("emailQueue", {
@@ -21,7 +21,7 @@ export const jobIndexerQueue = new Queue("jobIndexQueue", {
   },
   defaultJobOptions: {
     removeOnComplete: true,
-    removeOnFail: 500,
+    removeOnFail: true,
     attempts: 3,
     backoff: {
       type: "exponential",
@@ -52,12 +52,15 @@ const jobIndexerWorker = new Worker<JobWithSkills>(
 
     if (job.name === "indexJob") {
       await typesenseService.indexJobDocument(jobData);
+      return;
     }
     if (job.name === "updateJobIndex") {
       await typesenseService.updateJobDocumentById(`${jobData.id}`, jobData);
+      return;
     }
     if (job.name === "deleteJobIndex") {
       await typesenseService.deleteJobDocumentById(`${jobData.id}`);
+      return;
     }
   },
   {
@@ -83,6 +86,7 @@ const emailSenderWorker = new Worker(
 
 jobIndexerQueueEvents.on("completed", () => {
   // update statistics
+  logger.info("Job completed");
 });
 
 emailSenderQueueEvents.on("completed", () => {
@@ -107,5 +111,4 @@ emailSenderWorker.on("error", (err) => {
   logger.error(err);
 });
 
-jobIndexerWorker.run().catch(logger.error);
-emailSenderWorker.run().catch(logger.error);
+logger.info("🚀 Worker started for queue:" + jobIndexerWorker.name);
