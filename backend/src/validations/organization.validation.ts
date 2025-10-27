@@ -2,6 +2,8 @@ import { z } from "@/swagger/registry";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
 import { organizationMembers, organizations } from "@/db/schema";
+import { getJobSchema } from "@/validations/job.validation";
+import { getJobApplicationSchema } from "@/validations/jobApplications.validation";
 
 // Zod schemas for validation
 export const selectOrganizationSchema = createSelectSchema(organizations);
@@ -40,6 +42,57 @@ export const getOrganizationSchema = z.object({
   params: organizationIdParamSchema,
 });
 
+export const jobApplicationManagementSchema = z.object({
+  body: z.object({}).strict(),
+  params: z
+    .object({
+      organizationId:
+        getOrganizationSchema.shape["params"].shape["organizationId"],
+      jobId: getJobSchema.shape["params"].shape["jobId"],
+      applicationId:
+        getJobApplicationSchema.shape["params"].shape["applicationId"],
+    })
+    .strict(),
+  query: z.object({}).strict(),
+});
+
+export const organizationJobApplicationsResponseSchema = z.object({
+  id: z.number(),
+  jobId: z.number(),
+  resumeUrl: z.string().nullable(),
+  coverLetter: z.string().nullable(),
+  status: z.enum([
+    "pending",
+    "reviewed",
+    "shortlisted",
+    "interviewing",
+    "rejected",
+    "hired",
+    "withdrawn",
+  ]),
+  appliedAt: z.date(),
+  jobTitle: z.string(),
+  description: z.string(),
+  city: z.string().nullable(),
+  state: z.string().nullable(),
+  country: z.string().nullable(),
+  zipcode: z.number().nullable(),
+  jobType: z.enum([
+    "full-time",
+    "part-time",
+    "contract",
+    "volunteer",
+    "internship",
+  ]),
+  compensationType: z.enum(["paid", "missionary", "volunteer", "stipend"]),
+  isRemote: z.boolean(),
+  isActive: z.boolean(),
+  applicationDeadline: z.date().nullable(),
+  experience: z.string().nullable(),
+  organizationId: z.number(),
+  organizationName: z.string(),
+});
+
 export const deleteOrganizationSchema = z.object({
   body: z.object({}).strict(),
   query: z.object({}).strict(),
@@ -54,3 +107,9 @@ export type GetOrganizationSchema = z.infer<typeof getOrganizationSchema>;
 export type CreateOrganizationSchema = z.infer<typeof createOrganizationSchema>;
 export type UpdateOrganizationSchema = z.infer<typeof updateOrganizationSchema>;
 export type DeleteOrganizationSchema = z.infer<typeof deleteOrganizationSchema>;
+export type JobApplicationManagementSchema = z.infer<
+  typeof jobApplicationManagementSchema
+>;
+export type OrganizationJobApplicationsResponse = z.infer<
+  typeof organizationJobApplicationsResponseSchema
+>;
