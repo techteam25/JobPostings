@@ -207,12 +207,19 @@ export class JobController extends BaseController {
     res: Response<ApiResponse<JobWithSkills>>,
   ) => {
     try {
+      if (!req.organizationId) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "You must be associated with an organization to create a job",
+          status: "error",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
       const jobData = {
         ...req.body,
-        employerId: req.userId!, // Todo: get employerId from user's organization
-        applicationDeadline: req.body.applicationDeadline
-          ? new Date(req.body.applicationDeadline)
-          : null,
+        employerId: req.organizationId,
       };
 
       const job = await this.jobService.createJob(jobData);
