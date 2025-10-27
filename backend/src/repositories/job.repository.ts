@@ -1,9 +1,11 @@
-import { and, desc, eq, sql, SQL } from "drizzle-orm";
+import { and, desc, eq, inArray, sql, SQL } from "drizzle-orm";
 import {
   jobApplications,
   jobInsights,
   jobsDetails,
+  jobSkills,
   organizations,
+  skills,
   user,
 } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
@@ -11,13 +13,190 @@ import { db } from "@/db/connection";
 import { calculatePagination, countRecords } from "@/db/utils";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
 import {
+  JobSkills,
+  JobWithSkills,
+  NewJob,
   NewJobApplication,
+  UpdateJob,
   UpdateJobApplication,
 } from "@/validations/job.validation";
 
 export class JobRepository extends BaseRepository<typeof jobsDetails> {
   constructor() {
     super(jobsDetails);
+  }
+
+  async createJob(
+    jobData: NewJob & { skills: JobSkills["name"][] },
+  ): Promise<JobWithSkills> {
+    return await withDbErrorHandling(async () =>
+      db.transaction(async (transaction) => {
+        const { skills: skillsPayload, ...jobPayload } = jobData;
+        const [jobId] = await transaction
+          .insert(jobsDetails)
+          .values(jobPayload)
+          .$returningId();
+
+        if (!jobId) {
+          throw new Error("Failed to insert job");
+        }
+
+        // Initialize job skills if provided
+        if (skillsPayload && skillsPayload.length > 0) {
+          const skillInserts = skillsPayload.map((skillName) => ({
+            name: skillName,
+          }));
+
+          await transaction
+            .insert(skills)
+            .values(skillInserts)
+            .onDuplicateKeyUpdate({
+              set: {
+                name: sql`values(${skills.name})`,
+              },
+            });
+
+          const allSkills = await transaction
+            .select({ id: skills.id })
+            .from(skills)
+            .where(inArray(skills.name, skillsPayload));
+
+          if (!allSkills || allSkills.length === 0)
+            throw new Error("Failed to fetch skills");
+
+          const jobSkillInserts = allSkills.map((s) => ({
+            jobId: jobId.id,
+            skillId: s.id,
+            isRequired: true,
+          }));
+
+          await transaction
+            .insert(jobSkills)
+            .values(jobSkillInserts)
+            .onDuplicateKeyUpdate({
+              set: {
+                isRequired: sql`values(${jobSkills.isRequired})`,
+              },
+            });
+        }
+        const jobWithSkills = await transaction.query.jobsDetails.findFirst({
+          where: eq(jobsDetails.id, jobId.id),
+          with: {
+            skills: {
+              with: {
+                skill: {
+                  columns: {
+                    name: true,
+                  },
+                },
+              },
+            },
+            employer: {
+              columns: {
+                name: true,
+              },
+            },
+          },
+        });
+
+        if (!jobWithSkills) {
+          throw new Error(`Job with Id: ${jobId} not found`);
+        }
+
+        const skillsArray = jobWithSkills.skills.map((s) => s.skill.name);
+
+        return {
+          ...jobWithSkills,
+          skills: skillsArray,
+        };
+      }),
+    );
+  }
+
+  async updateJob(jobData: UpdateJob, jobId: number): Promise<JobWithSkills> {
+    return await withDbErrorHandling(async () =>
+      db.transaction(async (transaction) => {
+        const { skills: skillsPayload, ...jobPayload } = jobData;
+        const [jobResult] = await transaction
+          .update(jobsDetails)
+          .set(jobPayload)
+          .where(eq(jobsDetails.id, jobId));
+
+        if (!jobResult.affectedRows || jobResult.affectedRows === 0) {
+          throw new Error("Failed to update job");
+        }
+
+        // Initialize job skills if provided
+        if (skillsPayload && skillsPayload.length > 0) {
+          const skillUpdate = skillsPayload.map((name) => ({
+            name,
+          }));
+
+          await transaction
+            .insert(skills)
+            .values(skillUpdate)
+            .onDuplicateKeyUpdate({
+              set: {
+                name: sql`values(${skills.name})`,
+              },
+            });
+
+          const allSkills = await transaction
+            .select({ id: skills.id })
+            .from(skills)
+            .where(inArray(skills.name, skillsPayload));
+
+          if (!allSkills || allSkills.length === 0)
+            throw new Error("Failed to fetch skills after update");
+
+          const jobSkillInserts = allSkills.map((s) => ({
+            jobId,
+            skillId: s.id,
+            isRequired: true,
+          }));
+
+          await transaction
+            .insert(jobSkills)
+            .values(jobSkillInserts)
+            .onDuplicateKeyUpdate({
+              set: { isRequired: sql`values(${jobSkills.isRequired})` },
+            });
+        }
+        const updatedJobWithSkills =
+          await transaction.query.jobsDetails.findFirst({
+            where: eq(jobsDetails.id, jobId),
+            with: {
+              skills: {
+                with: {
+                  skill: {
+                    columns: {
+                      name: true,
+                    },
+                  },
+                },
+              },
+              employer: {
+                columns: {
+                  name: true,
+                },
+              },
+            },
+          });
+
+        if (!updatedJobWithSkills) {
+          throw new Error(`Job with Id: ${jobId} not found`);
+        }
+
+        const skillsArray = updatedJobWithSkills.skills.map(
+          (s) => s.skill.name,
+        );
+
+        return {
+          ...updatedJobWithSkills,
+          skills: skillsArray,
+        };
+      }),
+    );
   }
 
   async findActiveJobs(options: { page?: number; limit?: number } = {}) {
