@@ -9,7 +9,7 @@ export const redisClient = createClient({
 
 redisClient.on("error", (err) => logger.error(err, "Redis Client Error"));
 
-redisClient.connect().catch(logger.error);
+redisClient.connect().catch((err) => logger.error(err));
 
 export const store = new RedisStore({
   sendCommand: (...args: string[]) => redisClient.sendCommand(args),
