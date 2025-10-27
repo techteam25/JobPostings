@@ -65,4 +65,9 @@ export class TypesenseQueryBuilder {
   build(): string {
     return this.filterConditions.join(" && ");
   }
+
+  reset() {
+    this.filterConditions = [];
+    return this;
+  }
 }
