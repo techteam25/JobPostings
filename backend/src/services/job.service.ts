@@ -25,7 +25,6 @@ import { AppError, ErrorCode } from "@/utils/errors";
 import { SearchParams } from "@/validations/base.validation";
 import { jobIndexerQueue } from "@/utils/bullmq.utils";
 import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
-import logger from "@/logger";
 
 export class JobService extends BaseService {
   private jobRepository: JobRepository;
