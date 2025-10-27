@@ -62,7 +62,7 @@ export const jobsDetails = mysqlTable(
       columns: [table.employerId],
       foreignColumns: [organizations.id],
       name: "fk_job_employer",
-    }),
+    }).onDelete("cascade"),
   ],
 );
 
@@ -101,12 +101,12 @@ export const jobApplications = mysqlTable(
       columns: [table.jobId],
       foreignColumns: [jobsDetails.id],
       name: "fk_application_job",
-    }),
+    }).onDelete("cascade"),
     foreignKey({
       columns: [table.applicantId],
       foreignColumns: [user.id],
       name: "fk_application_applicant",
-    }),
+    }).onDelete("cascade"),
   ],
 );
 
