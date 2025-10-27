@@ -1,11 +1,9 @@
 import type { SearchResponse } from "typesense/lib/Typesense/Documents";
 
-import { createPostedJobsSchema } from "@/services/typesense.service/typesense.schema";
 import { JOBS_COLLECTION } from "@/services/typesense.service/constants";
 import { JobWithSkills } from "@/validations/job.validation";
 import { typesenseClient } from "@/config/typesense-client";
 
-import logger from "@/logger";
 import { JobDocumentType } from "@/validations/base.validation";
 
 type SortDirection = "asc" | "desc";
@@ -18,16 +16,24 @@ type MetaSearchParams = {
 };
 
 export class TypesenseService {
-  constructor() {
-    // Ensure the jobs collection exists upon service initialization
-    createPostedJobsSchema().catch(logger.error);
-  }
-
   async indexJobDocument(doc: JobWithSkills) {
     return await typesenseClient
       .collections(JOBS_COLLECTION)
       .documents()
-      .create(doc);
+      .create({
+        id: doc.id.toString(),
+        title: doc.title,
+        company: doc.employer.name,
+        description: doc.description,
+        city: doc.city,
+        state: doc.state,
+        country: doc.country,
+        isRemote: doc.isRemote,
+        experience: doc.experience,
+        jobType: doc.jobType,
+        skills: ["skill"],
+        createdAt: Number(Date.parse(`${doc.createdAt}`)),
+      });
   }
 
   async indexManyJobDocuments(docs: JobWithSkills[]) {
@@ -71,13 +77,13 @@ export class TypesenseService {
   async searchJobsCollection(
     q: string = "*",
     filters?: string,
-    { sortBy, sortDirection, page, limit, offset }: MetaSearchParams = {
-      sortBy: "title",
-      sortDirection: "desc",
-      page: 1,
-      limit: 10,
-      offset: 0,
-    },
+    {
+      sortBy = "title",
+      sortDirection = "desc",
+      page = 1,
+      limit = 10,
+      offset = 0,
+    }: MetaSearchParams = {},
   ): Promise<SearchResponse<JobDocumentType>> {
     return await typesenseClient
       .collections<JobDocumentType>(JOBS_COLLECTION)
