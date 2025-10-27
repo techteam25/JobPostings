@@ -8,6 +8,7 @@ import {
   getOrganizationSchema,
   deleteOrganizationSchema,
   updateOrganizationSchema,
+  organizationJobApplicationsResponseSchema,
 } from "@/validations/organization.validation";
 import { registry, z } from "@/swagger/registry";
 import { selectOrganizationSchema } from "@/validations/organization.validation";
@@ -16,6 +17,8 @@ import {
   errorResponseSchema,
   paginationMetaSchema,
 } from "@/types";
+import { getJobApplicationSchema } from "@/validations/jobApplications.validation";
+import { getJobSchema } from "@/validations/job.validation";
 
 const router = Router();
 const organizationController = new OrganizationController();
@@ -292,6 +295,73 @@ router.delete(
   authMiddleware.requireAdminOrOwnerRole(["owner"]),
   validate(deleteOrganizationSchema),
   organizationController.deleteOrganization,
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/organizations/{organizationId}/jobs/{jobId}/applications/{applicationId}",
+  summary: "Get a job application for an organization",
+  tags: ["Organizations"],
+  security: [{ cookie: [] }],
+  request: {
+    params: z.object({
+      organizationId:
+        getOrganizationSchema.shape["params"].shape["organizationId"],
+      jobId: getJobSchema.shape["params"].shape["jobId"],
+      applicationId:
+        getJobApplicationSchema.shape["params"].shape["applicationId"],
+    }),
+  },
+  responses: {
+    200: {
+      description: "Job application details",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(organizationJobApplicationsResponseSchema),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Job application not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.get(
+  "/:organizationId/jobs/:jobId/applications/:applicationId",
+  authMiddleware.requireJobPostingRole(),
+  validate(getOrganizationSchema),
+  validate(getJobSchema),
+  validate(getJobApplicationSchema),
+  organizationController.getJobApplicationsForOrganization,
 );
 
 export default router;
