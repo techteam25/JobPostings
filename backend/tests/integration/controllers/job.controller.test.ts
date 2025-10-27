@@ -76,7 +76,9 @@ describe("Job Controller Integration Tests", () => {
         newJob.description,
       );
 
-      expect(response.body.data).toHaveProperty("location", newJob.location);
+      expect(response.body.data).toHaveProperty("city", newJob.city);
+      expect(response.body.data).toHaveProperty("state", newJob.state);
+      expect(response.body.data).toHaveProperty("country", newJob.country);
       expect(response.body.data).toHaveProperty("jobType", newJob.jobType);
       expect(response.body.data).toHaveProperty(
         "compensationType",
@@ -86,19 +88,10 @@ describe("Job Controller Integration Tests", () => {
         "experience",
         newJob.experience,
       );
-
-      expect(response.body.data).toHaveProperty(
-        "salaryMin",
-        newJob.salaryMin.toFixed(2),
-      );
-      expect(response.body.data).toHaveProperty(
-        "salaryMax",
-        newJob.salaryMax.toFixed(2),
-      );
       expect(response.body.data).toHaveProperty("isRemote", newJob.isRemote);
 
-      expect(JSON.parse(response.body.data.skills)).toEqual(
-        newJob.skills.split(",").map((skill) => skill.trim()),
+      expect(response.body.data.skills).toEqual(
+        expect.arrayContaining(newJob.skills),
       );
       expect(response.body.data).toHaveProperty(
         "employerId",
@@ -114,12 +107,12 @@ describe("Job Controller Integration Tests", () => {
       const invalidJob = {
         title: "SWE", // Too short
         description: "Short desc", // Too short
-        location: "", // Required field
+        city: "", // Required field
+        state: "", // Required field
+        country: "", // Required field
         jobType: "unknown-type", // Invalid enum value
         compensationType: "paid",
         experience: "mid",
-        salaryMin: -5000, // Invalid negative salary
-        salaryMax: 3000, // Max less than min
         currency: "US", // Invalid length
         isRemote: false,
         applicationDeadline: "invalid-date", // Invalid date format

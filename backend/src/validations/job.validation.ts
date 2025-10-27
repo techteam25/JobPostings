@@ -1,6 +1,6 @@
 import { z } from "@/swagger/registry";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { jobApplications, jobInsights, jobsDetails } from "@/db/schema";
+import { jobApplications, jobInsights, jobsDetails, skills } from "@/db/schema";
 import { Organization } from "@/validations/organization.validation";
 
 // Validation schemas
@@ -14,18 +14,19 @@ export const insertJobSchema = createInsertSchema(jobsDetails, {
     .string()
     .min(50, "Description must be at least 50 characters")
     .max(5000),
-  location: z.string().min(1, "Location is required").max(255).trim(),
-  salaryMin: z.number().positive("Salary must be positive").optional(),
-  salaryMax: z.number().positive("Salary must be positive").optional(),
+  city: z.string().min(1, "City is required").max(255).trim(),
+  state: z.string().max(50).trim().optional(),
+  country: z.string().max(100).trim().optional().default("United States"),
+  zipcode: z.coerce.number().positive("Zip Code must be positive").optional(),
   employerId: z.number().int().positive("Employer ID is required"),
-}).refine(
-  (data) =>
-    !data.salaryMax || !data.salaryMin || data.salaryMax >= data.salaryMin,
-  {
-    message: "Maximum salary must be greater than or equal to minimum salary",
-    path: ["salaryMax"],
-  },
-);
+})
+  .refine((data) => data.country === "United States" && !data.state, {
+    message: "State is required for United States",
+    path: ["state"],
+  })
+  .refine((data) => data.country === "United States" && !data.zipcode, {
+    message: "Zip Code is required for United States",
+  });
 
 export const insertJobApplicationSchema = createInsertSchema(jobApplications, {
   jobId: z.number().int().positive("Job ID is required"),
@@ -48,12 +49,18 @@ export const insertJobInsightsSchema = createInsertSchema(jobInsights, {
 export const selectJobSchema = createSelectSchema(jobsDetails);
 export const selectJobInsightsSchema = createSelectSchema(jobInsights);
 export const selectJobApplicationSchema = createSelectSchema(jobApplications);
+export const selectJobSkillsSchema = createSelectSchema(skills);
 
-export const updateJobInputSchema = insertJobSchema.partial().omit({
-  id: true,
-  createdAt: true,
-  employerId: true,
-});
+export const updateJobInputSchema = insertJobSchema
+  .partial()
+  .omit({
+    id: true,
+    createdAt: true,
+    employerId: true,
+  })
+  .extend({
+    skills: z.array(z.string()).optional(),
+  });
 
 export const updateJobApplicationSchema = insertJobApplicationSchema
   .partial()
@@ -76,24 +83,8 @@ const createJobPayloadSchema = insertJobSchema
   .omit({ applicationDeadline: true })
   .extend({
     applicationDeadline: z.iso.datetime(),
-  })
-  .refine(
-    (data) =>
-      !data.salaryMax || !data.salaryMin || data.salaryMax >= data.salaryMin,
-    {
-      message: "Maximum salary must be greater than or equal to minimum salary",
-      path: ["salaryMax"],
-    },
-  )
-  .refine(
-    (data) =>
-      data.compensationType !== "paid" ||
-      (data.salaryMin && data.salaryMin > 0),
-    {
-      message: "Paid positions must specify minimum salary",
-      path: ["salaryMin"],
-    },
-  );
+    skills: z.array(z.string()),
+  });
 
 const jobIdParamSchema = z.object({
   jobId: z.string().regex(/^\d+$/, "jobId must be a valid number"),
@@ -125,6 +116,7 @@ export const deleteJobSchema = z.object({
 
 // Type exports
 export type Job = z.infer<typeof selectJobSchema>;
+export type JobSkills = z.infer<typeof selectJobSkillsSchema>;
 export type JobInsight = z.infer<typeof selectJobInsightsSchema>;
 export type NewJob = z.infer<typeof insertJobSchema>;
 export type UpdateJob = z.infer<typeof updateJobInputSchema>;
@@ -136,6 +128,10 @@ export type JobWithEmployer = {
   job: Job;
   employer: Pick<Organization, "id" | "name" | "city" | "state"> | null;
 }[];
+export type JobWithSkills = Job & {
+  skills: JobSkills["name"][];
+  employer: { name: string };
+};
 export type CreateJobSchema = z.infer<typeof createJobSchema>;
 export type GetJobSchema = z.infer<typeof getJobSchema>;
 export type UpdateJobSchema = z.infer<typeof updateJobSchema>;

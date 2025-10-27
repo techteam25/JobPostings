@@ -7,12 +7,6 @@ import {
   check,
   int,
 } from "drizzle-orm/mysql-core";
-import {
-  createInsertSchema,
-  createSelectSchema,
-  createUpdateSchema,
-} from "drizzle-zod";
-import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
 import { userProfile } from "./users";
 

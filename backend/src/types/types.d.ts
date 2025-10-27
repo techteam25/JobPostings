@@ -6,6 +6,7 @@ declare global {
     export interface Request {
       userId?: number;
       sessionId?: number;
+      organizationId?: number;
       user?: User;
       log: Logger;
     }

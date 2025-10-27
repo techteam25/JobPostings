@@ -79,6 +79,12 @@ const envSchema = z.object({
   FIREBASE_MEASUREMENT_ID: z
     .string()
     .min(1, "Firebase Measurement Id is required"),
+
+  // Typesense Configuration
+  TYPESENSE_API_KEY: z.string().min(1, "Typesense API Key is required"),
+  TYPESENSE_HOST: z.string().min(1, "Typesense Host is required"),
+  TYPESENSE_PORT: z.coerce.number("Typesense Port must be a number"),
+  TYPESENSE_PROTOCOL: z.enum(["http", "https"]).default("http"),
 });
 
 // Type inference from the schema
@@ -151,6 +157,13 @@ function validateEnv(): Env {
             process.env.FIREBASE_MESSAGING_SENDER_ID || "",
           FIREBASE_APP_ID: process.env.FIREBASE_APP_ID || "",
           FIREBASE_MEASUREMENT_ID: process.env.FIREBASE_MEASUREMENT_ID || "",
+
+          // Typesense Configuration
+          TYPESENSE_API_KEY: process.env.TYPESENSE_API_KEY || "",
+          TYPESENSE_HOST: process.env.TYPESENSE_HOST || "",
+          TYPESENSE_PORT: parseInt(process.env.TYPESENSE_PORT || "8108"),
+          TYPESENSE_PROTOCOL:
+            (process.env.TYPESENSE_PROTOCOL as "http" | "https") || "http",
         };
       }
 

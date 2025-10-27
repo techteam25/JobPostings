@@ -13,6 +13,7 @@ import {
   CreateJobSchema,
   DeleteJobSchema,
   GetJobSchema,
+  type JobWithSkills,
   UpdateJobSchema,
 } from "@/validations/job.validation";
 import { GetOrganizationSchema } from "@/validations/organization.validation";
@@ -24,6 +25,7 @@ import {
   UpdateJobApplication,
 } from "@/validations/job.validation";
 import { ApiResponse, PaginatedResponse } from "@/types";
+import { buildPaginationMeta } from "@/utils/build-search-pagination";
 
 export class JobController extends BaseController {
   private jobService: JobService;
@@ -71,12 +73,16 @@ export class JobController extends BaseController {
     try {
       const {
         page,
-        limit,
+        limit = 10,
         q,
         jobType,
         sortBy,
-        location,
-        isRemote,
+        city,
+        state,
+        country,
+        zipcode,
+        experience,
+        includeRemote,
         order,
         status,
       } = req.query;
@@ -87,15 +93,22 @@ export class JobController extends BaseController {
         q,
         jobType,
         sortBy,
-        location,
-        isRemote,
+        city,
+        state,
+        country,
+        zipcode,
+        experience,
+        includeRemote,
         order,
         status,
       });
+
+      const pagination = buildPaginationMeta(result, limit);
+
       this.sendPaginatedResponse(
         res,
-        result.items,
-        result.pagination,
+        result.hits?.map((h) => h.document) ?? [],
+        pagination,
         "Jobs retrieved successfully",
       );
     } catch (error) {
@@ -191,15 +204,22 @@ export class JobController extends BaseController {
 
   createJob = async (
     req: Request<{}, {}, CreateJobSchema["body"]>,
-    res: Response<ApiResponse<Job>>,
+    res: Response<ApiResponse<JobWithSkills>>,
   ) => {
     try {
+      if (!req.organizationId) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "You must be associated with an organization to create a job",
+          status: "error",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
       const jobData = {
         ...req.body,
-        employerId: req.userId!, // Todo: get employerId from user's organization
-        applicationDeadline: req.body.applicationDeadline
-          ? new Date(req.body.applicationDeadline)
-          : null,
+        employerId: req.organizationId,
       };
 
       const job = await this.jobService.createJob(jobData);

@@ -212,13 +212,13 @@ export class JobMatchingService extends BaseService {
       matchReasons.push("Remote work available");
     } else if (
       user.profile?.city &&
-      job.location.toLowerCase().includes(user.profile.city.toLowerCase())
+      job.city.toLowerCase().includes(user.profile.city.toLowerCase())
     ) {
       score += 20;
       matchReasons.push("Location match");
     } else if (
       user.profile?.state &&
-      job.location.toLowerCase().includes(user.profile.state.toLowerCase())
+      job.city.toLowerCase().includes(user.profile.state.toLowerCase())
     ) {
       score += 10;
       matchReasons.push("State match");
@@ -263,12 +263,6 @@ export class JobMatchingService extends BaseService {
       matchReasons.push("Full-time position");
     }
 
-    // Compensation match (10 points)
-    if (job.compensationType === "paid" && job.salaryMin) {
-      score += 10;
-      matchReasons.push("Paid position");
-    }
-
     return {
       score: Math.min(score, maxScore),
       matchReasons: matchReasons.slice(0, 5), // Limit to top 5 reasons
@@ -308,9 +302,9 @@ export class JobMatchingService extends BaseService {
     }
 
     // Location similarity (10 points)
-    if (job1.location === job2.location) {
+    if (job1.city === job2.city) {
       similarity += 10;
-    } else if (this.isSimilarLocation(job1.location, job2.location)) {
+    } else if (this.isSimilarLocation(job1.city, job2.city)) {
       similarity += 5;
     }
 
