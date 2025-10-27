@@ -10,6 +10,8 @@ services:
       - MYSQL_DATABASE=jobpostings
       - MYSQL_USER=${DB_USER}
       - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - ./mysql-data:/var/lib/mysql
   redis:
     image: redis:8.2-alpine
     container_name: redis-container
@@ -31,3 +33,4 @@ services:
 
 volumes:
   typesense-data:
+  mysql-data:
