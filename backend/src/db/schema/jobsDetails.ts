@@ -110,6 +110,32 @@ export const jobApplications = mysqlTable(
   ],
 );
 
+export const applicationNotes = mysqlTable(
+  "application_notes",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    applicationId: int("application_id").notNull(),
+    userId: int("user_id").notNull(),
+    note: text("note").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("application_idx").on(table.applicationId),
+    index("user_idx").on(table.userId),
+    foreignKey({
+      columns: [table.applicationId],
+      foreignColumns: [jobApplications.id],
+      name: "fk_note_application",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: "fk_note_user",
+    }).onDelete("cascade"),
+  ],
+);
+
 // Job Statistics table
 export const jobInsights = mysqlTable(
   "job_insights",

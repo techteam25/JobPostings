@@ -43,6 +43,13 @@
       "when": 1761531534048,
       "tag": "0005_spicy_jackal",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1761594388118,
+      "tag": "0006_round_trauma",
+      "breakpoints": true
     }
   ]
 }
