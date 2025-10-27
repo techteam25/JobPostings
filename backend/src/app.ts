@@ -22,6 +22,13 @@ import { env } from "@/config/env";
 import { errorHandler } from "@/middleware/error.middleware";
 import { redisClient } from "@/config/redis";
 import { registry } from "@/swagger/registry";
+import { initializeTypesenseSchema } from "@/config/typesense-client";
+
+initializeTypesenseSchema().catch((error) => {
+  logger.error("Failed to initialize Typesense schema:");
+  logger.error(error);
+  process.exit(1);
+});
 
 // Create Express application
 const app: Application = express();
