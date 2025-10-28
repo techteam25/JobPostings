@@ -1,10 +1,14 @@
-import { OrganizationRepository } from "@/repositories/organization.repository";
 import { BaseService } from "./base.service";
+import { OrganizationRepository } from "@/repositories/organization.repository";
+
+import { statusRegressionGuard } from "@/utils/update-status-guard";
+
 import {
   CreateJobApplicationNoteInputSchema,
   NewOrganization,
   OrganizationJobApplicationsResponse,
 } from "@/validations/organization.validation";
+
 import { ConflictError, NotFoundError } from "@/utils/errors";
 
 export class OrganizationService extends BaseService {
@@ -152,38 +156,19 @@ export class OrganizationService extends BaseService {
       | "withdrawn",
   ) {
     try {
-      const updateStatusProgressionMap = {
-        pending: ["reviewed", "withdrawn"],
-        reviewed: ["shortlisted", "rejected", "withdrawn"],
-        shortlisted: ["interviewing", "rejected", "withdrawn"],
-        interviewing: ["hired", "rejected", "withdrawn"],
-        rejected: [] as string[],
-        hired: [] as string[],
-        withdrawn: [] as string[],
-      };
-
       const application = await this.getJobApplicationForOrganization(
         organizationId,
         jobId,
         applicationId,
       );
 
-      const allowedNextStatuses =
-        updateStatusProgressionMap[application.status];
-
-      if (!allowedNextStatuses.includes(status)) {
-        return this.handleError(
-          new ConflictError(
-            `Invalid status transition from ${application.status} to ${status}`,
-          ),
-        );
-      }
+      const updateStatus = statusRegressionGuard(application.status, status);
 
       return this.organizationRepository.updateJobApplicationStatus(
         organizationId,
         jobId,
         applicationId,
-        status,
+        updateStatus,
       );
     } catch (error) {
       this.handleError(error);
