@@ -24,6 +24,18 @@ const organizationIdParamSchema = z.object({
   organizationId: z.string().regex(/^\d+$/, "organizationId is required"),
 });
 
+const updateJobStatusInput = z.object({
+  status: z.enum([
+    "pending",
+    "reviewed",
+    "shortlisted",
+    "interviewing",
+    "rejected",
+    "hired",
+    "withdrawn",
+  ]),
+});
+
 export const createOrganizationSchema = z.object({
   body: insertOrganizationSchema,
   params: z.object({}).strict(),
@@ -33,6 +45,12 @@ export const createOrganizationSchema = z.object({
 export const updateOrganizationSchema = z.object({
   body: updateOrganizationInputSchema,
   params: organizationIdParamSchema,
+  query: z.object({}).strict(),
+});
+
+export const updateJobStatusInputSchema = z.object({
+  body: updateJobStatusInput,
+  params: z.object({}).strict(),
   query: z.object({}).strict(),
 });
 
@@ -112,4 +130,7 @@ export type JobApplicationManagementSchema = z.infer<
 >;
 export type OrganizationJobApplicationsResponse = z.infer<
   typeof organizationJobApplicationsResponseSchema
+>;
+export type UpdateJobStatusInputSchema = z.infer<
+  typeof updateJobStatusInputSchema
 >;
