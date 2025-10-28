@@ -77,7 +77,9 @@ export class AuthMiddleware {
       try {
         if (!req.userId) {
           return res.status(401).json({
+            success: false,
             status: "error",
+            error: "UNAUTHORIZED",
             message: "Authentication required",
           });
         }
@@ -89,7 +91,9 @@ export class AuthMiddleware {
 
         if (!isPermitted) {
           return res.status(403).json({
+            success: false,
             status: "error",
+            error: "FORBIDDEN",
             message: "Insufficient permissions",
           });
         }
@@ -99,7 +103,9 @@ export class AuthMiddleware {
 
         if (!organizationMember) {
           return res.status(403).json({
+            success: false,
             status: "error",
+            error: "FORBIDDEN",
             message: "Insufficient permissions",
           });
         }
@@ -109,7 +115,9 @@ export class AuthMiddleware {
         return next();
       } catch (error) {
         return res.status(500).json({
+          success: false,
           status: "error",
+          error: "FORBIDDEN",
           message: "Error checking user permissions",
         });
       }
@@ -121,7 +129,9 @@ export class AuthMiddleware {
       try {
         if (!req.userId) {
           return res.status(401).json({
+            success: false,
             status: "error",
+            error: "UNAUTHORIZED",
             message: "Authentication required",
           });
         }
@@ -131,8 +141,10 @@ export class AuthMiddleware {
         );
 
         if (!["owner", "admin"].some((role) => roles.includes(role))) {
-          return res.status(500).json({
+          return res.status(400).json({
+            success: false,
             status: "error",
+            error: "BAD_REQUEST",
             message:
               "Invalid roles configuration. This middleware should only include 'owner' or 'admin'",
           });
@@ -141,7 +153,9 @@ export class AuthMiddleware {
         if (!user) {
           // User may be authenticated but not an organization member
           return res.status(403).json({
+            success: false,
             status: "error",
+            error: "FORBIDDEN",
             message: "Insufficient permissions",
           });
         }
@@ -149,7 +163,9 @@ export class AuthMiddleware {
         if (!roles.includes(user.role)) {
           // Check if user's role is in the permitted roles
           return res.status(403).json({
+            success: false,
             status: "error",
+            error: "FORBIDDEN",
             message: "Insufficient permissions",
           });
         }
@@ -162,16 +178,20 @@ export class AuthMiddleware {
 
         if (!isPermitted) {
           return res.status(403).json({
+            success: false,
             status: "error",
+            error: "FORBIDDEN",
             message: "Insufficient permissions",
           });
         }
 
         return next();
       } catch (error) {
-        return res.status(500).json({
+        return res.status(403).json({
+          success: false,
           status: "error",
-          message: "Error checking user permissions",
+          error: "FORBIDDEN",
+          message: "Insufficient permissions",
         });
       }
     };
@@ -183,7 +203,9 @@ export class AuthMiddleware {
       try {
         if (!req.userId) {
           return res.status(401).json({
+            success: false,
             status: "error",
+            error: "UNAUTHORIZED",
             message: "Authentication required",
           });
         }
@@ -211,7 +233,9 @@ export class AuthMiddleware {
         if (!userCanSeekJobs) {
           //
           return res.status(403).json({
+            success: false,
             status: "error",
+            error: "FORBIDDEN",
             message: "Insufficient permissions",
           });
         }
@@ -219,7 +243,9 @@ export class AuthMiddleware {
         return next();
       } catch (error) {
         return res.status(500).json({
+          success: false,
           status: "error",
+          error: "INTERNAL_SERVER_ERROR",
           message: "Error checking user permissions",
         });
       }
@@ -232,9 +258,11 @@ export class AuthMiddleware {
     next: NextFunction,
   ) => {
     if (!req.user || req.user.status !== "active") {
-      return res.status(403).json({
+      return res.status(401).json({
+        success: false,
         status: "error",
-        message: "User account is not active",
+        error: "UNAUTHORIZED",
+        message: "Authentication required",
       });
     }
     return next();
@@ -248,7 +276,9 @@ export class AuthMiddleware {
     try {
       if (!req.userId || !req.params.organizationId) {
         return res.status(401).json({
+          success: false,
           status: "error",
+          error: "UNAUTHORIZED",
           message: "Authentication required",
         });
       }
@@ -261,7 +291,9 @@ export class AuthMiddleware {
         organizationMember.organizationId !== Number(req.params.organizationId)
       ) {
         return res.status(403).json({
+          success: false,
           status: "error",
+          error: "FORBIDDEN",
           message: "Insufficient permissions",
         });
       }
@@ -269,8 +301,10 @@ export class AuthMiddleware {
       return next();
     } catch (error) {
       return res.status(500).json({
+        success: false,
         status: "error",
-        message: "Error checking organization membership",
+        error: "INTERNAL_SERVER_ERROR",
+        message: "Error checking user permissions",
       });
     }
   };
