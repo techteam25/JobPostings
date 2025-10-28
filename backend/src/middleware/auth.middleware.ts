@@ -7,6 +7,7 @@ import { UserService } from "@/services/user.service";
 import logger from "@/logger";
 import { auth } from "@/utils/auth";
 import { OrganizationService } from "@/services/organization.service";
+import { GetOrganizationSchema } from "@/validations/organization.validation";
 
 export class AuthMiddleware {
   private readonly organizationService: OrganizationService;
@@ -237,5 +238,40 @@ export class AuthMiddleware {
       });
     }
     return next();
+  };
+
+  ensureIsOrganizationMember = async (
+    req: Request<GetOrganizationSchema["params"]>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      if (!req.userId || !req.params.organizationId) {
+        return res.status(401).json({
+          status: "error",
+          message: "Authentication required",
+        });
+      }
+
+      const organizationMember =
+        await this.organizationService.getOrganizationMember(req.userId);
+
+      if (
+        !organizationMember ||
+        organizationMember.organizationId !== Number(req.params.organizationId)
+      ) {
+        return res.status(403).json({
+          status: "error",
+          message: "Insufficient permissions",
+        });
+      }
+
+      return next();
+    } catch (error) {
+      return res.status(500).json({
+        status: "error",
+        message: "Error checking organization membership",
+      });
+    }
   };
 }
