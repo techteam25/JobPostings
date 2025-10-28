@@ -208,13 +208,28 @@ export const jobsRelations = relations(jobsDetails, ({ one, many }) => ({
 
 export const jobApplicationsRelations = relations(
   jobApplications,
-  ({ one }) => ({
+  ({ one, many }) => ({
     job: one(jobsDetails, {
       fields: [jobApplications.jobId],
       references: [jobsDetails.id],
     }),
     applicant: one(user, {
       fields: [jobApplications.applicantId],
+      references: [user.id],
+    }),
+    notes: many(applicationNotes),
+  }),
+);
+
+export const applicationNotesRelations = relations(
+  applicationNotes,
+  ({ one }) => ({
+    application: one(jobApplications, {
+      fields: [applicationNotes.applicationId],
+      references: [jobApplications.id],
+    }),
+    user: one(user, {
+      fields: [applicationNotes.userId],
       references: [user.id],
     }),
   }),
