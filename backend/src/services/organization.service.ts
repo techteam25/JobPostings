@@ -136,4 +136,29 @@ export class OrganizationService extends BaseService {
       this.handleError(error);
     }
   }
+
+  async updateJobApplicationStatus(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+    status:
+      | "pending"
+      | "reviewed"
+      | "shortlisted"
+      | "interviewing"
+      | "rejected"
+      | "hired"
+      | "withdrawn",
+  ) {
+    try {
+      return this.organizationRepository.updateJobApplicationStatus(
+        organizationId,
+        jobId,
+        applicationId,
+        status,
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
 }
