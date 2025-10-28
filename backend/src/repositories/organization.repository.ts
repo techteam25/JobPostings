@@ -1,10 +1,9 @@
-import { and, count, eq, like, or, inArray, sql } from "drizzle-orm";
+import { and, count, eq, like, or, inArray } from "drizzle-orm";
 import {
   jobApplications,
   jobsDetails,
   organizationMembers,
   organizations,
-  user,
 } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
@@ -229,45 +228,135 @@ export class OrganizationRepository extends BaseRepository<
     }
   }
 
+  private async getJobApplicationWithDetails(
+    dbOrTx: typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0],
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+  ) {
+    const [application] = await dbOrTx
+      .select({
+        id: jobApplications.id,
+        jobId: jobApplications.jobId,
+        resumeUrl: jobApplications.resumeUrl,
+        coverLetter: jobApplications.coverLetter,
+        status: jobApplications.status,
+        appliedAt: jobApplications.createdAt,
+        jobTitle: jobsDetails.title,
+        description: jobsDetails.description,
+        city: jobsDetails.city,
+        state: jobsDetails.state,
+        country: jobsDetails.country,
+        zipcode: jobsDetails.zipcode,
+        jobType: jobsDetails.jobType,
+        compensationType: jobsDetails.compensationType,
+        isRemote: jobsDetails.isRemote,
+        isActive: jobsDetails.isActive,
+        applicationDeadline: jobsDetails.applicationDeadline,
+        experience: jobsDetails.experience,
+        organizationId: organizations.id,
+        organizationName: organizations.name,
+      })
+      .from(jobApplications)
+      .innerJoin(jobsDetails, eq(jobsDetails.id, jobApplications.jobId))
+      .innerJoin(organizations, eq(organizations.id, jobsDetails.employerId))
+      .where(
+        and(
+          eq(jobApplications.id, applicationId),
+          eq(jobApplications.jobId, jobId),
+          eq(organizations.id, organizationId),
+        ),
+      );
+
+    return application;
+  }
+
   async getJobApplicationForOrganization(
     organizationId: number,
     jobId: number,
     applicationId: number,
   ) {
     return await withDbErrorHandling(async () => {
-      const [application] = await db
-        .select({
-          id: jobApplications.id,
-          jobId: jobApplications.jobId,
-          resumeUrl: jobApplications.resumeUrl,
-          coverLetter: jobApplications.coverLetter,
-          status: jobApplications.status,
-          appliedAt: jobApplications.createdAt,
-          jobTitle: jobsDetails.title,
-          description: jobsDetails.description,
-          city: jobsDetails.city,
-          state: jobsDetails.state,
-          country: jobsDetails.country,
-          zipcode: jobsDetails.zipcode,
-          jobType: jobsDetails.jobType,
-          compensationType: jobsDetails.compensationType,
-          isRemote: jobsDetails.isRemote,
-          isActive: jobsDetails.isActive,
-          applicationDeadline: jobsDetails.applicationDeadline,
-          experience: jobsDetails.experience,
-          organizationId: organizations.id,
-          organizationName: organizations.name,
-        })
-        .from(jobApplications)
-        .innerJoin(jobsDetails, eq(jobsDetails.id, jobId))
-        .innerJoin(organizations, eq(organizations.id, organizationId))
-        .where(eq(jobApplications.id, applicationId));
+      const application = await this.getJobApplicationWithDetails(
+        db,
+        organizationId,
+        jobId,
+        applicationId,
+      );
 
       if (!application) {
         throw new DatabaseError("Job application not found for organization");
       }
 
       return application;
+    });
+  }
+
+  updateJobApplicationStatus(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+    status:
+      | "pending"
+      | "reviewed"
+      | "shortlisted"
+      | "interviewing"
+      | "rejected"
+      | "hired"
+      | "withdrawn",
+  ) {
+    return withDbErrorHandling(async () => {
+      return await db.transaction(async (tx) => {
+        // Verify application exists for the organization
+        const application = await tx
+          .select({
+            id: jobApplications.id,
+          })
+          .from(jobApplications)
+          .innerJoin(jobsDetails, eq(jobsDetails.id, jobApplications.jobId))
+          .innerJoin(
+            organizations,
+            eq(organizations.id, jobsDetails.employerId),
+          )
+          .where(
+            and(
+              eq(jobApplications.id, applicationId),
+              eq(jobApplications.jobId, jobId),
+              eq(organizations.id, organizationId),
+            ),
+          )
+          .limit(1);
+
+        if (application.length === 0) {
+          throw new DatabaseError(
+            "No job application found for the given organization",
+          );
+        }
+
+        // Update the status
+        const [result] = await tx
+          .update(jobApplications)
+          .set({ status })
+          .where(eq(jobApplications.id, applicationId));
+
+        if (result.affectedRows === 0) {
+          throw new DatabaseError("Failed to update job application status");
+        }
+
+        // Fetch updated application with details
+        const updatedApp = await this.getJobApplicationWithDetails(
+          tx,
+          organizationId,
+          jobId,
+          applicationId,
+        );
+
+        if (!updatedApp) {
+          throw new DatabaseError("Job application not found for organization");
+        }
+
+        return updatedApp;
+      });
     });
   }
 }
