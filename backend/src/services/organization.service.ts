@@ -207,4 +207,18 @@ export class OrganizationService extends BaseService {
       this.handleError(error);
     }
   }
+
+  async getJobApplicationsForOrganization(
+    organizationId: number,
+    jobId: number,
+  ) {
+    try {
+      return this.organizationRepository.getJobApplicationsForOrganization(
+        organizationId,
+        jobId,
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
 }
