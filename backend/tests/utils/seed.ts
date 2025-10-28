@@ -163,11 +163,7 @@ export const seedJobs = async () => {
         },
       });
 
-      t.update(organizationMembers)
-        .set({ role: "owner" as const })
-        .where(eq(user.id, Number(createdUser.user.id)));
-
-      await t
+      const org = await t
         .insert(organizations)
         .values(
           Array.from({ length: 5 }).map(() => ({
@@ -176,12 +172,25 @@ export const seedJobs = async () => {
             city: faker.location.city(),
             state: faker.location.state(),
             zipCode: faker.location.zipCode("#####"),
-            phone: faker.phone.number({ style: "international" }),
+            phone: faker.phone.number({ style: "national" }),
             url: faker.internet.url(),
             mission: faker.lorem.sentence(),
           })),
         )
         .$returningId();
+
+      if (!org || org.length === 0) {
+        throw new Error("Failed to create organization for job owner");
+      }
+
+      await t.insert(organizationMembers).values(
+        Array.from({ length: org.length }).map((_, idx) => ({
+          userId: Number(createdUser.user.id),
+          organizationId: org[idx]!.id,
+          role: "owner" as const,
+          isActive: true,
+        })),
+      );
 
       await t.insert(jobsDetails).values(
         Array.from({ length: 3 }).map(() => ({
@@ -204,7 +213,7 @@ export const seedJobs = async () => {
           isRemote: faker.datatype.boolean(),
           isActive: true,
           applicationDeadline: faker.date.future(),
-          employerId: parseInt(createdUser.user.id), // faker.helpers.arrayElement(orgIds),
+          employerId: 1, // faker.helpers.arrayElement(orgIds),
         })),
       );
     });
