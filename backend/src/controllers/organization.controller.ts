@@ -7,6 +7,8 @@ import {
   DeleteOrganizationSchema,
   GetOrganizationSchema,
   JobApplicationManagementSchema,
+  JobApplicationsManagementSchema,
+  JobApplicationsResponseSchema,
   OrganizationJobApplicationsResponse,
   UpdateJobStatusInputSchema,
   UpdateOrganizationSchema,
@@ -17,6 +19,7 @@ import {
   OrganizationMember,
 } from "@/validations/organization.validation";
 import { JobApplicationWithNotes } from "@/validations/jobApplications.validation";
+import { DatabaseError } from "@/utils/errors";
 
 export class OrganizationController extends BaseController {
   private organizationService: OrganizationService;
@@ -181,7 +184,7 @@ export class OrganizationController extends BaseController {
   };
 
   // Job Application Controller methods
-  getJobApplicationsForOrganization = async (
+  getJobApplicationForOrganization = async (
     req: Request<JobApplicationManagementSchema["params"]>,
     res: Response<ApiResponse<OrganizationJobApplicationsResponse>>,
   ) => {
@@ -204,6 +207,18 @@ export class OrganizationController extends BaseController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
+      if (
+        error instanceof DatabaseError &&
+        error.message === "Job application not found for organization"
+      ) {
+        return res.status(404).json({
+          success: false,
+          status: "error",
+          message: "Job application not found",
+          error: "NOT_FOUND",
+          timestamp: new Date().toISOString(),
+        });
+      }
       return res.status(500).json({
         success: false,
         status: "error",
@@ -275,7 +290,7 @@ export class OrganizationController extends BaseController {
       return res.status(201).json({
         success: true,
         data: result,
-        message: "Job application note created successfully",
+        message: "Note added to job application successfully",
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
@@ -312,11 +327,61 @@ export class OrganizationController extends BaseController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
+      if (error instanceof DatabaseError) {
+        return res.status(404).json({
+          success: false,
+          status: "error",
+          message: error.message,
+          error: "NOT_FOUND",
+          timestamp: new Date().toISOString(),
+        });
+      }
       return res.status(500).json({
         success: false,
         status: "error",
         message: "Failed to retrieve job application notes",
         error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  };
+
+  getJobApplicationsForOrganization = async (
+    req: Request<JobApplicationsManagementSchema["params"]>,
+    res: Response<ApiResponse<JobApplicationsResponseSchema>>,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const jobId = parseInt(req.params.jobId);
+
+    try {
+      const applications =
+        await this.organizationService.getJobApplicationsForOrganization(
+          organizationId,
+          jobId,
+        );
+
+      return res.json({
+        success: true,
+        message: "Job applications retrieved successfully",
+        data: applications,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      if (
+        error instanceof DatabaseError &&
+        error.message === "Organization not found"
+      ) {
+        return res.status(404).json({
+          success: false,
+          status: "error",
+          message: "Organization not found",
+          timestamp: new Date().toISOString(),
+        });
+      }
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        message: "Failed to retrieve job applications",
         timestamp: new Date().toISOString(),
       });
     }
