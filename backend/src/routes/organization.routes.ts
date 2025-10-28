@@ -9,6 +9,7 @@ import {
   deleteOrganizationSchema,
   updateOrganizationSchema,
   organizationJobApplicationsResponseSchema,
+  updateJobStatusInputSchema,
 } from "@/validations/organization.validation";
 import { registry, z } from "@/swagger/registry";
 import { selectOrganizationSchema } from "@/validations/organization.validation";
@@ -362,6 +363,82 @@ router.get(
   validate(getJobSchema),
   validate(getJobApplicationSchema),
   organizationController.getJobApplicationsForOrganization,
+);
+
+registry.registerPath({
+  method: "patch",
+  path: "/organizations/{organizationId}/jobs/{jobId}/applications/{applicationId}/status",
+  summary: "Update job application status for an organization",
+  tags: ["Organizations"],
+  security: [{ cookie: [] }],
+  request: {
+    params: z.object({
+      organizationId:
+        getOrganizationSchema.shape["params"].shape["organizationId"],
+      jobId: getJobSchema.shape["params"].shape["jobId"],
+      applicationId:
+        getJobApplicationSchema.shape["params"].shape["applicationId"],
+    }),
+    body: {
+      content: {
+        "application/json": {
+          schema: updateJobStatusInputSchema.shape["body"],
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: "Job application status updated",
+      content: {
+        "application/json": {
+          schema: organizationJobApplicationsResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Job application not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.patch(
+  "/:organizationId/jobs/:jobId/applications/:applicationId/status",
+  authMiddleware.requireAdminOrOwnerRole(["owner", "admin"]),
+  validate(getOrganizationSchema),
+  validate(getJobSchema),
+  validate(getJobApplicationSchema),
+  validate(updateJobStatusInputSchema),
+  organizationController.updateJobApplicationStatus,
 );
 
 export default router;
