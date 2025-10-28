@@ -1,12 +1,18 @@
 import { z } from "@/swagger/registry";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
-import { organizationMembers, organizations } from "@/db/schema";
+import {
+  applicationNotes,
+  organizationMembers,
+  organizations,
+} from "@/db/schema";
 import { getJobSchema } from "@/validations/job.validation";
 import { getJobApplicationSchema } from "@/validations/jobApplications.validation";
 
 // Zod schemas for validation
 export const selectOrganizationSchema = createSelectSchema(organizations);
+export const insertJobApplicationNoteSchema =
+  createInsertSchema(applicationNotes);
 export const insertOrganizationSchema = createInsertSchema(organizations, {
   name: z.string().min(5, "Name must be at least 5 characters").max(100),
   url: z.url("Invalid organization website URL"),
@@ -36,8 +42,18 @@ const updateJobStatusInput = z.object({
   ]),
 });
 
+const createJobApplicationNoteInput = z.object({
+  note: z.string().min(1, "Note cannot be empty"),
+});
+
 export const createOrganizationSchema = z.object({
   body: insertOrganizationSchema,
+  params: z.object({}).strict(),
+  query: z.object({}).strict(),
+});
+
+export const createJobApplicationNoteSchema = z.object({
+  body: createJobApplicationNoteInput,
   params: z.object({}).strict(),
   query: z.object({}).strict(),
 });
@@ -133,4 +149,10 @@ export type OrganizationJobApplicationsResponse = z.infer<
 >;
 export type UpdateJobStatusInputSchema = z.infer<
   typeof updateJobStatusInputSchema
+>;
+export type CreateJobApplicationNoteInputSchema = z.infer<
+  typeof createJobApplicationNoteSchema
+>;
+export type NewJobApplicationNote = z.infer<
+  typeof insertJobApplicationNoteSchema
 >;
