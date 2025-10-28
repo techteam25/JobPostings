@@ -439,9 +439,7 @@ export class OrganizationRepository extends BaseRepository<
         });
 
         if (!applicationWithNotes) {
-          throw new DatabaseError(
-            "Job application not found for notes retrieval",
-          );
+          throw new DatabaseError("Job application does not have any notes");
         }
 
         return applicationWithNotes.notes.map((n) => ({
@@ -472,5 +470,59 @@ export class OrganizationRepository extends BaseRepository<
         ),
       )
       .limit(1);
+  }
+
+  getJobApplicationsForOrganization(organizationId: number, jobId: number) {
+    return withDbErrorHandling(async () => {
+      return await db.transaction(async (tx) => {
+        // Verify organization exists
+        const org = await tx
+          .select({ id: organizations.id })
+          .from(organizations)
+          .where(eq(organizations.id, organizationId))
+          .limit(1);
+
+        if (org.length === 0) {
+          throw new DatabaseError("Organization not found");
+        }
+
+        // Verify job exists for the organization
+        const job = await tx
+          .select({ id: jobsDetails.id })
+          .from(jobsDetails)
+          .where(
+            and(
+              eq(jobsDetails.id, jobId),
+              eq(jobsDetails.employerId, organizationId),
+            ),
+          )
+          .limit(1);
+
+        if (job.length === 0) {
+          return [];
+        }
+
+        // Fetch applications for the job
+        return tx.query.jobApplications.findMany({
+          where: eq(jobApplications.jobId, jobId),
+          columns: {
+            status: true,
+            coverLetter: true,
+            resumeUrl: true,
+            appliedAt: true,
+            reviewedAt: true,
+          },
+          with: {
+            applicant: {
+              columns: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        });
+      });
+    });
   }
 }
