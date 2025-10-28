@@ -1,5 +1,6 @@
-import { and, count, eq, like, or, inArray } from "drizzle-orm";
+import { and, count, eq, inArray, like, or } from "drizzle-orm";
 import {
+  applicationNotes,
   jobApplications,
   jobsDetails,
   organizationMembers,
@@ -10,7 +11,10 @@ import { db } from "@/db/connection";
 import { calculatePagination } from "@/db/utils";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
 import { DatabaseError } from "@/utils/errors";
-import { NewOrganization } from "@/validations/organization.validation";
+import {
+  NewJobApplicationNote,
+  NewOrganization,
+} from "@/validations/organization.validation";
 
 export class OrganizationRepository extends BaseRepository<
   typeof organizations
@@ -308,24 +312,12 @@ export class OrganizationRepository extends BaseRepository<
     return withDbErrorHandling(async () => {
       return await db.transaction(async (tx) => {
         // Verify application exists for the organization
-        const application = await tx
-          .select({
-            id: jobApplications.id,
-          })
-          .from(jobApplications)
-          .innerJoin(jobsDetails, eq(jobsDetails.id, jobApplications.jobId))
-          .innerJoin(
-            organizations,
-            eq(organizations.id, jobsDetails.employerId),
-          )
-          .where(
-            and(
-              eq(jobApplications.id, applicationId),
-              eq(jobApplications.jobId, jobId),
-              eq(organizations.id, organizationId),
-            ),
-          )
-          .limit(1);
+        const application = await this.fetchJobApplication(
+          tx,
+          applicationId,
+          jobId,
+          organizationId,
+        );
 
         if (application.length === 0) {
           throw new DatabaseError(
@@ -358,5 +350,127 @@ export class OrganizationRepository extends BaseRepository<
         return updatedApp;
       });
     });
+  }
+
+  createJobApplicationNote(data: NewJobApplicationNote) {
+    return withDbErrorHandling(
+      async () =>
+        await db.transaction(async (tx) => {
+          const [noteId] = await tx
+            .insert(applicationNotes)
+            .values({
+              applicationId: data.applicationId,
+              userId: data.userId,
+              note: data.note,
+            })
+            .$returningId();
+
+          if (!noteId) {
+            throw new DatabaseError("Failed to create job application note");
+          }
+
+          const applicationWithNotes = await tx.query.jobApplications.findFirst(
+            {
+              where: eq(jobApplications.id, data.applicationId),
+              columns: {
+                notes: false,
+              },
+              with: {
+                notes: {
+                  columns: {
+                    note: true,
+                    createdAt: true,
+                  },
+                },
+              },
+            },
+          );
+
+          if (!applicationWithNotes) {
+            throw new DatabaseError(
+              "Job application not found for notes retrieval",
+            );
+          }
+
+          return {
+            ...applicationWithNotes,
+            notes: applicationWithNotes.notes.map((n) => ({
+              note: n.note,
+              createdAt: n.createdAt,
+            })),
+          };
+        }),
+    );
+  }
+
+  getNotesForJobApplication(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+  ) {
+    return withDbErrorHandling(async () => {
+      return await db.transaction(async (tx) => {
+        // Verify application exists for the organization
+        const application = await this.fetchJobApplication(
+          tx,
+          applicationId,
+          jobId,
+          organizationId,
+        );
+
+        if (application.length === 0) {
+          throw new DatabaseError(
+            "No job application found for the given organization",
+          );
+        }
+
+        // Fetch notes for the application
+        const applicationWithNotes = await tx.query.jobApplications.findFirst({
+          where: eq(jobApplications.id, applicationId),
+          columns: {},
+          with: {
+            notes: {
+              columns: {
+                note: true,
+                createdAt: true,
+              },
+            },
+          },
+        });
+
+        if (!applicationWithNotes) {
+          throw new DatabaseError(
+            "Job application not found for notes retrieval",
+          );
+        }
+
+        return applicationWithNotes.notes.map((n) => ({
+          note: n.note,
+          createdAt: n.createdAt,
+        }));
+      });
+    });
+  }
+  private async fetchJobApplication(
+    tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+    applicationId: number,
+    jobId: number,
+    organizationId: number,
+  ) {
+    return await tx
+      .select({
+        id: jobApplications.id,
+      })
+      .from(jobApplications)
+      .innerJoin(jobsDetails, eq(jobsDetails.id, jobApplications.jobId))
+      .innerJoin(organizations, eq(organizations.id, jobsDetails.employerId))
+      .where(
+        and(
+          eq(jobApplications.id, applicationId),
+          eq(jobApplications.jobId, jobId),
+          eq(organizations.id, organizationId),
+        ),
+      )
+      .limit(1);
   }
 }
