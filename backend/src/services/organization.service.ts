@@ -1,6 +1,7 @@
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { BaseService } from "./base.service";
 import {
+  CreateJobApplicationNoteInputSchema,
   NewOrganization,
   OrganizationJobApplicationsResponse,
 } from "@/validations/organization.validation";
@@ -151,11 +152,71 @@ export class OrganizationService extends BaseService {
       | "withdrawn",
   ) {
     try {
+      const updateStatusProgressionMap = {
+        pending: ["reviewed", "withdrawn"],
+        reviewed: ["shortlisted", "rejected", "withdrawn"],
+        shortlisted: ["interviewing", "rejected", "withdrawn"],
+        interviewing: ["hired", "rejected", "withdrawn"],
+        rejected: [] as string[],
+        hired: [] as string[],
+        withdrawn: [] as string[],
+      };
+
+      const application = await this.getJobApplicationForOrganization(
+        organizationId,
+        jobId,
+        applicationId,
+      );
+
+      const allowedNextStatuses =
+        updateStatusProgressionMap[application.status];
+
+      if (!allowedNextStatuses.includes(status)) {
+        return this.handleError(
+          new ConflictError(
+            `Invalid status transition from ${application.status} to ${status}`,
+          ),
+        );
+      }
+
       return this.organizationRepository.updateJobApplicationStatus(
         organizationId,
         jobId,
         applicationId,
         status,
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  async createJobApplicationNote(
+    applicationId: number,
+    userId: number,
+    body: CreateJobApplicationNoteInputSchema["body"],
+  ) {
+    try {
+      const { note } = body;
+      return this.organizationRepository.createJobApplicationNote({
+        applicationId,
+        userId,
+        note,
+      });
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  async getNotesForJobApplication(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+  ) {
+    try {
+      return this.organizationRepository.getNotesForJobApplication(
+        organizationId,
+        jobId,
+        applicationId,
       );
     } catch (error) {
       this.handleError(error);
