@@ -52,21 +52,9 @@ export const createOrganizationSchema = z.object({
   query: z.object({}).strict(),
 });
 
-export const createJobApplicationNoteSchema = z.object({
-  body: createJobApplicationNoteInput,
-  params: z.object({}).strict(),
-  query: z.object({}).strict(),
-});
-
 export const updateOrganizationSchema = z.object({
   body: updateOrganizationInputSchema,
   params: organizationIdParamSchema,
-  query: z.object({}).strict(),
-});
-
-export const updateJobStatusInputSchema = z.object({
-  body: updateJobStatusInput,
-  params: z.object({}).strict(),
   query: z.object({}).strict(),
 });
 
@@ -74,6 +62,46 @@ export const getOrganizationSchema = z.object({
   body: z.object({}).strict(),
   query: z.object({}).strict(),
   params: organizationIdParamSchema,
+});
+
+export const updateJobStatusInputSchema = z.object({
+  body: updateJobStatusInput,
+  params: z
+    .object({
+      organizationId:
+        getOrganizationSchema.shape["params"].shape["organizationId"],
+      jobId: getJobSchema.shape["params"].shape["jobId"],
+      applicationId:
+        getJobApplicationSchema.shape["params"].shape["applicationId"],
+    })
+    .strict(),
+  query: z.object({}).strict(),
+});
+
+export const createJobApplicationNoteSchema = z.object({
+  body: createJobApplicationNoteInput,
+  params: z
+    .object({
+      organizationId:
+        getOrganizationSchema.shape["params"].shape["organizationId"],
+      jobId: getJobSchema.shape["params"].shape["jobId"],
+      applicationId:
+        getJobApplicationSchema.shape["params"].shape["applicationId"],
+    })
+    .strict(),
+  query: z.object({}).strict(),
+});
+
+export const jobApplicationsManagementSchema = z.object({
+  body: z.object({}).strict(),
+  params: z
+    .object({
+      organizationId:
+        getOrganizationSchema.shape["params"].shape["organizationId"],
+      jobId: getJobSchema.shape["params"].shape["jobId"],
+    })
+    .strict(),
+  query: z.object({}).strict(),
 });
 
 export const jobApplicationManagementSchema = z.object({
@@ -89,6 +117,28 @@ export const jobApplicationManagementSchema = z.object({
     .strict(),
   query: z.object({}).strict(),
 });
+
+export const jobApplicationsResponseSchema = z
+  .object({
+    resumeUrl: z.string().nullable(),
+    coverLetter: z.string().nullable(),
+    status: z.enum([
+      "pending",
+      "reviewed",
+      "shortlisted",
+      "interviewing",
+      "rejected",
+      "hired",
+      "withdrawn",
+    ]),
+    appliedAt: z.date(),
+    reviewedAt: z.date().nullable(),
+    applicant: z.object({
+      fullName: z.string(),
+      email: z.email(),
+    }),
+  })
+  .array();
 
 export const organizationJobApplicationsResponseSchema = z.object({
   id: z.number(),
@@ -144,8 +194,14 @@ export type DeleteOrganizationSchema = z.infer<typeof deleteOrganizationSchema>;
 export type JobApplicationManagementSchema = z.infer<
   typeof jobApplicationManagementSchema
 >;
+export type JobApplicationsManagementSchema = z.infer<
+  typeof jobApplicationsManagementSchema
+>;
 export type OrganizationJobApplicationsResponse = z.infer<
   typeof organizationJobApplicationsResponseSchema
+>;
+export type JobApplicationsResponseSchema = z.infer<
+  typeof jobApplicationsResponseSchema
 >;
 export type UpdateJobStatusInputSchema = z.infer<
   typeof updateJobStatusInputSchema
