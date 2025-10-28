@@ -7,6 +7,7 @@ import {
   GetOrganizationSchema,
   JobApplicationManagementSchema,
   OrganizationJobApplicationsResponse,
+  UpdateJobStatusInputSchema,
   UpdateOrganizationSchema,
 } from "@/validations/organization.validation";
 import { ApiResponse, PaginatedResponse } from "@/types";
@@ -205,6 +206,44 @@ export class OrganizationController extends BaseController {
         success: false,
         status: "error",
         message: "Failed to retrieve job application",
+        error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  };
+
+  updateJobApplicationStatus = async (
+    req: Request<
+      JobApplicationManagementSchema["params"],
+      {},
+      UpdateJobStatusInputSchema["body"]
+    >,
+    res: Response<ApiResponse<OrganizationJobApplicationsResponse>>,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const applicationId = parseInt(req.params.applicationId);
+    const jobId = parseInt(req.params.jobId);
+
+    try {
+      const application =
+        await this.organizationService.updateJobApplicationStatus(
+          organizationId,
+          jobId,
+          applicationId,
+          req.body.status,
+        );
+
+      return res.json({
+        success: true,
+        message: "Job application status updated successfully",
+        data: application,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        message: "Failed to update job application status",
         error: (error as Error).message,
         timestamp: new Date().toISOString(),
       });
