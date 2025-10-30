@@ -14,7 +14,7 @@ import {
   updateJobSchema,
   applyForJobSchema,
 } from "@/validations/job.validation";
-import { searchParams } from "@/validations/base.validation";
+import { searchJobResult, searchParams } from "@/validations/base.validation";
 import { updateApplicationStatusSchema } from "@/validations/jobApplications.validation";
 import { selectOrganizationSchema } from "@/validations/organization.validation";
 
@@ -23,6 +23,7 @@ import { registry, z } from "@/swagger/registry";
 import {
   apiResponseSchema,
   errorResponseSchema,
+  paginatedResponseSchema,
   paginationMetaSchema,
 } from "@/types";
 
@@ -84,6 +85,44 @@ registry.registerPath({
   },
 });
 router.get("/", validate(searchParams), jobController.getAllJobs);
+
+registry.registerPath({
+  method: "get",
+  path: "/api/jobs/search",
+  summary: "Search job postings",
+  tags: ["Jobs"],
+  request: {
+    query: searchParams.shape["query"],
+  },
+  responses: {
+    200: {
+      description: "Search results",
+      content: {
+        "application/json": {
+          schema: paginatedResponseSchema.extend({
+            data: searchJobResult.array(),
+          }),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
 router.get("/search", validate(searchParams), jobController.searchJobs);
 // router.get("/stats", jobController.getJobStats);
 

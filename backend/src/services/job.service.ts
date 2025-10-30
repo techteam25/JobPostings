@@ -1,17 +1,24 @@
-import { JobRepository } from "@/repositories/job.repository";
-import { OrganizationRepository } from "@/repositories/organization.repository";
-import { UserRepository } from "@/repositories/user.repository";
-import { EmailService } from "@/services/email.service";
 import { BaseService } from "./base.service";
+import { JobInsightsRepository } from "@/repositories/jobInsights.repository";
+import { JobRepository } from "@/repositories/job.repository";
+import { UserRepository } from "@/repositories/user.repository";
+import { OrganizationRepository } from "@/repositories/organization.repository";
+import { OrganizationService } from "@/services/organization.service";
+import { TypesenseService } from "@/services/typesense.service/typesense.service";
+import { redisClient } from "@/config/redis";
+import { EmailService } from "@/services/email.service";
+
 import {
-  NewJob,
   NewJobApplication,
   Job,
   JobWithEmployer,
   JobApplication,
   UpdateJob,
   UpdateJobApplication,
+  JobWithSkills,
+  CreateJobSchema,
 } from "@/validations/job.validation";
+
 import {
   NotFoundError,
   ForbiddenError,
@@ -21,20 +28,17 @@ import {
   ErrorCode,
 } from "@/utils/errors";
 import { SecurityUtils } from "@/utils/security";
-import { JobInsightsRepository } from "@/repositories/jobInsights.repository";
-import { SearchParams } from "@/validations/base.validation";
-import { OrganizationService } from "./organization.service";
-import Redis from "ioredis";
 
-// Initialize Redis client using REDIS_URL
-const redis = new Redis(process.env.REDIS_URL || "");
+import { SearchParams } from "@/validations/base.validation";
+import { jobIndexerQueue } from "@/utils/bullmq.utils";
+import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
 
 export class JobService extends BaseService {
   private jobRepository: JobRepository;
   private organizationRepository: OrganizationRepository;
   private userRepository: UserRepository;
   private jobInsightsRepository: JobInsightsRepository;
-  private organizationService: OrganizationService;
+  private typesenseService: TypesenseService;
   private emailService: EmailService;
 
   constructor() {
@@ -43,7 +47,7 @@ export class JobService extends BaseService {
     this.organizationRepository = new OrganizationRepository();
     this.userRepository = new UserRepository();
     this.jobInsightsRepository = new JobInsightsRepository();
-    this.organizationService = new OrganizationService();
+    this.typesenseService = new TypesenseService();
     this.emailService = new EmailService();
   }
 
@@ -53,7 +57,7 @@ export class JobService extends BaseService {
       const cacheKey = `jobs:active:${page}:${limit}`;
 
       // Check cache
-      const cachedResult = await redis.get(cacheKey);
+      const cachedResult = await redisClient.get(cacheKey);
       if (cachedResult) {
         return JSON.parse(cachedResult);
       }
@@ -62,7 +66,7 @@ export class JobService extends BaseService {
       const result = await this.jobRepository.findActiveJobs(options);
 
       // Cache result for 5 minutes
-      await redis.setex(cacheKey, 300, JSON.stringify(result));
+      await redisClient.setEx(cacheKey, 300, JSON.stringify(result));
 
       return result;
     } catch (error) {
@@ -82,29 +86,50 @@ export class JobService extends BaseService {
     }
   }
 
-  async searchJobs(filters: {
-    page?: number;
-    limit?: number;
-    q?: string;
-    jobType?: string;
-    sortBy?: string;
-    location?: string;
-    isRemote?: boolean;
-    order?: "asc" | "desc";
-    status?: string;
-  }) {
-    const { q: searchTerm, ...rest } = filters;
-    return await this.jobRepository.searchJobs({
-      searchTerm,
-      ...rest,
-    });
+  async searchJobs(filters: SearchParams["query"]) {
+    try {
+      const {
+        q,
+        page = 1,
+        limit = 10,
+        includeRemote,
+        city,
+        state,
+        country,
+        skills,
+        jobType,
+        ...rest
+      } = filters;
+      const offset = (page - 1) * limit;
+
+      const queryBuilder = new TypesenseQueryBuilder()
+        .addLocationFilters({ city, state, country }, includeRemote)
+        .addSkillFilters(skills, true) // AND logic
+        .addArrayFilter("jobType", jobType, true) // OR logic
+        .addSingleFilter("status", rest.status)
+        .addSingleFilter("experience", rest.experience);
+
+      const filterQuery = queryBuilder.build();
+
+      const parts: string[] = [];
+      if (filterQuery) parts.push(`filter_by=${filterQuery}`);
+      const filterString = parts.join("&");
+
+      return await this.typesenseService.searchJobsCollection(q, filterString, {
+        limit,
+        offset,
+        page,
+      });
+    } catch (error) {
+      this.handleError(error);
+    }
   }
 
   async getJobById(organizationId: number): Promise<Job> {
     const cacheKey = `job:${organizationId}`;
 
     // Check cache
-    const cachedJob = await redis.get(cacheKey);
+    const cachedJob = await redisClient.get(cacheKey);
     if (cachedJob) {
       return JSON.parse(cachedJob);
     }
@@ -116,7 +141,7 @@ export class JobService extends BaseService {
     }
 
     // Cache job for 5 minutes
-    await redis.setex(cacheKey, 300, JSON.stringify(job));
+    await redisClient.setEx(cacheKey, 300, JSON.stringify(job));
 
     return job;
   }
@@ -153,74 +178,44 @@ export class JobService extends BaseService {
     return await this.jobRepository.findJobsByEmployer(employerId, options);
   }
 
-  async createJob(jobData: NewJob, userId: number): Promise<Job> {
+  async createJob(jobData: CreateJobSchema["body"]): Promise<JobWithSkills> {
     // Todo Fetch this from organizationMembers table
-    // Validate employer exists
-    const organization = await this.organizationRepository.findById(
-      jobData.employerId
-    );
-    if (!organization) {
-      return this.handleError(
-        new NotFoundError("Organization", jobData.employerId)
-      );
-    }
-    if (organization.status !== "active") {
-      return this.handleError(new ForbiddenError("Organization is not active"));
-    }
-    if (organization.subscriptionStatus === "expired") {
-      return this.handleError(
-        new ForbiddenError("Organization subscription has expired")
-      );
-    }
-    const activeJobCount = await this.jobRepository.countActiveJobsByEmployer(
-      jobData.employerId
-    );
-    if (
-      organization.jobPostingLimit !== null &&
-      activeJobCount >= organization.jobPostingLimit
-    ) {
-      return this.handleError(
-        new ForbiddenError("Organization has reached its job posting limit")
-      );
-    }
-    const membership = await this.organizationRepository.findByContact(userId);
-    if (!membership || membership.id !== jobData.employerId) {
-      return this.handleError(
-        new ForbiddenError("You are not a member of this organization")
-      );
-    }
-    const canPostJobs = await this.organizationService.isRolePermitted(userId);
-    if (!canPostJobs) {
-      return this.handleError(
-        new ForbiddenError("You do not have permission to create jobs")
-      );
-    }
+
+    const { employerId } = jobData;
 
     // Sanitize and process job data
     const sanitizedData = {
       ...jobData,
+      employerId,
       title: SecurityUtils.sanitizeInput(jobData.title),
       description: SecurityUtils.sanitizeInput(jobData.description),
-      location: SecurityUtils.sanitizeInput(jobData.location),
-      skills: jobData.skills ? this.processSkillsArray(jobData.skills) : null,
+      city: SecurityUtils.sanitizeInput(jobData.city),
+      country: SecurityUtils.sanitizeInput(jobData.country),
       experience: jobData.experience
         ? SecurityUtils.sanitizeInput(jobData.experience)
         : null,
+      applicationDeadline: jobData.applicationDeadline
+        ? new Date(jobData.applicationDeadline)
+        : null,
     };
 
-    const jobId = await this.jobRepository.create(sanitizedData);
+    const jobWithSkills = await this.jobRepository.createJob(sanitizedData);
 
-    // Invalidate active jobs cache
-    await this.invalidateActiveJobsCache();
+    if (!jobWithSkills) {
+      throw new AppError(
+        "Failed to retrieve created job",
+        500,
+        ErrorCode.DATABASE_ERROR
+      );
+    }
 
-    return await this.getJobById(jobId);
+    // Enqueue job for indexing in Typesense
+    await jobIndexerQueue.add("indexJob", jobWithSkills);
+
+    return jobWithSkills;
   }
 
-  async updateJob(
-    jobId: number,
-    updateData: UpdateJob,
-    userId: number
-  ): Promise<Job> {
+  async updateJob(jobId: number, updateData: UpdateJob): Promise<Job> {
     const job = await this.getJobById(jobId);
 
     if (!job) {
@@ -236,81 +231,83 @@ export class JobService extends BaseService {
       description: updateData.description
         ? SecurityUtils.sanitizeInput(updateData.description)
         : undefined,
-      location: updateData.location
-        ? SecurityUtils.sanitizeInput(updateData.location)
+      location: updateData.city
+        ? SecurityUtils.sanitizeInput(updateData.city)
         : undefined,
-      requiredSkills: updateData.skills
-        ? this.processSkillsArray(updateData.skills)
+      requiredSkills: updateData.state
+        ? this.processSkillsArray(updateData.state)
         : undefined,
     };
 
-    const updatedJob = await this.jobRepository.update(jobId, sanitizedData);
+    const success = await this.jobRepository.updateJob(sanitizedData, jobId);
+    if (!success) {
+      throw new AppError("Failed to update job", 500, ErrorCode.DATABASE_ERROR);
+    }
+
+    const updatedJob = await this.jobRepository.findJobByIdWithSkills(jobId);
+
     if (!updatedJob) {
-      return this.handleError(
-        new AppError("Failed to update job", 500, ErrorCode.DATABASE_ERROR)
+      throw new AppError(
+        "Failed to retrieve created job",
+        500,
+        ErrorCode.DATABASE_ERROR
       );
     }
 
-    // Invalidate caches
-    await redis.del(`job:${jobId}`);
-    await this.invalidateActiveJobsCache();
+    // Update job indexes in Typesense
+    await jobIndexerQueue.add("updateJobIndex", { id: jobId, updatedJob });
 
-    return await this.getJobById(jobId);
+    return updatedJob;
   }
 
-  async deleteJob(jobId: number, userId: number): Promise<void> {
+  async deleteJob(jobId: number, requesterId: number): Promise<void> {
     const job = await this.getJobById(jobId);
+    if (!job) throw new NotFoundError("Job", jobId);
 
-    if (!job) {
-      return this.handleError(new NotFoundError("Job", jobId));
+    const organization =
+      await this.organizationRepository.findByContact(requesterId);
+    if (!organization)
+      throw new ForbiddenError("You do not belong to any organization");
+    if (job.employerId !== organization.id) {
+      throw new ForbiddenError(
+        "You can only delete jobs posted by your organization"
+      );
     }
 
-    // Fetch user and organization details for email notification
-    const [user, organization] = await Promise.all([
-      this.userRepository.findById(userId),
+    const [user, orgDetails] = await Promise.all([
+      this.userRepository.findById(requesterId),
       this.organizationRepository.findById(job.employerId),
     ]);
 
-    if (!user) {
-      return this.handleError(new NotFoundError("User", userId));
-    }
-    if (!organization) {
-      return this.handleError(new NotFoundError("Organization", job.employerId));
-    }
+    if (!user) throw new NotFoundError("User", requesterId);
+    if (!orgDetails) throw new NotFoundError("Organization", job.employerId);
 
-    // Check if job has applications - if so, prevent deletion
     const applications = await this.jobRepository.findApplicationsByJob(jobId);
-
     if (applications.items.length > 0) {
-      return this.handleError(
-        new ForbiddenError("Cannot delete job with existing applications")
-      );
+      throw new ForbiddenError("Cannot delete job with existing applications");
     }
 
     const success = await this.jobRepository.delete(jobId);
     if (!success) {
-      return this.handleError(
-        new AppError("Failed to delete job", 500, ErrorCode.DATABASE_ERROR)
-      );
+      throw new AppError("Failed to delete job", 500, ErrorCode.DATABASE_ERROR);
     }
 
-    // Invalidate caches
-    await redis.del(`job:${jobId}`);
+    await redisClient.del(`job:${jobId}`);
     await this.invalidateActiveJobsCache();
 
-    // Send email notification
     try {
       const firstName = user.fullName?.split(" ")[0] || "User";
       await this.emailService.sendJobDeletionConfirmation(
         user.email,
         firstName,
         job.title,
-        organization.name || "Company"
+        orgDetails.name || "Company"
       );
     } catch (error) {
-      // Log email error but don't fail the deletion
       console.error("Failed to send job deletion email:", error);
     }
+
+    await jobIndexerQueue.add("deleteJobIndex", { id: jobId });
   }
 
   // Job Application Methods
@@ -445,39 +442,11 @@ export class JobService extends BaseService {
     return { message: "Application status updated successfully" };
   }
 
-  async withdrawApplication(
-    applicationId: number,
-    userId: number
-  ): Promise<{
-    message: string;
-    applicationDetails: {
-      userEmail: string;
-      userFirstName: string;
-      jobTitle: string;
-      companyName: string;
-    };
+  async withdrawApplication(applicationId: number): Promise<{
+    user: { email: string; fullName: string | null };
+    job: { title: string };
+    employer: { name: string } | null;
   }> {
-    const [applicationData] =
-      await this.jobRepository.findApplicationById(applicationId);
-
-    if (!applicationData) {
-      return this.handleError(new NotFoundError("Application", applicationId));
-    }
-
-    const { application, job, applicant, employer } = applicationData;
-
-    // Check for non-withdrawable statuses
-    if (["hired", "rejected"].includes(application.status)) {
-      return this.handleError(
-        new ValidationError("Cannot withdraw application with final status")
-      );
-    }
-    if (applicationData.application.applicantId !== userId) {
-      return this.handleError(
-        new ForbiddenError("You can only withdraw your own applications")
-      );
-    }
-
     // Update status
     const success = await this.jobRepository.updateApplicationStatus(
       applicationId,
@@ -494,15 +463,19 @@ export class JobService extends BaseService {
       );
     }
 
-    // Return typed response
+    // Fetch and return domain data only
+    const [applicationData] =
+      await this.jobRepository.findApplicationById(applicationId);
+
+    if (!applicationData) {
+      return this.handleError(new NotFoundError("Application", applicationId));
+    }
+
+    // Return raw domain data
     return {
-      message: "Application withdrawn successfully",
-      applicationDetails: {
-        userEmail: applicant.email,
-        userFirstName: applicant.fullName?.split(" ")[0] ?? "",
-        jobTitle: job.title,
-        companyName: employer?.name ?? "Company",
-      },
+      user: applicationData.user,
+      job: applicationData.job,
+      employer: applicationData.employer,
     };
   }
 
@@ -663,10 +636,13 @@ export class JobService extends BaseService {
   }
 
   private async invalidateActiveJobsCache(): Promise<void> {
-    // Invalidate all active jobs cache
-    const keys = await redis.keys("jobs:active:*");
-    if (keys.length > 0) {
-      await redis.del(keys);
+    try {
+      const keys = await redisClient.keys("jobs:active:*");
+      if (keys.length > 0) {
+        await redisClient.del(keys);
+      }
+    } catch (error) {
+      console.error("Failed to invalidate active jobs cache:", error);
     }
   }
 }

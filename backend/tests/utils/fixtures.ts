@@ -81,24 +81,38 @@ export const organizationFixture = async () => {
   };
 };
 
+enum sampleJobTitles {
+  SoftwareEngineer = "Software Engineer",
+  FrontendDeveloper = "Frontend Developer",
+  BackendDeveloper = "Backend Developer",
+  FullStackDeveloper = "Full Stack Developer",
+  DevOpsEngineer = "DevOps Engineer",
+  DataScientist = "Data Scientist",
+  ProductManager = "Product Manager",
+  UXDesigner = "UX Designer",
+  MobileAppDeveloper = "Mobile App Developer",
+  QAEngineer = "QA Engineer",
+  SeniorReactDeveloper = "Senior React Developer",
+}
+
 export const jobPostingFixture = async () => {
   const { faker } = await import("@faker-js/faker");
 
   return {
-    title: "Software Engineer",
+    title: faker.helpers.enumValue(sampleJobTitles),
     description: faker.lorem.paragraph(),
-    location: faker.location.city() + ", " + faker.location.state(),
+    city: faker.location.city(),
+    state: faker.location.state(),
+    country: faker.location.country(),
     jobType: "full-time",
     compensationType: "paid",
     experience: "mid",
-    salaryMin: 60000.0,
-    salaryMax: 90000.0,
     currency: "USD",
     isRemote: false,
     applicationDeadline: new Date(
       Date.now() + 30 * 24 * 60 * 60 * 1000,
     ).toISOString(), // 30 days from now
-    skills: "JavaScript, TypeScript, Node.js",
+    skills: ["JavaScript", "TypeScript", "Node.js"],
     employerId: 1, // Assuming organization with ID 1 exists
   };
 };

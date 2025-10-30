@@ -1,9 +1,11 @@
-import { and, desc, eq, like, or, sql, SQL } from "drizzle-orm";
+import { and, desc, eq, inArray, sql, SQL } from "drizzle-orm";
 import {
   jobApplications,
   jobInsights,
   jobsDetails,
+  jobSkills,
   organizations,
+  skills,
   user,
 } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
@@ -11,13 +13,193 @@ import { db } from "@/db/connection";
 import { calculatePagination, countRecords } from "@/db/utils";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
 import {
+  JobSkills,
+  JobWithSkills,
+  NewJob,
   NewJobApplication,
+  UpdateJob,
   UpdateJobApplication,
 } from "@/validations/job.validation";
 
 export class JobRepository extends BaseRepository<typeof jobsDetails> {
   constructor() {
     super(jobsDetails);
+  }
+
+  async createJob(
+    jobData: NewJob & { skills: JobSkills["name"][] },
+  ): Promise<JobWithSkills> {
+    return await withDbErrorHandling(async () =>
+      db.transaction(async (transaction) => {
+        const { skills: skillsPayload, ...jobPayload } = jobData;
+        const [jobId] = await transaction
+          .insert(jobsDetails)
+          .values(jobPayload)
+          .$returningId();
+
+        if (!jobId) {
+          throw new Error("Failed to insert job");
+        }
+
+        // Initialize job skills if provided
+        if (skillsPayload && skillsPayload.length > 0) {
+          const skillInserts = skillsPayload.map((skillName) => ({
+            name: skillName,
+          }));
+
+          await transaction
+            .insert(skills)
+            .values(skillInserts)
+            .onDuplicateKeyUpdate({
+              set: {
+                name: sql`values(${skills.name})`,
+              },
+            });
+
+          const allSkills = await transaction
+            .select({ id: skills.id })
+            .from(skills)
+            .where(inArray(skills.name, skillsPayload));
+
+          if (!allSkills || allSkills.length === 0)
+            throw new Error("Failed to fetch skills");
+
+          const jobSkillInserts = allSkills.map((s) => ({
+            jobId: jobId.id,
+            skillId: s.id,
+            isRequired: true,
+          }));
+
+          await transaction
+            .insert(jobSkills)
+            .values(jobSkillInserts)
+            .onDuplicateKeyUpdate({
+              set: {
+                isRequired: sql`values(${jobSkills.isRequired})`,
+              },
+            });
+        }
+        const jobWithSkills = await transaction.query.jobsDetails.findFirst({
+          where: eq(jobsDetails.id, jobId.id),
+          with: {
+            skills: {
+              with: {
+                skill: {
+                  columns: {
+                    name: true,
+                  },
+                },
+              },
+            },
+            employer: {
+              columns: {
+                name: true,
+              },
+            },
+          },
+        });
+
+        if (!jobWithSkills) {
+          throw new Error(`Job with Id: ${jobId} not found`);
+        }
+
+        const skillsArray = jobWithSkills.skills.map((s) => s.skill.name);
+
+        return {
+          ...jobWithSkills,
+          skills: skillsArray,
+        };
+      }),
+    );
+  }
+
+  async updateJob(jobData: UpdateJob, jobId: number): Promise<JobWithSkills> {
+    return await withDbErrorHandling(async () =>
+      db.transaction(async (transaction) => {
+        const { skills: skillsPayload, ...jobPayload } = jobData;
+        const [jobResult] = await transaction
+          .update(jobsDetails)
+          .set(jobPayload)
+          .where(eq(jobsDetails.id, jobId));
+
+        if (!jobResult.affectedRows || jobResult.affectedRows === 0) {
+          throw new Error("Failed to update job");
+        }
+
+        // Initialize job skills if provided
+        if (skillsPayload && skillsPayload.length > 0) {
+          // Delete existing job-skill associations
+          await transaction.delete(jobSkills).where(eq(jobSkills.jobId, jobId));
+
+          const skillUpdate = skillsPayload.map((name) => ({
+            name,
+          }));
+
+          await transaction
+            .insert(skills)
+            .values(skillUpdate)
+            .onDuplicateKeyUpdate({
+              set: {
+                name: sql`values(${skills.name})`,
+              },
+            });
+
+          const allSkills = await transaction
+            .select({ id: skills.id })
+            .from(skills)
+            .where(inArray(skills.name, skillsPayload));
+
+          if (!allSkills || allSkills.length === 0)
+            throw new Error("Failed to fetch skills after update");
+
+          const jobSkillInserts = allSkills.map((s) => ({
+            jobId,
+            skillId: s.id,
+            isRequired: true,
+          }));
+
+          await transaction
+            .insert(jobSkills)
+            .values(jobSkillInserts)
+            .onDuplicateKeyUpdate({
+              set: { isRequired: sql`values(${jobSkills.isRequired})` },
+            });
+        }
+        const updatedJobWithSkills =
+          await transaction.query.jobsDetails.findFirst({
+            where: eq(jobsDetails.id, jobId),
+            with: {
+              skills: {
+                with: {
+                  skill: {
+                    columns: {
+                      name: true,
+                    },
+                  },
+                },
+              },
+              employer: {
+                columns: {
+                  name: true,
+                },
+              },
+            },
+          });
+
+        if (!updatedJobWithSkills) {
+          throw new Error(`Job with Id: ${jobId} not found`);
+        }
+
+        const skillsArray = updatedJobWithSkills.skills.map(
+          (s) => s.skill.name,
+        );
+
+        return {
+          ...updatedJobWithSkills,
+          skills: skillsArray,
+        };
+      }),
+    );
   }
 
   async findActiveJobs(options: { page?: number; limit?: number } = {}) {
@@ -48,95 +230,6 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       jobsDetails,
       eq(jobsDetails.isActive, true)
     );
-    const pagination = calculatePagination(total, page, limit);
-
-    return { items, pagination };
-  }
-
-  async searchJobs(filters: {
-    searchTerm?: string;
-    jobType?: string;
-    location?: string;
-    experienceLevel?: string;
-    isRemote?: boolean;
-    page?: number;
-    limit?: number;
-  }) {
-    const {
-      searchTerm,
-      jobType,
-      location,
-      experienceLevel,
-      isRemote,
-      page = 1,
-      limit = 10,
-    } = filters;
-    const offset = (page - 1) * limit;
-
-    let whereConditions: (SQL<unknown> | undefined)[] = [
-      eq(jobsDetails.isActive, true),
-    ];
-
-    if (searchTerm) {
-      whereConditions.push(
-        or(
-          like(jobsDetails.title, `%${searchTerm}%`),
-          like(jobsDetails.description, `%${searchTerm}%`)
-        )
-      );
-    }
-
-    if (jobType) {
-      whereConditions.push(
-        eq(
-          jobsDetails.jobType,
-          jobType as
-            | "full-time"
-            | "part-time"
-            | "contract"
-            | "volunteer"
-            | "internship"
-        )
-      );
-    }
-
-    if (location) {
-      whereConditions.push(like(jobsDetails.location, `%${location}%`));
-    }
-
-    if (experienceLevel) {
-      whereConditions.push(eq(jobsDetails.experience, experienceLevel));
-    }
-
-    if (isRemote !== undefined) {
-      whereConditions.push(eq(jobsDetails.isRemote, isRemote));
-    }
-
-    const whereCondition = and(
-      ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[])
-    );
-
-    const items = await withDbErrorHandling(
-      async () =>
-        await db
-          .select({
-            job: jobsDetails,
-            employer: {
-              id: organizations.id,
-              name: organizations.name,
-              city: organizations.city,
-              state: organizations.state,
-            },
-          })
-          .from(jobsDetails)
-          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
-          .where(whereCondition)
-          .orderBy(desc(jobsDetails.createdAt))
-          .limit(limit)
-          .offset(offset)
-    );
-
-    const total = await countRecords(jobsDetails, whereCondition);
     const pagination = calculatePagination(total, page, limit);
 
     return { items, pagination };
@@ -313,7 +406,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
             job: {
               id: jobsDetails.id,
               title: jobsDetails.title,
-              location: jobsDetails.location,
+              city: jobsDetails.city,
+              state: jobsDetails.state,
+              country: jobsDetails.country,
+              zipcode: jobsDetails.zipcode,
+              isRemote: jobsDetails.isRemote,
               jobType: jobsDetails.jobType,
             },
             employer: {
@@ -363,9 +460,25 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
       async () =>
         await db
           .select({
-            application: jobApplications,
-            job: jobsDetails,
-            applicant: {
+            application: {
+              id: jobApplications.id,
+              jobId: jobApplications.jobId,
+              reviewedAt: jobApplications.reviewedAt,
+              applicantId: jobApplications.applicantId,
+              status: jobApplications.status,
+            },
+            job: {
+              id: jobsDetails.id,
+              title: jobsDetails.title,
+              city: jobsDetails.city,
+              state: jobsDetails.state,
+              country: jobsDetails.country,
+              zipcode: jobsDetails.zipcode,
+              isRemote: jobsDetails.isRemote,
+              jobType: jobsDetails.jobType,
+              employerId: jobsDetails.employerId,
+            },
+            user: {
               id: user.id,
               email: user.email,
               fullName: user.fullName,
@@ -408,11 +521,33 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     });
   }
 
-  async deleteByUserId(userId: number) {
+  async findJobByIdWithSkills(jobId: number) {
     return withDbErrorHandling(async () => {
-      await db
-        .delete(jobApplications)
-        .where(eq(jobApplications.applicantId, userId));
+      const jobWithSkills = await db.query.jobsDetails.findFirst({
+        where: eq(jobsDetails.id, jobId),
+        with: {
+          skills: {
+            with: {
+              skill: {
+                columns: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!jobWithSkills) {
+        throw new Error(`Job with Id: ${jobId} not found`);
+      }
+
+      const skillsArray = jobWithSkills.skills.map((s) => s.skill.name);
+
+      return {
+        ...jobWithSkills,
+        skills: skillsArray,
+      };
     });
   }
 }

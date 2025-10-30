@@ -5,7 +5,6 @@ import {
   mysqlEnum,
   text,
   boolean,
-  decimal,
   int,
   index,
   check,
@@ -22,7 +21,10 @@ export const jobsDetails = mysqlTable(
     id: int("id").primaryKey().autoincrement(),
     title: varchar("title", { length: 255 }).notNull(),
     description: text("description").notNull(),
-    location: varchar("location", { length: 255 }).notNull(),
+    city: varchar("city", { length: 255 }).notNull(),
+    state: varchar("state", { length: 50 }),
+    country: varchar("country", { length: 100 }).notNull(),
+    zipcode: int("zipcode"),
     jobType: mysqlEnum("job_type", [
       "full-time",
       "part-time",
@@ -36,19 +38,10 @@ export const jobsDetails = mysqlTable(
       "volunteer",
       "stipend",
     ]).notNull(),
-    salaryMin: decimal("salary_min", {
-      precision: 12,
-      scale: 2,
-    }).$type<number>(),
-    salaryMax: decimal("salary_max", {
-      precision: 12,
-      scale: 2,
-    }).$type<number>(),
     isRemote: boolean("is_remote").default(false).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
     applicationDeadline: timestamp("application_deadline"),
-    skills: text("skills"), // JSON array of skills
-    experience: text("experience"), // JSON array of skills
+    experience: varchar("experience", { length: 255 }),
     employerId: int("employer_id").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
@@ -56,14 +49,20 @@ export const jobsDetails = mysqlTable(
   (table) => [
     index("employer_idx").on(table.employerId),
     index("job_type_idx").on(table.jobType),
-    index("location_idx").on(table.location),
+    index("city_idx").on(table.city),
+    index("state_idx").on(table.state),
+    index("zipcode_idx").on(table.zipcode),
+    index("is_remote_idx").on(table.isRemote),
+    index("experience_idx").on(table.experience),
+    index("is_active_idx").on(table.isActive),
     index("active_idx").on(table.isActive),
     index("deadline_idx").on(table.applicationDeadline),
+    index("created_at_idx").on(table.createdAt),
     foreignKey({
       columns: [table.employerId],
       foreignColumns: [organizations.id],
       name: "fk_job_employer",
-    }),
+    }).onDelete("cascade"),
   ],
 );
 
@@ -102,12 +101,12 @@ export const jobApplications = mysqlTable(
       columns: [table.jobId],
       foreignColumns: [jobsDetails.id],
       name: "fk_application_job",
-    }),
+    }).onDelete("cascade"),
     foreignKey({
       columns: [table.applicantId],
       foreignColumns: [user.id],
       name: "fk_application_applicant",
-    }),
+    }).onDelete("cascade"),
   ],
 );
 
@@ -136,6 +135,37 @@ export const jobInsights = mysqlTable(
   ],
 );
 
+export const skills = mysqlTable(
+  "skills",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    name: varchar("name", { length: 100 }).notNull().unique(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [index("skill_name_idx").on(table.name)],
+);
+
+export const jobSkills = mysqlTable(
+  "job_skills",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    jobId: int("job_id")
+      .references(() => jobsDetails.id, { onDelete: "cascade" })
+      .notNull(),
+    skillId: int("skill_id")
+      .references(() => skills.id, { onDelete: "cascade" })
+      .notNull(),
+    isRequired: boolean().default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("job_idx").on(table.jobId),
+    index("skill_idx").on(table.skillId),
+  ],
+);
+
 // Relations
 export const jobsRelations = relations(jobsDetails, ({ one, many }) => ({
   employer: one(organizations, {
@@ -147,6 +177,7 @@ export const jobsRelations = relations(jobsDetails, ({ one, many }) => ({
     fields: [jobsDetails.id],
     references: [jobInsights.job],
   }),
+  skills: many(jobSkills),
 }));
 
 export const jobApplicationsRelations = relations(
@@ -172,4 +203,19 @@ export const jobInsightsRelations = relations(jobInsights, ({ one }) => ({
     fields: [jobInsights.organization],
     references: [organizations.id],
   }),
+}));
+
+export const jobSkillsRelations = relations(jobSkills, ({ one }) => ({
+  job: one(jobsDetails, {
+    fields: [jobSkills.jobId],
+    references: [jobsDetails.id],
+  }),
+  skill: one(skills, {
+    fields: [jobSkills.skillId],
+    references: [skills.id],
+  }),
+}));
+
+export const skillsRelations = relations(skills, ({ many }) => ({
+  jobSkills: many(jobSkills),
 }));

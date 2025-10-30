@@ -43,7 +43,7 @@ async function startServer() {
 }
 
 // Start the server
-startServer().catch(logger.error);
+startServer().catch((err) => logger.error(err));
 
 // Graceful shutdown
 process.on("SIGINT", async () => {

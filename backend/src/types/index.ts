@@ -27,7 +27,7 @@ export const paginationMetaSchema = z.object({
   previousPage: z.number().nullable(),
 });
 
-const paginatedResponseSchema = z.object({
+export const paginatedResponseSchema = z.object({
   success: z.literal(true),
   message: z.string(),
   timestamp: z.string().optional(),

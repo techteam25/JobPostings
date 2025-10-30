@@ -85,8 +85,9 @@ export class AuthMiddleware {
           });
         }
 
-        // Extract jobId from params or body
-        const jobId = parseInt((req.params.jobId || req.body.jobId) as string);
+        // Determine if we’re editing an existing job or creating a new one
+        const jobId = req.params.jobId ? parseInt(req.params.jobId) : null;
+        let employerId: number | null = null;
 
         if (jobId) {
           // Fetch job to get employerId
@@ -97,56 +98,72 @@ export class AuthMiddleware {
               message: "Job not found",
             });
           }
-
-          // Check organization existence
-          const organization =
-            await this.organizationService.getOrganizationById(job.employerId);
-          if (!organization) {
-            return res.status(404).json({
-              status: "error",
-              message: "Organization not found",
-            });
-          }
-
-          // Check membership
-          const isMember = await this.organizationService.getOrganizationMember(
-            req.userId
-          );
-          if (!isMember || isMember.organizationId !== job.employerId) {
-            return res.status(403).json({
-              status: "error",
-              message:
-                "You are not authorized to perform actions for this organization",
-            });
-          }
-
-          // Check role permissions
-          const permittedRoles = ["owner", "admin", "recruiter"];
-          if (!permittedRoles.includes(isMember.role)) {
-            return res.status(403).json({
-              status: "error",
-              message: "You do not have permission to perform this action",
-            });
-          }
-        } else {
-          // Fallback for non-job-specific routes (e.g., createJob)
-          const isPermitted = await this.organizationService.isRolePermitted(
-            req.userId
-          );
-          if (!isPermitted) {
-            return res.status(403).json({
-              status: "error",
-              message: "You do not have permission to perform this action",
-            });
-          }
+          employerId = job.employerId;
         }
+
+        // Get org membership info
+        const member = await this.organizationService.getOrganizationMember(
+          req.userId
+        );
+        if (!member) {
+          return res.status(403).json({
+            message: "You are not part of any organization",
+            status: "error",
+          });
+        }
+
+        // Verify employer ownership when jobId exists
+        if (employerId && member.organizationId !== employerId) {
+          return res.status(403).json({
+            message: "You are not authorized to modify this job",
+            status: "error",
+          });
+        }
+
+        // Check organization existence
+        const organization = await this.organizationService.getOrganizationById(
+          member.organizationId
+        );
+        if (!organization) {
+          return res.status(404).json({
+            status: "error",
+            message: "Organization not found",
+          });
+        }
+
+        // Check if org is active and valid
+        if (organization.status !== "active") {
+          return res.status(403).json({
+            message: "Organization is not active",
+            status: "error",
+          });
+        }
+
+        if (organization.subscriptionStatus === "expired") {
+          return res.status(403).json({
+            message: "Organization subscription has expired",
+            status: "error",
+          });
+        }
+
+        // Check role permissions
+        const permittedRoles = ["owner", "admin", "recruiter"];
+        if (!permittedRoles.includes(member.role)) {
+          return res.status(403).json({
+            status: "error",
+            message: "You do not have permission to perform this action",
+          });
+        }
+
+        req.organizationId = member.organizationId;
 
         return next();
       } catch (error) {
         logger.error(error);
         return res.status(500).json({
+          success: false,
+          message: "Error checking job posting permissions",
           status: "error",
-          message: "Error checking user permissions",
         });
       }
     };
@@ -287,11 +304,9 @@ export class AuthMiddleware {
         }
 
         // Extract applicationId from request params or body
-        const applicationId = parseInt(
-          (req.params.applicationId || req.body.applicationId) as string
-        );
+        const applicationId = parseInt(req.params.applicationId as string);
 
-        if (!applicationId) {
+        if (!applicationId || isNaN(applicationId)) {
           return res.status(400).json({
             status: "error",
             message: "Application ID is required",
@@ -316,6 +331,18 @@ export class AuthMiddleware {
             message: "You can only withdraw your own applications",
           });
         }
+
+        if (
+          ["hired", "rejected"].includes(applicationData.application.status)
+        ) {
+          return res.status(403).json({
+            status: "error",
+            message: "Cannot withdraw application with final status",
+          });
+        }
+
+        // Attach application data to request for controller use
+        //req.applicationData = applicationData;
 
         return next();
       } catch (error) {

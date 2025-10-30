@@ -187,25 +187,23 @@ export const seedJobs = async () => {
         Array.from({ length: 3 }).map(() => ({
           title: faker.lorem.words(5),
           description: faker.lorem.paragraph(1),
-          location: faker.location.city(),
+          city: faker.location.city(),
+          state: faker.location.state(),
+          country: faker.location.country(),
+          zipcode: parseInt(faker.location.zipCode("#####")),
+          experience: faker.helpers
+            .enumValue({
+              ENTRY_LEVEL: "Entry Level",
+              MID_LEVEL: "Mid Level",
+              SENIOR_LEVEL: "Senior Level",
+              MANAGER: "Manager",
+            })
+            .toString(),
           jobType: faker.helpers.enumValue(jobTypeEnum),
           compensationType: faker.helpers.enumValue(compensationTypeEnum),
-          salaryMin: faker.number.int({ min: 30000, max: 100000 }),
-          salaryMax: faker.number.int({ min: 100001, max: 200000 }),
           isRemote: faker.datatype.boolean(),
           isActive: true,
           applicationDeadline: faker.date.future(),
-          skills: JSON.stringify(
-            faker.helpers.arrayElements([
-              "JavaScript",
-              "TypeScript",
-              "Node.js",
-              "React",
-              "SQL",
-              "NoSQL",
-              "AWS",
-            ]),
-          ),
           employerId: parseInt(createdUser.user.id), // faker.helpers.arrayElement(orgIds),
         })),
       );

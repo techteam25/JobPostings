@@ -12,6 +12,7 @@ import {
   CreateJobSchema,
   DeleteJobSchema,
   GetJobSchema,
+  type JobWithSkills,
   UpdateJobSchema,
   ApplyForJobSchema,
   applyForJobSchema,
@@ -23,6 +24,8 @@ import { GetOrganizationSchema } from "@/validations/organization.validation";
 import { SearchParams, searchParams } from "@/validations/base.validation";
 import { GetJobApplicationSchema, JobApplication } from "@/validations/jobApplications.validation";
 import { ApiResponse, PaginatedResponse } from "@/types";
+import { buildPaginationMeta } from "@/utils/build-search-pagination";
+
 
 export class JobController extends BaseController {
   private jobService: JobService;
@@ -68,13 +71,45 @@ export class JobController extends BaseController {
     res: Response<PaginatedResponse<JobWithEmployer>>
   ) => {
     try {
-      const { query } = searchParams.parse(req);
-      const result = await this.jobService.searchJobs(query);
-      return this.sendPaginatedResponse(
+      const {
+        page,
+        limit = 10,
+        q,
+        jobType,
+        sortBy,
+        city,
+        state,
+        country,
+        zipcode,
+        experience,
+        includeRemote,
+        order,
+        status,
+      } = req.query;
+
+      const result = await this.jobService.searchJobs({
+        page,
+        limit,
+        q,
+        jobType,
+        sortBy,
+        city,
+        state,
+        country,
+        zipcode,
+        experience,
+        includeRemote,
+        order,
+        status,
+      });
+
+      const pagination = buildPaginationMeta(result, limit);
+
+      this.sendPaginatedResponse(
         res,
-        result.items,
-        result.pagination,
-        "Jobs retrieved successfully"
+        result.hits?.map((h) => h.document) ?? [],
+        pagination,
+        "Jobs retrieved successfully",
       );
     } catch (error) {
       return this.handleControllerError(res, error, "Failed to search jobs");
@@ -174,20 +209,25 @@ export class JobController extends BaseController {
 
   createJob = async (
     req: Request<{}, {}, CreateJobSchema["body"]>,
-    res: Response<ApiResponse<Job>>
+    res: Response<ApiResponse<JobWithSkills>>,
   ) => {
     try {
-      const { organizationId, ...jobData } = req.body;
-      const job = await this.jobService.createJob(
-         {
-        ...jobData,
-        employerId: organizationId!, // Done: get employerId from user's organization
-        applicationDeadline: jobData.applicationDeadline
-          ? new Date(jobData.applicationDeadline)
-          : null,
-      },
-      req.userId!
-    );
+      if (!req.organizationId) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "You must be associated with an organization to create a job",
+          status: "error",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      const jobData = {
+        ...req.body,
+        employerId: req.organizationId,
+      };
+
+      const job = await this.jobService.createJob(jobData);
 
       return res.status(201).json({
         success: true,
@@ -223,7 +263,7 @@ export class JobController extends BaseController {
             ? new Date(updateData.applicationDeadline)
             : undefined,
         },
-        req.userId!
+        
       );
       return res.status(200).json({
         success: true,
@@ -477,10 +517,18 @@ export class JobController extends BaseController {
     try {
       const applicationId = Number(req.params.applicationId);
 
-      const result = await this.jobService.withdrawApplication(
-        applicationId,
-        req.userId!
-      );
+      const result = await this.jobService.withdrawApplication(applicationId);
+
+      // Controller handles response formatting
+    const response = {
+      message: "Application withdrawn successfully",
+      applicationDetails: {
+        userEmail: result.user.email,
+        userFirstName: result.user.fullName?.split(" ")[0] ?? "",
+        jobTitle: result.job.title,
+        companyName: result.employer?.name ?? "Company",
+      },
+    };
       return this.sendSuccess(res, result, "Application withdrawn successfully");
     } catch (error) {
       return this.handleControllerError(res, error, "Failed to withdraw application");
