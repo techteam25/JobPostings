@@ -429,27 +429,43 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     return { items, pagination };
   }
 
-  async updateApplicationStatus(
-    applicationId: number,
-    updateData: UpdateJobApplication & { notes?: string; reviewedAt?: Date }
-  ) {
-    const finalUpdateData = {
-      ...updateData,
-      ...(updateData.status === "reviewed" && !updateData.reviewedAt
-        ? { reviewedAt: new Date() }
-        : {}),
-    };
+async updateApplicationStatus(
+  applicationId: number,
+  updateData: UpdateJobApplication & { notes?: string; reviewedAt?: Date }
+) {
+  // Update the status
+  const statusUpdateData: Partial<UpdateJobApplication & { notes?: string }> = {};
+  if (updateData.status) statusUpdateData.status = updateData.status;
+  if (updateData.notes) statusUpdateData.notes = updateData.notes;
 
-    const result = await withDbErrorHandling(
-      async () =>
-        await db
-          .update(jobApplications)
-          .set(finalUpdateData)
-          .where(eq(jobApplications.id, applicationId))
-    );
-
-    return result[0].affectedRows > 0;
+  // Update reviewedAt separately only if applicable
+  const reviewedAtUpdateData: Partial<{ reviewedAt?: Date }> = {};
+  if (updateData.status === "reviewed") {
+    reviewedAtUpdateData.reviewedAt = updateData.reviewedAt || new Date();
   }
+
+  // Perform database updates 
+  const updateStatusResult = await withDbErrorHandling(async () =>
+    db
+      .update(jobApplications)
+      .set(statusUpdateData)
+      .where(eq(jobApplications.id, applicationId))
+  );
+
+  if (updateStatusResult[0].affectedRows === 0) return false;
+
+  if (Object.keys(reviewedAtUpdateData).length > 0) {
+    await withDbErrorHandling(async () =>
+      db
+        .update(jobApplications)
+        .set(reviewedAtUpdateData)
+        .where(eq(jobApplications.id, applicationId))
+    );
+  }
+
+  return true;
+}
+
 
   async findApplicationById(applicationId: number) {
     return withDbErrorHandling(
