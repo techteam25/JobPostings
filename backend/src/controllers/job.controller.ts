@@ -12,12 +12,12 @@ import {
   CreateJobSchema,
   DeleteJobSchema,
   GetJobSchema,
-  type JobWithSkills,
   UpdateJobSchema,
   ApplyForJobSchema,
   applyForJobSchema,
   Job,
   JobWithEmployer,
+  JobWithSkills,
   UpdateJobApplication,
 } from "@/validations/job.validation";
 import { GetOrganizationSchema } from "@/validations/organization.validation";
@@ -222,6 +222,16 @@ export class JobController extends BaseController {
         });
       }
 
+      if (!req.organizationId) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "You must be associated with an organization to create a job",
+          status: "error",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
       const jobData = {
         ...req.body,
         employerId: req.organizationId,
@@ -262,8 +272,7 @@ export class JobController extends BaseController {
           applicationDeadline: updateData.applicationDeadline
             ? new Date(updateData.applicationDeadline)
             : undefined,
-        },
-        
+        }
       );
       return res.status(200).json({
         success: true,

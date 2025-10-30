@@ -155,7 +155,17 @@ export class AuthMiddleware {
           });
         }
 
-        req.organizationId = member.organizationId;
+        const organizationMember =
+          await this.organizationService.getOrganizationMember(req.userId);
+
+        if (!organizationMember) {
+          return res.status(403).json({
+            status: "error",
+            message: "Insufficient permissions",
+          });
+        }
+
+        req.organizationId = organizationMember.organizationId;
 
         return next();
       } catch (error) {

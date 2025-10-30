@@ -120,11 +120,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
         const [jobResult] = await transaction
           .update(jobsDetails)
           .set(jobPayload)
-          .where(eq(jobsDetails.id, jobId));
-
-        if (!jobResult.affectedRows || jobResult.affectedRows === 0) {
-          throw new Error("Failed to update job");
-        }
+          .where(eq(jobsDetails.id, jobId))
 
         // Initialize job skills if provided
         if (skillsPayload && skillsPayload.length > 0) {
