@@ -292,9 +292,12 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .values(applicationData)
           .$returningId();
 
-        await transaction.update(jobInsights).set({
-          viewCount: sql`(${jobInsights.applicationCount} + 1)`,
-        });
+        await transaction
+          .update(jobInsights)
+          .set({
+            viewCount: sql`(${jobInsights.viewCount} + 1)`,
+          })
+          .where(eq(jobInsights.job, applicationData.jobId));
 
         return applicationId;
       }),
