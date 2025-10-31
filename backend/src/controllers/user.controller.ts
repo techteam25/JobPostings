@@ -1,7 +1,12 @@
 import { Request, Response } from "express";
 import { UserService } from "@/services/user.service";
 import { BaseController } from "./base.controller";
-import { ValidationError, NotFoundError, ForbiddenError } from "@/utils/errors";
+import {
+  ValidationError,
+  NotFoundError,
+  ForbiddenError,
+  DatabaseError,
+} from "@/utils/errors";
 import {
   ChangePasswordSchema,
   CreateUserProfile,
@@ -9,6 +14,8 @@ import {
   UserQuerySchema,
   DeleteSelfSchema,
   DeleteUserSchema,
+  SavedJobs,
+  SavedJobsQuerySchema,
 } from "@/validations/user.validation";
 import { ApiResponse } from "@/types";
 import { auth } from "@/utils/auth";
@@ -19,6 +26,7 @@ import {
   UserProfile,
   UserWithProfile,
 } from "@/validations/userProfile.validation";
+import { GetJobSchema } from "@/validations/job.validation";
 
 export class UserController extends BaseController {
   private userService: UserService;
@@ -312,6 +320,127 @@ export class UserController extends BaseController {
       },
     });
     return this.sendSuccess(res, result, "User deleted successfully", 200);
+  };
+
+  getSavedJobsForCurrentUser = async (
+    req: Request<SavedJobsQuerySchema["query"]>,
+    res: Response<ApiResponse<SavedJobs>>,
+  ) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+    try {
+      const savedJobs = await this.userService.getSavedJobsForUser(
+        req.userId!,
+        page,
+        limit,
+      );
+      return this.sendSuccess<SavedJobs>(
+        res,
+        savedJobs,
+        "Saved jobs retrieved successfully",
+      );
+    } catch (error) {
+      return this.handleControllerError(
+        res,
+        error,
+        "Failed to retrieve saved jobs",
+        500,
+      );
+    }
+  };
+
+  checkIfJobIsSaved = async (
+    req: Request<GetJobSchema["params"]>,
+    res: Response<ApiResponse<{ isSaved: boolean }>>,
+  ) => {
+    const jobId = parseInt(req.params.jobId);
+    const userId = req.userId!;
+    try {
+      const isSaved = await this.userService.isJobSavedByUser(userId, jobId);
+      return this.sendSuccess<{ isSaved: boolean }>(
+        res,
+        { isSaved },
+        "Job saved status retrieved successfully",
+      );
+    } catch (error) {
+      return this.handleControllerError(
+        res,
+        error,
+        "Failed to retrieve saved job status",
+        500,
+      );
+    }
+  };
+
+  saveJobForCurrentUser = async (
+    req: Request<GetJobSchema["params"]>,
+    res: Response<ApiResponse<void>>,
+  ) => {
+    const jobId = parseInt(req.params.jobId);
+    const userId = req.userId!;
+    try {
+      await this.userService.saveJobForCurrentUser(userId, jobId);
+      return this.sendSuccess(res, null, "Job saved successfully", 200);
+    } catch (error) {
+      if (error instanceof DatabaseError) {
+        if (error.message.includes("does not exist")) {
+          return res.status(404).json({
+            success: false,
+            status: "error",
+            message: `Job with id ${jobId} does not exist.`,
+            error: "NOT_FOUND",
+            timestamp: new Date().toISOString(),
+          });
+        }
+        if (error.message.includes("jobs limit reached")) {
+          return res.status(400).json({
+            success: false,
+            status: "error",
+            message:
+              "You have reached the maximum limit of saved jobs. You can save up to 50 jobs.",
+            error: "BAD_REQUEST",
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+      return this.handleControllerError(
+        res,
+        error,
+        "Failed to retrieve saved jobs",
+        500,
+      );
+    }
+  };
+
+  unsaveJobForCurrentUser = async (
+    req: Request<GetJobSchema["params"]>,
+    res: Response<ApiResponse<void>>,
+  ) => {
+    const jobId = parseInt(req.params.jobId);
+    const userId = req.userId!;
+    try {
+      await this.userService.unsaveJobForCurrentUser(userId, jobId);
+      return this.sendSuccess(res, null, "Job unsaved successfully", 200);
+    } catch (error) {
+      if (
+        error instanceof DatabaseError &&
+        error.message.includes("Failed to unsave job: record not found")
+      ) {
+        return res.status(404).json({
+          success: false,
+          status: "error",
+          message: "Failed to unsave job",
+          error: "NOT_FOUND",
+          timestamp: new Date().toISOString(),
+        });
+      }
+      return this.handleControllerError(
+        res,
+        error,
+        "Failed to unsave job",
+        500,
+      );
+    }
   };
 
   // getUserStats = async (_: Request, res: Response) => {
