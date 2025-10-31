@@ -280,3 +280,14 @@ export const jobSkillsRelations = relations(jobSkills, ({ one }) => ({
 export const skillsRelations = relations(skills, ({ many }) => ({
   jobSkills: many(jobSkills),
 }));
+
+export const savedJobsRelations = relations(savedJobs, ({ one }) => ({
+  user: one(user, {
+    fields: [savedJobs.userId],
+    references: [user.id],
+  }),
+  job: one(jobsDetails, {
+    fields: [savedJobs.jobId],
+    references: [jobsDetails.id],
+  }),
+}));
