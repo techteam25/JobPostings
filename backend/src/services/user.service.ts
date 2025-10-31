@@ -278,21 +278,55 @@ export class UserService extends BaseService {
     }
 
     const userDeleted = await auth.api.deleteUser({
-      body: {
-        token, // Todo: replace currentPassword with actual confirmation token
-      },
+      body: { token },
     });
-
-    // Notification email
-    await this.emailService.sendAccountDeletionConfirmation(
-      user.email,
-      user.fullName,
-    );
 
     if (!userDeleted) {
       return this.handleError(new Error("Failed to delete account"));
     }
 
+    // Notification email
+    await this.emailService.sendAccountDeletionConfirmation(
+      user.email,
+      user.fullName,
+    ); // Todo: This should be queued
+
     return;
+  }
+
+  async getSavedJobsForUser(
+    userId: number,
+    page: number = 1,
+    limit: number = 20,
+  ) {
+    try {
+      return await this.userRepository.getSavedJobsForUser(userId, page, limit);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async saveJobForCurrentUser(userId: number, jobId: number) {
+    try {
+      return await this.userRepository.saveJobForUser(userId, jobId);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async isJobSavedByUser(userId: number, jobId: number) {
+    try {
+      return await this.userRepository.isJobSavedByUser(userId, jobId);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async unsaveJobForCurrentUser(userId: number, jobId: number) {
+    try {
+      return await this.userRepository.unsaveJobForUser(userId, jobId);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 }
