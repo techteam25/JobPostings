@@ -52,7 +52,7 @@ export class JobService extends BaseService {
     try {
       const allJobs = await this.jobRepository.findJobsByEmployer(
         organizationId,
-        { limit: 10000 },
+        { limit: 10 },
       );
       return allJobs.items.filter((job) => job.isActive);
     } catch (error) {
@@ -217,10 +217,10 @@ export class JobService extends BaseService {
       description: updateData.description
         ? SecurityUtils.sanitizeInput(updateData.description)
         : undefined,
-      location: updateData.city
+      city: updateData.city
         ? SecurityUtils.sanitizeInput(updateData.city)
         : undefined,
-      requiredSkills: updateData.state
+      state: updateData.state
         ? this.processSkillsArray(updateData.state)
         : undefined,
     };
@@ -234,7 +234,7 @@ export class JobService extends BaseService {
 
     if (!updatedJob) {
       throw new AppError(
-        "Failed to retrieve created job",
+        "Failed to retrieve updated job",
         500,
         ErrorCode.DATABASE_ERROR,
       );
@@ -404,7 +404,7 @@ export class JobService extends BaseService {
       return this.handleError(new NotFoundError("Application", applicationId));
     }
 
-    // Authorization check - only admin or employer who posted the job can delete
+    // Authorization check - only admin or employer who posted the job can update application status
     const [job, organization] = await Promise.all([
       this.getJobById(application.job.id),
       this.organizationRepository.findByContact(requesterId),
