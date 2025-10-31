@@ -110,6 +110,32 @@ export const jobApplications = mysqlTable(
   ],
 );
 
+export const applicationNotes = mysqlTable(
+  "application_notes",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    applicationId: int("application_id").notNull(),
+    userId: int("user_id").notNull(),
+    note: text("note").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("application_idx").on(table.applicationId),
+    index("user_idx").on(table.userId),
+    foreignKey({
+      columns: [table.applicationId],
+      foreignColumns: [jobApplications.id],
+      name: "fk_note_application",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [user.id],
+      name: "fk_note_user",
+    }).onDelete("cascade"),
+  ],
+);
+
 // Job Statistics table
 export const jobInsights = mysqlTable(
   "job_insights",
@@ -182,13 +208,28 @@ export const jobsRelations = relations(jobsDetails, ({ one, many }) => ({
 
 export const jobApplicationsRelations = relations(
   jobApplications,
-  ({ one }) => ({
+  ({ one, many }) => ({
     job: one(jobsDetails, {
       fields: [jobApplications.jobId],
       references: [jobsDetails.id],
     }),
     applicant: one(user, {
       fields: [jobApplications.applicantId],
+      references: [user.id],
+    }),
+    notes: many(applicationNotes),
+  }),
+);
+
+export const applicationNotesRelations = relations(
+  applicationNotes,
+  ({ one }) => ({
+    application: one(jobApplications, {
+      fields: [applicationNotes.applicationId],
+      references: [jobApplications.id],
+    }),
+    user: one(user, {
+      fields: [applicationNotes.userId],
       references: [user.id],
     }),
   }),

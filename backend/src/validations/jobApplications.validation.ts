@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { createSelectSchema } from "drizzle-zod";
+import { jobApplications } from "@/db/schema";
 
 const jobApplicationPayload = z.object({
   applicationId: z.coerce.number(),
@@ -45,4 +47,21 @@ export const deleteJobApplicationSchema = z.object({
   query: z.object({}).strict(),
 });
 
+export const selectJobApplicationSchema = createSelectSchema(jobApplications)
+  .omit({
+    notes: true,
+  })
+  .extend({
+    notes: z
+      .object({
+        note: z.string(),
+        createdAt: z.date(),
+      })
+      .array(),
+  });
+
 export type GetJobApplicationSchema = z.infer<typeof getJobApplicationSchema>;
+
+export type JobApplicationWithNotes = z.infer<
+  typeof selectJobApplicationSchema
+>;

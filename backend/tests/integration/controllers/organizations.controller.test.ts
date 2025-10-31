@@ -1,12 +1,17 @@
 // noinspection DuplicatedCode
 
-import { request, TestHelpers } from "@tests/utils/testHelpers";
-
+import { sql } from "drizzle-orm";
 import { db } from "@/db/connection";
 import { organizationMembers, organizations, user } from "@/db/schema";
-import { seedOrganizations, seedUser } from "@tests/utils/seed";
+
+import { request, TestHelpers } from "@tests/utils/testHelpers";
+import {
+  seedJobApplications,
+  seedOrganizations,
+  seedUser,
+} from "@tests/utils/seed";
 import { organizationFixture } from "@tests/utils/fixtures";
-import { sql } from "drizzle-orm";
+import { expect } from "vitest";
 
 describe("Organization Controller Integration Tests", async () => {
   const { faker } = await import("@faker-js/faker");
@@ -247,6 +252,215 @@ describe("Organization Controller Integration Tests", async () => {
         "message",
         "Authentication required",
       );
+    });
+  });
+});
+describe("Organization Controller Application Management Integration Tests", () => {
+  let cookie: string;
+  beforeEach(async () => {
+    await seedJobApplications();
+
+    const response = await request.post("/api/auth/sign-in/email").send({
+      email: "org.member@example.com",
+      password: "Password@123",
+    });
+    cookie = response.headers["set-cookie"]![0]!;
+  });
+  describe("GET /organizations/:organizationId/jobs/:jobId/applications", () => {
+    it("should retrieve all job applications for a specific job under an organization returning 200", async () => {
+      const response = await request
+        .get("/api/organizations/1/jobs/1/applications")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job applications retrieved successfully",
+      );
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBeGreaterThan(0);
+    });
+
+    it("should retrieve an empty array when no applications exist for the job returning 200", async () => {
+      const response = await request
+        .get("/api/organizations/1/jobs/999/applications")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job applications retrieved successfully",
+      );
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data).toHaveLength(0);
+    });
+
+    it("should return 403 when organization does not exist", async () => {
+      const response = await request
+        .get("/api/organizations/999/jobs/1/applications")
+        .set("Cookie", cookie);
+
+      // 403 is returned because the user is not a member of the non-existent organization
+      TestHelpers.validateApiResponse(response, 403);
+
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Insufficient permissions",
+      );
+    });
+  });
+  describe("/organizations/:organizationId/jobs/:jobId/applications/:applicationId", () => {
+    it("should retrieve a specific job application under an organization returning 200", async () => {
+      const response = await request
+        .get("/api/organizations/1/jobs/1/applications/1")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job application retrieved successfully",
+      );
+      expect(response.body.data).toHaveProperty("id");
+      expect(response.body.data).toHaveProperty("jobId");
+      expect(response.body.data).toHaveProperty("status");
+    });
+
+    it("should return 404 when job application does not exist", async () => {
+      const response = await request
+        .get("/api/organizations/1/jobs/1/applications/999")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 404);
+
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job application not found",
+      );
+    });
+  });
+  describe('PATCH "/:organizationId/jobs/:jobId/applications/:applicationId/status"', () => {
+    beforeEach(async () => {
+      const response = await request.post("/api/auth/sign-in/email").send({
+        email: "owner.user@example.com",
+        password: "Password@123",
+      });
+      cookie = response.headers["set-cookie"]![0]!;
+    });
+
+    it("should update the status of a job application returning 200", async () => {
+      const response = await request
+        .patch("/api/organizations/1/jobs/1/applications/1/status")
+        .set("Cookie", cookie)
+        .send({ status: "reviewed" });
+
+      console.log(JSON.stringify(response.body, null, 2));
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job application status updated successfully",
+      );
+      expect(response.body.data).toHaveProperty("id", 1);
+      expect(response.body.data).toHaveProperty("status", "reviewed");
+    });
+
+    it("should return 400 when updating with an invalid status", async () => {
+      const response = await request
+        .patch("/api/organizations/1/jobs/1/applications/1/status")
+        .set("Cookie", cookie)
+        .send({ status: "invalid_status" });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.error).toHaveProperty("code", "VALIDATION_ERROR");
+      expect(response.body.error).toHaveProperty(
+        "message",
+        "Request validation failed",
+      );
+    });
+  });
+  describe('POST "/:organizationId/jobs/:jobId/applications/:applicationId/notes"', () => {
+    beforeEach(async () => {
+      const response = await request.post("/api/auth/sign-in/email").send({
+        email: "org.member@example.com",
+        password: "Password@123",
+      });
+      cookie = response.headers["set-cookie"]![0]!;
+    });
+
+    it("should add a note to a job application returning 201", async () => {
+      const response = await request
+        .post("/api/organizations/1/jobs/1/applications/1/notes")
+        .set("Cookie", cookie)
+        .send({ note: "This is a test note." });
+
+      TestHelpers.validateApiResponse(response, 201);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Note added to job application successfully",
+      );
+      expect(response.body.data).toHaveProperty("id");
+      expect(response.body.data).toHaveProperty("notes");
+      expect(Array.isArray(response.body.data.notes)).toBeTruthy();
+      expect(response.body.data.notes[0]).toHaveProperty(
+        "note",
+        "This is a test note.",
+      );
+    });
+
+    it("should return 400 when adding an empty note", async () => {
+      const response = await request
+        .post("/api/organizations/1/jobs/1/applications/1/notes")
+        .set("Cookie", cookie)
+        .send({ note: "" });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.error).toHaveProperty("code", "VALIDATION_ERROR");
+      expect(response.body.error).toHaveProperty(
+        "message",
+        "Request validation failed",
+      );
+    });
+  });
+  describe("GET /:organizationId/jobs/:jobId/applications/:applicationId/notes", () => {
+    it("should retrieve all notes for a job application returning 200", async () => {
+      const response = await request
+        .get("/api/organizations/1/jobs/1/applications/1/notes")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job application notes retrieved successfully",
+      );
+      expect(Array.isArray(response.body.data)).toBe(true);
+    });
+
+    it("should return 404 when job application does not exist", async () => {
+      const response = await request
+        .get("/api/organizations/1/jobs/1/applications/999/notes")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 404);
+
+      expect(response.body).toHaveProperty("success", false);
     });
   });
 });
