@@ -198,23 +198,22 @@ export class AuthMiddleware {
   };
 
   // This will check for 'user' role (i.e., not pure employer)
-  requireUserRole = () => {
-    return async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        if (!req.userId) {
-          return res.status(401).json({
-            success: false,
-            status: "error",
-            error: "UNAUTHORIZED",
-            message: "Authentication required",
-          });
-        }
+  requireUserRole = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.userId) {
+        return res.status(401).json({
+          success: false,
+          status: "error",
+          error: "UNAUTHORIZED",
+          message: "Authentication required",
+        });
+      }
 
-        // Fetch user to check role
-        const userService = new UserService();
-        const userCanSeekJobs = await userService.canSeekJobs(req.userId);
+      // Fetch user to check role
+      const userService = new UserService();
+      const userCanSeekJobs = await userService.canSeekJobs(req.userId);
 
-        /*
+      /*
         Scenario 1: Pure Job Seeker
         Has a record in users ✓
         Has a record in userProfile ✓
@@ -230,28 +229,26 @@ export class AuthMiddleware {
         Has a record in userProfile ✓
         Has record(s) in organizationMembers ✓
          */
-        if (!userCanSeekJobs) {
-          //
-          return res.status(403).json({
-            success: false,
-            status: "error",
-            error: "FORBIDDEN",
-            message: "Insufficient permissions",
-          });
-        }
-
-        return next();
-      } catch (error) {
-        return res.status(500).json({
+      if (!userCanSeekJobs) {
+        //
+        return res.status(403).json({
           success: false,
           status: "error",
-          error: "INTERNAL_SERVER_ERROR",
-          message: "Error checking user permissions",
+          error: "FORBIDDEN",
+          message: "Insufficient permissions",
         });
       }
-    };
-  };
 
+      return next();
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        error: "INTERNAL_SERVER_ERROR",
+        message: "Error checking user permissions",
+      });
+    }
+  };
   requireActiveUser = async (
     req: Request,
     res: Response,
