@@ -7,7 +7,6 @@ import { sql } from "drizzle-orm";
 import { TypesenseService } from "@/services/typesense.service/typesense.service";
 import { waitForJobIndexing } from "@tests/utils/wait-for-jobIndexer";
 import { jobIndexerQueue } from "@/utils/bullmq.utils";
-import logger from "@/logger";
 
 const typesenseService = new TypesenseService();
 
