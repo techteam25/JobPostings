@@ -181,26 +181,26 @@ router.use(authMiddleware.authenticate);
 // User routes (authenticated users)
 router.get(
   "/recommendations/me",
-  authMiddleware.requireUserRole(),
+  authMiddleware.requireUserRole,
   jobController.getRecommendedJobs,
 );
 
 router.get(
   "/applications/my",
-  authMiddleware.requireUserRole(),
+  authMiddleware.requireUserRole,
   jobController.getUserApplications,
 );
 
 router.post(
   "/:jobId/apply",
-  authMiddleware.requireUserRole(),
+  authMiddleware.requireUserRole,
   validate(getJobSchema),
   jobController.applyForJob,
 );
 
 router.patch(
   "/applications/:applicationId/withdraw",
-  authMiddleware.requireUserRole(),
+  authMiddleware.requireUserRole,
   validate(getJobSchema),
   jobController.withdrawApplication,
 );
