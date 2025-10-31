@@ -1,4 +1,4 @@
-import { and, count, eq, like, or, sql, ne } from "drizzle-orm";
+import { and, count, eq, like, or, sql, ne, desc } from "drizzle-orm";
 import {
   certifications,
   educations,
@@ -6,6 +6,8 @@ import {
   userProfile,
   user,
   workExperiences,
+  savedJobs,
+  jobsDetails,
 } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
@@ -470,9 +472,151 @@ export class UserRepository extends BaseRepository<typeof user> {
 
   // Check if user can act as jobseeker
   async canSeekJobs(userId: number): Promise<boolean> {
-    const profile = await db.query.userProfile.findFirst({
-      where: eq(userProfile.userId, userId),
+    return await withDbErrorHandling(async () => {
+      const profile = await db.query.userProfile.findFirst({
+        where: eq(userProfile.userId, userId),
+      });
+      return !!profile;
     });
-    return !!profile;
+  }
+
+  async getSavedJobsForUser(userId: number, page: number, limit: number) {
+    return withDbErrorHandling(async () => {
+      const offset = Math.max(0, (page - 1) * limit);
+      const userSavedJobs = await db.query.savedJobs.findMany({
+        limit,
+        offset,
+        orderBy: [desc(savedJobs.savedAt)],
+        where: eq(savedJobs.userId, userId),
+        columns: {
+          id: true,
+          savedAt: true,
+        },
+        with: {
+          job: {
+            columns: {
+              id: true,
+              title: true,
+              city: true,
+              state: true,
+              country: true,
+              jobType: true,
+              compensationType: true,
+              isRemote: true,
+              isActive: true,
+              applicationDeadline: true,
+            },
+            with: {
+              employer: {
+                columns: {
+                  id: true,
+                  name: true,
+                  logoUrl: true,
+                  url: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const response = userSavedJobs.map((savedJob) => ({
+        ...savedJob,
+        isClosed: savedJob.job.applicationDeadline
+          ? new Date(savedJob.job.applicationDeadline) < new Date()
+          : false,
+        isExpired: !savedJob.job.isActive,
+      }));
+
+      const totalPages = Math.ceil(response.length / limit);
+
+      const hasNext = page < totalPages;
+      const hasPrevious = page > 1;
+      return {
+        items: response,
+        pagination: {
+          page,
+          limit,
+          totalPages,
+          hasNext,
+          hasPrevious,
+          nextPage: hasNext ? page + 1 : null,
+          previousPage: hasPrevious ? page - 1 : null,
+        },
+      };
+    });
+  }
+
+  async saveJobForUser(userId: number, jobId: number) {
+    return withDbErrorHandling(async () => {
+      return await db.transaction(async (tx) => {
+        const savedJobsTotal = await tx.$count(
+          savedJobs,
+          eq(savedJobs.userId, userId),
+        );
+
+        if (savedJobsTotal >= 50) {
+          throw new DatabaseError(
+            "Saved jobs limit reached. You can save up to 50 jobs.",
+          );
+        }
+
+        const jobExists = await tx.query.jobsDetails.findFirst({
+          where: eq(jobsDetails.id, jobId),
+          columns: { id: true },
+        });
+
+        if (!jobExists) {
+          throw new DatabaseError(`Job with id ${jobId} does not exist.`);
+        }
+
+        const [result] = await tx
+          .insert(savedJobs)
+          .values({
+            userId,
+            jobId,
+            savedAt: sql`CURRENT_TIMESTAMP`,
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              savedAt: sql`CURRENT_TIMESTAMP`,
+            },
+          })
+          .$returningId();
+
+        if (!result || isNaN(result.id)) {
+          throw new DatabaseError(`Invalid insertId returned: ${result?.id}`);
+        }
+
+        return { success: true };
+      });
+    });
+  }
+
+  async isJobSavedByUser(userId: number, jobId: number) {
+    return withDbErrorHandling(async () => {
+      const savedJob = await db.query.savedJobs.findFirst({
+        where: and(eq(savedJobs.userId, userId), eq(savedJobs.jobId, jobId)),
+        columns: {
+          id: true,
+        },
+      });
+
+      return !!savedJob;
+    });
+  }
+
+  async unsaveJobForUser(userId: number, jobId: number) {
+    return withDbErrorHandling(async () => {
+      const [deletedResult] = await db
+        .delete(savedJobs)
+        .where(and(eq(savedJobs.userId, userId), eq(savedJobs.jobId, jobId)));
+
+      if (!deletedResult || deletedResult.affectedRows === 0) {
+        throw new DatabaseError("Failed to unsave job: record not found");
+      }
+
+      return { success: true };
+    });
   }
 }
