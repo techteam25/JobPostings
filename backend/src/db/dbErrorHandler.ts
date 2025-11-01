@@ -13,6 +13,7 @@ export const MYSQL_ERROR_MAP: Record<string, string> = {
   ER_ROW_IS_REFERENCED_2: "Cannot delete: record has dependent references",
   ER_CHECK_CONSTRAINT_VIOLATED: "Check constraint failed",
   ER_NO_DEFAULT_FOR_FIELD: "Missing required field without default",
+  ER_NO_SUCH_INDEX: "Index not found",
 
   // Query & syntax
   ER_PARSE_ERROR: "SQL syntax error",
@@ -21,9 +22,12 @@ export const MYSQL_ERROR_MAP: Record<string, string> = {
   ER_TABLE_EXISTS_ERROR: "Table already exists",
   ER_TRUNCATED_WRONG_VALUE_FOR_FIELD: "Invalid value for column",
   ER_WARN_DATA_TRUNCATED: "Data truncated for column",
+  ER_KEY_NOT_FOUND: "Record not found in table",
+  ER_UNKNOWN_COM_ERROR: "Unknown command error",
 
   // Connection & access
   ER_ACCESS_DENIED_ERROR: "Invalid database credentials",
+  ER_NO_DB_ERROR: "No database selected",
   ER_BAD_DB_ERROR: "Database not found",
   ER_CON_COUNT_ERROR: "Too many active connections",
   CR_CONNECTION_ERROR: "Cannot connect to MySQL server",
@@ -50,12 +54,12 @@ export function handleMySqlError(err: any): never {
   const code = err?.code || `ER_${err?.errno}`;
   const friendlyMessage =
     MYSQL_ERROR_MAP[code as keyof typeof MYSQL_ERROR_MAP] ||
-    err?.message ||
+    (err?.message as string) ||
     "Unknown database error";
 
   logger.error({ friendlyMessage, err });
 
-  throw new DatabaseError("Internal Server Error");
+  throw new DatabaseError(friendlyMessage);
 }
 
 /**
@@ -73,6 +77,6 @@ export async function withDbErrorHandling<T>(
     }
 
     logger.error({ err });
-    throw error;
+    throw new DatabaseError("Internal Server Error");
   }
 }
