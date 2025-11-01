@@ -11,6 +11,7 @@ import {
 } from "@/utils/errors";
 import logger from "@/logger";
 import { PaginationMeta } from "@/types";
+import { SearchParams } from "@/validations/base.validation";
 
 export class BaseController {
   private readonly includeStack = process.env.NODE_ENV === "development";
@@ -61,12 +62,11 @@ export class BaseController {
     return res.status(error.statusCode).json(response);
   }
 
-  protected extractPaginationParams(req: Request) {
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(
-      1,
-      Math.max(100, parseInt(req.query.limit as string) || 10),
-    );
+  protected extractPaginationParams(
+    req: Request<{}, {}, {}, Pick<SearchParams["query"], "limit" | "page">>,
+  ) {
+    const page = Math.max(1, req.query.page ?? 1);
+    const limit = Math.min(1, Math.max(10, req.query.limit ?? 10));
 
     return { page, limit };
   }
@@ -119,24 +119,5 @@ export class BaseController {
       true,
       error,
     );
-  }
-
-  protected sanitizeOutput(
-    data: any,
-    fieldsToRemove: string[] = ["passwordHash", "password"],
-  ): any {
-    if (Array.isArray(data)) {
-      return data.map((item) => this.sanitizeOutput(item, fieldsToRemove));
-    }
-
-    if (data && typeof data === "object") {
-      const sanitized = { ...data };
-      fieldsToRemove.forEach((field) => {
-        delete sanitized[field];
-      });
-      return sanitized;
-    }
-
-    return data;
   }
 }
