@@ -434,10 +434,16 @@ router.get(
 // );
 
 // User management routes (admin or self)
-router.get("/:id", validate(getUserSchema), userController.getUserById);
+router.get(
+  "/:id",
+  authMiddleware.requireOwnAccount,
+  validate(getUserSchema),
+  userController.getUserById,
+);
 
 router.put(
   "/:id",
+  authMiddleware.requireOwnAccount,
   validate(updateUserPayloadSchema),
   userController.updateUser,
 );
