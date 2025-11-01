@@ -21,7 +21,7 @@ import {
   DatabaseError,
 } from "@/utils/errors";
 import { SecurityUtils } from "@/utils/security";
-import { AppError, ErrorCode } from "@/utils/errors";
+import { AppError } from "@/utils/errors";
 
 import { SearchParams } from "@/validations/base.validation";
 import { jobIndexerQueue } from "@/utils/bullmq.utils";
@@ -315,8 +315,10 @@ export class JobService extends BaseService {
       }
 
       if (job.value.employerId !== organization.id) {
-        throw new ForbiddenError(
-          "You can only delete jobs posted by your organization",
+        return fail(
+          new ForbiddenError(
+            "You can only delete jobs posted by your organization",
+          ),
         );
       }
 
