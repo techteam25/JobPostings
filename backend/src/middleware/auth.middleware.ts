@@ -8,6 +8,7 @@ import logger from "@/logger";
 import { auth } from "@/utils/auth";
 import { OrganizationService } from "@/services/organization.service";
 import { GetOrganizationSchema } from "@/validations/organization.validation";
+import { GetUserSchema } from "@/validations/user.validation";
 
 export class AuthMiddleware {
   private readonly organizationService: OrganizationService;
@@ -292,6 +293,41 @@ export class AuthMiddleware {
           status: "error",
           error: "FORBIDDEN",
           message: "Insufficient permissions",
+        });
+      }
+
+      return next();
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        error: "INTERNAL_SERVER_ERROR",
+        message: "Error checking user permissions",
+      });
+    }
+  };
+
+  requireOwnAccount = async (
+    req: Request<GetUserSchema["params"]>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      if (!req.userId || !req.params.id) {
+        return res.status(401).json({
+          success: false,
+          status: "error",
+          error: "UNAUTHORIZED",
+          message: "Authentication required",
+        });
+      }
+
+      if (req.userId !== Number(req.params.id)) {
+        return res.status(403).json({
+          success: false,
+          status: "error",
+          error: "FORBIDDEN",
+          message: "You can only access your own account",
         });
       }
 
