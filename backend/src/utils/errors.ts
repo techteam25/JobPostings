@@ -55,7 +55,7 @@ export class ValidationError extends AppError {
 export class NotFoundError extends AppError {
   constructor(resource: string, identifier?: string | number) {
     const message = identifier
-      ? `${resource} with ID ${identifier} not found`
+      ? `${resource} with id ${identifier} does not exist.`
       : `${resource} not found`;
     super(message, 404, ErrorCode.NOT_FOUND);
   }
