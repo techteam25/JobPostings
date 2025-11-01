@@ -1,7 +1,7 @@
 import { JobRepository } from "@/repositories/job.repository";
 import { UserRepository } from "@/repositories/user.repository";
-import { BaseService } from "./base.service";
-import { NotFoundError } from "@/utils/errors";
+import { BaseService, fail, ok, Result } from "./base.service";
+import { DatabaseError, NotFoundError } from "@/utils/errors";
 import { User, UserWithProfile } from "@/validations/userProfile.validation";
 import { Job } from "@/validations/job.validation";
 
@@ -36,7 +36,7 @@ export class JobMatchingService extends BaseService {
       // Get user profile with education, work experience, and certifications
       const user = await this.userRepository.findByIdWithProfile(userId);
       if (!user) {
-        return this.handleError(new NotFoundError("User", userId));
+        return fail(new NotFoundError("User", userId));
       }
 
       // Get user's application history to avoid recommending already applied jobs
@@ -83,7 +83,7 @@ export class JobMatchingService extends BaseService {
       const total = jobScores.length;
       const totalPages = Math.ceil(total / limit);
 
-      return {
+      return ok({
         items: paginatedResults,
         pagination: {
           total,
@@ -95,16 +95,19 @@ export class JobMatchingService extends BaseService {
           nextPage: page < totalPages ? page + 1 : null,
           previousPage: page > 1 ? page - 1 : null,
         },
-      };
+      });
     } catch (error) {
-      this.handleError(error);
+      return fail(new DatabaseError("Failed to get recommended jobs", error));
     }
   }
 
-  async getSimilarJobs(jobId: number, limit: number = 5): Promise<Job[]> {
+  async getSimilarJobs(
+    jobId: number,
+    limit: number = 5,
+  ): Promise<Result<Job[], Error>> {
     const baseJob = await this.jobRepository.findById(jobId);
     if (!baseJob) {
-      return this.handleError(new NotFoundError("Job", jobId));
+      return fail(new NotFoundError("Job", jobId));
     }
 
     // Get all active jobs except the base job
@@ -123,10 +126,12 @@ export class JobMatchingService extends BaseService {
     }));
 
     // Sort by similarity (descending) and return top results
-    return similarityScores
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit)
-      .map((item) => item.job);
+    return ok(
+      similarityScores
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, limit)
+        .map((item) => item.job),
+    );
   }
 
   async findCandidatesForJob(
@@ -138,7 +143,7 @@ export class JobMatchingService extends BaseService {
 
       const job = await this.jobRepository.findById(jobId);
       if (!job) {
-        return this.handleError(new NotFoundError("Job", jobId));
+        return fail(new NotFoundError("Job", jobId));
       }
 
       // Get all active users with user role
@@ -179,7 +184,7 @@ export class JobMatchingService extends BaseService {
       const total = userScores.length;
       const totalPages = Math.ceil(total / limit);
 
-      return {
+      return ok({
         items: paginatedResults,
         pagination: {
           total,
@@ -191,9 +196,9 @@ export class JobMatchingService extends BaseService {
           nextPage: page < totalPages ? page + 1 : null,
           previousPage: page > 1 ? page - 1 : null,
         },
-      };
+      });
     } catch (error) {
-      this.handleError(error);
+      return fail(new DatabaseError("Failed to get recommended jobs", error));
     }
   }
 
