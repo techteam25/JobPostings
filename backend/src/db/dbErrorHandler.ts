@@ -1,5 +1,5 @@
 import logger from "@/logger";
-import { DatabaseError } from "@/utils/errors";
+import { AppError, DatabaseError } from "@/utils/errors";
 
 /**
  * Common MySQL error codes mapped to user-friendly messages.
@@ -59,6 +59,10 @@ export function handleMySqlError(err: any): never {
 
   logger.error({ friendlyMessage, err });
 
+  if (err instanceof AppError) {
+    throw err;
+  }
+
   throw new DatabaseError(friendlyMessage);
 }
 
@@ -77,6 +81,9 @@ export async function withDbErrorHandling<T>(
     }
 
     logger.error({ err });
+    if (err instanceof AppError) {
+      throw err;
+    }
     throw new DatabaseError("Internal Server Error");
   }
 }
