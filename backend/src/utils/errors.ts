@@ -4,34 +4,20 @@ export enum ErrorCode {
   // Authentication & Authorization
   UNAUTHORIZED = "UNAUTHORIZED",
   FORBIDDEN = "FORBIDDEN",
-  TOKEN_EXPIRED = "TOKEN_EXPIRED",
-  INVALID_TOKEN = "INVALID_TOKEN",
-  INVALID_CREDENTIALS = "INVALID_CREDENTIALS",
-  TOO_MANY_REQUESTS = "TOO_MANY_REQUESTS",
 
   // Validation
   VALIDATION_ERROR = "VALIDATION_ERROR",
-  INVALID_INPUT = "INVALID_INPUT",
 
   // Resource Management
   NOT_FOUND = "NOT_FOUND",
-  ALREADY_EXISTS = "ALREADY_EXISTS",
   CONFLICT = "CONFLICT",
 
   // Database
   DATABASE_ERROR = "DATABASE_ERROR",
   FOREIGN_KEY_CONSTRAINT = "FOREIGN_KEY_CONSTRAINT",
-  UNIQUE_CONSTRAINT = "UNIQUE_CONSTRAINT",
-
-  // Business Logic
-  BUSINESS_RULE_VIOLATION = "BUSINESS_RULE_VIOLATION",
-  INSUFFICIENT_PERMISSIONS = "INSUFFICIENT_PERMISSIONS",
-  RESOURCE_LIMIT_EXCEEDED = "RESOURCE_LIMIT_EXCEEDED",
 
   // System
   INTERNAL_ERROR = "INTERNAL_ERROR",
-  SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE",
-  RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED",
 }
 
 export class AppError extends Error {
@@ -90,12 +76,6 @@ export class ForbiddenError extends AppError {
 export class ConflictError extends AppError {
   constructor(message: string, details?: any) {
     super(message, 409, ErrorCode.CONFLICT, true, details);
-  }
-}
-
-export class TooManyRequestsError extends AppError {
-  constructor(message: string = "Too many requests", originalError?: any) {
-    super(message, 429, ErrorCode.TOO_MANY_REQUESTS, true, originalError);
   }
 }
 
