@@ -2,12 +2,6 @@ import { Request, Response } from "express";
 import { UserService } from "@/services/user.service";
 import { BaseController } from "./base.controller";
 import {
-  ValidationError,
-  NotFoundError,
-  ForbiddenError,
-  DatabaseError,
-} from "@/utils/errors";
-import {
   ChangePasswordSchema,
   CreateUserProfile,
   GetUserSchema,
@@ -27,6 +21,7 @@ import {
   UserWithProfile,
 } from "@/validations/userProfile.validation";
 import { GetJobSchema } from "@/validations/job.validation";
+import { ChangeUserPasswordResponseSchema } from "@/validations/auth.validation";
 
 export class UserController extends BaseController {
   private userService: UserService;
@@ -40,23 +35,21 @@ export class UserController extends BaseController {
     req: Request<{}, {}, {}, UserQuerySchema["query"]>,
     res: Response,
   ) => {
-    try {
-      const { page, limit, searchTerm } = req.query;
+    const { searchTerm } = req.query;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
 
-      const result = await this.userService.getAllUsers({
-        page,
-        limit,
-        searchTerm,
-      });
+    const result = await this.userService.getAllUsers(searchTerm, page, limit);
 
-      this.sendPaginatedResponse(
+    if (result.isSuccess) {
+      return this.sendPaginatedResponse(
         res,
-        result.items,
-        result.pagination,
+        result.value.items,
+        result.value.pagination,
         "Users retrieved successfully",
       );
-    } catch (error) {
-      this.handleControllerError(res, error, "Failed to retrieve users", 500);
+    } else {
+      return this.handleControllerError(res, result.error);
     }
   };
 
@@ -66,15 +59,17 @@ export class UserController extends BaseController {
   ) => {
     const id = Number(req.params.id);
 
-    const user = await this.userService.getUserById(id);
-    if (!user) {
-      return this.handleControllerError(
-        res,
-        new NotFoundError("User not found"),
-      );
-    }
+    const result = await this.userService.getUserById(id);
 
-    return this.sendSuccess<User>(res, user, "User retrieved successfully");
+    if (result.isSuccess) {
+      return this.sendSuccess<User>(
+        res,
+        result.value,
+        "User retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
   };
 
   updateUser = async (
@@ -82,71 +77,36 @@ export class UserController extends BaseController {
     res: Response,
   ) => {
     const id = Number(req.params.id);
-    if (!id) {
-      return this.handleControllerError(
-        res,
-        new NotFoundError("User not found"),
-      );
-    }
-
-    if (!req.user) {
-      return this.handleControllerError(
-        res,
-        new ValidationError("User not authenticated"),
-      );
-    }
-
-    if (req.user.id !== id) {
-      return this.handleControllerError(
-        res,
-        new ForbiddenError("You can only update your own account"),
-      );
-    }
 
     const updateData = req.body;
     const user = await this.userService.updateUser(id, updateData);
 
-    return this.sendSuccess<User>(res, user, "User updated successfully");
+    if (user.isSuccess) {
+      return this.sendSuccess<User>(
+        res,
+        user.value,
+        "User updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, user.error);
+    }
   };
 
   createProfile = async (
     req: Request<{}, {}, CreateUserProfile["body"]>,
     res: Response<ApiResponse<UserProfile>>,
   ) => {
-    try {
-      const profileData = req.body;
+    const profileData = req.body;
 
-      const profile = await this.userService.createUserProfile(
-        req.userId!,
-        profileData,
-      );
+    const profile = await this.userService.createUserProfile(
+      req.userId!,
+      profileData,
+    );
 
-      if (!profile) {
-        return res.status(400).json({
-          success: false,
-          status: "error",
-          message: "Failed to create user profile",
-          error: "INTERNAL_SERVER_ERROR",
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      // console.log({ profile });
-
-      return res.status(201).json({
-        success: true,
-        data: profile,
-        message: "User profile created",
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        status: "error",
-        message: "Failed to create user profile",
-        error: error instanceof Error ? error.message : "INTERNAL_SERVER_ERROR",
-        timestamp: new Date().toISOString(),
-      });
+    if (profile.isSuccess) {
+      return this.sendSuccess(res, profile.value, "User profile created", 201);
+    } else {
+      return this.handleControllerError(res, profile.error);
     }
   };
 
@@ -154,38 +114,20 @@ export class UserController extends BaseController {
     req: Request<{}, {}, UpdateUserProfile>,
     res: Response<ApiResponse<UserWithProfile>>,
   ) => {
-    try {
-      const profileData = req.body;
-      const user = await this.userService.updateUserProfile(
-        req.userId!,
-        profileData,
+    const profileData = req.body;
+    const user = await this.userService.updateUserProfile(
+      req.userId!,
+      profileData,
+    );
+
+    if (user.isSuccess) {
+      return this.sendSuccess<UserWithProfile>(
+        res,
+        user.value,
+        "User profile updated successfully",
       );
-
-      if (!user) {
-        return res.status(400).json({
-          success: false,
-          status: "error",
-          message: "Failed to update user profile",
-          error: "INTERNAL_SERVER_ERROR",
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      return res.json({
-        success: true,
-        data: user,
-        message: "User profile updated",
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      // console.log({ error });
-      return res.status(500).json({
-        success: false,
-        status: "error",
-        message: "Failed to update user profile",
-        error: error instanceof Error ? error.message : "INTERNAL_SERVER_ERROR",
-        timestamp: new Date().toISOString(),
-      });
+    } else {
+      return this.handleControllerError(res, user.error);
     }
   };
 
@@ -193,62 +135,54 @@ export class UserController extends BaseController {
     req: Request<{}, {}, ChangePasswordSchema["body"]>,
     res: Response,
   ) => {
-    if (!req.userId) {
-      return this.handleControllerError(
-        res,
-        new ValidationError("User not authenticated"),
-      );
-    }
-
     const { currentPassword, newPassword } = req.body;
 
     const result = await this.userService.changePassword(
-      req.userId,
+      req.userId!,
       currentPassword,
       newPassword,
     );
 
-    return this.sendSuccess(res, result, "Password changed successfully");
+    if (result.isSuccess) {
+      return this.sendSuccess<ChangeUserPasswordResponseSchema>(
+        res,
+        result.value,
+        "Password changed successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
   };
 
   getCurrentUser = async (
     req: Request,
     res: Response<ApiResponse<UserWithProfile>>,
   ) => {
-    if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        status: "error",
-        message: "User not authenticated",
-        error: "UNAUTHORIZED",
-        timestamp: new Date().toISOString(),
-      });
+    const user = await this.userService.getUserById(req.userId!);
+
+    if (user.isSuccess) {
+      return this.sendSuccess<UserWithProfile>(
+        res,
+        user.value,
+        "Current user retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, user.error);
     }
-
-    const user = await this.userService.getUserById(req.userId);
-
-    return res.json({
-      success: true,
-      data: user,
-      message: "Current user retrieved successfully",
-      timestamp: new Date().toISOString(),
-    });
   };
 
   deactivateSelf = async (req: Request, res: Response) => {
-    if (!req.userId) {
-      return this.handleControllerError(
-        res,
-        new ValidationError("User not authenticated"),
-      );
-    }
+    const result = await this.userService.deactivateSelf(req.userId!);
 
-    const result = await this.userService.deactivateSelf(req.userId);
-    return this.sendSuccess<User>(
-      res,
-      result,
-      "Account deactivated successfully",
-    );
+    if (result.isSuccess) {
+      return this.sendSuccess<User>(
+        res,
+        result.value,
+        "Account deactivated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
   };
 
   deactivateUser = async (
@@ -257,12 +191,17 @@ export class UserController extends BaseController {
   ) => {
     const id = Number(req.params.id);
 
-    const result = await this.userService.deactivateUser(id, req.user!.id);
-    return this.sendSuccess<UserWithProfile>(
-      res,
-      result,
-      "User deactivated successfully",
-    );
+    const result = await this.userService.deactivateUser(id, req.userId!);
+
+    if (result.isSuccess) {
+      return this.sendSuccess<UserWithProfile>(
+        res,
+        result.value,
+        "User deactivated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
   };
 
   activateUser = async (
@@ -272,29 +211,34 @@ export class UserController extends BaseController {
     const id = Number(req.params.id);
 
     const result = await this.userService.activateUser(id);
-    return this.sendSuccess<UserWithProfile>(
-      res,
-      result,
-      "User activated successfully",
-    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<UserWithProfile>(
+        res,
+        result.value,
+        "User activated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
   };
 
   deleteSelf = async (
     req: Request<{}, {}, DeleteSelfSchema["body"]>,
     res: Response,
   ) => {
-    if (!req.userId) {
-      return this.handleControllerError(
-        res,
-        new ValidationError("User not authenticated"),
-      );
-    }
-
     const { currentPassword } = req.body;
 
-    await this.userService.deleteSelf(req.userId, currentPassword); // Todo: replace currentPassword with actual confirmation token
+    const result = await this.userService.deleteSelf(
+      req.userId!,
+      currentPassword,
+    ); // Todo: replace currentPassword with actual confirmation token
 
-    return this.sendSuccess(res, null, "Account deleted successfully", 204);
+    if (result.isSuccess) {
+      return this.sendSuccess(res, null, "Account deleted successfully", 204);
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
   };
 
   deleteUser = async (
@@ -302,13 +246,6 @@ export class UserController extends BaseController {
     res: Response,
   ) => {
     const { token } = req.body;
-
-    if (!req.user) {
-      return this.handleControllerError(
-        res,
-        new ValidationError("User not authenticated"),
-      );
-    }
 
     // Todo:
     //  This is an admin only action, can admins delete user?
@@ -323,29 +260,26 @@ export class UserController extends BaseController {
   };
 
   getSavedJobsForCurrentUser = async (
-    req: Request<SavedJobsQuerySchema["query"]>,
+    req: Request<{}, {}, {}, SavedJobsQuerySchema["query"]>,
     res: Response<ApiResponse<SavedJobs>>,
   ) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
-    try {
-      const savedJobs = await this.userService.getSavedJobsForUser(
-        req.userId!,
-        page,
-        limit,
-      );
+
+    const savedJobs = await this.userService.getSavedJobsForUser(
+      req.userId!,
+      page,
+      limit,
+    );
+
+    if (savedJobs.isSuccess) {
       return this.sendSuccess<SavedJobs>(
         res,
-        savedJobs,
+        savedJobs.value,
         "Saved jobs retrieved successfully",
       );
-    } catch (error) {
-      return this.handleControllerError(
-        res,
-        error,
-        "Failed to retrieve saved jobs",
-        500,
-      );
+    } else {
+      return this.handleControllerError(res, savedJobs.error);
     }
   };
 
@@ -355,20 +289,17 @@ export class UserController extends BaseController {
   ) => {
     const jobId = parseInt(req.params.jobId);
     const userId = req.userId!;
-    try {
-      const isSaved = await this.userService.isJobSavedByUser(userId, jobId);
+
+    const isSaved = await this.userService.isJobSavedByUser(userId, jobId);
+
+    if (isSaved.isSuccess) {
       return this.sendSuccess<{ isSaved: boolean }>(
         res,
-        { isSaved },
+        { isSaved: isSaved.value },
         "Job saved status retrieved successfully",
       );
-    } catch (error) {
-      return this.handleControllerError(
-        res,
-        error,
-        "Failed to retrieve saved job status",
-        500,
-      );
+    } else {
+      return this.handleControllerError(res, isSaved.error);
     }
   };
 
@@ -378,37 +309,14 @@ export class UserController extends BaseController {
   ) => {
     const jobId = parseInt(req.params.jobId);
     const userId = req.userId!;
-    try {
-      await this.userService.saveJobForCurrentUser(userId, jobId);
+
+    const result = await this.userService.saveJobForCurrentUser(userId, jobId);
+
+    if (result.isSuccess) {
       return this.sendSuccess(res, null, "Job saved successfully", 200);
-    } catch (error) {
-      if (error instanceof DatabaseError) {
-        if (error.message.includes("does not exist")) {
-          return res.status(404).json({
-            success: false,
-            status: "error",
-            message: `Job with id ${jobId} does not exist.`,
-            error: "NOT_FOUND",
-            timestamp: new Date().toISOString(),
-          });
-        }
-        if (error.message.includes("jobs limit reached")) {
-          return res.status(400).json({
-            success: false,
-            status: "error",
-            message:
-              "You have reached the maximum limit of saved jobs. You can save up to 50 jobs.",
-            error: "BAD_REQUEST",
-            timestamp: new Date().toISOString(),
-          });
-        }
-      }
-      return this.handleControllerError(
-        res,
-        error,
-        "Failed to retrieve saved jobs",
-        500,
-      );
+    } else {
+      // console.log("Error saving job:", result.error);
+      return this.handleControllerError(res, result.error);
     }
   };
 
@@ -418,28 +326,16 @@ export class UserController extends BaseController {
   ) => {
     const jobId = parseInt(req.params.jobId);
     const userId = req.userId!;
-    try {
-      await this.userService.unsaveJobForCurrentUser(userId, jobId);
+
+    const result = await this.userService.unsaveJobForCurrentUser(
+      userId,
+      jobId,
+    );
+
+    if (result.isSuccess) {
       return this.sendSuccess(res, null, "Job unsaved successfully", 200);
-    } catch (error) {
-      if (
-        error instanceof DatabaseError &&
-        error.message.includes("Failed to unsave job: record not found")
-      ) {
-        return res.status(404).json({
-          success: false,
-          status: "error",
-          message: "Failed to unsave job",
-          error: "NOT_FOUND",
-          timestamp: new Date().toISOString(),
-        });
-      }
-      return this.handleControllerError(
-        res,
-        error,
-        "Failed to unsave job",
-        500,
-      );
+    } else {
+      return this.handleControllerError(res, result.error);
     }
   };
 
