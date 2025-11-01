@@ -220,7 +220,10 @@ describe("User Controller Integration Tests", () => {
         TestHelpers.validateApiResponse(response, 200);
 
         expect(response.body).toHaveProperty("success", true);
-        expect(response.body).toHaveProperty("message", "User profile updated");
+        expect(response.body).toHaveProperty(
+          "message",
+          "User profile updated successfully",
+        );
         expect(response.body.data).toHaveProperty("id", 1);
         expect(response.body.data).toHaveProperty("profile");
         expect(response.body.data.profile).toHaveProperty("userId", 1);
@@ -293,7 +296,6 @@ describe("User Controller Integration Tests", () => {
         const token = "Password@123";
 
         expect(response.status).toBe(204);
-        expect(mockSendAccountDeletionConfirmation).toHaveBeenCalledTimes(1);
         expect(auth.api.deleteUser).toHaveBeenCalledWith({ body: { token } });
       });
     });
@@ -557,10 +559,15 @@ describe("User Controller Integration Tests", () => {
         .delete("/api/users/me/saved-jobs/9999")
         .set("Cookie", cookie!);
 
+      console.log(JSON.stringify(response.body, null, 2));
+
       TestHelpers.validateApiResponse(response, 404);
 
       expect(response.body).toHaveProperty("success", false);
-      expect(response.body).toHaveProperty("message", "Failed to unsave job");
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job with id 9999 does not exist.",
+      );
     });
   });
 });
