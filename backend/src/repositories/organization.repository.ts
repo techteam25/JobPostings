@@ -1,16 +1,17 @@
-import { and, count, eq, inArray, like, or } from "drizzle-orm";
+import { and, eq, inArray, like, or } from "drizzle-orm";
 import {
   applicationNotes,
   jobApplications,
   jobsDetails,
   organizationMembers,
   organizations,
+  user,
 } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
 import { calculatePagination } from "@/db/utils";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
-import { DatabaseError } from "@/utils/errors";
+import { DatabaseError, NotFoundError } from "@/utils/errors";
 import {
   NewJobApplicationNote,
   NewOrganization,
@@ -57,12 +58,9 @@ export class OrganizationRepository extends BaseRepository<
             .limit(limit)
             .offset(offset);
 
-          const [total] = await tx
-            .select({ count: count() })
-            .from(organizations)
-            .where(searchCondition);
+          const total = await tx.$count(organizations, searchCondition);
 
-          return [items, total?.count || 0];
+          return [items, total];
         }),
     );
     const pagination = calculatePagination(total, page, limit);
@@ -71,86 +69,95 @@ export class OrganizationRepository extends BaseRepository<
   }
 
   async createOrganization(data: NewOrganization, sessionUserId: number) {
-    try {
-      return await withDbErrorHandling(
-        async () =>
-          await db.transaction(async (tx) => {
-            const [orgId] = await tx
-              .insert(organizations)
-              .values(data)
-              .$returningId();
-
-            if (!orgId) {
-              throw new Error("Failed to create and retrieve organization ID");
-            }
-
-            // Add the creating user as the organization owner
-            await tx
-              .insert(organizationMembers)
-              .values({
-                organizationId: orgId.id,
-                role: "owner",
-                isActive: true,
-                userId: sessionUserId,
-              })
-              .onDuplicateKeyUpdate({
-                set: {
-                  role: "owner",
-                  isActive: true,
-                  organizationId: orgId.id,
-                  userId: sessionUserId,
-                },
-              });
-
-            return await tx.query.organizations.findFirst({
-              where: eq(organizations.id, orgId.id),
-              with: {
-                members: true,
-              },
-            });
-          }),
-      );
-    } catch (error) {
-      throw new DatabaseError(`Failed to create ${this.resourceName}`, error);
-    }
-  }
-
-  async findByContact(contactId: number) {
     return await withDbErrorHandling(
       async () =>
-        await db.query.organizationMembers.findFirst({
-          where: eq(organizationMembers.userId, contactId),
-          with: {
-            user: {
-              columns: {
-                id: true,
-                fullName: true,
-                email: true,
-                emailVerified: true,
-                status: true,
+        await db.transaction(async (tx) => {
+          const [orgId] = await tx
+            .insert(organizations)
+            .values(data)
+            .$returningId();
+
+          if (!orgId) {
+            throw new DatabaseError("Create organization failed");
+          }
+
+          // Add the creating user as the organization owner
+          await tx
+            .insert(organizationMembers)
+            .values({
+              organizationId: orgId.id,
+              role: "owner",
+              isActive: true,
+              userId: sessionUserId,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                role: "owner",
+                isActive: true,
+                organizationId: orgId.id,
+                userId: sessionUserId,
               },
+            });
+
+          const organization = await tx.query.organizations.findFirst({
+            where: eq(organizations.id, orgId.id),
+            with: {
+              members: true,
             },
-          },
+          });
+
+          if (!organization) {
+            throw new DatabaseError("Failed to retrieve created organization");
+          }
+
+          return organization;
         }),
     );
   }
 
-  async canPostJobs(userId: number): Promise<boolean> {
-    const memberships = await db.query.organizationMembers.findMany({
-      where: and(
-        eq(organizationMembers.userId, userId),
-        eq(organizationMembers.isActive, true),
-      ),
-      with: {
-        organization: true,
-      },
-    });
+  async findByContact(contactId: number) {
+    return await withDbErrorHandling(async () => {
+      const orgMember = await db.query.organizationMembers.findFirst({
+        where: eq(organizationMembers.userId, contactId),
+        with: {
+          user: {
+            columns: {
+              id: true,
+              fullName: true,
+              email: true,
+              emailVerified: true,
+              status: true,
+            },
+          },
+        },
+      });
 
-    return memberships.some(
-      (m) =>
-        ["active", "trial"].includes(m.organization?.subscriptionStatus) &&
-        ["owner", "admin", "recruiter"].includes(m.role),
-    );
+      if (!orgMember) {
+        throw new NotFoundError("Organization", contactId);
+      }
+
+      return orgMember;
+    });
+  }
+
+  async canPostJobs(userId: number): Promise<boolean> {
+    return withDbErrorHandling(async () => {
+      const memberships = await db.query.organizationMembers.findMany({
+        where: and(
+          eq(organizationMembers.userId, userId),
+          eq(organizationMembers.isActive, true),
+        ),
+        with: {
+          organization: true,
+        },
+      });
+
+      return memberships.some(
+        (m) =>
+          ["active", "trial"].includes(m.organization?.subscriptionStatus) &&
+          ["owner", "admin", "recruiter"].includes(m.role),
+      );
+    });
   }
 
   async canRejectJobApplications(
@@ -179,30 +186,35 @@ export class OrganizationRepository extends BaseRepository<
     userId: number,
     roles: ("owner" | "admin" | "recruiter" | "member")[],
   ): Promise<boolean> {
-    return await db
-      .select({ exists: organizationMembers.id })
-      .from(organizationMembers)
-      .where(
-        and(
-          eq(organizationMembers.userId, userId),
-          eq(organizationMembers.isActive, true),
-          inArray(organizationMembers.role, roles),
-        ),
-      )
-      .limit(1)
-      .then((result) => result.length > 0);
+    return withDbErrorHandling(
+      async () =>
+        await db
+          .select({ exists: organizationMembers.id })
+          .from(organizationMembers)
+          .where(
+            and(
+              eq(organizationMembers.userId, userId),
+              eq(organizationMembers.isActive, true),
+              inArray(organizationMembers.role, roles),
+            ),
+          )
+          .limit(1)
+          .then((result) => result.length > 0),
+    );
   }
 
   // Get user's active organizations
   async getUserOrganizations(userId: number) {
-    return db.query.organizationMembers.findMany({
-      where: and(
-        eq(organizationMembers.userId, userId),
-        eq(organizationMembers.isActive, true),
-      ),
-      with: {
-        organization: true,
-      },
+    return withDbErrorHandling(async () => {
+      return await db.query.organizationMembers.findMany({
+        where: and(
+          eq(organizationMembers.userId, userId),
+          eq(organizationMembers.isActive, true),
+        ),
+        with: {
+          organization: true,
+        },
+      });
     });
   }
 
@@ -210,26 +222,24 @@ export class OrganizationRepository extends BaseRepository<
     organizationId: number,
     role: "owner" | "admin" | "recruiter",
   ) {
-    try {
-      return await withDbErrorHandling(
-        async () =>
-          await db.query.organizationMembers.findMany({
-            where: and(
+    return await withDbErrorHandling(
+      async () =>
+        await db
+          .select()
+          .from(organizationMembers)
+          .innerJoin(user, eq(organizationMembers.userId, user.id))
+          .innerJoin(
+            organizations,
+            eq(organizationMembers.organizationId, organizations.id),
+          )
+          .where(
+            and(
               eq(organizationMembers.organizationId, organizationId),
               eq(organizationMembers.role, role),
+              eq(user.status, "active"),
             ),
-            with: {
-              user: true,
-              organization: true,
-            },
-          }), // Filter active
-      );
-    } catch (error) {
-      throw new DatabaseError(
-        `Failed to fetch users by role: ${role}`,
-        error instanceof Error ? error : undefined,
-      );
-    }
+          ),
+    );
   }
 
   private async getJobApplicationWithDetails(
@@ -289,7 +299,7 @@ export class OrganizationRepository extends BaseRepository<
       );
 
       if (!application) {
-        throw new DatabaseError("Job application not found for organization");
+        throw new NotFoundError("jobApplications", applicationId);
       }
 
       return application;
@@ -320,9 +330,7 @@ export class OrganizationRepository extends BaseRepository<
         );
 
         if (application.length === 0) {
-          throw new DatabaseError(
-            "No job application found for the given organization",
-          );
+          throw new NotFoundError("jobApplications", applicationId);
         }
 
         // Update the status
@@ -344,7 +352,7 @@ export class OrganizationRepository extends BaseRepository<
         );
 
         if (!updatedApp) {
-          throw new DatabaseError("Job application not found for organization");
+          throw new DatabaseError("Failed to retrieve updated job application");
         }
 
         return updatedApp;
@@ -388,7 +396,7 @@ export class OrganizationRepository extends BaseRepository<
 
           if (!applicationWithNotes) {
             throw new DatabaseError(
-              "Job application not found for notes retrieval",
+              "Failed to retrieve job application after adding note",
             );
           }
 
@@ -403,27 +411,9 @@ export class OrganizationRepository extends BaseRepository<
     );
   }
 
-  getNotesForJobApplication(
-    organizationId: number,
-    jobId: number,
-    applicationId: number,
-  ) {
+  getNotesForJobApplication(applicationId: number) {
     return withDbErrorHandling(async () => {
       return await db.transaction(async (tx) => {
-        // Verify application exists for the organization
-        const application = await this.fetchJobApplication(
-          tx,
-          applicationId,
-          jobId,
-          organizationId,
-        );
-
-        if (application.length === 0) {
-          throw new DatabaseError(
-            "No job application found for the given organization",
-          );
-        }
-
         // Fetch notes for the application
         const applicationWithNotes = await tx.query.jobApplications.findFirst({
           where: eq(jobApplications.id, applicationId),
@@ -439,7 +429,7 @@ export class OrganizationRepository extends BaseRepository<
         });
 
         if (!applicationWithNotes) {
-          throw new DatabaseError("Job application does not have any notes");
+          throw new NotFoundError("No notes found for job application");
         }
 
         return applicationWithNotes.notes.map((n) => ({
@@ -483,7 +473,7 @@ export class OrganizationRepository extends BaseRepository<
           .limit(1);
 
         if (org.length === 0) {
-          throw new DatabaseError("Organization not found");
+          throw new NotFoundError("Organization", organizationId);
         }
 
         // Verify job exists for the organization
