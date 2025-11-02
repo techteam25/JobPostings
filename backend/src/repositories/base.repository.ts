@@ -1,7 +1,7 @@
 import { eq, desc } from "drizzle-orm";
 import { MySqlTable, MySqlColumn } from "drizzle-orm/mysql-core";
 import { db } from "@/db/connection";
-import { DatabaseError } from "@/utils/errors";
+import { DatabaseError, NotFoundError } from "@/utils/errors";
 import { calculatePagination } from "@/db/utils";
 import { PaginationMeta } from "@/types";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
@@ -42,7 +42,7 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
     );
 
     if (!result || result.length === 0) {
-      throw new DatabaseError(`Failed to find ${this.resourceName} by Id`);
+      throw new NotFoundError(`${this.resourceName}`, id);
     }
 
     return result;
@@ -90,8 +90,8 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
           .where(eq(this.table.id, id)),
     );
 
-    if (!result || result.affectedRows === 0) {
-      throw new DatabaseError(`Failed to update ${this.resourceName}`);
+    if (!result) {
+      return false;
     }
 
     return result.affectedRows > 0;
@@ -102,8 +102,8 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
       async () => await db.delete(this.table).where(eq(this.table.id, id)),
     );
 
-    if (!result || result.affectedRows === 0) {
-      throw new DatabaseError(`Failed to delete ${this.resourceName}`);
+    if (!result) {
+      return false;
     }
 
     return result.affectedRows > 0;
