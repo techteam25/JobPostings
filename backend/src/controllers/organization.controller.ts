@@ -19,7 +19,6 @@ import {
   OrganizationMember,
 } from "@/validations/organization.validation";
 import { JobApplicationWithNotes } from "@/validations/jobApplications.validation";
-import { DatabaseError } from "@/utils/errors";
 
 export class OrganizationController extends BaseController {
   private organizationService: OrganizationService;
@@ -31,33 +30,27 @@ export class OrganizationController extends BaseController {
 
   getAllOrganizations = async (
     req: Request,
-    res: Response<PaginatedResponse<Organization[]>>,
+    res: Response<PaginatedResponse<Organization>>,
   ) => {
-    try {
-      const { page, limit, search } = req.query;
-      const options = {
-        page: page ? parseInt(page as string) : undefined,
-        limit: limit ? parseInt(limit as string) : undefined,
-        searchTerm: search as string,
-      };
+    const { page, limit, search } = req.query;
+    const options = {
+      page: page ? parseInt(page as string) : undefined,
+      limit: limit ? parseInt(limit as string) : undefined,
+      searchTerm: search as string,
+    };
 
-      const { items, pagination } =
-        await this.organizationService.getAllOrganizations(options);
+    const result = await this.organizationService.getAllOrganizations(options);
 
-      return res.json({
-        success: true,
-        message: "Organizations retrieved successfully",
-        data: items,
+    if (result.isSuccess) {
+      const { items, pagination } = result.value;
+      return this.sendPaginatedResponse<Organization>(
+        res,
+        items,
         pagination,
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        status: "error",
-        message: "Failed to retrieve organizations",
-        error: (error as Error).message,
-        timestamp: new Date().toISOString(),
-      });
+        "Organizations retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
     }
   };
 
@@ -65,25 +58,17 @@ export class OrganizationController extends BaseController {
     req: Request<GetOrganizationSchema["params"]>,
     res: Response<ApiResponse<Organization>>,
   ) => {
-    try {
-      const id = parseInt(req.params.organizationId);
-      const organization =
-        await this.organizationService.getOrganizationById(id);
+    const id = parseInt(req.params.organizationId);
+    const organization = await this.organizationService.getOrganizationById(id);
 
-      return res.json({
-        success: true,
-        message: "Organization retrieved successfully",
-        data: organization,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        status: "error",
-        message: "Failed to retrieve organization",
-        error: (error as Error).message,
-        timestamp: new Date().toISOString(),
-      });
+    if (organization.isSuccess) {
+      return this.sendSuccess<Organization>(
+        res,
+        organization.value,
+        "Organization retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, organization.error);
     }
   };
 
@@ -93,28 +78,22 @@ export class OrganizationController extends BaseController {
       ApiResponse<Organization & { members: OrganizationMember[] }>
     >,
   ) => {
-    try {
-      const organizationData = req.body;
-      const userId = req.userId;
-      const organization = await this.organizationService.createOrganization(
-        organizationData,
-        userId!,
-      );
+    const organizationData = req.body;
+    const userId = req.userId;
+    const organization = await this.organizationService.createOrganization(
+      organizationData,
+      userId!,
+    );
 
-      return res.status(201).json({
-        success: true,
-        message: "Organization created successfully",
-        data: organization,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        status: "error",
-        message: "Failed to create organization",
-        error: (error as Error).message,
-        timestamp: new Date().toISOString(),
-      });
+    if (organization.isSuccess) {
+      return this.sendSuccess<Organization & { members: OrganizationMember[] }>(
+        res,
+        organization.value,
+        "Organization created successfully",
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, organization.error);
     }
   };
 
@@ -126,37 +105,21 @@ export class OrganizationController extends BaseController {
     >,
     res: Response<ApiResponse<Organization>>,
   ) => {
-    try {
-      const id = parseInt(req.params.organizationId);
-      const updateData = req.body;
-      const organization = await this.organizationService.updateOrganization(
-        id,
-        updateData,
+    const id = parseInt(req.params.organizationId);
+    const updateData = req.body;
+    const organization = await this.organizationService.updateOrganization(
+      id,
+      updateData,
+    );
+
+    if (organization.isSuccess) {
+      return this.sendSuccess<Organization>(
+        res,
+        organization.value,
+        "Organization updated successfully",
       );
-
-      if (!organization) {
-        return res.status(400).json({
-          success: false,
-          status: "error",
-          message: "Failed to update organization",
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      return res.json({
-        success: true,
-        message: "Organization updated successfully",
-        data: organization,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        status: "error",
-        message: "Failed to update organization",
-        error: (error as Error).message,
-        timestamp: new Date().toISOString(),
-      });
+    } else {
+      return this.handleControllerError(res, organization.error);
     }
   };
 
@@ -164,22 +127,13 @@ export class OrganizationController extends BaseController {
     req: Request<DeleteOrganizationSchema["params"]>,
     res: Response<ApiResponse<void>>,
   ) => {
-    try {
-      const id = parseInt(req.params.organizationId);
-      const result = await this.organizationService.deleteOrganization(id);
-      return res.json({
-        success: true,
-        message: result.message,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: "Failed to delete organization",
-        status: "error",
-        error: (error as Error).message,
-        timestamp: new Date().toISOString(),
-      });
+    const id = parseInt(req.params.organizationId);
+    const result = await this.organizationService.deleteOrganization(id);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, null, result.value.message, 204);
+    } else {
+      return this.handleControllerError(res, result.error);
     }
   };
 
@@ -192,40 +146,21 @@ export class OrganizationController extends BaseController {
     const applicationId = parseInt(req.params.applicationId);
     const jobId = parseInt(req.params.jobId);
 
-    try {
-      const application =
-        await this.organizationService.getJobApplicationForOrganization(
-          organizationId,
-          jobId,
-          applicationId,
-        );
+    const application =
+      await this.organizationService.getJobApplicationForOrganization(
+        organizationId,
+        jobId,
+        applicationId,
+      );
 
-      return res.json({
-        success: true,
-        message: "Job application retrieved successfully",
-        data: application,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      if (
-        error instanceof DatabaseError &&
-        error.message === "Job application not found for organization"
-      ) {
-        return res.status(404).json({
-          success: false,
-          status: "error",
-          message: "Job application not found",
-          error: "NOT_FOUND",
-          timestamp: new Date().toISOString(),
-        });
-      }
-      return res.status(500).json({
-        success: false,
-        status: "error",
-        message: "Failed to retrieve job application",
-        error: (error as Error).message,
-        timestamp: new Date().toISOString(),
-      });
+    if (application.isSuccess) {
+      return this.sendSuccess<OrganizationJobApplicationsResponse>(
+        res,
+        application.value,
+        "Job application retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, application.error);
     }
   };
 
@@ -241,29 +176,22 @@ export class OrganizationController extends BaseController {
     const applicationId = parseInt(req.params.applicationId);
     const jobId = parseInt(req.params.jobId);
 
-    try {
-      const application =
-        await this.organizationService.updateJobApplicationStatus(
-          organizationId,
-          jobId,
-          applicationId,
-          req.body.status,
-        );
+    const application =
+      await this.organizationService.updateJobApplicationStatus(
+        organizationId,
+        jobId,
+        applicationId,
+        req.body.status,
+      );
 
-      return res.json({
-        success: true,
-        message: "Job application status updated successfully",
-        data: application,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        status: "error",
-        message: "Failed to update job application status",
-        error: (error as Error).message,
-        timestamp: new Date().toISOString(),
-      });
+    if (application.isSuccess) {
+      return this.sendSuccess<OrganizationJobApplicationsResponse>(
+        res,
+        application.value,
+        "Job application status updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, application.error);
     }
   };
 
@@ -280,27 +208,21 @@ export class OrganizationController extends BaseController {
 
     const note = req.body;
 
-    try {
-      const result = await this.organizationService.createJobApplicationNote(
-        applicationId,
-        jobId,
-        note,
-      );
+    const result = await this.organizationService.createJobApplicationNote(
+      applicationId,
+      jobId,
+      note,
+    );
 
-      return res.status(201).json({
-        success: true,
-        data: result,
-        message: "Note added to job application successfully",
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        status: "error",
-        message: "Failed to create job application note",
-        error: (error as Error).message,
-        timestamp: new Date().toISOString(),
-      });
+    if (result.isSuccess) {
+      return this.sendSuccess<JobApplicationWithNotes>(
+        res,
+        result.value,
+        "Note added to job application successfully",
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
     }
   };
 
@@ -309,40 +231,18 @@ export class OrganizationController extends BaseController {
     res: Response<ApiResponse<{ note: string; createdAt: Date }[]>>,
   ) => {
     const organizationId = parseInt(req.params.organizationId);
-    const applicationId = parseInt(req.params.applicationId);
-    const jobId = parseInt(req.params.jobId);
 
-    try {
-      const applicationNotes =
-        await this.organizationService.getNotesForJobApplication(
-          organizationId,
-          jobId,
-          applicationId,
-        );
+    const applicationNotes =
+      await this.organizationService.getNotesForJobApplication(organizationId);
 
-      return res.json({
-        success: true,
-        message: "Job application notes retrieved successfully",
-        data: applicationNotes,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      if (error instanceof DatabaseError) {
-        return res.status(404).json({
-          success: false,
-          status: "error",
-          message: error.message,
-          error: "NOT_FOUND",
-          timestamp: new Date().toISOString(),
-        });
-      }
-      return res.status(500).json({
-        success: false,
-        status: "error",
-        message: "Failed to retrieve job application notes",
-        error: (error as Error).message,
-        timestamp: new Date().toISOString(),
-      });
+    if (applicationNotes.isSuccess) {
+      return this.sendSuccess<{ note: string; createdAt: Date }[]>(
+        res,
+        applicationNotes.value,
+        "Job application notes retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, applicationNotes.error);
     }
   };
 
@@ -353,37 +253,20 @@ export class OrganizationController extends BaseController {
     const organizationId = parseInt(req.params.organizationId);
     const jobId = parseInt(req.params.jobId);
 
-    try {
-      const applications =
-        await this.organizationService.getJobApplicationsForOrganization(
-          organizationId,
-          jobId,
-        );
+    const applications =
+      await this.organizationService.getJobApplicationsForOrganization(
+        organizationId,
+        jobId,
+      );
 
-      return res.json({
-        success: true,
-        message: "Job applications retrieved successfully",
-        data: applications,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      if (
-        error instanceof DatabaseError &&
-        error.message === "Organization not found"
-      ) {
-        return res.status(404).json({
-          success: false,
-          status: "error",
-          message: "Organization not found",
-          timestamp: new Date().toISOString(),
-        });
-      }
-      return res.status(500).json({
-        success: false,
-        status: "error",
-        message: "Failed to retrieve job applications",
-        timestamp: new Date().toISOString(),
-      });
+    if (applications.isSuccess) {
+      return this.sendSuccess<JobApplicationsResponseSchema>(
+        res,
+        applications.value,
+        "Job applications retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, applications.error);
     }
   };
 }
