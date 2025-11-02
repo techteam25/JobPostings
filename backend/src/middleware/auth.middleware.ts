@@ -102,7 +102,7 @@ export class AuthMiddleware {
         const organizationMember =
           await this.organizationService.getOrganizationMember(req.userId);
 
-        if (!organizationMember) {
+        if (!organizationMember.isSuccess) {
           return res.status(403).json({
             success: false,
             status: "error",
@@ -111,7 +111,7 @@ export class AuthMiddleware {
           });
         }
 
-        req.organizationId = organizationMember.organizationId;
+        req.organizationId = organizationMember.value.organizationId;
 
         return next();
       } catch (error) {
@@ -137,10 +137,6 @@ export class AuthMiddleware {
           });
         }
 
-        const user = await this.organizationService.getOrganizationMember(
-          req.userId,
-        );
-
         if (!["owner", "admin"].some((role) => roles.includes(role))) {
           return res.status(400).json({
             success: false,
@@ -151,7 +147,11 @@ export class AuthMiddleware {
           });
         }
 
-        if (!user) {
+        const user = await this.organizationService.getOrganizationMember(
+          req.userId,
+        );
+
+        if (!user.isSuccess) {
           // User may be authenticated but not an organization member
           return res.status(403).json({
             success: false,
@@ -161,7 +161,7 @@ export class AuthMiddleware {
           });
         }
 
-        if (!roles.includes(user.role)) {
+        if (!roles.includes(user.value.role)) {
           // Check if user's role is in the permitted roles
           return res.status(403).json({
             success: false,
@@ -285,8 +285,9 @@ export class AuthMiddleware {
         await this.organizationService.getOrganizationMember(req.userId);
 
       if (
-        !organizationMember ||
-        organizationMember.organizationId !== Number(req.params.organizationId)
+        !organizationMember.isSuccess ||
+        organizationMember.value.organizationId !==
+          Number(req.params.organizationId)
       ) {
         return res.status(403).json({
           success: false,
