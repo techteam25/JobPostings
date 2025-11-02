@@ -24,7 +24,7 @@ import { DatabaseError, NotFoundError } from "@/utils/errors";
 
 export class JobRepository extends BaseRepository<typeof jobsDetails> {
   constructor() {
-    super(jobsDetails);
+    super(jobsDetails, "Job");
   }
 
   async createJob(

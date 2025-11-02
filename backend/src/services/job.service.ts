@@ -28,6 +28,7 @@ import { jobIndexerQueue } from "@/utils/bullmq.utils";
 import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
 
 import { fail, ok } from "./base.service";
+import logger from "@/logger";
 
 export class JobService extends BaseService {
   private jobRepository: JobRepository;
@@ -79,23 +80,37 @@ export class JobService extends BaseService {
         city,
         state,
         country,
+        zipcode,
         skills,
         jobType,
         ...rest
       } = filters;
       const offset = (page - 1) * limit;
 
+      const skillsArray = Array.isArray(skills)
+        ? skills
+        : skills
+          ? [skills]
+          : [];
+
+      const jobTypeArray = Array.isArray(jobType)
+        ? jobType
+        : jobType
+          ? [jobType]
+          : [];
+
       const queryBuilder = new TypesenseQueryBuilder()
-        .addLocationFilters({ city, state, country }, includeRemote)
-        .addSkillFilters(skills, true) // AND logic
-        .addArrayFilter("jobType", jobType, true) // OR logic
+        .addLocationFilters({ city, state, country, zipcode }, includeRemote)
+        .addSkillFilters(skillsArray, true) // AND logic
+        .addArrayFilter("jobType", jobTypeArray, true) // OR logic
         .addSingleFilter("status", rest.status)
+        .addSingleFilter("isActive", rest.isActive)
         .addSingleFilter("experience", rest.experience);
 
       const filterQuery = queryBuilder.build();
 
       const parts: string[] = [];
-      if (filterQuery) parts.push(`filter_by=${filterQuery}`);
+      if (filterQuery) parts.push(filterQuery);
       const filterString = parts.join("&");
 
       const results = await this.typesenseService.searchJobsCollection(
@@ -108,7 +123,8 @@ export class JobService extends BaseService {
         },
       );
       return ok(results);
-    } catch {
+    } catch (error) {
+      logger.error(error);
       return fail(new AppError("Failed to fetch active jobs for organization"));
     }
   }
@@ -126,13 +142,9 @@ export class JobService extends BaseService {
 
       return ok(job);
     } catch (error) {
-      if (
-        error instanceof DatabaseError &&
-        error.message.includes("Failed to find")
-      ) {
-        return fail(new NotFoundError("Job", id));
+      if (error instanceof AppError) {
+        return this.handleError(error);
       }
-
       return fail(new DatabaseError("Failed to fetch job by ID"));
     }
   }
