@@ -53,11 +53,17 @@ export class ValidationError extends AppError {
 }
 
 export class NotFoundError extends AppError {
-  constructor(resource: string, identifier?: string | number) {
-    const message = identifier
-      ? `${resource} with id ${identifier} does not exist.`
-      : `${resource} not found`;
-    super(message, 404, ErrorCode.NOT_FOUND);
+  constructor(message: string);
+  constructor(resource: string, identifier: string | number);
+  constructor(messageOrResource: string, identifier?: string | number) {
+    // If identifier is provided, treat first param as resource
+    if (identifier !== undefined) {
+      const message = `${messageOrResource} with id ${identifier} does not exist.`;
+      super(message, 404, ErrorCode.NOT_FOUND);
+    } else {
+      // Otherwise, treat first param as a direct message
+      super(messageOrResource, 404, ErrorCode.NOT_FOUND);
+    }
   }
 }
 
