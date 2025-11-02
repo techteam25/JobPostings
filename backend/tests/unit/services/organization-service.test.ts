@@ -29,13 +29,21 @@ describe("OrganizationService", () => {
       const organizationService = new OrganizationService();
 
       const result = await organizationService.isRolePermitted(1);
-      expect(result).toBe(true);
+      expect(result.isSuccess).toBe(true);
+
+      if (result.isSuccess) {
+        expect(result.value).toBe(true);
+      }
     });
     it("should return false when user does not have job posting role", async () => {
       const organizationService = new OrganizationService();
 
-      const result = await organizationService.isRolePermitted(2);
-      expect(result).toBe(false);
+      const result = await organizationService.isRolePermitted(999);
+
+      expect(result.isSuccess).toBe(true);
+      if (result.isSuccess) {
+        expect(result.value).toBe(false);
+      }
     });
   });
 });

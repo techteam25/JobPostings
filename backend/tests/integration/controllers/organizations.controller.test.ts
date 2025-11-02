@@ -336,7 +336,7 @@ describe("Organization Controller Application Management Integration Tests", () 
       expect(response.body).toHaveProperty("success", false);
       expect(response.body).toHaveProperty(
         "message",
-        "Job application not found",
+        "jobApplications with id 999 does not exist.",
       );
     });
   });

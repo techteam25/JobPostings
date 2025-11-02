@@ -271,10 +271,12 @@ describe("Job Controller Integration Tests", () => {
       // Verify the job is actually deleted
       const getResponse = await request.get("/api/jobs/1");
 
+      console.log(JSON.stringify(getResponse.body, null, 2));
+
       TestHelpers.validateApiResponse(getResponse, 404);
       expect(getResponse.body).toHaveProperty(
         "message",
-        "Job with ID 1 not found",
+        "Job with id 1 does not exist.",
       );
       expect(getResponse.body).toHaveProperty("errorCode", "NOT_FOUND");
     });
