@@ -5,6 +5,7 @@ import { JobWithSkills } from "@/validations/job.validation";
 import { typesenseClient } from "@/config/typesense-client";
 
 import { JobDocumentType } from "@/validations/base.validation";
+import logger from "@/logger";
 
 type SortDirection = "asc" | "desc";
 type MetaSearchParams = {
@@ -28,7 +29,9 @@ export class TypesenseService {
         city: doc.city,
         state: doc.state,
         country: doc.country,
+        zipcode: doc.zipcode ? doc.zipcode.toString() : "",
         isRemote: doc.isRemote,
+        isActive: doc.isActive,
         experience: doc.experience,
         jobType: doc.jobType,
         skills: ["skill"],
