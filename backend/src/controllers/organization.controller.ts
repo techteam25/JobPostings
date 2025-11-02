@@ -231,9 +231,15 @@ export class OrganizationController extends BaseController {
     res: Response<ApiResponse<{ note: string; createdAt: Date }[]>>,
   ) => {
     const organizationId = parseInt(req.params.organizationId);
+    const applicationId = parseInt(req.params.applicationId);
+    const jobId = parseInt(req.params.jobId);
 
     const applicationNotes =
-      await this.organizationService.getNotesForJobApplication(organizationId);
+      await this.organizationService.getNotesForJobApplication(
+        organizationId,
+        jobId,
+        applicationId,
+      );
 
     if (applicationNotes.isSuccess) {
       return this.sendSuccess<{ note: string; createdAt: Date }[]>(

@@ -411,13 +411,28 @@ export class OrganizationRepository extends BaseRepository<
     );
   }
 
-  getNotesForJobApplication(applicationId: number) {
+  getNotesForJobApplication(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+  ) {
     return withDbErrorHandling(async () => {
       return await db.transaction(async (tx) => {
+        // Verify application exists for the organization
+        const application = await this.fetchJobApplication(
+          tx,
+          applicationId,
+          jobId,
+          organizationId,
+        );
+
+        if (application.length === 0) {
+          throw new NotFoundError("Job application", applicationId);
+        }
+
         // Fetch notes for the application
         const applicationWithNotes = await tx.query.jobApplications.findFirst({
           where: eq(jobApplications.id, applicationId),
-          columns: {},
           with: {
             notes: {
               columns: {
@@ -427,6 +442,8 @@ export class OrganizationRepository extends BaseRepository<
             },
           },
         });
+
+        console.log(JSON.stringify(applicationWithNotes, null, 2));
 
         if (!applicationWithNotes) {
           throw new NotFoundError("No notes found for job application");

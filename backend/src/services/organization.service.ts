@@ -315,11 +315,17 @@ export class OrganizationService extends BaseService {
     }
   }
 
-  async getNotesForJobApplication(organizationId: number) {
+  async getNotesForJobApplication(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+  ) {
     try {
       const notesForApplications =
         await this.organizationRepository.getNotesForJobApplication(
           organizationId,
+          jobId,
+          applicationId,
         );
 
       if (!notesForApplications) {
