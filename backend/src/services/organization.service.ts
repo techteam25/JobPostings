@@ -1,6 +1,14 @@
-import { OrganizationRepository } from "@/repositories/organization.repository";
 import { BaseService } from "./base.service";
-import { NewOrganization } from "@/validations/organization.validation";
+import { OrganizationRepository } from "@/repositories/organization.repository";
+
+import { statusRegressionGuard } from "@/utils/update-status-guard";
+
+import {
+  CreateJobApplicationNoteInputSchema,
+  NewOrganization,
+  OrganizationJobApplicationsResponse,
+} from "@/validations/organization.validation";
+
 import { ConflictError, NotFoundError } from "@/utils/errors";
 
 export class OrganizationService extends BaseService {
@@ -86,6 +94,16 @@ export class OrganizationService extends BaseService {
     return await this.organizationRepository.canPostJobs(userId);
   }
 
+  async isRolePermittedToRejectApplications(
+    userId: number,
+    organizationId: number,
+  ) {
+    return await this.organizationRepository.canRejectJobApplications(
+      userId,
+      organizationId,
+    );
+  }
+
   async getOrganizationMembersByRole(
     organizationId: number,
     role: "owner" | "admin" | "recruiter",
@@ -103,6 +121,102 @@ export class OrganizationService extends BaseService {
   async getOrganizationMember(sessionUserId: number) {
     try {
       return await this.organizationRepository.findByContact(sessionUserId);
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  async getJobApplicationForOrganization(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+  ): Promise<OrganizationJobApplicationsResponse> {
+    try {
+      return await this.organizationRepository.getJobApplicationForOrganization(
+        organizationId,
+        jobId,
+        applicationId,
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  async updateJobApplicationStatus(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+    status:
+      | "pending"
+      | "reviewed"
+      | "shortlisted"
+      | "interviewing"
+      | "rejected"
+      | "hired"
+      | "withdrawn",
+  ) {
+    try {
+      const application = await this.getJobApplicationForOrganization(
+        organizationId,
+        jobId,
+        applicationId,
+      );
+
+      const updateStatus = statusRegressionGuard(application.status, status);
+
+      return this.organizationRepository.updateJobApplicationStatus(
+        organizationId,
+        jobId,
+        applicationId,
+        updateStatus,
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  async createJobApplicationNote(
+    applicationId: number,
+    userId: number,
+    body: CreateJobApplicationNoteInputSchema["body"],
+  ) {
+    try {
+      const { note } = body;
+      return this.organizationRepository.createJobApplicationNote({
+        applicationId,
+        userId,
+        note,
+      });
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  async getNotesForJobApplication(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+  ) {
+    try {
+      return this.organizationRepository.getNotesForJobApplication(
+        organizationId,
+        jobId,
+        applicationId,
+      );
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  async getJobApplicationsForOrganization(
+    organizationId: number,
+    jobId: number,
+  ) {
+    try {
+      return this.organizationRepository.getJobApplicationsForOrganization(
+        organizationId,
+        jobId,
+      );
     } catch (error) {
       this.handleError(error);
     }

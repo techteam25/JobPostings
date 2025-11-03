@@ -9,6 +9,7 @@ import { ForbiddenError, NotFoundError } from "@/utils/errors";
 import logger from "@/logger";
 import { auth } from "@/utils/auth";
 import { OrganizationService } from "@/services/organization.service";
+import { GetOrganizationSchema } from "@/validations/organization.validation";
 
 export class AuthMiddleware {
   private readonly organizationService: OrganizationService;
@@ -80,7 +81,9 @@ export class AuthMiddleware {
       try {
         if (!req.userId) {
           return res.status(401).json({
+            success: false,
             status: "error",
+            error: "UNAUTHORIZED",
             message: "Authentication required",
           });
         }
@@ -150,8 +153,10 @@ export class AuthMiddleware {
         const permittedRoles = ["owner", "admin", "recruiter"];
         if (!permittedRoles.includes(member.role)) {
           return res.status(403).json({
+            success: false,
             status: "error",
-            message: "You do not have permission to perform this action",
+            error: "FORBIDDEN",
+            message: "Insufficient permissions",
           });
         }
 
@@ -160,7 +165,9 @@ export class AuthMiddleware {
 
         if (!organizationMember) {
           return res.status(403).json({
+            success: false,
             status: "error",
+            error: "FORBIDDEN",
             message: "Insufficient permissions",
           });
         }
@@ -172,8 +179,9 @@ export class AuthMiddleware {
         logger.error(error);
         return res.status(500).json({
           success: false,
-          message: "Error checking job posting permissions",
           status: "error",
+          error: "FORBIDDEN",
+          message: "Error checking user permissions",
         });
       }
     };
@@ -184,7 +192,9 @@ export class AuthMiddleware {
       try {
         if (!req.userId) {
           return res.status(401).json({
+            success: false,
             status: "error",
+            error: "UNAUTHORIZED",
             message: "Authentication required",
           });
         }
@@ -194,8 +204,10 @@ export class AuthMiddleware {
         );
 
         if (!["owner", "admin"].some((role) => roles.includes(role))) {
-          return res.status(500).json({
+          return res.status(400).json({
+            success: false,
             status: "error",
+            error: "BAD_REQUEST",
             message:
               "Invalid roles configuration. This middleware should only include 'owner' or 'admin'",
           });
@@ -204,7 +216,9 @@ export class AuthMiddleware {
         if (!user) {
           // User may be authenticated but not an organization member
           return res.status(403).json({
+            success: false,
             status: "error",
+            error: "FORBIDDEN",
             message: "Insufficient permissions",
           });
         }
@@ -212,7 +226,9 @@ export class AuthMiddleware {
         if (!roles.includes(user.role)) {
           // Check if user's role is in the permitted roles
           return res.status(403).json({
+            success: false,
             status: "error",
+            error: "FORBIDDEN",
             message: "Insufficient permissions",
           });
         }
@@ -225,16 +241,20 @@ export class AuthMiddleware {
 
         if (!isPermitted) {
           return res.status(403).json({
+            success: false,
             status: "error",
+            error: "FORBIDDEN",
             message: "Insufficient permissions",
           });
         }
 
         return next();
       } catch (error) {
-        return res.status(500).json({
+        return res.status(403).json({
+          success: false,
           status: "error",
-          message: "Error checking user permissions",
+          error: "FORBIDDEN",
+          message: "Insufficient permissions",
         });
       }
     };
@@ -246,7 +266,9 @@ export class AuthMiddleware {
       try {
         if (!req.userId) {
           return res.status(401).json({
+            success: false,
             status: "error",
+            error: "UNAUTHORIZED",
             message: "Authentication required",
           });
         }
@@ -274,7 +296,9 @@ export class AuthMiddleware {
         if (!userCanSeekJobs) {
           //
           return res.status(403).json({
+            success: false,
             status: "error",
+            error: "FORBIDDEN",
             message: "Insufficient permissions",
           });
         }
@@ -282,7 +306,9 @@ export class AuthMiddleware {
         return next();
       } catch (error) {
         return res.status(500).json({
+          success: false,
           status: "error",
+          error: "INTERNAL_SERVER_ERROR",
           message: "Error checking user permissions",
         });
       }
@@ -295,9 +321,11 @@ export class AuthMiddleware {
     next: NextFunction
   ) => {
     if (!req.user || req.user.status !== "active") {
-      return res.status(403).json({
+      return res.status(401).json({
+        success: false,
         status: "error",
-        message: "User account is not active",
+        error: "UNAUTHORIZED",
+        message: "Authentication required",
       });
     }
     return next();
@@ -308,7 +336,7 @@ export class AuthMiddleware {
       try {
         if (!req.userId) {
           return res.status(401).json({
-            status: "error",
+            status: "UNAUTHORIZED",
             message: "Authentication required",
           });
         }
@@ -318,7 +346,7 @@ export class AuthMiddleware {
 
         if (!applicationId || isNaN(applicationId)) {
           return res.status(400).json({
-            status: "error",
+            status: "BAD_REQUEST",
             message: "Application ID is required",
           });
         }
@@ -329,7 +357,7 @@ export class AuthMiddleware {
 
         if (!applicationData) {
           return res.status(404).json({
-            status: "error",
+            status: "NOT_FOUND",
             message: "Application not found",
           });
         }
@@ -337,7 +365,7 @@ export class AuthMiddleware {
         // Check ownership
         if (applicationData.application.applicantId !== req.userId) {
           return res.status(403).json({
-            status: "error",
+            status: "FORBIDDEN",
             message: "You can only withdraw your own applications",
           });
         }
@@ -346,7 +374,7 @@ export class AuthMiddleware {
           ["hired", "rejected"].includes(applicationData.application.status)
         ) {
           return res.status(403).json({
-            status: "error",
+            status: "FORBIDDEN",
             message: "Cannot withdraw application with final status",
           });
         }
@@ -363,5 +391,46 @@ export class AuthMiddleware {
         });
       }
     };
+  };
+    
+  ensureIsOrganizationMember = async (
+    req: Request<GetOrganizationSchema["params"]>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      if (!req.userId || !req.params.organizationId) {
+        return res.status(401).json({
+          success: false,
+          status: "error",
+          error: "UNAUTHORIZED",
+          message: "Authentication required",
+        });
+      }
+
+      const organizationMember =
+        await this.organizationService.getOrganizationMember(req.userId);
+
+      if (
+        !organizationMember ||
+        organizationMember.organizationId !== Number(req.params.organizationId)
+      ) {
+        return res.status(403).json({
+          success: false,
+          status: "error",
+          error: "FORBIDDEN",
+          message: "Insufficient permissions",
+        });
+      }
+
+      return next();
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        error: "INTERNAL_SERVER_ERROR",
+        message: "Error checking user permissions",
+      });
+    }
   };
 }

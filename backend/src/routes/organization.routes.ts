@@ -8,6 +8,9 @@ import {
   getOrganizationSchema,
   deleteOrganizationSchema,
   updateOrganizationSchema,
+  organizationJobApplicationsResponseSchema,
+  updateJobStatusInputSchema,
+  createJobApplicationNoteSchema,
 } from "@/validations/organization.validation";
 import { registry, z } from "@/swagger/registry";
 import { selectOrganizationSchema } from "@/validations/organization.validation";
@@ -16,6 +19,11 @@ import {
   errorResponseSchema,
   paginationMetaSchema,
 } from "@/types";
+import {
+  getJobApplicationSchema,
+  selectJobApplicationSchema,
+} from "@/validations/jobApplications.validation";
+import { getJobSchema } from "@/validations/job.validation";
 
 const router = Router();
 const organizationController = new OrganizationController();
@@ -227,6 +235,7 @@ router.put(
   authMiddleware.authenticate,
   authMiddleware.requireAdminOrOwnerRole(["owner"]),
   validate(updateOrganizationInputSchema),
+  authMiddleware.ensureIsOrganizationMember,
   organizationController.updateOrganization,
 );
 
@@ -291,7 +300,371 @@ router.delete(
   authMiddleware.authenticate,
   authMiddleware.requireAdminOrOwnerRole(["owner"]),
   validate(deleteOrganizationSchema),
+  authMiddleware.ensureIsOrganizationMember,
   organizationController.deleteOrganization,
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/organizations/{organizationId}/jobs/{jobId}/applications",
+  summary: "Get job applications for an organization",
+  tags: ["Organizations"],
+  security: [{ cookie: [] }],
+  request: {
+    params: z.object({
+      organizationId:
+        getOrganizationSchema.shape["params"].shape["organizationId"],
+      jobId: getJobSchema.shape["params"].shape["jobId"],
+    }),
+  },
+  responses: {
+    200: {
+      description: "List of job applications",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            organizationJobApplicationsResponseSchema.array(),
+          ),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Job not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.get(
+  "/:organizationId/jobs/:jobId/applications",
+  authMiddleware.authenticate,
+  authMiddleware.requireJobPostingRole(),
+  validate(getOrganizationSchema),
+  validate(getJobSchema),
+  authMiddleware.ensureIsOrganizationMember,
+  organizationController.getJobApplicationsForOrganization,
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/organizations/{organizationId}/jobs/{jobId}/applications/{applicationId}",
+  summary: "Get a job application for an organization",
+  tags: ["Organizations"],
+  security: [{ cookie: [] }],
+  request: {
+    params: z.object({
+      organizationId:
+        getOrganizationSchema.shape["params"].shape["organizationId"],
+      jobId: getJobSchema.shape["params"].shape["jobId"],
+      applicationId:
+        getJobApplicationSchema.shape["params"].shape["applicationId"],
+    }),
+  },
+  responses: {
+    200: {
+      description: "Job application details",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(organizationJobApplicationsResponseSchema),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Job application not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.get(
+  "/:organizationId/jobs/:jobId/applications/:applicationId",
+  authMiddleware.authenticate,
+  authMiddleware.requireJobPostingRole(),
+  validate(getOrganizationSchema),
+  validate(getJobSchema),
+  validate(getJobApplicationSchema),
+  authMiddleware.ensureIsOrganizationMember,
+  organizationController.getJobApplicationForOrganization,
+);
+
+registry.registerPath({
+  method: "patch",
+  path: "/organizations/{organizationId}/jobs/{jobId}/applications/{applicationId}/status",
+  summary: "Update job application status for an organization",
+  tags: ["Organizations"],
+  security: [{ cookie: [] }],
+  request: {
+    params: z.object({
+      organizationId:
+        getOrganizationSchema.shape["params"].shape["organizationId"],
+      jobId: getJobSchema.shape["params"].shape["jobId"],
+      applicationId:
+        getJobApplicationSchema.shape["params"].shape["applicationId"],
+    }),
+    body: {
+      content: {
+        "application/json": {
+          schema: updateJobStatusInputSchema.shape["body"],
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: "Job application status updated",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(organizationJobApplicationsResponseSchema),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Job application not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.patch(
+  "/:organizationId/jobs/:jobId/applications/:applicationId/status",
+  authMiddleware.authenticate,
+  authMiddleware.requireAdminOrOwnerRole(["owner", "admin"]),
+  validate(updateJobStatusInputSchema),
+  authMiddleware.ensureIsOrganizationMember,
+  organizationController.updateJobApplicationStatus,
+);
+
+registry.registerPath({
+  method: "post",
+  path: "/organizations/{organizationId}/jobs/{jobId}/applications/{applicationId}/notes",
+  summary: "Attach a note to a job application",
+  tags: ["Organizations"],
+  security: [{ cookie: [] }],
+  request: {
+    params: z.object({
+      organizationId:
+        getOrganizationSchema.shape["params"].shape["organizationId"],
+      jobId: getJobSchema.shape["params"].shape["jobId"],
+      applicationId:
+        getJobApplicationSchema.shape["params"].shape["applicationId"],
+    }),
+    body: {
+      content: {
+        "application/json": {
+          schema: createJobApplicationNoteSchema.shape["body"],
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    201: {
+      description: "Note attached to job application",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(selectJobApplicationSchema),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Job application not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.post(
+  "/:organizationId/jobs/:jobId/applications/:applicationId/notes",
+  authMiddleware.authenticate,
+  authMiddleware.requireJobPostingRole(),
+  validate(createJobApplicationNoteSchema),
+  authMiddleware.ensureIsOrganizationMember,
+  organizationController.attachNoteToJobApplication,
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/organizations/{organizationId}/jobs/{jobId}/applications/{applicationId}/notes",
+  summary: "Get notes for a job application",
+  tags: ["Organizations"],
+  security: [{ cookie: [] }],
+  request: {
+    params: z.object({
+      organizationId:
+        getOrganizationSchema.shape["params"].shape["organizationId"],
+      jobId: getJobSchema.shape["params"].shape["jobId"],
+      applicationId:
+        getJobApplicationSchema.shape["params"].shape["applicationId"],
+    }),
+  },
+  responses: {
+    200: {
+      description: "List of notes for the job application",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z
+              .object({
+                note: z.string(),
+                createdAt: z.date(),
+              })
+              .array(),
+          ),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Job application not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.get(
+  "/:organizationId/jobs/:jobId/applications/:applicationId/notes",
+  authMiddleware.authenticate,
+  authMiddleware.requireJobPostingRole(),
+  validate(getOrganizationSchema),
+  validate(getJobSchema),
+  validate(getJobApplicationSchema),
+  authMiddleware.ensureIsOrganizationMember,
+  organizationController.getNotesForJobApplication,
 );
 
 export default router;

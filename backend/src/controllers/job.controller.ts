@@ -19,12 +19,13 @@ import {
   JobWithEmployer,
   JobWithSkills,
   UpdateJobApplication,
+  JobApplication,
 } from "@/validations/job.validation";
 import { GetOrganizationSchema } from "@/validations/organization.validation";
 import { SearchParams, searchParams } from "@/validations/base.validation";
 import {
   GetJobApplicationSchema,
-  JobApplication,
+  jobApplicationSchema,
 } from "@/validations/jobApplications.validation";
 import { ApiResponse, Paginated, PaginatedResponse } from "@/types";
 import { buildPaginationMeta } from "@/utils/build-search-pagination";
