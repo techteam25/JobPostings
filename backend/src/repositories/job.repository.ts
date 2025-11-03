@@ -243,8 +243,17 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     const items = await withDbErrorHandling(
       async () =>
         await db
-          .select()
+          .select({
+            job: jobsDetails,
+            employer: {
+              id: organizations.id,
+              name: organizations.name,
+              city: organizations.city,
+              state: organizations.state,
+            },
+          })
           .from(jobsDetails)
+          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
           .where(whereCondition)
           .orderBy(desc(jobsDetails.createdAt))
           .limit(limit)
@@ -338,9 +347,16 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
               fullName: user.fullName,
               email: user.email,
             },
+            job: jobsDetails,
+            employer: {
+              id: organizations.id,
+              name: organizations.name,
+            },
           })
           .from(jobApplications)
           .innerJoin(user, eq(jobApplications.applicantId, user.id))
+          .leftJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
+          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
           .where(where)
           .orderBy(desc(jobApplications.appliedAt))
           .limit(limit)
@@ -399,24 +415,21 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
         await db
           .select({
             application: jobApplications,
-            job: {
-              id: jobsDetails.id,
-              title: jobsDetails.title,
-              city: jobsDetails.city,
-              state: jobsDetails.state,
-              country: jobsDetails.country,
-              zipcode: jobsDetails.zipcode,
-              isRemote: jobsDetails.isRemote,
-              jobType: jobsDetails.jobType,
-            },
+            job: jobsDetails,
             employer: {
               id: organizations.id,
               name: organizations.name,
+            },
+            applicant: {
+              id: user.id,
+              fullName: user.fullName,
+              email: user.email,
             },
           })
           .from(jobApplications)
           .leftJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
           .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
+          .innerJoin(user, eq(jobApplications.applicantId, user.id))
           .where(where)
           .orderBy(desc(jobApplications.appliedAt))
           .limit(limit)

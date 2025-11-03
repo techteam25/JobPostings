@@ -5,9 +5,10 @@ import { UserRepository } from "@/repositories/user.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { OrganizationService } from "@/services/organization.service";
 import { TypesenseService } from "@/services/typesense.service/typesense.service";
-import { redisClient } from "@/config/redis";
+import { CacheService } from "@/services/cache.service";
 import { EmailService } from "@/services/email.service";
-
+import { CacheKeys, CachePatterns } from "@/types/cache.types";
+import { Paginated } from "@/types";
 import {
   NewJobApplication,
   Job,
@@ -17,6 +18,7 @@ import {
   UpdateJobApplication,
   JobWithSkills,
   CreateJobSchema,
+  JobApplicationWithRelations,
 } from "@/validations/job.validation";
 
 import {
@@ -39,6 +41,7 @@ export class JobService extends BaseService {
   private userRepository: UserRepository;
   private jobInsightsRepository: JobInsightsRepository;
   private typesenseService: TypesenseService;
+  private cacheService: CacheService;
   private emailService: EmailService;
 
   constructor() {
@@ -48,43 +51,39 @@ export class JobService extends BaseService {
     this.userRepository = new UserRepository();
     this.jobInsightsRepository = new JobInsightsRepository();
     this.typesenseService = new TypesenseService();
+    this.cacheService = new CacheService();
     this.emailService = new EmailService();
   }
 
-  async getAllActiveJobs(options: { page?: number; limit?: number } = {}) {
+  async getAllActiveJobs(
+    options: { page?: number; limit?: number } = {}
+  ): Promise<Paginated<JobWithEmployer>> {
     try {
       const { page = 1, limit = 10 } = options;
-      const cacheKey = `jobs:active:${page}:${limit}`;
+      const cacheKey = CacheKeys.jobs.active(page, limit);
 
       // Check cache
-      const cachedResult = await redisClient.get(cacheKey);
+      const cachedResult =
+        await this.cacheService.get<Paginated<JobWithEmployer>>(cacheKey);
       if (cachedResult) {
-        return JSON.parse(cachedResult);
+        return cachedResult;
       }
 
       // Fetch from database
       const result = await this.jobRepository.findActiveJobs(options);
 
-      // Cache result for 5 minutes
-      await redisClient.setEx(cacheKey, 300, JSON.stringify(result));
+      await this.cacheService.set(cacheKey, result, 300);
 
       return result;
     } catch (error) {
-      this.handleError(error);
+      throw this.handleError(error);
     }
   }
 
-  async getActiveJobsByOrganization(organizationId: number): Promise<Job[]> {
-    try {
-      const allJobs = await this.jobRepository.findJobsByEmployer(
-        organizationId,
-        { limit: 10000 }
-      );
-      return allJobs.items.filter((job) => job.isActive);
-    } catch (error) {
-      return this.handleError(error);
-    }
-  }
+async getActiveJobsByOrganization(organizationId: number): Promise<JobWithEmployer[]> {
+  const result = await this.jobRepository.findJobsByEmployer(organizationId, { limit: 10000 });
+  return result.items.filter((item) => item.job.isActive);
+}
 
   async searchJobs(filters: SearchParams["query"]) {
     try {
@@ -125,23 +124,23 @@ export class JobService extends BaseService {
     }
   }
 
-  async getJobById(organizationId: number): Promise<Job> {
-    const cacheKey = `job:${organizationId}`;
+  async getJobById(jobId: number): Promise<Job> {
+    const cacheKey = CacheKeys.jobs.detail(jobId);
 
     // Check cache
-    const cachedJob = await redisClient.get(cacheKey);
+    const cachedJob = await this.cacheService.get<Job>(cacheKey);
     if (cachedJob) {
-      return JSON.parse(cachedJob);
+      return cachedJob;
     }
 
-    const job = await this.jobRepository.findById(organizationId);
+    const job = await this.jobRepository.findById(jobId);
 
     if (!job) {
-      return this.handleError(new NotFoundError("Job", organizationId));
+      return this.handleError(new NotFoundError("Job", jobId));
     }
 
     // Cache job for 5 minutes
-    await redisClient.setEx(cacheKey, 300, JSON.stringify(job));
+    await this.cacheService.set(cacheKey, job, 300);
 
     return job;
   }
@@ -161,21 +160,19 @@ export class JobService extends BaseService {
     employerId: number,
     options: { page?: number; limit?: number },
     userId: number
-  ) {
+  ): Promise<Paginated<JobWithEmployer>> {
     // Done: Additional check for employers - they can only see their own organization's jobs
     const organization = await this.organizationRepository.findById(employerId);
     if (!organization) {
-      return this.handleError(new NotFoundError("Organization", employerId));
+      throw new NotFoundError("Organization", employerId);
     }
     const isMember = await this.organizationRepository.findByContact(userId);
     if (!isMember || isMember.id !== employerId) {
-      return this.handleError(
-        new ForbiddenError(
-          "You are not authorized to view jobs for this organization"
-        )
+      throw new ForbiddenError(
+        "You are not authorized to view jobs for this organization"
       );
     }
-    return await this.jobRepository.findJobsByEmployer(employerId, options);
+    return this.jobRepository.findJobsByEmployer(employerId, options);
   }
 
   async createJob(jobData: CreateJobSchema["body"]): Promise<JobWithSkills> {
@@ -208,6 +205,9 @@ export class JobService extends BaseService {
         ErrorCode.DATABASE_ERROR
       );
     }
+
+    // Invalidate active jobs cache
+    await this.invalidateActiveJobsCache();
 
     // Enqueue job for indexing in Typesense
     await jobIndexerQueue.add("indexJob", jobWithSkills);
@@ -254,6 +254,10 @@ export class JobService extends BaseService {
       );
     }
 
+    // Invalidate caches
+    await this.cacheService.delete(CacheKeys.jobs.detail(jobId));
+    await this.invalidateActiveJobsCache();
+
     // Update job indexes in Typesense
     await jobIndexerQueue.add("updateJobIndex", { id: jobId, updatedJob });
 
@@ -292,7 +296,8 @@ export class JobService extends BaseService {
       throw new AppError("Failed to delete job", 500, ErrorCode.DATABASE_ERROR);
     }
 
-    await redisClient.del(`job:${jobId}`);
+    // Invalidate caches
+    await this.cacheService.delete(CacheKeys.jobs.detail(jobId));
     await this.invalidateActiveJobsCache();
 
     try {
@@ -373,28 +378,20 @@ export class JobService extends BaseService {
 
   async getJobApplications(
     jobId: number,
-    { page, limit, status }: SearchParams["query"],
+    query: SearchParams["query"],
     userId: number
-  ) {
-    return await this.jobRepository.findApplicationsByJob(jobId, {
-      page,
-      limit,
-      status,
-    });
+  ): Promise<Paginated<JobApplicationWithRelations>> {
+    return this.jobRepository.findApplicationsByJob(jobId, query);
   }
 
   async getUserApplications(
     userId: number,
-    { page, limit, status }: SearchParams["query"]
-  ) {
+    query: SearchParams["query"]
+  ): Promise<Paginated<JobApplicationWithRelations>> {
     try {
-      return await this.jobRepository.findApplicationsByUser(userId, {
-        page,
-        limit,
-        status,
-      });
+      return this.jobRepository.findApplicationsByUser(userId, query);
     } catch (error) {
-      this.handleError(error);
+      throw this.handleError(error);
     }
   }
 
@@ -636,13 +633,6 @@ export class JobService extends BaseService {
   }
 
   private async invalidateActiveJobsCache(): Promise<void> {
-    try {
-      const keys = await redisClient.keys("jobs:active:*");
-      if (keys.length > 0) {
-        await redisClient.del(keys);
-      }
-    } catch (error) {
-      console.error("Failed to invalidate active jobs cache:", error);
-    }
+    await this.cacheService.invalidate(CachePatterns.jobs.active);
   }
 }

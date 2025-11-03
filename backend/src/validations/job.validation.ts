@@ -155,10 +155,16 @@ export type UpdateJobInsights = z.infer<typeof updateJobInsightsSchema>;
 export type JobWithEmployer = {
   job: Job;
   employer: Pick<Organization, "id" | "name" | "city" | "state"> | null;
-}[];
+};
 export type JobWithSkills = Job & {
   skills: JobSkills["name"][];
   employer: { name: string };
+};
+export type JobApplicationWithRelations = {
+  application: JobApplication;
+  applicant: { id: number; email: string; fullName: string | null };
+  job: Job | null;
+  employer: { id: number; name: string } | null;
 };
 export type CreateJobSchema = z.infer<typeof createJobSchema>;
 export type GetJobSchema = z.infer<typeof getJobSchema>;
