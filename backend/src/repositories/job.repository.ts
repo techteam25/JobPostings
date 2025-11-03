@@ -120,11 +120,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
         const [jobResult] = await transaction
           .update(jobsDetails)
           .set(jobPayload)
-          .where(eq(jobsDetails.id, jobId));
-
-        if (!jobResult.affectedRows || jobResult.affectedRows === 0) {
-          throw new Error("Failed to update job");
-        }
+          .where(eq(jobsDetails.id, jobId))
 
         // Initialize job skills if provided
         if (skillsPayload && skillsPayload.length > 0) {
@@ -223,12 +219,12 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .where(eq(jobsDetails.isActive, true))
           .orderBy(desc(jobsDetails.createdAt))
           .limit(limit)
-          .offset(offset),
+          .offset(offset)
     );
 
     const total = await countRecords(
       jobsDetails,
-      eq(jobsDetails.isActive, true),
+      eq(jobsDetails.isActive, true)
     );
     const pagination = calculatePagination(total, page, limit);
 
@@ -237,7 +233,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
 
   async findJobsByEmployer(
     employerId: number,
-    options: { page?: number; limit?: number } = {},
+    options: { page?: number; limit?: number } = {}
   ) {
     const { page = 1, limit = 10 } = options;
     const offset = (page - 1) * limit;
@@ -247,18 +243,36 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     const items = await withDbErrorHandling(
       async () =>
         await db
-          .select()
+          .select({
+            job: jobsDetails,
+            employer: {
+              id: organizations.id,
+              name: organizations.name,
+              city: organizations.city,
+              state: organizations.state,
+            },
+          })
           .from(jobsDetails)
+          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
           .where(whereCondition)
           .orderBy(desc(jobsDetails.createdAt))
           .limit(limit)
-          .offset(offset),
+          .offset(offset)
     );
 
     const total = await countRecords(jobsDetails, whereCondition);
     const pagination = calculatePagination(total, page, limit);
 
     return { items, pagination };
+  }
+
+  async countActiveJobsByEmployer(employerId: number): Promise<number> {
+    const whereCondition = and(
+      eq(jobsDetails.employerId, employerId),
+      eq(jobsDetails.isActive, true)
+    );
+
+    return await countRecords(jobsDetails, whereCondition);
   }
 
   async findJobWithApplications(jobId: number) {
@@ -279,7 +293,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
           .leftJoin(jobApplications, eq(jobsDetails.id, jobApplications.jobId))
           .leftJoin(user, eq(jobApplications.applicantId, user.id))
-          .where(eq(jobsDetails.id, jobId)),
+          .where(eq(jobsDetails.id, jobId))
     );
   }
 
@@ -292,19 +306,22 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .values(applicationData)
           .$returningId();
 
-        await transaction.update(jobInsights).set({
-          viewCount: sql`(${jobInsights.applicationCount} + 1)`,
-        });
+        await transaction
+          .update(jobInsights)
+          .set({
+            applicationCount: sql`${jobInsights.applicationCount} + 1`,
+          })
+          .where(eq(jobInsights.job, applicationData.jobId));
 
         return applicationId;
-      }),
+      })
     );
     return result?.id;
   }
 
   async findApplicationsByJob(
     jobId: number,
-    options: { page?: number; limit?: number; status?: string } = {},
+    options: { page?: number; limit?: number; status?: string } = {}
   ) {
     const { page = 1, limit = 10, status } = options;
     const offset = (page - 1) * limit;
@@ -317,7 +334,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     }
 
     const where = and(
-      ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[]),
+      ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[])
     );
 
     const items = await withDbErrorHandling(
@@ -330,13 +347,20 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
               fullName: user.fullName,
               email: user.email,
             },
+            job: jobsDetails,
+            employer: {
+              id: organizations.id,
+              name: organizations.name,
+            },
           })
           .from(jobApplications)
           .innerJoin(user, eq(jobApplications.applicantId, user.id))
+          .leftJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
+          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
           .where(where)
           .orderBy(desc(jobApplications.appliedAt))
           .limit(limit)
-          .offset(offset),
+          .offset(offset)
     );
 
     const total = await countRecords(jobApplications, where);
@@ -358,7 +382,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
         | "rejected"
         | "hired"
         | "withdrawn";
-    } = {},
+    } = {}
   ) {
     const { page = 1, limit = 10, status } = options;
     const offset = (page - 1) * limit;
@@ -377,13 +401,13 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
             | "interviewing"
             | "rejected"
             | "hired"
-            | "withdrawn",
-        ),
+            | "withdrawn"
+        )
       );
     }
 
     const where = and(
-      ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[]),
+      ...(whereConditions.filter((c) => c !== undefined) as SQL<unknown>[])
     );
 
     const items = await withDbErrorHandling(
@@ -391,28 +415,25 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
         await db
           .select({
             application: jobApplications,
-            job: {
-              id: jobsDetails.id,
-              title: jobsDetails.title,
-              city: jobsDetails.city,
-              state: jobsDetails.state,
-              country: jobsDetails.country,
-              zipcode: jobsDetails.zipcode,
-              isRemote: jobsDetails.isRemote,
-              jobType: jobsDetails.jobType,
-            },
+            job: jobsDetails,
             employer: {
               id: organizations.id,
               name: organizations.name,
+            },
+            applicant: {
+              id: user.id,
+              fullName: user.fullName,
+              email: user.email,
             },
           })
           .from(jobApplications)
           .leftJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
           .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
+          .innerJoin(user, eq(jobApplications.applicantId, user.id))
           .where(where)
           .orderBy(desc(jobApplications.appliedAt))
           .limit(limit)
-          .offset(offset),
+          .offset(offset)
     );
 
     const total = await countRecords(jobApplications, where);
@@ -421,28 +442,43 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     return { items, pagination };
   }
 
-  async updateApplicationStatus(
-    applicationId: number,
-    updateData: UpdateJobApplication,
-  ) {
-    // const updateData: any = { status };
-    // if (status === "reviewed") {
-    //   updateData.reviewedAt = new Date();
-    // }
-    // if (notes) {
-    //   updateData.notes = notes;
-    // }
+async updateApplicationStatus(
+  applicationId: number,
+  updateData: UpdateJobApplication & { notes?: string; reviewedAt?: Date }
+) {
+  // Update the status
+  const statusUpdateData: Partial<UpdateJobApplication & { notes?: string }> = {};
+  if (updateData.status) statusUpdateData.status = updateData.status;
+  if (updateData.notes) statusUpdateData.notes = updateData.notes;
 
-    const result = await withDbErrorHandling(
-      async () =>
-        await db
-          .update(jobApplications)
-          .set(updateData)
-          .where(eq(jobApplications.id, applicationId)),
-    );
-
-    return (result as any).affectedRows > 0;
+  // Update reviewedAt separately only if applicable
+  const reviewedAtUpdateData: Partial<{ reviewedAt?: Date }> = {};
+  if (updateData.status === "reviewed") {
+    reviewedAtUpdateData.reviewedAt = updateData.reviewedAt || new Date();
   }
+
+  // Perform database updates 
+  const updateStatusResult = await withDbErrorHandling(async () =>
+    db
+      .update(jobApplications)
+      .set(statusUpdateData)
+      .where(eq(jobApplications.id, applicationId))
+  );
+
+  if (updateStatusResult[0].affectedRows === 0) return false;
+
+  if (Object.keys(reviewedAtUpdateData).length > 0) {
+    await withDbErrorHandling(async () =>
+      db
+        .update(jobApplications)
+        .set(reviewedAtUpdateData)
+        .where(eq(jobApplications.id, applicationId))
+    );
+  }
+
+  return true;
+}
+
 
   async findApplicationById(applicationId: number) {
     return withDbErrorHandling(
@@ -453,6 +489,8 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
               id: jobApplications.id,
               jobId: jobApplications.jobId,
               reviewedAt: jobApplications.reviewedAt,
+              applicantId: jobApplications.applicantId,
+              status: jobApplications.status,
             },
             job: {
               id: jobsDetails.id,
@@ -467,12 +505,19 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
             },
             user: {
               id: user.id,
+              email: user.email,
+              fullName: user.fullName,
+            },
+            employer: {
+              id: organizations.id,
+              name: organizations.name,
             },
           })
           .from(jobApplications)
           .where(eq(jobApplications.id, applicationId))
           .innerJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
-          .innerJoin(user, eq(jobApplications.applicantId, user.id)),
+          .innerJoin(user, eq(jobApplications.applicantId, user.id))
+          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
     );
   }
 
@@ -485,11 +530,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .where(
             and(
               eq(jobApplications.applicantId, userId),
-              eq(jobApplications.jobId, jobId),
-            ),
+              eq(jobApplications.jobId, jobId)
+            )
           )
           .limit(1)
-          .then((result) => result.length > 0),
+          .then((result) => result.length > 0)
     );
   }
 

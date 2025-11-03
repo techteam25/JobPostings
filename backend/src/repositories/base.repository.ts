@@ -43,7 +43,7 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
       );
 
       return result[0] || null;
-    } catch (error) {
+    } catch (error: unknown) {
       throw new DatabaseError(
         `Failed to find ${this.resourceName} by ID`,
         error,
@@ -82,7 +82,7 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
       const pagination = calculatePagination(total, page, limit);
 
       return { items, pagination };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new DatabaseError(`Failed to find all ${this.resourceName}`, error);
     }
   }

@@ -12,6 +12,7 @@ import {
   getJobSchema,
   deleteJobSchema,
   updateJobSchema,
+  applyForJobSchema,
 } from "@/validations/job.validation";
 import { searchJobResult, searchParams } from "@/validations/base.validation";
 import { updateApplicationStatusSchema } from "@/validations/jobApplications.validation";
@@ -194,16 +195,86 @@ router.get(
 router.post(
   "/:jobId/apply",
   authMiddleware.requireUserRole(),
-  validate(getJobSchema),
+  validate(applyForJobSchema),
   jobController.applyForJob,
 );
 
 router.patch(
   "/applications/:applicationId/withdraw",
   authMiddleware.requireUserRole(),
+  authMiddleware.requireApplicationOwnership(),
   validate(getJobSchema),
   jobController.withdrawApplication,
 );
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/jobs/applications/{applicationId}/withdraw",
+  summary: "Withdraw a job application",
+  description:
+    "Allows an authenticated user to withdraw their submitted job application. The user must own the application. Once withdrawn, the application status is updated to 'withdrawn'.",
+  tags: ["Job Applications"],
+  request: {
+    params: getJobSchema.shape["params"], // validates applicationId param
+  },
+  responses: {
+    200: {
+      description: "Application withdrawn successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.object({
+              message: z.string().describe("Confirmation message"),
+              applicationId: z.number().describe("The ID of the withdrawn application"),
+              status: z.string().describe("Updated status of the application (e.g. 'withdrawn')"),
+            }),
+          ),
+        },
+      },
+    },
+    400: {
+      description: "Validation error or invalid application ID",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized — user not logged in",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    403: {
+      description: "Forbidden — user does not own this application",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Application not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
 
 // Employer routes
 router.get(

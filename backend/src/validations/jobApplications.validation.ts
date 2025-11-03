@@ -11,7 +11,6 @@ const jobApplicationPayload = z.object({
     .max(2000, "Cover letter must not exceed 2000 characters")
     .optional(),
   resumeUrl: z.url("Invalid resume URL").optional(),
-  customAnswers: z.string().max(5000).optional(),
   notes: z.string().max(5000).optional(),
 });
 

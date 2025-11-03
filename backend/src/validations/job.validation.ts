@@ -73,6 +73,20 @@ export const updateJobApplicationSchema = insertJobApplicationSchema
     updatedAt: true,
     reviewedAt: true,
     reviewedBy: true,
+  })
+  .extend({
+    status: z
+      .enum([
+        "pending",
+        "reviewed",
+        "shortlisted",
+        "interviewing",
+        "rejected",
+        "hired",
+        "withdrawn",
+      ])
+      .optional(),
+    notes: z.string().max(5000, "Notes must not exceed 5000 characters").optional(),
   });
 
 export const updateJobInsightsSchema = insertJobInsightsSchema
@@ -84,6 +98,7 @@ const createJobPayloadSchema = insertJobSchema
   .extend({
     applicationDeadline: z.iso.datetime(),
     skills: z.array(z.string()),
+    employerId: z.number().int().positive("Employer ID is required"),
   });
 
 const jobIdParamSchema = z.object({
@@ -114,6 +129,19 @@ export const deleteJobSchema = z.object({
   query: z.object({}).strict(),
 });
 
+export const applyForJobSchema = z.object({
+  body: z.object({
+    coverLetter: z
+      .string()
+      .min(50, "Cover letter must be at least 50 characters")
+      .max(2000, "Cover letter must not exceed 2000 characters")
+      .optional(),
+    resumeUrl: z.url("Invalid resume URL").optional(),
+  }).strict(),
+  params: jobIdParamSchema,
+  query: z.object({}).strict(),
+});
+
 // Type exports
 export type Job = z.infer<typeof selectJobSchema>;
 export type JobSkills = z.infer<typeof selectJobSkillsSchema>;
@@ -127,12 +155,19 @@ export type UpdateJobInsights = z.infer<typeof updateJobInsightsSchema>;
 export type JobWithEmployer = {
   job: Job;
   employer: Pick<Organization, "id" | "name" | "city" | "state"> | null;
-}[];
+};
 export type JobWithSkills = Job & {
   skills: JobSkills["name"][];
   employer: { name: string };
+};
+export type JobApplicationWithRelations = {
+  application: JobApplication;
+  applicant: { id: number; email: string; fullName: string | null };
+  job: Job | null;
+  employer: { id: number; name: string } | null;
 };
 export type CreateJobSchema = z.infer<typeof createJobSchema>;
 export type GetJobSchema = z.infer<typeof getJobSchema>;
 export type UpdateJobSchema = z.infer<typeof updateJobSchema>;
 export type DeleteJobSchema = z.infer<typeof deleteJobSchema>;
+export type ApplyForJobSchema = z.infer<typeof applyForJobSchema>;

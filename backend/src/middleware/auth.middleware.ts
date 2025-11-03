@@ -3,6 +3,8 @@ import { fromNodeHeaders } from "better-auth/node";
 
 import { ApiResponse } from "@/types";
 import { UserService } from "@/services/user.service";
+import { JobRepository } from "@/repositories/job.repository";
+import { ForbiddenError, NotFoundError } from "@/utils/errors";
 
 import logger from "@/logger";
 import { auth } from "@/utils/auth";
@@ -12,16 +14,18 @@ import { GetOrganizationSchema } from "@/validations/organization.validation";
 export class AuthMiddleware {
   private readonly organizationService: OrganizationService;
   private readonly userService: UserService;
+  private readonly jobRepository: JobRepository;
 
   constructor() {
     this.organizationService = new OrganizationService();
     this.userService = new UserService();
+    this.jobRepository = new JobRepository();
   }
 
   authenticate = async (
     req: Request,
     res: Response<ApiResponse<void>>,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     try {
       const session = await auth.api.getSession({
@@ -84,12 +88,70 @@ export class AuthMiddleware {
           });
         }
 
-        // Fetch user to check role
-        const isPermitted = await this.organizationService.isRolePermitted(
-          req.userId,
-        );
+        // Determine if we’re editing an existing job or creating a new one
+        const jobId = req.params.jobId ? parseInt(req.params.jobId) : null;
+        let employerId: number | null = null;
 
-        if (!isPermitted) {
+        if (jobId) {
+          // Fetch job to get employerId
+          const job = await this.jobRepository.findById(jobId);
+          if (!job) {
+            return res.status(404).json({
+              status: "error",
+              message: "Job not found",
+            });
+          }
+          employerId = job.employerId;
+        }
+
+        // Get org membership info
+        const member = await this.organizationService.getOrganizationMember(
+          req.userId
+        );
+        if (!member) {
+          return res.status(403).json({
+            message: "You are not part of any organization",
+            status: "error",
+          });
+        }
+
+        // Verify employer ownership when jobId exists
+        if (employerId && member.organizationId !== employerId) {
+          return res.status(403).json({
+            message: "You are not authorized to modify this job",
+            status: "error",
+          });
+        }
+
+        // Check organization existence
+        const organization = await this.organizationService.getOrganizationById(
+          member.organizationId
+        );
+        if (!organization) {
+          return res.status(404).json({
+            status: "error",
+            message: "Organization not found",
+          });
+        }
+
+        // Check if org is active and valid
+        if (organization.status !== "active") {
+          return res.status(403).json({
+            message: "Organization is not active",
+            status: "error",
+          });
+        }
+
+        if (organization.subscriptionStatus === "expired") {
+          return res.status(403).json({
+            message: "Organization subscription has expired",
+            status: "error",
+          });
+        }
+
+        // Check role permissions
+        const permittedRoles = ["owner", "admin", "recruiter"];
+        if (!permittedRoles.includes(member.role)) {
           return res.status(403).json({
             success: false,
             status: "error",
@@ -114,6 +176,7 @@ export class AuthMiddleware {
 
         return next();
       } catch (error) {
+        logger.error(error);
         return res.status(500).json({
           success: false,
           status: "error",
@@ -137,7 +200,7 @@ export class AuthMiddleware {
         }
 
         const user = await this.organizationService.getOrganizationMember(
-          req.userId,
+          req.userId
         );
 
         if (!["owner", "admin"].some((role) => roles.includes(role))) {
@@ -173,7 +236,7 @@ export class AuthMiddleware {
         // Fetch user to check role
         const isPermitted = await this.userService.hasPrerequisiteRoles(
           req.userId,
-          ["owner", "admin"],
+          ["owner", "admin"]
         );
 
         if (!isPermitted) {
@@ -255,7 +318,7 @@ export class AuthMiddleware {
   requireActiveUser = async (
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     if (!req.user || req.user.status !== "active") {
       return res.status(401).json({
@@ -268,6 +331,68 @@ export class AuthMiddleware {
     return next();
   };
 
+  requireApplicationOwnership = () => {
+    return async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        if (!req.userId) {
+          return res.status(401).json({
+            status: "UNAUTHORIZED",
+            message: "Authentication required",
+          });
+        }
+
+        // Extract applicationId from request params or body
+        const applicationId = parseInt(req.params.applicationId as string);
+
+        if (!applicationId || isNaN(applicationId)) {
+          return res.status(400).json({
+            status: "BAD_REQUEST",
+            message: "Application ID is required",
+          });
+        }
+
+        // Fetch application details
+        const [applicationData] =
+          await this.jobRepository.findApplicationById(applicationId);
+
+        if (!applicationData) {
+          return res.status(404).json({
+            status: "NOT_FOUND",
+            message: "Application not found",
+          });
+        }
+
+        // Check ownership
+        if (applicationData.application.applicantId !== req.userId) {
+          return res.status(403).json({
+            status: "FORBIDDEN",
+            message: "You can only withdraw your own applications",
+          });
+        }
+
+        if (
+          ["hired", "rejected"].includes(applicationData.application.status)
+        ) {
+          return res.status(403).json({
+            status: "FORBIDDEN",
+            message: "Cannot withdraw application with final status",
+          });
+        }
+
+        // Attach application data to request for controller use
+        //req.applicationData = applicationData;
+
+        return next();
+      } catch (error) {
+        logger.error(error);
+        return res.status(500).json({
+          status: "error",
+          message: "Error checking application ownership",
+        });
+      }
+    };
+  };
+    
   ensureIsOrganizationMember = async (
     req: Request<GetOrganizationSchema["params"]>,
     res: Response,
