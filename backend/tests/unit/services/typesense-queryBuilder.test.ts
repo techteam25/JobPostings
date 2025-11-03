@@ -25,7 +25,7 @@ describe("TypesenseQueryBuilder", () => {
     it("should handle includeRemote with no location", () => {
       const query = builder.addLocationFilters({}, true).build();
 
-      expect(query).toBe("is_remote:true");
+      expect(query).toBe("isRemote:true");
     });
 
     it("should build OR query with location and includeRemote", () => {
@@ -33,7 +33,7 @@ describe("TypesenseQueryBuilder", () => {
         .addLocationFilters({ city: "Austin", state: "TX" }, true)
         .build();
 
-      expect(query).toBe("(city:Austin && state:TX) || is_remote:true");
+      expect(query).toBe("(city:Austin && state:TX) || isRemote:true");
     });
 
     it("should ignore empty location values", () => {
@@ -168,7 +168,7 @@ describe("TypesenseQueryBuilder", () => {
         .build();
 
       expect(query).toBe(
-        "is_remote:true && skills:python && skills:django && experience:5+ years",
+        "isRemote:true && skills:python && skills:django && experience:5+ years",
       );
     });
 
@@ -182,7 +182,7 @@ describe("TypesenseQueryBuilder", () => {
         .build();
 
       expect(query).toBe(
-        "(city:Austin && state:TX) || is_remote:true && skills:typescript && skills:react && skills:graphql && jobType:[full-time] && status:active && experience:mid-level",
+        "(city:Austin && state:TX) || isRemote:true && skills:typescript && skills:react && skills:graphql && jobType:[full-time] && status:active && experience:mid-level",
       );
     });
 

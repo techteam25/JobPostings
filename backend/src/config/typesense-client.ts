@@ -2,6 +2,7 @@ import Typesense from "typesense";
 
 import { env } from "./env";
 import { JOBS_COLLECTION } from "@/services/typesense.service/constants";
+import logger from "@/logger";
 
 export const typesenseClient = new Typesense.Client({
   nodes: [
@@ -32,7 +33,9 @@ export async function initializeTypesenseSchema() {
         { name: "city", type: "string", optional: true, facet: true },
         { name: "state", type: "string", optional: true, facet: true },
         { name: "country", type: "string", optional: true, facet: true },
+        { name: "zipcode", type: "string", optional: true, facet: true },
         { name: "isRemote", type: "bool", facet: true },
+        { name: "isActive", type: "bool", facet: true },
         { name: "experience", type: "string", optional: true, facet: true },
         { name: "jobType", type: "string", facet: true },
         { name: "skills", type: "string[]", facet: true },
@@ -40,6 +43,6 @@ export async function initializeTypesenseSchema() {
       ],
       default_sorting_field: "createdAt",
     });
-    console.log("✅ Typesense collection created");
+    logger.info("✅ Typesense collection created");
   }
 }

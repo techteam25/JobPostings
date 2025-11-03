@@ -233,13 +233,7 @@ describe("Organization Controller Integration Tests", async () => {
         .delete("/api/organizations/1")
         .set("Cookie", cookie!);
 
-      TestHelpers.validateApiResponse(response, 200);
-
-      expect(response.body).toHaveProperty("success", true);
-      expect(response.body).toHaveProperty(
-        "message",
-        "Organization deleted successfully",
-      );
+      expect(response.status).toBe(204);
     });
 
     it("should fail to delete an organization without auth returning 401", async () => {
@@ -342,7 +336,7 @@ describe("Organization Controller Application Management Integration Tests", () 
       expect(response.body).toHaveProperty("success", false);
       expect(response.body).toHaveProperty(
         "message",
-        "Job application not found",
+        "jobApplications with id 999 does not exist.",
       );
     });
   });

@@ -3,14 +3,19 @@ import { Request, Response } from "express";
 import {
   AppError,
   ErrorCode,
-  createErrorResponse,
-  ValidationError,
   UnauthorizedError,
+  DatabaseError,
+  NotFoundError,
+  ConflictError,
+  ForbiddenError,
 } from "@/utils/errors";
 import logger from "@/logger";
 import { PaginationMeta } from "@/types";
+import { SearchParams } from "@/validations/base.validation";
 
 export class BaseController {
+  private readonly includeStack = process.env.NODE_ENV === "development";
+
   protected sendSuccess<T>(
     res: Response,
     data: T,
@@ -45,21 +50,23 @@ export class BaseController {
     return res.status(statusCode).json(response);
   }
 
-  protected sendError(
-    res: Response,
-    error: AppError,
-    includeStack: boolean = false,
-  ): Response {
-    const response = createErrorResponse(error, includeStack);
+  protected sendError(res: Response, error: AppError): Response {
+    const response = {
+      success: false,
+      message: error.message,
+      errorCode: error.errorCode,
+      details: error.details,
+      ...(this.includeStack && { stack: error.stack }),
+    };
+
     return res.status(error.statusCode).json(response);
   }
 
-  protected extractPaginationParams(req: Request) {
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(
-      1,
-      Math.max(100, parseInt(req.query.limit as string) || 10),
-    );
+  protected extractPaginationParams(
+    req: Request<{}, {}, {}, Pick<SearchParams["query"], "limit" | "page">>,
+  ) {
+    const page = Math.max(1, req.query.page ?? 1);
+    const limit = Math.min(1, Math.max(10, req.query.limit ?? 10));
 
     return { page, limit };
   }
@@ -67,88 +74,50 @@ export class BaseController {
   protected handleControllerError(
     res: Response,
     error: unknown,
-    defaultMessage: string = "Operation failed",
-    defaultStatusCode: number = 500,
+    defaultMessage = "Operation failed",
+    defaultStatusCode = 500,
   ): Response {
-    logger.error(error, "Controller Error:");
+    logger.error(error, "Controller Error");
 
-    if (error instanceof AppError) {
-      return this.sendError(res, error, process.env.NODE_ENV === "development");
-    }
+    const appError = this.classifyError(
+      error,
+      defaultMessage,
+      defaultStatusCode,
+    );
+    return this.sendError(res, appError);
+  }
 
-    if (error instanceof UnauthorizedError) {
-      return this.sendError(res, error, process.env.NODE_ENV === "development");
-    }
+  /** Classifies unknown errors into AppError or subclasses */
+  private classifyError(
+    error: unknown,
+    defaultMessage: string,
+    defaultStatusCode: number,
+  ): AppError {
+    // Already a known AppError
+    if (error instanceof AppError) return error;
 
-    // Handle validation errors from external libraries
-    if (error instanceof ValidationError) {
-      const validationError = new AppError(
-        error.message || "Validation failed",
-        400,
-        ErrorCode.VALIDATION_ERROR,
-        true,
-        error,
-      );
-      return this.sendError(
-        res,
-        validationError,
-        process.env.NODE_ENV === "development",
-      );
-    }
+    // UnauthorizedError
+    if (error instanceof UnauthorizedError) return error;
 
-    // Handle database errors
-    if (
-      error instanceof Error &&
-      "code" in error &&
-      typeof error.code === "string" &&
-      error.code.startsWith("ER_")
-    ) {
-      const dbError = new AppError(
-        "Database operation failed",
-        500,
-        ErrorCode.DATABASE_ERROR,
-        true,
-        error,
-      );
-      return this.sendError(
-        res,
-        dbError,
-        process.env.NODE_ENV === "development",
-      );
-    }
+    // ForbiddenError
+    if (error instanceof ForbiddenError) return error;
 
-    // Default error handling
-    const genericError = new AppError(
+    // NotFoundError
+    if (error instanceof NotFoundError) return error;
+
+    // ConflictError
+    if (error instanceof ConflictError) return error;
+
+    // DatabaseError
+    if (error instanceof DatabaseError) return error;
+
+    // Catch-all fallback
+    return new AppError(
       defaultMessage,
       defaultStatusCode,
       ErrorCode.INTERNAL_ERROR,
       true,
       error,
     );
-
-    return this.sendError(
-      res,
-      genericError,
-      process.env.NODE_ENV === "development",
-    );
-  }
-
-  protected sanitizeOutput(
-    data: any,
-    fieldsToRemove: string[] = ["passwordHash", "password"],
-  ): any {
-    if (Array.isArray(data)) {
-      return data.map((item) => this.sanitizeOutput(item, fieldsToRemove));
-    }
-
-    if (data && typeof data === "object") {
-      const sanitized = { ...data };
-      fieldsToRemove.forEach((field) => {
-        delete sanitized[field];
-      });
-      return sanitized;
-    }
-
-    return data;
   }
 }

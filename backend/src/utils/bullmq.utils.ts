@@ -5,8 +5,10 @@ import logger from "@/logger";
 import { env } from "@/config/env";
 import { JobWithSkills } from "@/validations/job.validation";
 import { TypesenseService } from "@/services/typesense.service/typesense.service";
+import { EmailService } from "@/services/email.service";
 
 const typesenseService = new TypesenseService();
+const emailService = new EmailService();
 
 export const jobIndexerQueueEvents = new QueueEvents("jobIndexQueue", {
   connection: { url: env.REDIS_URL },
@@ -45,10 +47,10 @@ export const emailSenderQueue = new Queue("emailQueue", {
   },
 });
 
-const jobIndexerWorker = new Worker<JobWithSkills>(
+const jobIndexerWorker = new Worker(
   "jobIndexQueue",
-  async (job: BullMqJob) => {
-    const jobData = job.data as JobWithSkills;
+  async (job: BullMqJob<JobWithSkills>) => {
+    const jobData = job.data;
 
     if (job.name === "indexJob") {
       await typesenseService.indexJobDocument(jobData);
@@ -74,7 +76,32 @@ const jobIndexerWorker = new Worker<JobWithSkills>(
 
 const emailSenderWorker = new Worker(
   "emailQueue",
-  async (job: BullMqJob) => {},
+  async (job: BullMqJob<{ email: string; fullName: string }>) => {
+    switch (job.name) {
+      case "sendWelcomeEmail":
+        // await emailService.sendWelcomeEmail(job.data);
+        break;
+      case "sendPasswordResetEmail":
+        // await emailService.sendPasswordResetEmail(job.data);
+        break;
+      case "sendAccountDeletionConfirmation":
+        const user = job.data;
+        await emailService.sendAccountDeletionConfirmation(
+          user.email,
+          user.fullName,
+        );
+        break;
+      case "sendAccountDeactivationConfirmation":
+        await emailService.sendAccountDeactivationConfirmation(
+          job.data.email,
+          job.data.fullName,
+        );
+        break;
+
+      default:
+        logger.error(`Unknown email job type: ${job.name}`);
+    }
+  },
   {
     connection: {
       url: env.REDIS_URL,
@@ -112,3 +139,4 @@ emailSenderWorker.on("error", (err) => {
 });
 
 logger.info("🚀 Worker started for queue:" + jobIndexerWorker.name);
+logger.info("🚀 Worker started for queue:" + emailSenderWorker.name);

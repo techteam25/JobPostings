@@ -9,6 +9,7 @@ import {
   index,
   check,
   foreignKey,
+  unique,
 } from "drizzle-orm/mysql-core";
 import { relations, sql } from "drizzle-orm";
 import { user } from "./users";
@@ -192,6 +193,25 @@ export const jobSkills = mysqlTable(
   ],
 );
 
+export const savedJobs = mysqlTable(
+  "saved_jobs",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    userId: int("user_id")
+      .references(() => user.id, { onDelete: "cascade" })
+      .notNull(),
+    jobId: int("job_id")
+      .references(() => jobsDetails.id, { onDelete: "cascade" })
+      .notNull(),
+    savedAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("user_idx").on(table.userId),
+    index("job_idx").on(table.jobId),
+    unique("unique_user_job").on(table.userId, table.jobId),
+  ],
+);
+
 // Relations
 export const jobsRelations = relations(jobsDetails, ({ one, many }) => ({
   employer: one(organizations, {
@@ -259,4 +279,15 @@ export const jobSkillsRelations = relations(jobSkills, ({ one }) => ({
 
 export const skillsRelations = relations(skills, ({ many }) => ({
   jobSkills: many(jobSkills),
+}));
+
+export const savedJobsRelations = relations(savedJobs, ({ one }) => ({
+  user: one(user, {
+    fields: [savedJobs.userId],
+    references: [user.id],
+  }),
+  job: one(jobsDetails, {
+    fields: [savedJobs.jobId],
+    references: [jobsDetails.id],
+  }),
 }));

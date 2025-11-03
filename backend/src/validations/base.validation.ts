@@ -6,12 +6,15 @@ export const searchParams = z.object({
     .object({
       page: z.coerce
         .number()
+        .min(1)
         .optional()
         .default(1)
         .transform(Number)
         .optional(),
       limit: z.coerce
         .number()
+        .min(1)
+        .max(100)
         .optional()
         .default(10)
         .transform(Number)
@@ -20,14 +23,24 @@ export const searchParams = z.object({
       jobType: z
         .enum(["full-time", "part-time", "contract", "volunteer", "internship"])
         .array()
-        .optional(),
+        .optional()
+        .or(
+          z.enum([
+            "full-time",
+            "part-time",
+            "contract",
+            "volunteer",
+            "internship",
+          ]),
+        ),
       city: z.string().optional(),
       experience: z.string().optional(),
       state: z.string().optional(),
       country: z.string().optional(),
       zipcode: z.string().optional(),
-      skills: z.string().array().optional(),
+      skills: z.string().array().optional().or(z.string().optional()),
       includeRemote: z.coerce.boolean().optional(),
+      isActive: z.coerce.boolean().optional(),
       sortBy: z.string().optional(),
       status: z
         .enum([

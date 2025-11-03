@@ -4,7 +4,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { z } from "zod";
 
 import { db } from "@/db/connection";
-import { env } from "@/config/env";
+import { env, isProduction } from "@/config/env";
 
 import { EmailService } from "@/services/email.service";
 
@@ -17,10 +17,10 @@ export const auth = betterAuth({
   trustedOrigins: [env.FRONTEND_URL],
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    requireEmailVerification: isProduction,
   },
   emailVerification: {
-    sendOnSignUp: true,
+    sendOnSignUp: isProduction,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, token }) => {
       await emailService.sendEmailVerification(user.email, user.name, token);

@@ -1,4 +1,4 @@
-import { BaseService } from "./base.service";
+import { BaseService, Result } from "./base.service";
 import { JobInsightsRepository } from "@/repositories/jobInsights.repository";
 import { JobRepository } from "@/repositories/job.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
@@ -18,13 +18,17 @@ import {
   ForbiddenError,
   ConflictError,
   ValidationError,
+  DatabaseError,
 } from "@/utils/errors";
 import { SecurityUtils } from "@/utils/security";
-import { AppError, ErrorCode } from "@/utils/errors";
+import { AppError } from "@/utils/errors";
 
 import { SearchParams } from "@/validations/base.validation";
 import { jobIndexerQueue } from "@/utils/bullmq.utils";
 import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
+
+import { fail, ok } from "./base.service";
+import logger from "@/logger";
 
 export class JobService extends BaseService {
   private jobRepository: JobRepository;
@@ -42,21 +46,27 @@ export class JobService extends BaseService {
 
   async getAllActiveJobs(options: { page?: number; limit?: number } = {}) {
     try {
-      return await this.jobRepository.findActiveJobs(options);
-    } catch (error) {
-      this.handleError(error);
+      const activeJobs = await this.jobRepository.findActiveJobs(options);
+      return ok(activeJobs);
+    } catch {
+      return fail(new DatabaseError("Failed to fetch active jobs"));
     }
   }
 
-  async getActiveJobsByOrganization(organizationId: number): Promise<Job[]> {
+  async getActiveJobsByOrganization(
+    organizationId: number,
+  ): Promise<Result<Job[], Error>> {
     try {
       const allJobs = await this.jobRepository.findJobsByEmployer(
         organizationId,
-        { limit: 10000 },
+        { limit: 10 },
       );
-      return allJobs.items.filter((job) => job.isActive);
-    } catch (error) {
-      return this.handleError(error);
+      const activeJobs = allJobs.items.filter((job) => job.isActive);
+      return ok(activeJobs);
+    } catch {
+      return fail(
+        new DatabaseError("Failed to fetch active jobs for organization"),
+      );
     }
   }
 
@@ -70,50 +80,87 @@ export class JobService extends BaseService {
         city,
         state,
         country,
+        zipcode,
         skills,
         jobType,
         ...rest
       } = filters;
       const offset = (page - 1) * limit;
 
+      const skillsArray = Array.isArray(skills)
+        ? skills
+        : skills
+          ? [skills]
+          : [];
+
+      const jobTypeArray = Array.isArray(jobType)
+        ? jobType
+        : jobType
+          ? [jobType]
+          : [];
+
       const queryBuilder = new TypesenseQueryBuilder()
-        .addLocationFilters({ city, state, country }, includeRemote)
-        .addSkillFilters(skills, true) // AND logic
-        .addArrayFilter("jobType", jobType, true) // OR logic
+        .addLocationFilters({ city, state, country, zipcode }, includeRemote)
+        .addSkillFilters(skillsArray, true) // AND logic
+        .addArrayFilter("jobType", jobTypeArray, true) // OR logic
         .addSingleFilter("status", rest.status)
+        .addSingleFilter("isActive", rest.isActive)
         .addSingleFilter("experience", rest.experience);
 
       const filterQuery = queryBuilder.build();
 
       const parts: string[] = [];
-      if (filterQuery) parts.push(`filter_by=${filterQuery}`);
+      if (filterQuery) parts.push(filterQuery);
       const filterString = parts.join("&");
 
-      return await this.typesenseService.searchJobsCollection(q, filterString, {
-        limit,
-        offset,
-        page,
-      });
+      const results = await this.typesenseService.searchJobsCollection(
+        q,
+        filterString,
+        {
+          limit,
+          offset,
+          page,
+        },
+      );
+      return ok(results);
     } catch (error) {
-      this.handleError(error);
+      logger.error(error);
+      return fail(new AppError("Failed to fetch active jobs for organization"));
     }
   }
 
-  async getJobById(id: number): Promise<Job> {
-    const job = await this.jobRepository.findById(id);
+  async getJobById(id: number): Promise<Result<Job, Error>> {
+    try {
+      const job = await this.jobRepository.findById(id);
 
-    if (!job) {
-      return this.handleError(new NotFoundError("Job", id));
+      if (!job) {
+        return fail(new NotFoundError("Job", id));
+      }
+
+      // Increment view count
+      await this.incrementJobViews(id);
+
+      return ok(job);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to fetch job by ID"));
     }
-    return job;
   }
 
-  async incrementJobViews(jobId: number): Promise<void> {
-    const job = await this.jobRepository.findById(jobId);
-    if (!job) {
-      return this.handleError(new NotFoundError("Job", jobId));
+  async incrementJobViews(jobId: number): Promise<Result<null, Error>> {
+    try {
+      const job = await this.jobRepository.findById(jobId);
+      if (!job) {
+        return fail(new NotFoundError("Job", jobId));
+      }
+      await this.jobInsightsRepository.incrementJobViews(jobId);
+
+      return ok(null);
+    } catch {
+      return fail(new DatabaseError("Failed to fetch job by ID"));
     }
-    await this.jobInsightsRepository.incrementJobViews(jobId);
   }
 
   async getJobsByEmployer(
@@ -121,227 +168,251 @@ export class JobService extends BaseService {
     options: { page?: number; limit?: number } = {},
     requesterId: number,
   ) {
-    // Todo: Additional check for employers - they can only see their own organization's jobs
-    const organization =
-      await this.organizationRepository.findByContact(requesterId);
-    if (!organization) {
-      return this.handleError(
-        new ForbiddenError("You do not belong to any organization"),
-      );
-    }
+    try {
+      // Todo: Additional check for employers - they can only see their own organization's jobs
+      const organization =
+        await this.organizationRepository.findByContact(requesterId);
+      if (!organization) {
+        return fail(
+          new ForbiddenError("You do not belong to any organization"),
+        );
+      }
 
-    if (organization.id !== employerId) {
-      return this.handleError(
-        new ForbiddenError("You can only view jobs for your organization"),
-      );
-    }
+      if (organization.id !== employerId) {
+        return fail(
+          new ForbiddenError("You can only view jobs for your organization"),
+        );
+      }
 
-    return await this.jobRepository.findJobsByEmployer(employerId, options);
+      const jobsByEmployer = await this.jobRepository.findJobsByEmployer(
+        employerId,
+        options,
+      );
+      return ok(jobsByEmployer);
+    } catch {
+      return fail(new DatabaseError("Failed to fetch jobs by employer"));
+    }
   }
 
-  async createJob(jobData: CreateJobSchema["body"]): Promise<JobWithSkills> {
-    // Todo Fetch this from organizationMembers table
-    // Validate employer exists
-    const employer = await this.organizationRepository.findById(
-      jobData.employerId,
-    );
-
-    if (!employer) {
-      return this.handleError(
-        new NotFoundError("Organization", jobData.employerId),
+  async createJob(
+    jobData: CreateJobSchema["body"],
+  ): Promise<Result<JobWithSkills, Error>> {
+    try {
+      // Todo Fetch this from organizationMembers table
+      // Validate employer exists
+      const employer = await this.organizationRepository.findById(
+        jobData.employerId,
       );
+
+      if (!employer) {
+        return fail(new NotFoundError("Organization", jobData.employerId));
+      }
+
+      // Sanitize and process job data
+      const sanitizedData = {
+        ...jobData,
+        title: SecurityUtils.sanitizeInput(jobData.title),
+        description: SecurityUtils.sanitizeInput(jobData.description),
+        city: SecurityUtils.sanitizeInput(jobData.city),
+        country: SecurityUtils.sanitizeInput(jobData.country),
+        experience: jobData.experience
+          ? SecurityUtils.sanitizeInput(jobData.experience)
+          : null,
+        applicationDeadline: jobData.applicationDeadline
+          ? new Date(jobData.applicationDeadline)
+          : null,
+      };
+
+      const jobWithSkills = await this.jobRepository.createJob(sanitizedData);
+
+      if (!jobWithSkills) {
+        return fail(new DatabaseError("Failed to retrieve created job"));
+      }
+
+      // Enqueue job for indexing in Typesense
+      await jobIndexerQueue.add("indexJob", jobWithSkills);
+
+      return ok(jobWithSkills);
+    } catch {
+      return fail(new DatabaseError("Failed to retrieve created job"));
     }
-
-    // Sanitize and process job data
-    const sanitizedData = {
-      ...jobData,
-      title: SecurityUtils.sanitizeInput(jobData.title),
-      description: SecurityUtils.sanitizeInput(jobData.description),
-      city: SecurityUtils.sanitizeInput(jobData.city),
-      country: SecurityUtils.sanitizeInput(jobData.country),
-      experience: jobData.experience
-        ? SecurityUtils.sanitizeInput(jobData.experience)
-        : null,
-      applicationDeadline: jobData.applicationDeadline
-        ? new Date(jobData.applicationDeadline)
-        : null,
-    };
-
-    const jobWithSkills = await this.jobRepository.createJob(sanitizedData);
-
-    if (!jobWithSkills) {
-      throw new AppError(
-        "Failed to retrieve created job",
-        500,
-        ErrorCode.DATABASE_ERROR,
-      );
-    }
-
-    // Enqueue job for indexing in Typesense
-    await jobIndexerQueue.add("indexJob", jobWithSkills);
-
-    return jobWithSkills;
   }
 
   async updateJob(
     id: number,
     updateData: UpdateJob,
     requesterId: number,
-  ): Promise<Job> {
-    const job = await this.getJobById(id);
+  ): Promise<Result<Job, Error>> {
+    try {
+      const job = await this.getJobById(id);
 
-    if (!job) {
-      throw new NotFoundError("Job", id);
+      if (!job.isSuccess) {
+        return fail(new NotFoundError("Job", id));
+      }
+
+      // Authorization check - only admin or employer who posted the job can update
+      const organization =
+        await this.organizationRepository.findByContact(requesterId);
+
+      if (!organization) {
+        return fail(
+          new ForbiddenError("You do not belong to any organization"),
+        );
+      }
+
+      if (job.value.employerId !== organization.id) {
+        return fail(
+          new ForbiddenError(
+            "You can only update jobs posted by your organization",
+          ),
+        );
+      }
+
+      // Sanitize update data
+      const sanitizedData = {
+        ...updateData,
+        title: updateData.title
+          ? SecurityUtils.sanitizeInput(updateData.title)
+          : undefined,
+        description: updateData.description
+          ? SecurityUtils.sanitizeInput(updateData.description)
+          : undefined,
+        city: updateData.city
+          ? SecurityUtils.sanitizeInput(updateData.city)
+          : undefined,
+        state: updateData.state
+          ? this.processSkillsArray(updateData.state)
+          : undefined,
+      };
+
+      const success = await this.jobRepository.updateJob(sanitizedData, id);
+      if (!success) {
+        return fail(new DatabaseError("Failed to update job"));
+      }
+
+      const updatedJob = await this.jobRepository.findJobByIdWithSkills(id);
+
+      if (!updatedJob) {
+        return fail(new DatabaseError("Failed to retrieve updated job"));
+      }
+
+      // Update job indexes in Typesense
+      await jobIndexerQueue.add("updateJobIndex", { id, updatedJob });
+
+      return ok(updatedJob);
+    } catch {
+      return fail(new DatabaseError("Failed to update job"));
     }
-
-    // Authorization check - only admin or employer who posted the job can update
-    const organization =
-      await this.organizationRepository.findByContact(requesterId);
-
-    if (!organization) {
-      throw new ForbiddenError("You do not belong to any organization");
-    }
-
-    if (job.employerId !== organization.id) {
-      throw new ForbiddenError(
-        "You can only update jobs posted by your organization",
-      );
-    }
-
-    // Sanitize update data
-    const sanitizedData = {
-      ...updateData,
-      title: updateData.title
-        ? SecurityUtils.sanitizeInput(updateData.title)
-        : undefined,
-      description: updateData.description
-        ? SecurityUtils.sanitizeInput(updateData.description)
-        : undefined,
-      location: updateData.city
-        ? SecurityUtils.sanitizeInput(updateData.city)
-        : undefined,
-      requiredSkills: updateData.state
-        ? this.processSkillsArray(updateData.state)
-        : undefined,
-    };
-
-    const success = await this.jobRepository.updateJob(sanitizedData, id);
-    if (!success) {
-      throw new AppError("Failed to update job", 500, ErrorCode.DATABASE_ERROR);
-    }
-
-    const updatedJob = await this.jobRepository.findJobByIdWithSkills(id);
-
-    if (!updatedJob) {
-      throw new AppError(
-        "Failed to retrieve created job",
-        500,
-        ErrorCode.DATABASE_ERROR,
-      );
-    }
-
-    // Update job indexes in Typesense
-    await jobIndexerQueue.add("updateJobIndex", { id, updatedJob });
-
-    return updatedJob;
   }
 
-  async deleteJob(id: number, requesterId: number): Promise<void> {
-    const job = await this.getJobById(id);
+  async deleteJob(
+    id: number,
+    requesterId: number,
+  ): Promise<Result<null, Error>> {
+    try {
+      const job = await this.getJobById(id);
 
-    if (!job) {
-      throw new NotFoundError("Job", id);
+      if (!job.isSuccess) {
+        return fail(new NotFoundError("Job", id));
+      }
+
+      // Authorization check - only admin or employer who posted the job can delete
+      const organization =
+        await this.organizationRepository.findByContact(requesterId);
+
+      if (!organization) {
+        return fail(
+          new ForbiddenError("You do not belong to any organization"),
+        );
+      }
+
+      if (job.value.employerId !== organization.id) {
+        return fail(
+          new ForbiddenError(
+            "You can only delete jobs posted by your organization",
+          ),
+        );
+      }
+
+      // Check if job has applications - if so, prevent deletion
+      const applications = await this.jobRepository.findApplicationsByJob(id);
+
+      if (applications.items.length > 0) {
+        return fail(
+          new ForbiddenError("Cannot delete job with existing applications"),
+        );
+      }
+
+      const success = await this.jobRepository.delete(id);
+      if (!success) {
+        return fail(new DatabaseError("Failed to delete job"));
+      }
+
+      // Delete job indexes in Typesense
+      await jobIndexerQueue.add("deleteJobIndex", { id });
+      return ok(null);
+    } catch {
+      return fail(new DatabaseError("Failed to delete job"));
     }
-
-    // Authorization check - only admin or employer who posted the job can delete
-    const organization =
-      await this.organizationRepository.findByContact(requesterId);
-
-    if (!organization) {
-      throw new ForbiddenError("You do not belong to any organization");
-    }
-
-    if (job.employerId !== organization.id) {
-      throw new ForbiddenError(
-        "You can only delete jobs posted by your organization",
-      );
-    }
-
-    // Check if job has applications - if so, prevent deletion
-    const applications = await this.jobRepository.findApplicationsByJob(id);
-
-    if (applications.items.length > 0) {
-      throw new ForbiddenError("Cannot delete job with existing applications");
-    }
-
-    const success = await this.jobRepository.delete(id);
-    if (!success) {
-      throw new AppError("Failed to delete job", 500, ErrorCode.DATABASE_ERROR);
-    }
-
-    // Delete job indexes in Typesense
-    await jobIndexerQueue.add("deleteJobIndex", { id });
   }
 
   // Job Application Methods
   async applyForJob(
     applicationData: NewJobApplication,
-  ): Promise<{ applicationId: number; message: string }> {
-    // Check if job exists and is active
-    const job = await this.getJobById(applicationData.jobId);
-    if (!job.isActive) {
-      return this.handleError(
-        new ValidationError("This job is no longer accepting applications"),
+  ): Promise<Result<{ applicationId: number; message: string }, Error>> {
+    try {
+      // Check if job exists and is active
+      const job = await this.getJobById(applicationData.jobId);
+
+      if (!job.isSuccess) {
+        return fail(new NotFoundError("Job", applicationData.jobId));
+      }
+      if (!job.value.isActive) {
+        return fail(
+          new ValidationError("This job is no longer accepting applications"),
+        );
+      }
+
+      // Check application deadline
+      if (
+        job.value.applicationDeadline &&
+        new Date() > new Date(job.value.applicationDeadline)
+      ) {
+        return fail(new ValidationError("The application deadline has passed"));
+      }
+
+      // Check if user has already applied
+      const hasApplied = await this.jobRepository.hasUserAppliedToJob(
+        applicationData.applicantId,
+        applicationData.jobId,
       );
-    }
 
-    // Check application deadline
-    if (
-      job.applicationDeadline &&
-      new Date() > new Date(job.applicationDeadline)
-    ) {
-      return this.handleError(
-        new ValidationError("The application deadline has passed"),
-      );
-    }
+      if (hasApplied) {
+        return fail(new ConflictError("You have already applied for this job"));
+      }
 
-    // Check if user has already applied
-    const hasApplied = await this.jobRepository.hasUserAppliedToJob(
-      applicationData.applicantId,
-      applicationData.jobId,
-    );
-
-    if (hasApplied) {
-      return this.handleError(
-        new ConflictError("You have already applied for this job"),
-      );
-    }
-
-    // Sanitize application data
-    const sanitizedData = {
-      ...applicationData,
-      coverLetter: SecurityUtils.sanitizeInput(
-        applicationData.coverLetter ?? "",
-      ),
-    };
-
-    const applicationId =
-      await this.jobRepository.createApplication(sanitizedData);
-
-    if (!applicationId) {
-      return this.handleError(
-        new AppError(
-          "Failed to submit application",
-          500,
-          ErrorCode.DATABASE_ERROR,
+      // Sanitize application data
+      const sanitizedData = {
+        ...applicationData,
+        coverLetter: SecurityUtils.sanitizeInput(
+          applicationData.coverLetter ?? "",
         ),
-      );
-    }
+      };
 
-    return {
-      applicationId,
-      message: "Application submitted successfully",
-    };
+      const applicationId =
+        await this.jobRepository.createApplication(sanitizedData);
+
+      if (!applicationId) {
+        return fail(new DatabaseError("Failed to submit application"));
+      }
+
+      return ok({
+        applicationId,
+        message: "Application submitted successfully",
+      });
+    } catch {
+      return fail(new DatabaseError("Failed to retrieve application"));
+    }
   }
 
   async getJobApplications(
@@ -349,31 +420,41 @@ export class JobService extends BaseService {
     { page, limit, status }: SearchParams["query"],
     requesterId: number,
   ) {
-    // Authorization check - only admin or employer who posted the job can view applications
-    const [job, organization] = await Promise.all([
-      this.getJobById(jobId),
-      this.organizationRepository.findByContact(requesterId),
-    ]);
+    try {
+      // Authorization check - only admin or employer who posted the job can view applications
+      const [job, organization] = await Promise.all([
+        this.getJobById(jobId),
+        this.organizationRepository.findByContact(requesterId),
+      ]);
 
-    if (!organization) {
-      return this.handleError(
-        new ForbiddenError("You do not belong to any organization"),
-      );
+      if (!job.isSuccess) {
+        return fail(new NotFoundError("Job", jobId));
+      }
+
+      if (!organization) {
+        return fail(
+          new ForbiddenError("You do not belong to any organization"),
+        );
+      }
+
+      if (job.value.employerId !== organization.id) {
+        return fail(
+          new ForbiddenError(
+            "You can only view applications for jobs posted by your organization",
+          ),
+        );
+      }
+
+      const result = await this.jobRepository.findApplicationsByJob(jobId, {
+        page,
+        limit,
+        status,
+      });
+
+      return ok(result);
+    } catch {
+      return fail(new DatabaseError("Failed to fetch job applications"));
     }
-
-    if (job.employerId !== organization.id) {
-      return this.handleError(
-        new ForbiddenError(
-          "You can only view applications for jobs posted by your organization",
-        ),
-      );
-    }
-
-    return await this.jobRepository.findApplicationsByJob(jobId, {
-      page,
-      limit,
-      status,
-    });
   }
 
   async getUserApplications(
@@ -381,13 +462,17 @@ export class JobService extends BaseService {
     { page, limit, status }: SearchParams["query"],
   ) {
     try {
-      return await this.jobRepository.findApplicationsByUser(userId, {
-        page,
-        limit,
-        status,
-      });
+      const userApplications = await this.jobRepository.findApplicationsByUser(
+        userId,
+        {
+          page,
+          limit,
+          status,
+        },
+      );
+      return ok(userApplications);
     } catch (error) {
-      this.handleError(error);
+      return fail(new DatabaseError("Failed to fetch user applications"));
     }
   }
 
@@ -395,116 +480,122 @@ export class JobService extends BaseService {
     applicationId: number,
     data: UpdateJobApplication,
     requesterId: number,
-  ): Promise<{ message: string }> {
-    // Get application details
-    const [application] =
-      await this.jobRepository.findApplicationById(applicationId);
+  ): Promise<Result<{ message: string }, Error>> {
+    try {
+      // Get application details
+      const [application] =
+        await this.jobRepository.findApplicationById(applicationId);
 
-    if (!application) {
-      return this.handleError(new NotFoundError("Application", applicationId));
-    }
+      if (!application) {
+        return fail(new NotFoundError("Application", applicationId));
+      }
 
-    // Authorization check - only admin or employer who posted the job can delete
-    const [job, organization] = await Promise.all([
-      this.getJobById(application.job.id),
-      this.organizationRepository.findByContact(requesterId),
-    ]);
+      // Authorization check - only admin or employer who posted the job can update application status
+      const [job, organization] = await Promise.all([
+        this.getJobById(application.job.id),
+        this.organizationRepository.findByContact(requesterId),
+      ]);
 
-    if (!organization) {
-      return this.handleError(
-        new ForbiddenError("You do not belong to any organization"),
+      if (!job.isSuccess) {
+        return fail(new NotFoundError("Job", application.job.id));
+      }
+
+      if (!organization) {
+        return fail(
+          new ForbiddenError("You do not belong to any organization"),
+        );
+      }
+
+      if (organization.id !== job.value.employerId) {
+        return fail(
+          new ForbiddenError(
+            "You can only update applications for jobs posted by your organization",
+          ),
+        );
+      }
+
+      // const updateData: any = { status };
+      //
+      // if (status === "reviewed" && !application?.application?.reviewedAt) {
+      //   updateData.reviewedAt = new Date();
+      //   updateData.reviewedBy = requesterId;
+      // }
+      //
+      // if (additionalData?.notes) {
+      //   updateData.notes = SecurityUtils.sanitizeInput(additionalData.notes);
+      // }
+      //
+      // if (additionalData?.rating) {
+      //   updateData.rating = Math.min(5, Math.max(1, additionalData.rating));
+      // }
+
+      const success = await this.jobRepository.updateApplicationStatus(
+        applicationId,
+        data,
       );
+      if (!success) {
+        return fail(new DatabaseError("Failed to update application status"));
+      }
+
+      return ok({ message: "Application status updated successfully" });
+    } catch {
+      return fail(new DatabaseError("Failed to update application status"));
     }
-
-    if (organization.id !== job.employerId) {
-      return this.handleError(
-        new ForbiddenError(
-          "You can only update applications for jobs posted by your organization",
-        ),
-      );
-    }
-
-    // const updateData: any = { status };
-    //
-    // if (status === "reviewed" && !application?.application?.reviewedAt) {
-    //   updateData.reviewedAt = new Date();
-    //   updateData.reviewedBy = requesterId;
-    // }
-    //
-    // if (additionalData?.notes) {
-    //   updateData.notes = SecurityUtils.sanitizeInput(additionalData.notes);
-    // }
-    //
-    // if (additionalData?.rating) {
-    //   updateData.rating = Math.min(5, Math.max(1, additionalData.rating));
-    // }
-
-    const success = await this.jobRepository.updateApplicationStatus(
-      applicationId,
-      data,
-    );
-    if (!success) {
-      return this.handleError(
-        new AppError(
-          "Failed to update application status",
-          500,
-          ErrorCode.DATABASE_ERROR,
-        ),
-      );
-    }
-
-    return { message: "Application status updated successfully" };
   }
 
   async withdrawApplication(
     applicationId: number,
     userId: number,
-  ): Promise<{ message: string }> {
-    const application =
-      await this.jobRepository.findApplicationById(applicationId);
-    if (!application) {
-      return this.handleError(new NotFoundError("Application", applicationId));
-    }
+  ): Promise<Result<{ message: string }, Error>> {
+    try {
+      const application =
+        await this.jobRepository.findApplicationById(applicationId);
+      if (!application) {
+        return fail(new NotFoundError("Application", applicationId));
+      }
 
-    // Check if user owns this application
-    if ((application as any).applicantId !== userId) {
-      return this.handleError(
-        new ForbiddenError("You can only withdraw your own applications"),
+      // Check if user owns this application
+      if ((application as any).applicantId !== userId) {
+        return fail(
+          new ForbiddenError("You can only withdraw your own applications"),
+        );
+      }
+
+      // Check if application can be withdrawn
+      if (["hired", "rejected"].includes((application as any).status)) {
+        return fail(
+          new ValidationError("Cannot withdraw application with final status"),
+        );
+      }
+
+      const success = await this.jobRepository.updateApplicationStatus(
+        applicationId,
+        {
+          status: "withdrawn",
+        } as any,
       );
+
+      if (!success) {
+        return fail(new DatabaseError("Failed to withdraw application"));
+      }
+
+      return ok({ message: "Application withdrawn successfully" });
+    } catch {
+      return fail(new DatabaseError("Failed to withdraw application"));
     }
-
-    // Check if application can be withdrawn
-    if (["hired", "rejected"].includes((application as any).status)) {
-      return this.handleError(
-        new ValidationError("Cannot withdraw application with final status"),
-      );
-    }
-
-    const success = await this.jobRepository.updateApplicationStatus(
-      applicationId,
-      {
-        status: "withdrawn",
-      } as any,
-    );
-
-    if (!success) {
-      return this.handleError(
-        new AppError(
-          "Failed to withdraw application",
-          500,
-          ErrorCode.DATABASE_ERROR,
-        ),
-      );
-    }
-
-    return { message: "Application withdrawn successfully" };
   }
 
-  async deleteJobApplicationsByUserId(userId: number): Promise<void> {
+  async deleteJobApplicationsByUserId(
+    userId: number,
+  ): Promise<Result<null, Error>> {
     try {
       await this.jobRepository.deleteJobApplicationsByUserId(userId);
+
+      return ok(null);
     } catch (error) {
-      this.handleError(error);
+      return fail(
+        new DatabaseError("Failed to delete application application"),
+      );
     }
   }
 
