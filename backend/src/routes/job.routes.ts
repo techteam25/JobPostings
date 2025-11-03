@@ -182,13 +182,13 @@ router.use(authMiddleware.authenticate);
 // User routes (authenticated users)
 router.get(
   "/recommendations/me",
-  authMiddleware.requireUserRole(),
+  authMiddleware.requireUserRole,
   jobController.getRecommendedJobs,
 );
 
 router.get(
   "/applications/my",
-  authMiddleware.requireUserRole(),
+  authMiddleware.requireUserRole,
   jobController.getUserApplications,
 );
 
@@ -496,3 +496,4 @@ router.get(
 // );
 
 export default router;
+

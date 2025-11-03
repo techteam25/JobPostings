@@ -20,10 +20,11 @@ import {
   UpdateJob,
   UpdateJobApplication,
 } from "@/validations/job.validation";
+import { DatabaseError, NotFoundError } from "@/utils/errors";
 
 export class JobRepository extends BaseRepository<typeof jobsDetails> {
   constructor() {
-    super(jobsDetails);
+    super(jobsDetails, "Job");
   }
 
   async createJob(
@@ -38,7 +39,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .$returningId();
 
         if (!jobId) {
-          throw new Error("Failed to insert job");
+          throw new DatabaseError("Failed to insert job");
         }
 
         // Initialize job skills if provided
@@ -62,7 +63,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
             .where(inArray(skills.name, skillsPayload));
 
           if (!allSkills || allSkills.length === 0)
-            throw new Error("Failed to fetch skills");
+            throw new DatabaseError("Failed to fetch skills");
 
           const jobSkillInserts = allSkills.map((s) => ({
             jobId: jobId.id,
@@ -100,7 +101,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
         });
 
         if (!jobWithSkills) {
-          throw new Error(`Job with Id: ${jobId} not found`);
+          throw new NotFoundError(`Job with Id: ${jobId} not found`);
         }
 
         const skillsArray = jobWithSkills.skills.map((s) => s.skill.name);
@@ -120,7 +121,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
         const [jobResult] = await transaction
           .update(jobsDetails)
           .set(jobPayload)
-          .where(eq(jobsDetails.id, jobId))
+          .where(eq(jobsDetails.id, jobId));
+
+        if (!jobResult.affectedRows || jobResult.affectedRows === 0) {
+          throw new DatabaseError("Failed to update job");
+        }
 
         // Initialize job skills if provided
         if (skillsPayload && skillsPayload.length > 0) {
@@ -146,7 +151,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
             .where(inArray(skills.name, skillsPayload));
 
           if (!allSkills || allSkills.length === 0)
-            throw new Error("Failed to fetch skills after update");
+            throw new DatabaseError("Failed to fetch skills after update");
 
           const jobSkillInserts = allSkills.map((s) => ({
             jobId,
@@ -183,7 +188,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           });
 
         if (!updatedJobWithSkills) {
-          throw new Error(`Job with Id: ${jobId} not found`);
+          throw new NotFoundError(`Job with Id: ${jobId} not found`);
         }
 
         const skillsArray = updatedJobWithSkills.skills.map(
@@ -309,7 +314,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
         await transaction
           .update(jobInsights)
           .set({
-            applicationCount: sql`${jobInsights.applicationCount} + 1`,
+            viewCount: sql`(${jobInsights.viewCount} + 1)`,
           })
           .where(eq(jobInsights.job, applicationData.jobId));
 
@@ -525,7 +530,7 @@ async updateApplicationStatus(
     return await withDbErrorHandling(
       async () =>
         await db
-          .select({ exists: sql`SELECT 1` })
+          .select({ exists: sql`(SELECT 1)` })
           .from(jobApplications)
           .where(
             and(
@@ -564,7 +569,7 @@ async updateApplicationStatus(
       });
 
       if (!jobWithSkills) {
-        throw new Error(`Job with Id: ${jobId} not found`);
+        throw new NotFoundError(`Job with Id: ${jobId} not found`);
       }
 
       const skillsArray = jobWithSkills.skills.map((s) => s.skill.name);

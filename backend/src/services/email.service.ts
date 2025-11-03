@@ -4,6 +4,7 @@ import path from "path";
 import nodemailer from "nodemailer";
 import { BaseService } from "./base.service";
 import { env } from "@/config/env";
+import { AppError } from "@/utils/errors";
 
 export class EmailService extends BaseService {
   private transporter: nodemailer.Transporter;
@@ -62,7 +63,13 @@ export class EmailService extends BaseService {
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      this.handleError(error);
+      if (error instanceof Error) {
+        this.handleError(error);
+      } else {
+        this.handleError(
+          new AppError("Unknown error occurred while sending email"),
+        );
+      }
     }
   }
 
@@ -87,7 +94,13 @@ export class EmailService extends BaseService {
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      this.handleError(error);
+      if (error instanceof Error) {
+        this.handleError(error);
+      } else {
+        this.handleError(
+          new AppError("Unknown error occurred while sending email"),
+        );
+      }
     }
   }
 
@@ -172,7 +185,13 @@ export class EmailService extends BaseService {
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      this.handleError(error);
+      if (error instanceof Error) {
+        this.handleError(error);
+      } else {
+        this.handleError(
+          new AppError("Unknown error occurred while sending email"),
+        );
+      }
     }
   }
 
@@ -201,7 +220,13 @@ export class EmailService extends BaseService {
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      this.handleError(error);
+      if (error instanceof Error) {
+        this.handleError(error);
+      } else {
+        this.handleError(
+          new AppError("Unknown error occurred while sending email"),
+        );
+      }
     }
   }
 }

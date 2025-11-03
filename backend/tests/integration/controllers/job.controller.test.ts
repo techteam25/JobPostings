@@ -35,7 +35,10 @@ describe("Job Controller Integration Tests", () => {
       expect(response.body.data).toHaveProperty("id", 1);
       expect(response.body.data).toHaveProperty("title");
       expect(response.body.data).toHaveProperty("description");
-      expect(response.body.data).toHaveProperty("location");
+      expect(response.body.data).toHaveProperty("city");
+      expect(response.body.data).toHaveProperty("state");
+      expect(response.body.data).toHaveProperty("country");
+      expect(response.body.data).toHaveProperty("zipcode");
       expect(response.body.data).toHaveProperty("employerId");
       expect(response.body).toHaveProperty(
         "message",
@@ -268,15 +271,14 @@ describe("Job Controller Integration Tests", () => {
       // Verify the job is actually deleted
       const getResponse = await request.get("/api/jobs/1");
 
+      console.log(JSON.stringify(getResponse.body, null, 2));
+
       TestHelpers.validateApiResponse(getResponse, 404);
       expect(getResponse.body).toHaveProperty(
-        "error",
-        "Job with ID 1 not found",
-      );
-      expect(getResponse.body).toHaveProperty(
         "message",
-        "Failed to retrieve job",
+        "Job with id 1 does not exist.",
       );
+      expect(getResponse.body).toHaveProperty("errorCode", "NOT_FOUND");
     });
   });
 });

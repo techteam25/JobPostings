@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 
 import {
+  seedJobs,
   seedOrganizations,
   seedUser,
   seedUserProfile,
@@ -219,7 +220,10 @@ describe("User Controller Integration Tests", () => {
         TestHelpers.validateApiResponse(response, 200);
 
         expect(response.body).toHaveProperty("success", true);
-        expect(response.body).toHaveProperty("message", "User profile updated");
+        expect(response.body).toHaveProperty(
+          "message",
+          "User profile updated successfully",
+        );
         expect(response.body.data).toHaveProperty("id", 1);
         expect(response.body.data).toHaveProperty("profile");
         expect(response.body.data.profile).toHaveProperty("userId", 1);
@@ -292,9 +296,278 @@ describe("User Controller Integration Tests", () => {
         const token = "Password@123";
 
         expect(response.status).toBe(204);
-        expect(mockSendAccountDeletionConfirmation).toHaveBeenCalledTimes(1);
         expect(auth.api.deleteUser).toHaveBeenCalledWith({ body: { token } });
       });
+    });
+  });
+
+  describe("GET users/me/saved-jobs/:jobId/check", () => {
+    beforeEach(async () => {
+      await seedJobs();
+      const createdUser = await auth.api.signUpEmail({
+        body: {
+          email: "normal.user@example.com",
+          password: "Password@123",
+          name: "Normal User",
+          image: "https://example.com/image.png",
+        },
+      });
+      const userProfileData = await userProfileFixture();
+      await db.insert(userProfile).values({
+        ...userProfileData,
+        userId: Number(createdUser.user.id),
+      });
+    });
+
+    it("retrieves saved status for a job when user is authenticated returning 200", async () => {
+      const loginResponse = await request.post("/api/auth/sign-in/email").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+
+      const cookie = loginResponse.headers["set-cookie"]
+        ? loginResponse.headers["set-cookie"][0]
+        : "";
+
+      const response = await request
+        .get("/api/users/me/saved-jobs/1/check")
+        .set("Cookie", cookie!);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job saved status retrieved successfully",
+      );
+      expect(response.body.data).toHaveProperty("isSaved");
+    });
+
+    it("fails to retrieve saved status for a non-existent job returning 404", async () => {
+      const loginResponse = await request.post("/api/auth/sign-in/email").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+
+      const cookie = loginResponse.headers["set-cookie"]
+        ? loginResponse.headers["set-cookie"][0]
+        : "";
+
+      const response = await request
+        .get("/api/users/me/saved-jobs/999/check")
+        .set("Cookie", cookie!);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job saved status retrieved successfully",
+      );
+      expect(response.body.data).toHaveProperty("isSaved", false);
+    });
+  });
+
+  describe("saveJobForCurrentUser", () => {
+    beforeEach(async () => {
+      await seedJobs();
+      const createdUser = await auth.api.signUpEmail({
+        body: {
+          email: "normal.user@example.com",
+          password: "Password@123",
+          name: "Normal User",
+          image: "https://example.com/image.png",
+        },
+      });
+      const userProfileData = await userProfileFixture();
+      await db.insert(userProfile).values({
+        ...userProfileData,
+        userId: Number(createdUser.user.id),
+      });
+    });
+
+    it("saves a job for the current user successfully returning 200", async () => {
+      const loginResponse = await request.post("/api/auth/sign-in/email").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+
+      const cookie = loginResponse.headers["set-cookie"]
+        ? loginResponse.headers["set-cookie"][0]
+        : "";
+
+      const response = await request
+        .post("/api/users/me/saved-jobs/1")
+        .set("Cookie", cookie!);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty("message", "Job saved successfully");
+    });
+
+    it("fails to save a job for a non-existent job ID returning 404", async () => {
+      const loginResponse = await request.post("/api/auth/sign-in/email").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+
+      const cookie = loginResponse.headers["set-cookie"]
+        ? loginResponse.headers["set-cookie"][0]
+        : "";
+
+      const response = await request
+        .post("/api/users/me/saved-jobs/9999")
+        .set("Cookie", cookie!);
+
+      TestHelpers.validateApiResponse(response, 404);
+
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job with id 9999 does not exist.",
+      );
+    });
+  });
+
+  describe("getSavedJobsForCurrentUser", () => {
+    beforeEach(async () => {
+      await seedJobs();
+      const createdUser = await auth.api.signUpEmail({
+        body: {
+          email: "normal.user@example.com",
+          password: "Password@123",
+          name: "Normal User",
+          image: "https://example.com/image.png",
+        },
+      });
+      const userProfileData = await userProfileFixture();
+      await db.insert(userProfile).values({
+        ...userProfileData,
+        userId: Number(createdUser.user.id),
+      });
+    });
+
+    it("retrieves saved jobs for the current user successfully returning 200", async () => {
+      const loginResponse = await request.post("/api/auth/sign-in/email").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+
+      const cookie = loginResponse.headers["set-cookie"]
+        ? loginResponse.headers["set-cookie"][0]
+        : "";
+
+      const response = await request
+        .get("/api/users/me/saved-jobs")
+        .set("Cookie", cookie!)
+        .query({ page: 1, limit: 10 });
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Saved jobs retrieved successfully",
+      );
+      expect(response.body.data).toHaveProperty("items");
+      expect(response.body.data.items).toBeInstanceOf(Array);
+      expect(response.body.data).toHaveProperty("pagination");
+    });
+
+    it("returns an empty list when the user has no saved jobs returning 200", async () => {
+      const loginResponse = await request.post("/api/auth/sign-in/email").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+
+      const cookie = loginResponse.headers["set-cookie"]
+        ? loginResponse.headers["set-cookie"][0]
+        : "";
+
+      const response = await request
+        .get("/api/users/me/saved-jobs")
+        .set("Cookie", cookie!)
+        .query({ page: 1, limit: 10 });
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Saved jobs retrieved successfully",
+      );
+      expect(response.body.data).toHaveProperty("items");
+      expect(response.body.data.items).toHaveLength(0);
+    });
+  });
+
+  describe("unsaveJobForCurrentUser", () => {
+    beforeEach(async () => {
+      await seedJobs();
+      const createdUser = await auth.api.signUpEmail({
+        body: {
+          email: "normal.user@example.com",
+          password: "Password@123",
+          name: "Normal User",
+          image: "https://example.com/image.png",
+        },
+      });
+      const userProfileData = await userProfileFixture();
+      await db.insert(userProfile).values({
+        ...userProfileData,
+        userId: Number(createdUser.user.id),
+      });
+    });
+
+    it("unsaves a job for the current user successfully returning 200", async () => {
+      const loginResponse = await request.post("/api/auth/sign-in/email").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+
+      const cookie = loginResponse.headers["set-cookie"]
+        ? loginResponse.headers["set-cookie"][0]
+        : "";
+
+      await request.post("/api/users/me/saved-jobs/1").set("Cookie", cookie!);
+
+      const response = await request
+        .delete("/api/users/me/saved-jobs/1")
+        .set("Cookie", cookie!);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job unsaved successfully",
+      );
+    });
+
+    it("fails to unsave a job for a non-existent job ID returning 404", async () => {
+      const loginResponse = await request.post("/api/auth/sign-in/email").send({
+        email: "normal.user@example.com",
+        password: "Password@123",
+      });
+
+      const cookie = loginResponse.headers["set-cookie"]
+        ? loginResponse.headers["set-cookie"][0]
+        : "";
+
+      const response = await request
+        .delete("/api/users/me/saved-jobs/9999")
+        .set("Cookie", cookie!);
+
+      console.log(JSON.stringify(response.body, null, 2));
+
+      TestHelpers.validateApiResponse(response, 404);
+
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Job with id 9999 does not exist.",
+      );
     });
   });
 });

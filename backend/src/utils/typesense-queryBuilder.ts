@@ -2,22 +2,27 @@ export class TypesenseQueryBuilder {
   private filterConditions: string[] = [];
 
   addLocationFilters(
-    location: { city?: string; state?: string; country?: string },
+    location: {
+      city?: string;
+      state?: string;
+      country?: string;
+      zipcode?: string;
+    },
     includeRemote?: boolean,
   ) {
-    const locationKeys = ["city", "state", "country"] as const;
+    const locationKeys = ["city", "state", "country", "zipcode"] as const;
     const locationFilters = Object.entries(location)
       .filter(([key, value]) => locationKeys.includes(key as any) && value)
       .map(([key, value]) => `${key}:${value}`);
 
     if (locationFilters.length > 0 && includeRemote) {
       this.filterConditions.push(
-        `(${locationFilters.join(" && ")}) || is_remote:true`,
+        `(${locationFilters.join(" && ")}) || isRemote:true`,
       );
     } else if (locationFilters.length > 0) {
       this.filterConditions.push(...locationFilters);
     } else if (includeRemote) {
-      this.filterConditions.push("is_remote:true");
+      this.filterConditions.push("isRemote:true");
     }
 
     return this;
