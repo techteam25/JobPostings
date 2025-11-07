@@ -14,5 +14,6 @@ export interface JobCardType {
   experienceLevel: string;
   posted: string;
   jobDescription: string;
-  onApply: () => void;
+  logoUrl: string | null;
+  onJobSelected: () => void;
 }
