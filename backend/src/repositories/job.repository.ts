@@ -203,6 +203,23 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     );
   }
 
+  async findJobById(id: number) {
+    return withDbErrorHandling(
+      async () =>
+        await db.query.jobsDetails.findFirst({
+          where: eq(jobsDetails.id, id),
+          with: {
+            employer: {
+              columns: {
+                name: true,
+                logoUrl: true,
+              },
+            },
+          },
+        }),
+    );
+  }
+
   async findActiveJobs(options: { page?: number; limit?: number } = {}) {
     const { page = 1, limit = 10 } = options;
     const offset = (page - 1) * limit;
@@ -217,6 +234,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
               name: organizations.name,
               city: organizations.city,
               state: organizations.state,
+              logoUrl: organizations.logoUrl,
             },
           })
           .from(jobsDetails)

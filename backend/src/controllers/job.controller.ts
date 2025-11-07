@@ -118,7 +118,9 @@ export class JobController extends BaseController {
 
   getJobById = async (
     req: Request<GetJobSchema["params"]>,
-    res: Response<ApiResponse<Job>>,
+    res: Response<
+      ApiResponse<Job & { employer: { name: string; logoUrl: string | null } }>
+    >,
   ) => {
     const jobId = parseInt(req.params.jobId);
 
@@ -201,12 +203,7 @@ export class JobController extends BaseController {
       );
     }
 
-    const jobData = {
-      ...req.body,
-      employerId: req.organizationId,
-    };
-
-    const job = await this.jobService.createJob(jobData);
+    const job = await this.jobService.createJob(req.body);
 
     if (job.isSuccess) {
       return this.sendSuccess<JobWithSkills>(

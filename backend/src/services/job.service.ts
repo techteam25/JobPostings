@@ -129,9 +129,13 @@ export class JobService extends BaseService {
     }
   }
 
-  async getJobById(id: number): Promise<Result<Job, Error>> {
+  async getJobById(
+    id: number,
+  ): Promise<
+    Result<Job & { employer: { name: string; logoUrl: string | null } }, Error>
+  > {
     try {
-      const job = await this.jobRepository.findById(id);
+      const job = await this.jobRepository.findJobById(id);
 
       if (!job) {
         return fail(new NotFoundError("Job", id));
@@ -326,7 +330,7 @@ export class JobService extends BaseService {
         );
       }
 
-      if (job.value.employerId !== organization.id) {
+      if (job.value.employerId !== organization.organizationId) {
         return fail(
           new ForbiddenError(
             "You can only delete jobs posted by your organization",
