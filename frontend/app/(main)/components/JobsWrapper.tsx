@@ -36,7 +36,7 @@ const JobsWrapper = () => {
 
   if (fetchingJobs) {
     return (
-      <main className="mx-auto max-w-7xl px-4 py-6">
+      <main className="mx-auto h-screen max-w-7xl px-4 py-6">
         <SkeletonCard />
       </main>
     );
@@ -65,7 +65,9 @@ const JobsWrapper = () => {
           />
         </div>
         {/*  job detail component */}
-        <JobDetailPanel jobId={jobId} />
+        <div className="sticky top-0 h-fit max-h-screen flex-1 overflow-y-auto pt-6">
+          <JobDetailPanel jobId={jobId} />
+        </div>
       </div>
     </main>
   );

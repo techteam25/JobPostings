@@ -22,7 +22,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
 
   if (fetchingJobDetails || !jobDetails) {
     return (
-      <div className="flex-1 overflow-y-auto">
+      <div className="overflow-y-auto">
         <SkeletonCard />
       </div>
     );
@@ -30,7 +30,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
 
   if (fetchJobDetailsError || (jobDetails && !jobDetails.success)) {
     return (
-      <div className="flex flex-1 items-start justify-center overflow-y-auto">
+      <div className="flex items-start justify-center overflow-y-auto">
         <p className="text-muted-foreground">Failed to load job details.</p>
       </div>
     );
@@ -38,8 +38,8 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
 
   const { employer, job } = jobDetails.data;
   return (
-    <div className="flex-1 overflow-y-auto">
-      <Card>
+    <div className="">
+      <Card className="max-h-screen overflow-y-auto">
         <CardContent className="p-6">
           <div className="mb-4 flex items-start justify-between">
             <div className="flex items-center gap-3">
