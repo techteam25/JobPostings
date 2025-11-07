@@ -25,8 +25,6 @@ export interface IStorageService {
 }
 
 export class StorageService implements IStorageService {
-  private storage = getStorage();
-
   // Generate predictable, type-safe key
   generateKey(
     folder: StorageFolder,
@@ -48,7 +46,7 @@ export class StorageService implements IStorageService {
       const key = this.generateKey(type, userId, fileName);
       const path = `uploads/${type}/user_${userId}/${fileName}`;
 
-      const storageRef = ref(this.storage, path);
+      const storageRef = ref(storage, path);
       const snapshot = await uploadBytes(storageRef, file.buffer);
       const url = await getDownloadURL(snapshot.ref);
 
@@ -63,7 +61,7 @@ export class StorageService implements IStorageService {
 
   async deleteFile(path: string): Promise<void> {
     try {
-      const fileRef = ref(this.storage, path);
+      const fileRef = ref(storage, path);
       await deleteObject(fileRef);
       logger.info({ path }, "File deleted");
     } catch (error: any) {
