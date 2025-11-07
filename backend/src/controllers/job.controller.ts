@@ -127,7 +127,11 @@ export class JobController extends BaseController {
     const job = await this.jobService.getJobById(jobId);
 
     if (job.isSuccess) {
-      return this.sendSuccess(res, job.value, "Job retrieved successfully");
+      return this.sendSuccess<JobWithEmployer[number]>(
+        res,
+        job.value,
+        "Job retrieved successfully",
+      );
     } else {
       return this.handleControllerError(res, job.error);
     }

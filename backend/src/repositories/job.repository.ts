@@ -204,20 +204,32 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
   }
 
   async findJobById(id: number) {
-    return withDbErrorHandling(
-      async () =>
-        await db.query.jobsDetails.findFirst({
-          where: eq(jobsDetails.id, id),
-          with: {
-            employer: {
-              columns: {
-                name: true,
-                logoUrl: true,
-              },
+    return withDbErrorHandling(async () => {
+      const result = await db.query.jobsDetails.findFirst({
+        where: eq(jobsDetails.id, id),
+        with: {
+          employer: {
+            columns: {
+              id: true,
+              name: true,
+              logoUrl: true,
+              city: true,
+              state: true,
             },
           },
-        }),
-    );
+        },
+      });
+
+      if (!result) {
+        throw new NotFoundError(`Job with Id: ${id} not found`);
+      }
+      const { employer, ...rest } = result;
+
+      return {
+        job: rest,
+        employer,
+      };
+    });
   }
 
   async findActiveJobs(options: { page?: number; limit?: number } = {}) {
