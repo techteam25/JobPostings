@@ -14,11 +14,11 @@ export const selectOrganizationSchema = createSelectSchema(organizations);
 export const insertJobApplicationNoteSchema =
   createInsertSchema(applicationNotes);
 export const insertOrganizationSchema = createInsertSchema(organizations, {
-  name: z.string().min(5, "Name must be at least 5 characters").max(100),
+  name: z.string().min(1, "Name must be at least 1 characters").max(100),
   url: z.url("Invalid organization website URL"),
   phone: z
     .string()
-    .min(10, "Phone must be at least 20 characters")
+    .min(10, "Phone must be at least 10 characters")
     .max(20)
     .optional(),
 });
