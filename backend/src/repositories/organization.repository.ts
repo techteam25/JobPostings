@@ -115,33 +115,15 @@ export class OrganizationRepository extends BaseRepository<
     );
   }
 
-  async findMemberByUserIdAndOrgId(userId: number, organizationId: number) {
-    return await withDbErrorHandling(
-      async () =>
-        await db.query.organizationMembers.findFirst({
-          where: and(
-            eq(organizationMembers.userId, userId),
-            eq(organizationMembers.organizationId, organizationId)
-          ),
-          with: {
-            user: {
-              columns: {
-                id: true,
-                fullName: true,
-                email: true,
-                emailVerified: true,
-                status: true,
-              },
-            },
-          },
-        })
-    );
-  }
-
-  async findByContact(contactId: number) {
+  async findByContact(contactId: number, organizationId?: number) {
     return await withDbErrorHandling(async () => {
+      const conditions = [eq(organizationMembers.userId, contactId)];
+      if (organizationId) {
+        conditions.push(eq(organizationMembers.organizationId, organizationId));
+      }
+
       const orgMember = await db.query.organizationMembers.findFirst({
-        where: eq(organizationMembers.userId, contactId),
+        where: and(...conditions),
         with: {
           user: {
             columns: {
@@ -187,22 +169,29 @@ export class OrganizationRepository extends BaseRepository<
     userId: number,
     organizationId: number,
   ): Promise<boolean> {
-    const memberships = await db.query.organizationMembers.findMany({
-      where: and(
-        eq(organizationMembers.userId, userId),
-        eq(organizationMembers.organizationId, organizationId),
-        eq(organizationMembers.isActive, true),
-      ),
-      with: {
-        organization: true,
-      },
-    });
+    return withDbErrorHandling(async () => {
+      try {
+        const membership = await this.findByContact(userId, organizationId);
 
-    return memberships.some(
-      (m) =>
-        ["active", "trial"].includes(m.organization?.subscriptionStatus) &&
-        ["owner", "admin"].includes(m.role),
-    );
+        if (!membership.isActive) {
+          return false;
+        }
+
+        const organization = await this.findById(organizationId);
+
+        if (!organization) {
+          return false;
+        }
+
+        return ["active", "trial"].includes(organization.subscriptionStatus) &&
+          ["owner", "admin"].includes(membership.role);
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return false;
+        }
+        throw error;
+      }
+    });
   }
 
   async checkHasElevatedRole(

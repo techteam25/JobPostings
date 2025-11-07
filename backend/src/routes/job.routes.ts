@@ -3,8 +3,8 @@ import { Router } from "express";
 import { JobController } from "@/controllers/job.controller";
 
 import { AuthMiddleware } from "@/middleware/auth.middleware";
-
-import validate from "../middleware/validation.middleware";
+import { uploadConfigs } from "@/config/multer";
+import validate, { validateApplicationFiles } from "../middleware/validation.middleware";
 import {
   selectJobSchema,
   createJobSchema,
@@ -194,14 +194,16 @@ router.get(
 
 router.post(
   "/:jobId/apply",
-  authMiddleware.requireUserRole(),
+  authMiddleware.requireUserRole,
+  uploadConfigs.applicationFiles,
+  validateApplicationFiles,
   validate(applyForJobSchema),
   jobController.applyForJob,
 );
 
 router.patch(
   "/applications/:applicationId/withdraw",
-  authMiddleware.requireUserRole(),
+  authMiddleware.requireUserRole,
   authMiddleware.requireApplicationOwnership(),
   validate(getJobSchema),
   jobController.withdrawApplication,

@@ -1,6 +1,8 @@
 import { UserRepository } from "@/repositories/user.repository";
 import { EmailService } from "@/services/email.service";
-import { BaseService, fail, ok } from "./base.service";
+import { BaseService, fail, ok, Result } from "./base.service";
+import { storageService, StorageService } from "@/services/storage.service";
+import logger from "@/logger";
 import {
   AppError,
   DatabaseError,
@@ -8,6 +10,7 @@ import {
   ValidationError,
 } from "@/utils/errors";
 import { PaginationMeta } from "@/types";
+import { StorageFolder } from "@/types/storage.types";
 import { SecurityUtils } from "@/utils/security";
 import { auth } from "@/utils/auth";
 import {
@@ -22,12 +25,14 @@ export class UserService extends BaseService {
   private userRepository: UserRepository;
   private emailService: EmailService;
   private organizationRepository: OrganizationRepository;
+  private storageService: StorageService;
 
   constructor() {
     super();
     this.userRepository = new UserRepository();
     this.emailService = new EmailService();
     this.organizationRepository = new OrganizationRepository();
+    this.storageService = storageService;
   }
 
   async getAllUsers(searchTerm: string = "", page: number, limit: number) {
@@ -39,7 +44,7 @@ export class UserService extends BaseService {
         {
           page,
           limit,
-        },
+        }
       );
       return ok({
         items: result.items,
@@ -71,7 +76,7 @@ export class UserService extends BaseService {
 
   async createUserProfile(
     userId: number,
-    profileData: Omit<NewUserProfile, "userId">,
+    profileData: Omit<NewUserProfile, "userId">
   ) {
     try {
       const user = await this.userRepository.findById(userId);
@@ -88,6 +93,62 @@ export class UserService extends BaseService {
     }
   }
 
+  async updateProfileImage(
+    userId: number,
+    file: Express.Multer.File
+  ): Promise<Result<string, Error>> {
+    try {
+      const user = await this.userRepository.findById(userId);
+      if (!user) return fail(new NotFoundError("User", userId));
+
+      // Delete old image if exists
+      if (user.image) {
+        const oldPath = this.storageService.extractPathFromUrl(user.image);
+        if (oldPath) {
+          await this.storageService.deleteFile(oldPath).catch(() => {});
+        }
+      }
+
+      // Upload new
+      const { url, path } = await this.storageService.uploadFile(
+        file,
+        userId,
+        "profile-images"
+      );
+
+      // Update DB
+      const success = await this.userRepository.update(userId, { image: url });
+      if (!success) {
+        await this.storageService.deleteFile(path).catch(() => {});
+        return fail(
+          new DatabaseError("Failed to update profile image in database")
+        );
+      }
+
+      // Sync with Better-Auth
+      await auth.api.updateUser({ body: { image: url } }).catch((err) => {
+        logger.warn({ userId, err }, "Failed to sync image with auth provider");
+      });
+
+      return ok(url);
+    } catch (error) {
+      logger.error({ error, userId }, "updateProfileImage failed");
+      return fail(new AppError("Failed to update profile image", 500));
+    }
+  }
+
+  async deleteUserFiles(userId: number): Promise<void> {
+    const folders: StorageFolder[] = [
+      "resumes",
+      "cover-letters",
+      "profile-images",
+    ];
+    for (const folder of folders) {
+      // Optional: list and delete all
+      // Or just rely on folder-level security
+    }
+  }
+
   async updateUser(id: number, updateData: UpdateUser) {
     try {
       // Check if user exists
@@ -99,7 +160,7 @@ export class UserService extends BaseService {
       // Validate email uniqueness if email is being updated
       if (updateData.email && updateData.email !== existingUser.email) {
         const emailExists = await this.userRepository.findByEmail(
-          updateData.email,
+          updateData.email
         );
         if (emailExists) {
           return fail(new ValidationError("Email is already in use"));
@@ -109,7 +170,7 @@ export class UserService extends BaseService {
       const { status: success } = await auth.api.updateUser({
         body: {
           name: updateData.fullName,
-          image: updateData.image as string | undefined,
+          image: updateData.image ?? undefined,
         },
       });
       if (!success) {
@@ -134,7 +195,7 @@ export class UserService extends BaseService {
 
       const updatedProfile = await this.userRepository.updateProfile(
         userId,
-        profileData,
+        profileData
       );
 
       if (!updatedProfile) {
@@ -153,7 +214,7 @@ export class UserService extends BaseService {
   async changePassword(
     userId: number,
     currentPassword: string,
-    newPassword: string,
+    newPassword: string
   ) {
     try {
       const user = await this.userRepository.findById(userId);
@@ -194,7 +255,7 @@ export class UserService extends BaseService {
         userId,
         {
           status: "deactivated",
-        },
+        }
       );
       if (!deactivatedUser) {
         return fail(new Error("Failed to deactivate account"));
@@ -203,7 +264,7 @@ export class UserService extends BaseService {
       // Email notification
       await this.emailService.sendAccountDeactivationConfirmation(
         deactivatedUser.email,
-        deactivatedUser.fullName,
+        deactivatedUser.fullName
       );
 
       return ok(deactivatedUser);
@@ -219,7 +280,7 @@ export class UserService extends BaseService {
     try {
       if (id === requestingUserId) {
         return fail(
-          new ValidationError("You cannot deactivate your own account"),
+          new ValidationError("You cannot deactivate your own account")
         );
       }
 
@@ -298,14 +359,14 @@ export class UserService extends BaseService {
 
   async hasPrerequisiteRoles(
     sessionUserId: number,
-    roles: ("owner" | "admin" | "recruiter" | "member")[],
+    roles: ("owner" | "admin" | "recruiter" | "member")[]
   ) {
     try {
       return ok(
         await this.organizationRepository.checkHasElevatedRole(
           sessionUserId,
-          roles,
-        ),
+          roles
+        )
       );
     } catch (error) {
       if (error instanceof AppError) {
@@ -321,11 +382,11 @@ export class UserService extends BaseService {
   //   try {
   //     const result = await db
   //       .select({
-  //         users: count(sql`CASE WHEN ${user.role} = 'user' THEN 1 END`),
+  //         users: count(sql`CASE WHEN ${user.role} = \'user\' THEN 1 END`),
   //         employers: count(
-  //           sql`CASE WHEN ${user.role} = 'employer' THEN 1 END`,
+  //           sql`CASE WHEN ${user.role} = \'employer\' THEN 1 END`,
   //         ),
-  //         admins: count(sql`CASE WHEN ${user.role} = 'admin' THEN 1 END`),
+  //         admins: count(sql`CASE WHEN ${user.role} = \'admin\' THEN 1 END`),
   //         total: count(),
   //       })
   //       .from(user);
@@ -385,11 +446,11 @@ export class UserService extends BaseService {
   async getSavedJobsForUser(
     userId: number,
     page: number = 1,
-    limit: number = 20,
+    limit: number = 20
   ) {
     try {
       return ok(
-        await this.userRepository.getSavedJobsForUser(userId, page, limit),
+        await this.userRepository.getSavedJobsForUser(userId, page, limit)
       );
     } catch (error) {
       if (error instanceof AppError) {
@@ -413,7 +474,8 @@ export class UserService extends BaseService {
   async isJobSavedByUser(userId: number, jobId: number) {
     try {
       return ok(await this.userRepository.isJobSavedByUser(userId, jobId));
-    } catch (error) {
+    }
+    catch (error) {
       if (error instanceof AppError) {
         return this.handleError(error);
       }
@@ -424,7 +486,8 @@ export class UserService extends BaseService {
   async unsaveJobForCurrentUser(userId: number, jobId: number) {
     try {
       return ok(await this.userRepository.unsaveJobForUser(userId, jobId));
-    } catch (error) {
+    }
+    catch (error) {
       if (error instanceof AppError) {
         return this.handleError(error);
       }

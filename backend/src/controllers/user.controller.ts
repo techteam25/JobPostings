@@ -22,6 +22,7 @@ import {
 } from "@/validations/userProfile.validation";
 import { GetJobSchema } from "@/validations/job.validation";
 import { ChangeUserPasswordResponseSchema } from "@/validations/auth.validation";
+import { ValidationError } from "@/utils/errors";
 
 export class UserController extends BaseController {
   private userService: UserService;
@@ -33,7 +34,7 @@ export class UserController extends BaseController {
 
   getAllUsers = async (
     req: Request<{}, {}, {}, UserQuerySchema["query"]>,
-    res: Response,
+    res: Response
   ) => {
     const { searchTerm } = req.query;
     const page = Number(req.query.page) || 1;
@@ -46,7 +47,7 @@ export class UserController extends BaseController {
         res,
         result.value.items,
         result.value.pagination,
-        "Users retrieved successfully",
+        "Users retrieved successfully"
       );
     } else {
       return this.handleControllerError(res, result.error);
@@ -55,7 +56,7 @@ export class UserController extends BaseController {
 
   getUserById = async (
     req: Request<GetUserSchema["params"]>,
-    res: Response,
+    res: Response
   ) => {
     const id = Number(req.params.id);
 
@@ -65,7 +66,7 @@ export class UserController extends BaseController {
       return this.sendSuccess<User>(
         res,
         result.value,
-        "User retrieved successfully",
+        "User retrieved successfully"
       );
     } else {
       return this.handleControllerError(res, result.error);
@@ -74,7 +75,7 @@ export class UserController extends BaseController {
 
   updateUser = async (
     req: Request<GetUserSchema["params"], {}, UpdateUser>,
-    res: Response,
+    res: Response
   ) => {
     const id = Number(req.params.id);
 
@@ -85,7 +86,7 @@ export class UserController extends BaseController {
       return this.sendSuccess<User>(
         res,
         user.value,
-        "User updated successfully",
+        "User updated successfully"
       );
     } else {
       return this.handleControllerError(res, user.error);
@@ -94,13 +95,13 @@ export class UserController extends BaseController {
 
   createProfile = async (
     req: Request<{}, {}, CreateUserProfile["body"]>,
-    res: Response<ApiResponse<UserProfile>>,
+    res: Response<ApiResponse<UserProfile>>
   ) => {
     const profileData = req.body;
 
     const profile = await this.userService.createUserProfile(
       req.userId!,
-      profileData,
+      profileData
     );
 
     if (profile.isSuccess) {
@@ -110,21 +111,51 @@ export class UserController extends BaseController {
     }
   };
 
+  uploadProfileImage = async (
+    req: Request,
+    res: Response<ApiResponse<UserWithProfile>>
+  ) => {
+    if (!req.file) {
+      return this.handleControllerError(res, new ValidationError("No file uploaded"));
+    }
+
+    const result = await this.userService.updateProfileImage(
+      req.userId!,
+      req.file
+    );
+
+    if (!result.isSuccess) {
+      return this.handleControllerError(res, result.error);
+    }
+
+    const userResult = await this.userService.getUserById(req.userId!);
+    if (!userResult.isSuccess) {
+      return this.handleControllerError(res, userResult.error);
+    }
+
+    return this.sendSuccess<UserWithProfile>(
+      res,
+      userResult.value,
+      "Profile image uploaded successfully",
+      200
+    );
+  };
+
   updateProfile = async (
     req: Request<{}, {}, UpdateUserProfile>,
-    res: Response<ApiResponse<UserWithProfile>>,
+    res: Response<ApiResponse<UserWithProfile>>
   ) => {
     const profileData = req.body;
     const user = await this.userService.updateUserProfile(
       req.userId!,
-      profileData,
+      profileData
     );
 
     if (user.isSuccess) {
       return this.sendSuccess<UserWithProfile>(
         res,
         user.value,
-        "User profile updated successfully",
+        "User profile updated successfully"
       );
     } else {
       return this.handleControllerError(res, user.error);
@@ -133,21 +164,21 @@ export class UserController extends BaseController {
 
   changePassword = async (
     req: Request<{}, {}, ChangePasswordSchema["body"]>,
-    res: Response,
+    res: Response
   ) => {
     const { currentPassword, newPassword } = req.body;
 
     const result = await this.userService.changePassword(
       req.userId!,
       currentPassword,
-      newPassword,
+      newPassword
     );
 
     if (result.isSuccess) {
       return this.sendSuccess<ChangeUserPasswordResponseSchema>(
         res,
         result.value,
-        "Password changed successfully",
+        "Password changed successfully"
       );
     } else {
       return this.handleControllerError(res, result.error);
@@ -156,7 +187,7 @@ export class UserController extends BaseController {
 
   getCurrentUser = async (
     req: Request,
-    res: Response<ApiResponse<UserWithProfile>>,
+    res: Response<ApiResponse<UserWithProfile>>
   ) => {
     const user = await this.userService.getUserById(req.userId!);
 
@@ -164,7 +195,7 @@ export class UserController extends BaseController {
       return this.sendSuccess<UserWithProfile>(
         res,
         user.value,
-        "Current user retrieved successfully",
+        "Current user retrieved successfully"
       );
     } else {
       return this.handleControllerError(res, user.error);
@@ -178,7 +209,7 @@ export class UserController extends BaseController {
       return this.sendSuccess<User>(
         res,
         result.value,
-        "Account deactivated successfully",
+        "Account deactivated successfully"
       );
     } else {
       return this.handleControllerError(res, result.error);
@@ -187,7 +218,7 @@ export class UserController extends BaseController {
 
   deactivateUser = async (
     req: Request<GetUserSchema["params"]>,
-    res: Response,
+    res: Response
   ) => {
     const id = Number(req.params.id);
 
@@ -197,7 +228,7 @@ export class UserController extends BaseController {
       return this.sendSuccess<UserWithProfile>(
         res,
         result.value,
-        "User deactivated successfully",
+        "User deactivated successfully"
       );
     } else {
       return this.handleControllerError(res, result.error);
@@ -206,7 +237,7 @@ export class UserController extends BaseController {
 
   activateUser = async (
     req: Request<GetUserSchema["params"]>,
-    res: Response,
+    res: Response
   ) => {
     const id = Number(req.params.id);
 
@@ -216,7 +247,7 @@ export class UserController extends BaseController {
       return this.sendSuccess<UserWithProfile>(
         res,
         result.value,
-        "User activated successfully",
+        "User activated successfully"
       );
     } else {
       return this.handleControllerError(res, result.error);
@@ -225,13 +256,13 @@ export class UserController extends BaseController {
 
   deleteSelf = async (
     req: Request<{}, {}, DeleteSelfSchema["body"]>,
-    res: Response,
+    res: Response
   ) => {
     const { currentPassword } = req.body;
 
     const result = await this.userService.deleteSelf(
       req.userId!,
-      currentPassword,
+      currentPassword
     ); // Todo: replace currentPassword with actual confirmation token
 
     if (result.isSuccess) {
@@ -243,7 +274,7 @@ export class UserController extends BaseController {
 
   deleteUser = async (
     req: Request<GetUserSchema["params"], {}, DeleteUserSchema["body"]>,
-    res: Response,
+    res: Response
   ) => {
     const { token } = req.body;
 
@@ -261,7 +292,7 @@ export class UserController extends BaseController {
 
   getSavedJobsForCurrentUser = async (
     req: Request<{}, {}, {}, SavedJobsQuerySchema["query"]>,
-    res: Response<ApiResponse<SavedJobs>>,
+    res: Response<ApiResponse<SavedJobs>>
   ) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
@@ -269,14 +300,14 @@ export class UserController extends BaseController {
     const savedJobs = await this.userService.getSavedJobsForUser(
       req.userId!,
       page,
-      limit,
+      limit
     );
 
     if (savedJobs.isSuccess) {
       return this.sendSuccess<SavedJobs>(
         res,
         savedJobs.value,
-        "Saved jobs retrieved successfully",
+        "Saved jobs retrieved successfully"
       );
     } else {
       return this.handleControllerError(res, savedJobs.error);
@@ -285,7 +316,7 @@ export class UserController extends BaseController {
 
   checkIfJobIsSaved = async (
     req: Request<GetJobSchema["params"]>,
-    res: Response<ApiResponse<{ isSaved: boolean }>>,
+    res: Response<ApiResponse<{ isSaved: boolean }>>
   ) => {
     const jobId = parseInt(req.params.jobId);
     const userId = req.userId!;
@@ -296,7 +327,7 @@ export class UserController extends BaseController {
       return this.sendSuccess<{ isSaved: boolean }>(
         res,
         { isSaved: isSaved.value },
-        "Job saved status retrieved successfully",
+        "Job saved status retrieved successfully"
       );
     } else {
       return this.handleControllerError(res, isSaved.error);
@@ -305,7 +336,7 @@ export class UserController extends BaseController {
 
   saveJobForCurrentUser = async (
     req: Request<GetJobSchema["params"]>,
-    res: Response<ApiResponse<void>>,
+    res: Response<ApiResponse<void>>
   ) => {
     const jobId = parseInt(req.params.jobId);
     const userId = req.userId!;
@@ -322,14 +353,14 @@ export class UserController extends BaseController {
 
   unsaveJobForCurrentUser = async (
     req: Request<GetJobSchema["params"]>,
-    res: Response<ApiResponse<void>>,
+    res: Response<ApiResponse<void>>
   ) => {
     const jobId = parseInt(req.params.jobId);
     const userId = req.userId!;
 
     const result = await this.userService.unsaveJobForCurrentUser(
       userId,
-      jobId,
+      jobId
     );
 
     if (result.isSuccess) {

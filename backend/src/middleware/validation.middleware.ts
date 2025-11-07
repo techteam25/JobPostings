@@ -85,4 +85,67 @@ const validate =
     }
   };
 
+  /**
+ * Validates file uploads for job applications
+ * Checks file sizes for resume and cover letter
+ * 
+ * @param req - Express request object with files
+ * @param res - Express response object
+ * @param next - Express next function
+ */
+export const validateApplicationFiles = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  const files = req.files as { [fieldname: string]: File[] } | File[] | undefined;
+
+  const resume = Array.isArray(files) ? undefined : files?.resume?.[0];
+  const coverLetter = Array.isArray(files) ? undefined : files?.coverLetter?.[0];
+
+  // Validate resume size (max 5MB)
+  if (resume && resume.size > 5 * 1024 * 1024) {
+    const errorResponse: ErrorResponse = {
+      success: false,
+      error: {
+        code: "FILE_TOO_LARGE",
+        message: "File validation failed",
+        details: [
+          {
+            field: "resume",
+            message: "Resume too large (max 5MB)",
+          },
+        ],
+      },
+    };
+    res.status(400).json(errorResponse);
+    return;
+  }
+
+  // Validate cover letter size (max 2MB)
+  if (coverLetter && coverLetter.size > 2 * 1024 * 1024) {
+    const errorResponse: ErrorResponse = {
+      success: false,
+      error: {
+        code: "FILE_TOO_LARGE",
+        message: "File validation failed",
+        details: [
+          {
+            field: "coverLetter",
+            message: "Cover letter too large (max 2MB)",
+          },
+        ],
+      },
+    };
+    res.status(400).json(errorResponse);
+    return;
+  }
+
+  // Attach files to request body for downstream handlers
+  req.body.resumeFile = resume;
+  req.body.coverLetterFile = coverLetter;
+
+  next();
+};
+
 export default validate;

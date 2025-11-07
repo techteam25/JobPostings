@@ -86,7 +86,6 @@ export const updateJobApplicationSchema = insertJobApplicationSchema
         "withdrawn",
       ])
       .optional(),
-    notes: z.string().max(5000, "Notes must not exceed 5000 characters").optional(),
   });
 
 export const updateJobInsightsSchema = insertJobInsightsSchema
@@ -131,12 +130,14 @@ export const deleteJobSchema = z.object({
 
 export const applyForJobSchema = z.object({
   body: z.object({
+    jobId: z.number(),
     coverLetter: z
       .string()
       .min(50, "Cover letter must be at least 50 characters")
       .max(2000, "Cover letter must not exceed 2000 characters")
       .optional(),
     resumeUrl: z.url("Invalid resume URL").optional(),
+    coverLetterFile: z.instanceof(File).optional(),
   }).strict(),
   params: jobIdParamSchema,
   query: z.object({}).strict(),

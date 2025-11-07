@@ -89,73 +89,12 @@ export class AuthMiddleware {
           });
         }
 
-        // Determine if we’re editing an existing job or creating a new one
-        const jobId = req.params.jobId ? parseInt(req.params.jobId) : null;
-        let employerId: number | null = null;
-
-        if (jobId) {
-          // Fetch job to get employerId
-          const job = await this.jobRepository.findById(jobId);
-          if (!job) {
-            return res.status(404).json({
-              status: "error",
-              message: "Job not found",
-            });
-          }
-          employerId = job.employerId;
-        }
-
-        // Get org membership info
-        const memberResult = await this.organizationService.getOrganizationMember(
+        // Fetch user to check role
+        const isPermitted = await this.organizationService.isRolePermitted(
           req.userId
         );
-        if (memberResult.isFailure) {
-          return res.status(403).json({
-            message: "You are not part of any organization",
-            status: "error",
-          });
-        }
-        const member = memberResult.value;
 
-        // Verify employer ownership when jobId exists
-        if (employerId && member.organizationId !== employerId) {
-          return res.status(403).json({
-            message: "You are not authorized to modify this job",
-            status: "error",
-          });
-        }
-
-        // Check organization existence
-        const organizationResult =
-          await this.organizationService.getOrganizationById(
-            member.organizationId
-          );
-        if (organizationResult.isFailure) {
-          return res.status(404).json({
-            status: "error",
-            message: "Organization not found",
-          });
-        }
-        const organization = organizationResult.value;
-
-        // Check if org is active and valid
-        if (organization.status !== "active") {
-          return res.status(403).json({
-            message: "Organization is not active",
-            status: "error",
-          });
-        }
-
-        if (organization.subscriptionStatus === "expired") {
-          return res.status(403).json({
-            message: "Organization subscription has expired",
-            status: "error",
-          });
-        }
-
-        // Check role permissions
-        const permittedRoles = ["owner", "admin", "recruiter"];
-        if (!permittedRoles.includes(member.role)) {
+        if (!isPermitted) {
           return res.status(403).json({
             success: false,
             status: "error",
@@ -164,11 +103,22 @@ export class AuthMiddleware {
           });
         }
 
-        req.organizationId = member.organizationId;
+        const organizationMember =
+          await this.organizationService.getOrganizationMember(req.userId);
+
+        if (!organizationMember.isSuccess) {
+          return res.status(403).json({
+            success: false,
+            status: "error",
+            error: "FORBIDDEN",
+            message: "Insufficient permissions",
+          });
+        }
+
+        req.organizationId = organizationMember.value.organizationId;
 
         return next();
       } catch (error) {
-        logger.error(error);
         return res.status(500).json({
           success: false,
           status: "error",
@@ -202,7 +152,7 @@ export class AuthMiddleware {
         }
 
         const user = await this.organizationService.getOrganizationMember(
-          req.userId,
+          req.userId
         );
 
         if (!user.isSuccess) {
@@ -381,11 +331,11 @@ export class AuthMiddleware {
       }
     };
   };
-    
+
   ensureIsOrganizationMember = async (
     req: Request<GetOrganizationSchema["params"]>,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     try {
       if (!req.userId || !req.params.organizationId) {
@@ -427,7 +377,7 @@ export class AuthMiddleware {
   requireOwnAccount = async (
     req: Request<GetUserSchema["params"]>,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     try {
       if (!req.userId || !req.params.id) {

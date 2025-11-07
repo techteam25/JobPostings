@@ -6,6 +6,7 @@ import { OrganizationRepository } from "@/repositories/organization.repository";
 import { TypesenseService } from "@/services/typesense.service/typesense.service";
 import { CacheService } from "@/services/cache.service";
 import { EmailService } from "@/services/email.service";
+import { StorageService } from "@/services/storage.service";
 import { CacheKeys, CachePatterns } from "@/types/cache.types";
 import { Paginated } from "@/types";
 import {
@@ -44,6 +45,7 @@ export class JobService extends BaseService {
   private typesenseService: TypesenseService;
   private cacheService: CacheService;
   private emailService: EmailService;
+  private storageService: StorageService;
 
   constructor() {
     super();
@@ -54,15 +56,30 @@ export class JobService extends BaseService {
     this.typesenseService = new TypesenseService();
     this.cacheService = new CacheService();
     this.emailService = new EmailService();
+    this.storageService = new StorageService();
   }
 
   async getAllActiveJobs(
     options: { page?: number; limit?: number } = {}
   ): Promise<Result<Paginated<JobWithEmployer>, Error>> {
+    const { page = 1, limit = 10 } = options;
+    const cacheKey = CacheKeys.jobs.active(page, limit);
+
     try {
+      const cachedJobs = await this.cacheService.get<Paginated<JobWithEmployer>>(
+        cacheKey
+      );
+      if (cachedJobs) {
+        return ok(cachedJobs);
+      }
+
       const activeJobs = await this.jobRepository.findActiveJobs(options);
+
+      await this.cacheService.set(cacheKey, activeJobs, 3600); // Cache for 1 hour
+
       return ok(activeJobs);
-    } catch {
+    } catch (error) {
+      logger.error({ error, options }, "Failed to fetch active jobs");
       return fail(new DatabaseError("Failed to fetch active jobs"));
     }
   }
@@ -106,14 +123,14 @@ export class JobService extends BaseService {
       const skillsArray = Array.isArray(skills)
         ? skills
         : skills
-        ? [skills]
-        : [];
+          ? [skills]
+          : [];
 
       const jobTypeArray = Array.isArray(jobType)
         ? jobType
         : jobType
-        ? [jobType]
-        : [];
+          ? [jobType]
+          : [];
 
       const queryBuilder = new TypesenseQueryBuilder()
         .addLocationFilters({ city, state, country, zipcode }, includeRemote)
@@ -146,12 +163,20 @@ export class JobService extends BaseService {
   }
 
   async getJobById(id: number): Promise<Result<Job, Error>> {
+    const cacheKey = CacheKeys.jobs.detail(id);
     try {
+      const cachedJob = await this.cacheService.get<Job>(cacheKey);
+      if (cachedJob) {
+        return ok(cachedJob);
+      }
+
       const job = await this.jobRepository.findById(id);
 
       if (!job) {
         return fail(new NotFoundError("Job", id));
       }
+
+      await this.cacheService.set(cacheKey, job, 3600); // Cache for 1 hour
 
       // Increment view count
       await this.incrementJobViews(id);
@@ -184,7 +209,17 @@ export class JobService extends BaseService {
     options: { page?: number; limit?: number } = {},
     requesterId: number
   ) {
+    const { page = 1, limit = 10 } = options;
+    const cacheKey = CacheKeys.jobs.byEmployer(employerId, page, limit);
+
     try {
+      const cachedJobs = await this.cacheService.get<Paginated<Job>>(
+        cacheKey
+      );
+      if (cachedJobs) {
+        return ok(cachedJobs);
+      }
+
       // Todo: Additional check for employers - they can only see their own organization\'s jobs
       const organization =
         await this.organizationRepository.findByContact(requesterId);
@@ -204,6 +239,9 @@ export class JobService extends BaseService {
         employerId,
         options
       );
+
+      await this.cacheService.set(cacheKey, jobsByEmployer, 3600); // Cache for 1 hour
+
       return ok(jobsByEmployer);
     } catch {
       return fail(new DatabaseError("Failed to fetch jobs by employer"));
@@ -247,6 +285,10 @@ export class JobService extends BaseService {
 
       // Enqueue job for indexing in Typesense
       await jobIndexerQueue.add("indexJob", jobWithSkills);
+
+      // Invalidate cache
+      await this.cacheService.invalidate(CachePatterns.jobs.all);
+      await this.cacheService.invalidate(CachePatterns.jobs.active);
 
       return ok(jobWithSkills);
     } catch {
@@ -315,6 +357,11 @@ export class JobService extends BaseService {
       // Update job indexes in Typesense
       await jobIndexerQueue.add("updateJobIndex", { id, updatedJob });
 
+      // Invalidate cache
+      await this.cacheService.invalidate(CachePatterns.jobs.all);
+      await this.cacheService.invalidate(CachePatterns.jobs.active);
+      await this.cacheService.delete(CacheKeys.jobs.detail(id));
+
       return ok(updatedJob);
     } catch {
       return fail(new DatabaseError("Failed to update job"));
@@ -366,6 +413,12 @@ export class JobService extends BaseService {
 
       // Delete job indexes in Typesense
       await jobIndexerQueue.add("deleteJobIndex", { id });
+
+      // Invalidate cache
+      await this.cacheService.invalidate(CachePatterns.jobs.all);
+      await this.cacheService.invalidate(CachePatterns.jobs.active);
+      await this.cacheService.delete(CacheKeys.jobs.detail(id));
+
       return ok(null);
     } catch {
       return fail(new DatabaseError("Failed to delete job"));
@@ -374,50 +427,79 @@ export class JobService extends BaseService {
 
   // Job Application Methods
   async applyForJob(
-    applicationData: NewJobApplication
+    applicationData: NewJobApplication & {
+      resumeFile?: Express.Multer.File;
+      coverLetterFile?: Express.Multer.File;
+    }
   ): Promise<Result<{ applicationId: number; message: string }, Error>> {
     try {
-      // Check if job exists and is active
-      const job = await this.getJobById(applicationData.jobId);
+      const { resumeFile, coverLetterFile, applicantId, jobId } =
+        applicationData;
 
-      if (!job.isSuccess) {
-        return fail(new NotFoundError("Job", applicationData.jobId));
+      // 1. Validate Job
+      const jobResult = await this.getJobById(jobId);
+      if (!jobResult.isSuccess) {
+        return fail(new NotFoundError("Job", jobId));
       }
-      if (!job.value.isActive) {
+      const job = jobResult.value;
+
+      if (!job.isActive) {
         return fail(
           new ValidationError("This job is no longer accepting applications")
         );
       }
 
-      // Check application deadline
       if (
-        job.value.applicationDeadline &&
-        new Date() > new Date(job.value.applicationDeadline)
+        job.applicationDeadline &&
+        new Date() > new Date(job.applicationDeadline)
       ) {
         return fail(new ValidationError("The application deadline has passed"));
       }
 
-      // Check if user has already applied
+      // 2. Check Duplicate Application
       const hasApplied = await this.jobRepository.hasUserAppliedToJob(
-        applicationData.applicantId,
-        applicationData.jobId
+        applicantId,
+        jobId
       );
-
       if (hasApplied) {
         return fail(new ConflictError("You have already applied for this job"));
       }
 
-      // Sanitize application data
-      const sanitizedData = {
+      // 3. Upload Files to Firebase
+      let resumeUrl = applicationData.resumeUrl;
+      let coverLetterContent = applicationData.coverLetter;
+
+      if (resumeFile) {
+        const upload = await this.storageService.uploadFile(
+          resumeFile,
+          applicantId,
+          "resumes"
+        );
+        resumeUrl = upload.url;
+      }
+
+      if (coverLetterFile) {
+        const upload = await this.storageService.uploadFile(
+          coverLetterFile,
+          applicantId,
+          "cover-letters"
+        );
+        coverLetterContent = upload.url;
+      }
+
+      // 4. Sanitize Text Data
+      const sanitizedCoverLetter = coverLetterContent
+        ? SecurityUtils.sanitizeInput(coverLetterContent)
+        : undefined;
+
+      // 5. Create Application in DB
+      const dbData = {
         ...applicationData,
-        coverLetter: SecurityUtils.sanitizeInput(
-          applicationData.coverLetter ?? ""
-        ),
+        resumeUrl,
+        coverLetter: sanitizedCoverLetter,
       };
 
-      const applicationId =
-        await this.jobRepository.createApplication(sanitizedData);
-
+      const applicationId = await this.jobRepository.createApplication(dbData);
       if (!applicationId) {
         return fail(new DatabaseError("Failed to submit application"));
       }
@@ -426,8 +508,12 @@ export class JobService extends BaseService {
         applicationId,
         message: "Application submitted successfully",
       });
-    } catch {
-      return fail(new DatabaseError("Failed to retrieve application"));
+    } catch (error) {
+      logger.error(
+        { error, applicantId: applicationData.applicantId },
+        "applyForJob failed"
+      );
+      return fail(new AppError("Failed to process application", 500));
     }
   }
 
@@ -605,7 +691,8 @@ export class JobService extends BaseService {
       // Validate if it\'s a JSON string
       JSON.parse(skills);
       return skills;
-    } catch {
+    }
+    catch {
       // Convert comma-separated string to JSON array
       const skillsArray = skills
         .split(",")

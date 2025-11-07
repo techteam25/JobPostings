@@ -3,6 +3,7 @@ import { UserController } from "@/controllers/user.controller";
 import { AuthMiddleware } from "@/middleware/auth.middleware";
 import { z } from "zod";
 import validate from "@/middleware/validation.middleware";
+import { uploadConfigs } from "@/config/multer";
 import {
   getUserSchema,
   updateUserPayloadSchema,
@@ -111,6 +112,59 @@ router.put(
 
 registry.registerPath({
   method: "post",
+  path: "/users/me/profile-image",
+  tags: ["Users"],
+  summary: "Upload Profile Image",
+  description: "Upload or update the profile image for the currently logged-in user.",
+  request: {
+    body: {
+      content: {
+        "multipart/form-data": {
+          schema: z.object({
+            profileImage: z.string().describe("Profile image (jpeg, png, webp)"),
+          }),
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: "Profile image uploaded successfully",
+      content: {
+        "application/json": {
+          schema: userResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+router.post(
+  "/me/profile-image",
+  uploadConfigs.profileImage,
+  userController.uploadProfileImage,
+);
+
+
+registry.registerPath({
+  method: "post",
   path: "/users/me/profile",
   tags: ["Users"],
   summary: "Create User Profile",
@@ -122,10 +176,11 @@ registry.registerPath({
           schema: createUserPayloadSchema.shape["body"],
         },
       },
+      required: true,
     },
   },
   responses: {
-    200: {
+    201: {
       description: "User profile created successfully",
       content: {
         "application/json": {

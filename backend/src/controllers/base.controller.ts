@@ -1,4 +1,3 @@
-// controllers/base.controller.ts
 import { Request, Response } from "express";
 import {
   AppError,
@@ -11,7 +10,7 @@ import {
 } from "@/utils/errors";
 import logger from "@/logger";
 import { PaginationMeta } from "@/types";
-import { SearchParams } from "@/validations/base.validation";
+import { PaginationParams, SearchParams } from "@/validations/base.validation";
 
 export class BaseController {
   private readonly includeStack = process.env.NODE_ENV === "development";
@@ -62,17 +61,11 @@ export class BaseController {
     return res.status(error.statusCode).json(response);
   }
 
-<<<<<<< HEAD
-  protected extractPaginationParams(req: Request<any, any, any, any>) {
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 10));
-=======
-  protected extractPaginationParams(
+  protected extractPaginationParam (
     req: Request<{}, {}, {}, Pick<SearchParams["query"], "limit" | "page">>,
   ) {
-    const page = Math.max(1, req.query.page ?? 1);
-    const limit = Math.min(1, Math.max(10, req.query.limit ?? 10));
->>>>>>> 92e305d06b842974cad7a2bdcfb4f87cedf87cbb
+    const page = Math.max(1, Number(req.query.page ?? 1));
+    const limit = Math.max(1, Math.min(100, Number(req.query.limit ?? 10)));
 
     return { page, limit };
   }

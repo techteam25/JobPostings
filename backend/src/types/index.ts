@@ -49,16 +49,7 @@ export const apiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
   });
 
 /* Domain-level Types  (used in Repository and Service ) */
-export interface PaginationMeta {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-  nextPage: number | null;
-  previousPage: number | null;
-}
+export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
 
 export interface Paginated<T> {
   items: T[];
@@ -79,5 +70,5 @@ export type PaginatedResponse<T> =
       : z.infer<typeof paginatedResponseSchema> & { data: T })
   | z.infer<typeof errorResponseSchema>;
 
-// export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
+
 export type AuthTokens = z.infer<typeof authTokens>;

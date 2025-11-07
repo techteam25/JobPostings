@@ -81,5 +81,15 @@ export const searchJobResult = z.object({
   createdAt: z.number(),
 });
 
+const paginationQuery = searchParams.shape.query.pick({
+  page: true,
+  limit: true,
+});
+
+export const paginationParams = z.object({
+  query: paginationQuery,
+});
+export type PaginationParams = z.infer<typeof paginationParams>;
+
 export type SearchParams = z.infer<typeof searchParams>;
 export type JobDocumentType = z.infer<typeof searchJobResult>;

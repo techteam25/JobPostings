@@ -360,8 +360,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           })
           .from(jobApplications)
           .innerJoin(user, eq(jobApplications.applicantId, user.id))
-          .leftJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
-          .leftJoin(organizations, eq(jobsDetails.employerId, organizations.id))
+          .innerJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
+          .innerJoin(
+            organizations,
+            eq(jobsDetails.employerId, organizations.id),
+          )
           .where(where)
           .orderBy(desc(jobApplications.appliedAt))
           .limit(limit)
@@ -449,39 +452,24 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
 
 async updateApplicationStatus(
   applicationId: number,
-  updateData: UpdateJobApplication & { notes?: string; reviewedAt?: Date }
-) {
-  // Update the status
-  const statusUpdateData: Partial<UpdateJobApplication & { notes?: string }> = {};
-  if (updateData.status) statusUpdateData.status = updateData.status;
-  if (updateData.notes) statusUpdateData.notes = updateData.notes;
+  updateData: Partial<UpdateJobApplication & { notes?: string | null }>
+): Promise<boolean> {
+  const updatePayload: Partial<
+    UpdateJobApplication & { notes?: string | null; reviewedAt?: Date }
+  > = { ...updateData };
 
-  // Update reviewedAt separately only if applicable
-  const reviewedAtUpdateData: Partial<{ reviewedAt?: Date }> = {};
   if (updateData.status === "reviewed") {
-    reviewedAtUpdateData.reviewedAt = updateData.reviewedAt || new Date();
+    updatePayload.reviewedAt = new Date();
   }
 
-  // Perform database updates 
-  const updateStatusResult = await withDbErrorHandling(async () =>
+  const [result] = await withDbErrorHandling(async () =>
     db
       .update(jobApplications)
-      .set(statusUpdateData)
+      .set(updatePayload)
       .where(eq(jobApplications.id, applicationId))
   );
 
-  if (updateStatusResult[0].affectedRows === 0) return false;
-
-  if (Object.keys(reviewedAtUpdateData).length > 0) {
-    await withDbErrorHandling(async () =>
-      db
-        .update(jobApplications)
-        .set(reviewedAtUpdateData)
-        .where(eq(jobApplications.id, applicationId))
-    );
-  }
-
-  return true;
+  return result && result.affectedRows > 0;
 }
 
 
@@ -513,10 +501,10 @@ async updateApplicationStatus(
               email: user.email,
               fullName: user.fullName,
             },
-            employer: {
-              id: organizations.id,
-              name: organizations.name,
-            },
+            // employer: {
+            //   id: organizations.id,
+            //   name: organizations.name,
+            // },
           })
           .from(jobApplications)
           .where(eq(jobApplications.id, applicationId))

@@ -1,0 +1,22 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Resumes: only owner
+    match /uploads/resumes/{userId}/{allPaths=**} {
+      allow read: if request.auth.uid == string(userId);
+      allow write: if request.auth.uid == string(userId);
+    }
+
+    // Cover letters
+    match /uploads/cover-letters/{userId}/{allPaths=**} {
+      allow read: if request.auth.uid == string(userId);
+      allow write: if request.auth.uid == string(userId);
+    }
+
+    // Profile images
+    match /uploads/profile-images/{userId}/{allPaths=**} {
+      allow read: if request.auth.uid == string(userId);
+      allow write: if request.auth.uid == string(userId);
+    }
+  }
+}
