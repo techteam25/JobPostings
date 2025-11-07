@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import RegistrationForm from "@/app/(auth)/_components/registration-form";
+import RegistrationForm from "@/app/(auth)/components/registration-form";
 
 import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
 
