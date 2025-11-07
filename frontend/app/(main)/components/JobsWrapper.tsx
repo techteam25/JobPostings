@@ -58,7 +58,11 @@ const JobsWrapper = () => {
             <DropDownSortButton />
           </div>
           {/*  job list component */}
-          <JobsList data={data} onJobSelected={handleJobSelect} />
+          <JobsList
+            data={data}
+            onJobSelected={handleJobSelect}
+            selectedId={jobId}
+          />
         </div>
         {/*  job detail component */}
         <JobDetailPanel jobId={jobId} />

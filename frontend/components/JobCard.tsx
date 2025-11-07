@@ -1,10 +1,23 @@
 "use client";
 
-import { JobCardType } from "@/lib/types";
-import { ArrowRight, Bookmark } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { JobType } from "@/lib/types";
+import { Bookmark } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
+
+interface JobCardType {
+  positionName: string;
+  companyName: string;
+  location: string;
+  jobType: JobType;
+  experienceLevel: string;
+  posted: string;
+  jobDescription: string;
+  logoUrl: string | null;
+  onJobSelected: () => void;
+  isSelected: boolean;
+}
 
 export const JobCard = ({
   positionName,
@@ -16,10 +29,14 @@ export const JobCard = ({
   experienceLevel,
   onJobSelected,
   logoUrl,
+  isSelected,
 }: JobCardType) => {
   return (
     <Card
-      className="border-l-accent hover:bg-secondary my-2 cursor-pointer border-l-4 shadow-none transition-colors"
+      className={cn(
+        "border-l-border hover:bg-secondary my-2 cursor-pointer border-l-2 shadow-none transition-colors",
+        isSelected && "border-accent border-2",
+      )}
       onClick={onJobSelected}
     >
       <CardContent className="p-4">
