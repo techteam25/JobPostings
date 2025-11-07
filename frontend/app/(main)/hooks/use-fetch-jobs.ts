@@ -1,11 +1,10 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import { instance } from "@/lib/axios-instance";
 import type { JobResponse, JobsResponse } from "@/schemas/responses/jobs";
 import { toast } from "sonner";
 
 export const useFetchJobs = () => {
-  const queryClient = useQueryClient();
   const {
     data,
     error,
