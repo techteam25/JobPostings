@@ -52,8 +52,8 @@ const JobsWrapper = () => {
         <div className="w-[28rem] space-y-1.5">
           {/* Total results found in location, sort results dropdown */}
           <div className="mb-4 flex items-center justify-between">
-            <div className="text-secondary-foreground mr-4 text-sm">
-              216 Back end engineer jobs in Plano, TX
+            <div className="text-secondary-foreground mr-4 truncate text-sm text-ellipsis">
+              216 Back end engineer jobs in Plano, TX in Plano, TX
             </div>
             <DropDownSortButton />
           </div>
