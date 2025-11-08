@@ -1,4 +1,4 @@
-import { MapPin, Search, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, MapPin, Search, SlidersHorizontal } from "lucide-react";
 import { BsBellFill } from "react-icons/bs";
 import { HiSparkles } from "react-icons/hi2";
 
@@ -70,20 +70,20 @@ function Page() {
       <div className="border-b">
         <div className="mx-auto max-w-7xl px-4 py-4">
           <div className="flex flex-wrap gap-4">
-            <Button className="text-secondary-foreground hover:bg-secondary-foreground/35 bg-input cursor-pointer rounded-full px-3 py-4 shadow-none">
+            <Button className="text-secondary-foreground hover:bg-input bg-secondary cursor-pointer rounded-full px-3 py-4 shadow-none">
               Easy Apply only
             </Button>
-            <Button className="text-secondary-foreground hover:bg-secondary-foreground/35 bg-input cursor-pointer rounded-full px-3 py-4 shadow-none">
+            <Button className="text-secondary-foreground hover:bg-input bg-secondary cursor-pointer rounded-full px-3 py-4 shadow-none">
               Remote only
             </Button>
-            <Button className="text-secondary-foreground hover:bg-secondary-foreground/35 bg-input cursor-pointer rounded-full px-3 py-4 shadow-none">
-              Salary range ▼
+            <Button className="text-secondary-foreground hover:bg-input bg-secondary cursor-pointer rounded-full px-3 py-4 shadow-none">
+              Job type <ChevronDown />
             </Button>
-            <Button className="text-secondary-foreground hover:bg-secondary-foreground/35 bg-input cursor-pointer rounded-full px-3 py-4 shadow-none">
-              Company rating ▼
+            <Button className="text-secondary-foreground hover:bg-input bg-secondary cursor-pointer rounded-full px-3 py-4 shadow-none">
+              Service role <ChevronDown />
             </Button>
-            <Button className="text-secondary-foreground hover:bg-secondary-foreground/35 bg-input cursor-pointer rounded-full px-3 py-4 shadow-none">
-              Date posted ▼
+            <Button className="text-secondary-foreground hover:bg-input bg-secondary cursor-pointer rounded-full px-3 py-4 shadow-none">
+              Date posted <ChevronDown />
             </Button>
           </div>
         </div>
