@@ -1,4 +1,4 @@
-import { ChevronDown, MapPin, Search, SlidersHorizontal } from "lucide-react";
+import { MapPin, Search, SlidersHorizontal } from "lucide-react";
 import { BsBellFill } from "react-icons/bs";
 import { HiSparkles } from "react-icons/hi2";
 
@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import JobsWrapper from "@/app/(main)/components/JobsWrapper";
+import { JobTypeDropDownButton } from "@/app/(main)/components/JobTypeDropDownButton";
+import { ServiceRoleDropDownButton } from "@/app/(main)/components/ServiceRoleDropDownButton";
+import { DatePostedDropDownButton } from "@/app/(main)/components/DatePostedDropDownButton";
 
 function Page() {
   return (
@@ -76,15 +79,9 @@ function Page() {
             <Button className="text-secondary-foreground hover:bg-input bg-secondary cursor-pointer rounded-full px-3 py-4 shadow-none">
               Remote only
             </Button>
-            <Button className="text-secondary-foreground hover:bg-input bg-secondary cursor-pointer rounded-full px-3 py-4 shadow-none">
-              Job type <ChevronDown />
-            </Button>
-            <Button className="text-secondary-foreground hover:bg-input bg-secondary cursor-pointer rounded-full px-3 py-4 shadow-none">
-              Service role <ChevronDown />
-            </Button>
-            <Button className="text-secondary-foreground hover:bg-input bg-secondary cursor-pointer rounded-full px-3 py-4 shadow-none">
-              Date posted <ChevronDown />
-            </Button>
+            <JobTypeDropDownButton />
+            <ServiceRoleDropDownButton />
+            <DatePostedDropDownButton />
           </div>
         </div>
       </div>
