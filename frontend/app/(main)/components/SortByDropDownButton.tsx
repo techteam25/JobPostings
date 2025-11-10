@@ -1,5 +1,4 @@
 "use client";
-import { useState } from "react";
 
 import {
   DropdownMenu,
@@ -12,14 +11,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
+import { type SortBy } from "@/context/store";
+
 import { BsChevronDown } from "react-icons/bs";
+import { useFiltersStore } from "@/context/store";
 
 const sortOptions = {
   recent: "Most Recent",
   relevant: "Most Relevant",
 };
-export const DropDownSortButton = () => {
-  const [sortBy, setSortBy] = useState<"recent" | "relevant">("recent");
+export const SortByDropDownButton = () => {
+  const sortBy = useFiltersStore((state) => state.sortBy);
+  const setSortBy = useFiltersStore((state) => state.setSortBy);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -39,7 +42,7 @@ export const DropDownSortButton = () => {
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup
           value={sortBy}
-          onValueChange={(val) => setSortBy(val as "recent" | "relevant")}
+          onValueChange={(val) => setSortBy(val as SortBy)}
         >
           <DropdownMenuRadioItem value="recent">
             Most Recent
