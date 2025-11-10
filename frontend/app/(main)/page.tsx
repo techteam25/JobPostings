@@ -1,4 +1,4 @@
-import { MapPin, Search, SlidersHorizontal } from "lucide-react";
+import { MapPin, Search } from "lucide-react";
 import { BsBellFill } from "react-icons/bs";
 import { HiSparkles } from "react-icons/hi2";
 
@@ -9,13 +9,15 @@ import JobsWrapper from "@/app/(main)/components/JobsWrapper";
 import { JobTypeDropDownButton } from "@/app/(main)/components/JobTypeDropDownButton";
 import { ServiceRoleDropDownButton } from "@/app/(main)/components/ServiceRoleDropDownButton";
 import { DatePostedDropDownButton } from "@/app/(main)/components/DatePostedDropDownButton";
+import { SearchFilterDropDownButton } from "./components/SearchFilterDropDownButton";
+import { RemoteOnlyBadge } from "@/app/(main)/components/RemoteOnlyBadge";
 
 function Page() {
   return (
     <>
       <section className="border-b">
         <div className="mx-auto max-w-4xl px-4 py-6">
-          <div className="flex gap-1">
+          <div className="flex items-center gap-1">
             <div className="relative flex-1">
               <Search className="text-secondary-foreground absolute top-1/2 left-3 mr-1 size-6 -translate-y-1/2" />
               <Input
@@ -30,9 +32,7 @@ function Page() {
                 className="text-secondary-foreground border-input bg-input h-12 rounded-none rounded-r-full pl-10 text-lg shadow-none outline-none focus-visible:ring-0"
               />
             </div>
-            <Button variant="outline" size="icon" className="h-12 w-12">
-              <SlidersHorizontal className="mr-1" />
-            </Button>
+            <SearchFilterDropDownButton />
           </div>
         </div>
       </section>
@@ -76,9 +76,7 @@ function Page() {
             <Button className="text-secondary-foreground hover:bg-input bg-secondary cursor-pointer rounded-full px-3 py-4 shadow-none">
               Easy Apply only
             </Button>
-            <Button className="text-secondary-foreground hover:bg-input bg-secondary cursor-pointer rounded-full px-3 py-4 shadow-none">
-              Remote only
-            </Button>
+            <RemoteOnlyBadge />
             <JobTypeDropDownButton />
             <ServiceRoleDropDownButton />
             <DatePostedDropDownButton />
