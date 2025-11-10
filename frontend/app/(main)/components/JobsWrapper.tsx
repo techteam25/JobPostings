@@ -1,12 +1,14 @@
 "use client";
 
-import { BsInfoCircle } from "react-icons/bs";
+import { useEffect, useState } from "react";
+
 import { RefreshCcwIcon } from "lucide-react";
 import { useFetchJobs } from "@/app/(main)/hooks/use-fetch-jobs";
 
-import { DropDownSortButton } from "@/app/(main)/components/DropDownSortButton";
-import { JobsList } from "@/app/(main)/components/JobsList";
+import { BsInfoCircle } from "react-icons/bs";
+
 import { JobDetailPanel } from "@/app/(main)/components/JobDetailPanel";
+import { JobsList } from "@/app/(main)/components/JobsList";
 
 import {
   Empty,
@@ -18,7 +20,7 @@ import {
 } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect, useState } from "react";
+import { SortByDropDownButton } from "./SortByDropDownButton";
 
 const JobsWrapper = () => {
   const { data, error, fetchingJobs } = useFetchJobs();
@@ -55,7 +57,7 @@ const JobsWrapper = () => {
             <div className="text-secondary-foreground mr-4 truncate text-sm text-ellipsis">
               216 Back end engineer jobs in Plano, TX in Plano, TX
             </div>
-            <DropDownSortButton />
+            <SortByDropDownButton />
           </div>
           {/*  job list component */}
           <JobsList
