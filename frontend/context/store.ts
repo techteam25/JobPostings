@@ -11,7 +11,7 @@ import {
 
 export type DatePosted = "last-24-hours" | "last-7-days" | "last-14-days";
 
-type JobType = "full-time" | "part-time" | "contract" | "internship";
+export type JobType = "full-time" | "part-time" | "contract" | "internship";
 type ServiceRole = "paid" | "missionary" | "volunteer" | "stipend";
 
 export type SortBy = "relevant" | "recent";
