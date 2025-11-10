@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { useFiltersStore } from "../../../context/store";
+import { useFiltersStore } from "@/context/store";
 
 type Checked = DropdownMenuCheckboxItemProps["checked"];
 

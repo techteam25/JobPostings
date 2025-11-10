@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { DatePosted, useFiltersStore } from "../../../context/store";
+import { DatePosted, useFiltersStore } from "@/context/store";
 
 export const DatePostedDropDownButton = () => {
   const datePosted = useFiltersStore((state) => state.datePosted);
