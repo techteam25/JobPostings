@@ -5,6 +5,12 @@ import { Bookmark } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { Toggle } from "./ui/toggle";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface JobCardType {
   positionName: string;
@@ -60,7 +66,23 @@ export const JobCard = ({
               <div className="text-muted-foreground text-xs">{jobType}</div>
             </div>
           </div>
-          <Bookmark className="text-muted-foreground h-5 w-5" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Toggle
+                  aria-label="Toggle bookmark"
+                  size="sm"
+                  variant="outline"
+                  className="data-[state=on]:*:[svg]:fill-accent data-[state=on]:*:[svg]:stroke-accent hover:*:[svg]:stroke-accent hover:text-accent-foreground cursor-pointer border-0 transition-colors hover:bg-transparent data-[state=on]:bg-transparent [&_svg]:size-5"
+                >
+                  <Bookmark className="text-muted-foreground" />
+                </Toggle>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent className="bg-foreground text-primary-foreground border-input border">
+              <p>Save this job</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <h3 className="mb-1 font-semibold">{positionName}</h3>
         <div className="text-secondary-foreground mb-2 text-sm">{location}</div>
