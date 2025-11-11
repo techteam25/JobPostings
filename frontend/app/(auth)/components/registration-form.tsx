@@ -17,7 +17,9 @@ import { BsFillPersonFill } from "react-icons/bs";
 import { BsLinkedin } from "react-icons/bs";
 import { FcGoogle } from "react-icons/fc";
 import { MdWork } from "react-icons/md";
+import { Loader2 } from "lucide-react";
 
+import useLocalStorage from "@/hooks/use-local-storage";
 import {
   RegistrationData,
   registrationSchema,
@@ -29,11 +31,10 @@ import {
   useLinkedInAuth,
 } from "@/app/(auth)/sign-in/hooks/use-social";
 
-import { Loader2 } from "lucide-react";
-
 export default function RegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [_, setIntent] = useLocalStorage<"user" | "employer">("intent", "user");
 
   const { createUserAsync, isRegistrationPending } = useRegisterUser();
   const { isGoogleSignInPending, signInWithGoogleAsync } = useGoogleAuth();
@@ -88,7 +89,10 @@ export default function RegistrationForm() {
                 children={(field) => (
                   <button
                     type="button"
-                    onClick={() => field.setValue("user")}
+                    onClick={() => {
+                      field.setValue("user");
+                      setIntent("user");
+                    }}
                     className={cn(
                       "cursor-pointer rounded-2xl border-2 p-4 transition",
                       {
@@ -117,7 +121,10 @@ export default function RegistrationForm() {
                 children={(field) => (
                   <button
                     type="button"
-                    onClick={() => field.setValue("employer")}
+                    onClick={() => {
+                      field.setValue("employer");
+                      setIntent("employer");
+                    }}
                     className={cn(
                       "cursor-pointer rounded-2xl border-2 p-4 transition",
                       {
