@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 
 import { Bell, Loader2 } from "lucide-react";
 import { BsFillPersonFill } from "react-icons/bs";
@@ -43,13 +44,15 @@ export default function Navbar() {
               src={GetInvolvedLogo}
               alt="Get Involved Logo"
               className="h-14 w-auto"
+              priority
             />
             <nav className="flex items-center gap-1">
               <Button
                 variant="link"
                 className="text-secondary-foreground rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                asChild
               >
-                Explore Job
+                <Link href="/">Explore Jobs</Link>
               </Button>
               <Button
                 variant="link"
