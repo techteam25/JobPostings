@@ -11,11 +11,15 @@ import { ServiceRoleDropDownButton } from "@/app/(main)/components/ServiceRoleDr
 import { DatePostedDropDownButton } from "@/app/(main)/components/DatePostedDropDownButton";
 import { SearchFilterDropDownButton } from "./components/SearchFilterDropDownButton";
 import { RemoteOnlyBadge } from "@/app/(main)/components/RemoteOnlyBadge";
+import { UserProfileStatusBanner } from "@/app/(main)/components/UserProfileStatusBanner";
 
 function Page() {
   return (
     <>
       <section className="border-b">
+        <div className="flex items-center justify-center gap-1">
+          <UserProfileStatusBanner />
+        </div>
         <div className="mx-auto max-w-4xl px-4 py-6">
           <div className="flex items-center gap-1">
             <div className="relative flex-1">
