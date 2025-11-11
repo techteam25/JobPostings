@@ -7,9 +7,15 @@ import type {
 import { authClient } from "@/lib/auth";
 import { redirect, RedirectType } from "next/navigation";
 import { toast } from "sonner";
+import useLocalStorage from "@/hooks/use-local-storage";
 
+enum IntentEnum {
+  USER = "user",
+  EMPLOYER = "employer",
+}
 export const useRegisterUser = () => {
   const queryClient = useQueryClient();
+  const [intent] = useLocalStorage<"user" | "employer">("intent", "user");
 
   const { mutateAsync: createUserAsync, isPending: isRegistrationPending } =
     useMutation({
@@ -34,7 +40,12 @@ export const useRegisterUser = () => {
             onSuccess: () => {
               toast.success("Account creation successful!");
               queryClient.invalidateQueries({ queryKey: ["get-user-session"] });
-              redirect("/", RedirectType.replace);
+
+              if (intent === IntentEnum.EMPLOYER) {
+                redirect("/employer/onboarding", RedirectType.replace);
+              } else {
+                redirect("/", RedirectType.replace);
+              }
             },
             onError: (error) => {
               toast.error(
