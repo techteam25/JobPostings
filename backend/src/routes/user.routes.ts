@@ -61,6 +61,37 @@ registry.registerPath({
 router.get("/me", userController.getCurrentUser);
 
 registry.registerPath({
+  method: "get",
+  path: "/users/me/status",
+  tags: ["Users"],
+  summary: "Get Current User Profile Status (complete/incomplete)",
+  description: "Retrieve the profile status of the currently logged-in user.",
+  responses: {
+    200: {
+      description: "User profile status retrieved successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.object({
+              complete: z.boolean(),
+            }),
+          ),
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.get("/me/status", userController.getUserProfileStatus);
+
+registry.registerPath({
   method: "put",
   path: "/users/me/profile",
   tags: ["Users"],

@@ -171,6 +171,20 @@ export class UserController extends BaseController {
     }
   };
 
+  getUserProfileStatus = async (req: Request, res: Response) => {
+    const user = await this.userService.getUserProfileStatus(req.userId!);
+
+    if (user.isSuccess) {
+      return this.sendSuccess<{ complete: boolean }>(
+        res,
+        user.value,
+        "User profile status retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, user.error);
+    }
+  };
+
   deactivateSelf = async (req: Request, res: Response) => {
     const result = await this.userService.deactivateSelf(req.userId!);
 
