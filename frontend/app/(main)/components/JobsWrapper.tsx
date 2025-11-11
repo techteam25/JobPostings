@@ -67,7 +67,7 @@ const JobsWrapper = () => {
           />
         </div>
         {/*  job detail component */}
-        <div className="sticky top-0 h-fit max-h-screen flex-1 overflow-y-auto pt-6">
+        <div className="sticky top-0 h-fit max-h-screen flex-1 pt-6">
           <JobDetailPanel jobId={jobId} />
         </div>
       </div>

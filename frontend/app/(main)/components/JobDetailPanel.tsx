@@ -38,66 +38,64 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
 
   const { employer, job } = jobDetails.data;
   return (
-    <div className="">
-      <Card className="max-h-screen">
-        <CardContent className="p-6">
-          <div className="mb-4 flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="text-primary-foreground flex size-16 items-center justify-center rounded font-bold">
-                {employer?.logoUrl ? (
-                  <Image
-                    src={employer?.logoUrl}
-                    alt="Employer's company logo"
-                    width={64}
-                    height={64}
-                    className="rounded-2xl object-cover"
-                  />
-                ) : (
-                  <span>employer?.name.charAt(0)</span>
-                )}
-              </div>
-              <div>
-                <div className="font-semibold">{employer?.name}</div>
-                <div className="text-muted-foreground text-sm">2.9★</div>
-              </div>
+    <Card className="max-h-screen overflow-y-auto">
+      <CardContent className="max-h-screen p-6">
+        <div className="mb-4 flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-primary-foreground flex size-16 items-center justify-center rounded font-bold">
+              {employer?.logoUrl ? (
+                <Image
+                  src={employer?.logoUrl}
+                  alt="Employer's company logo"
+                  width={64}
+                  height={64}
+                  className="rounded-2xl object-cover"
+                />
+              ) : (
+                <span>employer?.name.charAt(0)</span>
+              )}
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
-              <Button variant="outline" size="icon">
-                <Bookmark className="h-5 w-5" />
-              </Button>
-              <Button className="bg-foreground text-primary-foreground hover:bg-foreground/95 cursor-pointer">
-                Apply on employer site
-              </Button>
+            <div>
+              <div className="font-semibold">{employer?.name}</div>
+              <div className="text-muted-foreground text-sm">2.9★</div>
             </div>
           </div>
-
-          <h1 className="mb-2 text-2xl font-bold">{job.title || ""}</h1>
-          <div className="text-secondary-foreground mb-6">
-            {job.city || ""}, {job.state || "" || job.country || ""}
-          </div>
-
-          <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-6">
-            <h2 className="mb-2 text-lg font-semibold">
-              Is your resume a good match?
-            </h2>
-            <p className="mb-4 text-sm text-gray-700">
-              Use AI to find out how well the skills on your resume fit this job
-              description.
-            </p>
-            <Button className="bg-green-700 text-white hover:bg-green-800">
-              ⚡ Upload your resume
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon">
+              <Menu className="h-5 w-5" />
+            </Button>
+            <Button variant="outline" size="icon">
+              <Bookmark className="h-5 w-5" />
+            </Button>
+            <Button className="bg-foreground text-primary-foreground hover:bg-foreground/95 cursor-pointer">
+              Apply on employer site
             </Button>
           </div>
+        </div>
 
-          <div className="prose max-w-none">
-            <p className="mb-4 text-gray-700">{job.description || ""}</p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        <h1 className="mb-2 text-2xl font-bold">{job.title || ""}</h1>
+        <div className="text-secondary-foreground mb-6">
+          {job.city || ""}, {job.state || "" || job.country || ""}
+        </div>
+
+        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-6">
+          <h2 className="mb-2 text-lg font-semibold">
+            Is your resume a good match?
+          </h2>
+          <p className="mb-4 text-sm text-gray-700">
+            Use AI to find out how well the skills on your resume fit this job
+            description.
+          </p>
+          <Button className="bg-green-700 text-white hover:bg-green-800">
+            ⚡ Upload your resume
+          </Button>
+        </div>
+
+        <div className="prose max-w-none">
+          <p className="mb-4 text-gray-700">{job.description || ""}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
