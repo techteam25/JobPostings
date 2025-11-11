@@ -16,7 +16,7 @@ export const ForYouJobsWrapper = () => {
         </EmptyMedia>
         <EmptyTitle>Coming Soon</EmptyTitle>
         <EmptyDescription>
-          Personlized job recommendations tailored just for you.
+          Personalized job recommendations tailored just for you.
         </EmptyDescription>
       </EmptyHeader>
     </Empty>
