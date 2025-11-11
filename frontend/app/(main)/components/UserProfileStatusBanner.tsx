@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  CheckCircle2Icon,
-  CircleXIcon,
-  LoaderCircle,
-  TriangleAlert,
-} from "lucide-react";
+import { CircleXIcon, TriangleAlert } from "lucide-react";
 
 import { useGetUserProfileStatus } from "@/app/(main)/hooks/use-get-user-profile-status";
 
@@ -17,14 +12,7 @@ export const UserProfileStatusBanner = () => {
     useGetUserProfileStatus();
 
   if (isFetchingStatus) {
-    return (
-      <div className="border-primary bg-primary/10 grid w-full max-w-xl items-center gap-3 rounded-xl border p-2">
-        <Alert className="text-primary flex items-center gap-2 border-0 bg-transparent">
-          <LoaderCircle className="animate-spin" />
-          <AlertTitle>Checking Profile status</AlertTitle>
-        </Alert>
-      </div>
-    );
+    return null;
   }
 
   if (fetchProfileError || !status) {

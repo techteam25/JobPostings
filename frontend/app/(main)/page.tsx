@@ -77,7 +77,7 @@ function Page() {
             </TabsContent>
             <TabsContent value="search" className="w-full">
               <div className="w-full border-b">
-                <div className="mx-auto max-w-7xl px-4 py-4">
+                <div className="mx-auto max-w-7xl p-4">
                   <div className="flex flex-wrap gap-4">
                     <Button className="text-secondary-foreground hover:bg-input bg-secondary cursor-pointer rounded-full px-3 py-4 shadow-none">
                       Easy Apply only
