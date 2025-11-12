@@ -120,19 +120,16 @@ export const changeUserPasswordSchema = z.object({
   query: z.object({}).strict(),
 });
 
-export const changeUserPasswordResponseSchema = z.object({
-  message: z.string(),
-  data: z.object({
-    token: z.string().nullable(),
-    user: z.object({
-      id: z.string(),
-      email: z.string(),
-      name: z.string(),
-      image: z.string().nullable().optional(),
-      emailVerified: z.boolean(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
-    }),
+export const betterAuthResponseSchema = z.object({
+  token: z.string().nullable(),
+  user: z.object({
+    id: z.string(),
+    email: z.string(),
+    name: z.string(),
+    image: z.string().nullable().optional(),
+    emailVerified: z.boolean(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
   }),
 });
 
@@ -140,6 +137,6 @@ export type RegisterUserSchema = z.infer<typeof registerUserSchema>;
 export type UserLoginSchema = z.infer<typeof userLoginSchema>;
 export type ChangeUserPasswordSchema = z.infer<typeof changeUserPasswordSchema>;
 export type UserRefreshTokenSchema = z.infer<typeof userRefreshTokenSchema>;
-export type ChangeUserPasswordResponseSchema = z.infer<
-  typeof changeUserPasswordResponseSchema
+export type BetterAuthSuccessResponseSchema = z.infer<
+  typeof betterAuthResponseSchema
 >;
