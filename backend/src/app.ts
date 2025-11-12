@@ -44,6 +44,12 @@ app.use(
 );
 app.use(helmet());
 
+// Disable CSP for the API docs route
+app.use("/api/auth/reference", (req, res, next) => {
+  res.removeHeader("Content-Security-Policy");
+  next();
+});
+
 // Mount Better-Auth routes
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
