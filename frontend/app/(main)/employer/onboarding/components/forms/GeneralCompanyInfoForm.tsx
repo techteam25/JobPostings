@@ -46,23 +46,22 @@ const GeneralCompanyInfoForm = ({
         e.preventDefault();
       }}
     >
-      <div className="mb-8 grid gap-6 md:grid-cols-2">
-        <div className="col-span-2">
-          <FieldGroup>
+      <FieldGroup>
+        <div className="mb-8 grid gap-6 md:grid-cols-2">
+          <div className="col-span-2">
             <form.Field
               name="name"
               children={(field) => {
                 const isInvalid =
                   field.state.meta.isTouched && !field.state.meta.isValid;
-
                 return (
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>Company Name</FieldLabel>
                     <Input
-                      className="rounded-xl"
                       id={field.name}
                       name={field.name}
                       value={field.state.value}
+                      onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={isInvalid}
                       autoComplete="off"
@@ -74,11 +73,9 @@ const GeneralCompanyInfoForm = ({
                 );
               }}
             />
-          </FieldGroup>
-        </div>
+          </div>
 
-        <div>
-          <FieldGroup>
+          <div>
             <form.Field
               name="industry"
               children={(field) => {
@@ -88,10 +85,10 @@ const GeneralCompanyInfoForm = ({
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>Industry</FieldLabel>
                     <Input
-                      className="rounded-xl"
                       id={field.name}
                       name={field.name}
                       value={field.state.value}
+                      onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={isInvalid}
                       autoComplete="off"
@@ -103,10 +100,8 @@ const GeneralCompanyInfoForm = ({
                 );
               }}
             />
-          </FieldGroup>
-        </div>
-        <div>
-          <FieldGroup>
+          </div>
+          <div>
             <form.Field
               name="size"
               children={(field) => {
@@ -116,7 +111,6 @@ const GeneralCompanyInfoForm = ({
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>Company Size</FieldLabel>
                     <Input
-                      className="rounded-xl"
                       id={field.name}
                       name={field.name}
                       value={field.state.value}
@@ -131,10 +125,8 @@ const GeneralCompanyInfoForm = ({
                 );
               }}
             />
-          </FieldGroup>
-        </div>
-        <div className="col-span-2">
-          <FieldGroup>
+          </div>
+          <div className="col-span-2">
             <form.Field
               name="mission"
               children={(field) => {
@@ -144,10 +136,10 @@ const GeneralCompanyInfoForm = ({
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>Mission</FieldLabel>
                     <Input
-                      className="rounded-xl"
                       id={field.name}
                       name={field.name}
                       value={field.state.value}
+                      onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={isInvalid}
                       autoComplete="off"
@@ -159,9 +151,9 @@ const GeneralCompanyInfoForm = ({
                 );
               }}
             />
-          </FieldGroup>
+          </div>
         </div>
-      </div>
+      </FieldGroup>
     </form>
   );
 };

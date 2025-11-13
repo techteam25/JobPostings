@@ -81,6 +81,7 @@ const LocationInfoForm = ({
                       id={field.name}
                       name={field.name}
                       value={field.state.value}
+                      onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={isInvalid}
                       placeholder="123 Main St"
@@ -112,6 +113,7 @@ const LocationInfoForm = ({
                       id={field.name}
                       name={field.name}
                       value={field.state.value}
+                      onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={isInvalid}
                       autoComplete="off"
