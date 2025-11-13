@@ -34,7 +34,10 @@ import {
 export default function RegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [_, setIntent] = useLocalStorage<"user" | "employer">("intent", "user");
+  const [_, setIntent] = useLocalStorage<"seeker" | "employer">(
+    "intent",
+    "seeker",
+  );
 
   const { createUserAsync, isRegistrationPending } = useRegisterUser();
   const { isGoogleSignInPending, signInWithGoogleAsync } = useGoogleAuth();
@@ -47,7 +50,7 @@ export default function RegistrationForm() {
     email: "",
     password: "",
     confirmPassword: "",
-    accountType: "user",
+    accountType: "seeker",
     hasAgreedToTerms: false,
   };
 
@@ -90,16 +93,16 @@ export default function RegistrationForm() {
                   <button
                     type="button"
                     onClick={() => {
-                      field.setValue("user");
-                      setIntent("user");
+                      field.setValue("seeker");
+                      setIntent("seeker");
                     }}
                     className={cn(
                       "cursor-pointer rounded-2xl border-2 p-4 transition",
                       {
                         "border-chart-4 bg-background":
-                          field.state.value === "user",
+                          field.state.value === "seeker",
                         "border-secondary hover:border-border":
-                          field.state.value !== "user",
+                          field.state.value !== "seeker",
                       },
                     )}
                   >
@@ -154,7 +157,9 @@ export default function RegistrationForm() {
                     name={field.name}
                     value={field.state.value}
                     onChange={(e) =>
-                      field.handleChange(e.target.value as "user" | "employer")
+                      field.handleChange(
+                        e.target.value as "seeker" | "employer",
+                      )
                     }
                     type="hidden"
                   />
