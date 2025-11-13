@@ -6,15 +6,15 @@ export const createOrganizationSchema = z
       .string()
       .min(1, "Name is required")
       .max(100, "Name can't be longer than 100 characters"),
-    streetAddress: z.string("Street Address is required").min(1),
-    city: z.string(),
+    streetAddress: z.string().min(1, "Street Address is required"),
+    city: z.string().min(1, "City is required"),
     state: z.string(),
-    country: z.string(),
-    zipCode: z.string().min(5).max(10),
+    country: z.string().min(1, "Country is required"),
+    zipCode: z.string().min(5).max(20),
     industry: z.string(),
     size: z.string(),
     url: z.string(),
-    mission: z.string(),
+    mission: z.string().min(1, "Mission is required"),
     phone: z.string(),
     logo: z.union([z.undefined(), z.file()]),
   })
