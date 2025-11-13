@@ -7,7 +7,7 @@ export const registrationSchema = z
     email: z.email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters long"),
     confirmPassword: z.string(),
-    accountType: z.enum(["user", "employer"], {
+    accountType: z.enum(["seeker", "employer"], {
       error: "Account type is required",
     }),
     hasAgreedToTerms: z.boolean(),
@@ -21,5 +21,5 @@ export type RegistrationInput = Omit<
   RegistrationData,
   "accountType" | "confirmPassword" | "hasAgreedToTerms"
 > & {
-  role: "user" | "employer";
+  intent: "seeker" | "employer";
 };
