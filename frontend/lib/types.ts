@@ -1,3 +1,5 @@
+import { CreateOrganizationData } from "@/schemas/organizations";
+
 export enum JobType {
   FullTime = "Full-time",
   PartTime = "Part-time",
@@ -16,4 +18,9 @@ export interface JobCardType {
   jobDescription: string;
   logoUrl: string | null;
   onJobSelected: () => void;
+}
+
+export interface TCreateOrganizationFormProps {
+  organization: CreateOrganizationData;
+  setOrganizationData: (formData: CreateOrganizationData) => void;
 }
