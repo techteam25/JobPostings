@@ -1,177 +1,115 @@
 "use client";
+
 import { useState } from "react";
+import Image from "next/image";
 
-import { X } from "lucide-react";
+import { steps } from "@/app/(main)/employer/onboarding/steps";
+
+import { Button } from "@/components/ui/button";
+import { Stepper } from "@/app/(main)/employer/onboarding/components/Stepper";
+import { CreateOrganizationData } from "@/schemas/organizations";
+
+import CompanyProfileGraphic from "@/public/company-profile-graphic.png";
+
 const CreateOrganizationForm = () => {
-  const [formData, setFormData] = useState({
-    companyName: "XYZ Games",
-    ceo: "Raf Martins",
-    industry: "Gaming",
-    foundedYear: "2018",
-    companySize: "11-50",
-    officialSite: "https://www.example.com",
-    countries: ["USA", "Germany", "Ukraine"],
-    categories: ["online gaming", "game art"],
+  const [companyData, setCompanyData] = useState<CreateOrganizationData>({
+    name: "",
+    industry: "",
+    size: "",
+    mission: "",
+    streetAddress: "",
+    city: "",
+    state: "",
+    country: "",
+    zipCode: "",
+    phone: "",
+    url: "",
+    logo: undefined,
   });
+  const [currentStep, setCurrentStep] = useState("general-info");
 
-  const removeCountry = (country: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      countries: prev.countries.filter((c) => c !== country),
-    }));
+  const canGoBack = steps.findIndex((step) => step.key === currentStep) > 0;
+  const canGoNext =
+    steps.findIndex((step) => step.key === currentStep) < steps.length - 1;
+
+  const FormComponent = steps.find(
+    (step) => step.key === currentStep,
+  )?.component;
+
+  const handleNext = () => {
+    const currentIndex = steps.findIndex((step) => step.key === currentStep);
+    if (currentIndex < steps.length - 1) {
+      setCurrentStep(steps[currentIndex + 1].key);
+    }
   };
 
-  const removeCategory = (category: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      categories: prev.categories.filter((c) => c !== category),
-    }));
-  };
-
-  const getCountryFlag = (country: string) => {
-    const flags = {
-      USA: "🇺🇸",
-      Germany: "🇩🇪",
-      Ukraine: "🇺🇦",
-    };
-    return flags[country as keyof typeof flags] || "🌍";
+  const handleBack = () => {
+    const currentIndex = steps.findIndex((step) => step.key === currentStep);
+    if (currentIndex > 0) {
+      setCurrentStep(steps[currentIndex - 1].key);
+    }
   };
 
   return (
-    <div>
-      <div className="mb-8 grid grid-cols-2 gap-6">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Company's name
-          </label>
-          <input
-            type="text"
-            value={formData.companyName}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, companyName: e.target.value }))
-            }
-            className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+    <div className="flex w-full max-w-6xl gap-6">
+      {/* Left Panel - Steps */}
+      <div className="bg-background w-80 rounded-3xl p-8 shadow-xl backdrop-blur-sm">
+        <div className="mb-8">
+          <Image
+            src={CompanyProfileGraphic}
+            alt="Company Profile Graphic"
+            className="h16 mx-auto w-auto"
           />
         </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Chief Executive Officer
-          </label>
-          <input
-            type="text"
-            value={formData.ceo}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, ceo: e.target.value }))
-            }
-            className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Primary industry
-          </label>
-          <input
-            type="text"
-            value={formData.industry}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, industry: e.target.value }))
-            }
-            className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Founded in
-          </label>
-          <input
-            type="text"
-            value={formData.foundedYear}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, foundedYear: e.target.value }))
-            }
-            className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Company size
-          </label>
-          <select
-            value={formData.companySize}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, companySize: e.target.value }))
-            }
-            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-          >
-            <option value="1-10">1-10</option>
-            <option value="11-50">11-50</option>
-            <option value="51-200">51-200</option>
-            <option value="201-500">201-500</option>
-            <option value="500+">500+</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Official site
-          </label>
-          <input
-            type="text"
-            value={formData.officialSite}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, officialSite: e.target.value }))
-            }
-            className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-          />
+        <div className="space-y-6">
+          <Stepper steps={steps} currentStep={currentStep} />
         </div>
       </div>
+      <div className="flex w-full max-w-6xl gap-6">
+        {/* Right Panel - Form */}
+        <div className="bg-background flex-1 p-8">
+          <h2 className="mb-2 text-2xl font-bold">Company's profile</h2>
+          <p className="mb-8 text-gray-500">
+            Provide information about your company and other details
+          </p>
 
-      <div className="mb-6">
-        <label className="mb-2 block text-sm font-medium text-gray-700">
-          Countries
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {formData.countries.map((country) => (
-            <div
-              key={country}
-              className="flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1"
-            >
-              <span>{getCountryFlag(country)}</span>
-              <span className="text-sm">{country}</span>
-              <button
-                onClick={() => removeCountry(country)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
+          {FormComponent && (
+            <FormComponent
+              organization={companyData}
+              setOrganizationData={setCompanyData}
+            />
+          )}
 
-      <div className="mb-8">
-        <label className="mb-2 block text-sm font-medium text-gray-700">
-          Categories
-        </label>
-        <div className="flex flex-wrap gap-2 rounded-lg border border-gray-200 p-3">
-          {formData.categories.map((category) => (
-            <div
-              key={category}
-              className="flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1"
-            >
-              <span className="text-sm">{category}</span>
-              <button
-                onClick={() => removeCategory(category)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X size={14} />
-              </button>
+          <div className="mb-6">
+            <div className="text-secondary-foreground mb-2 text-sm font-medium">
+              26% completed
             </div>
-          ))}
+            <div className="bg-background border-border h-2 w-full rounded-full border">
+              <div
+                className="bg-chart-1 h-2 rounded-full"
+                style={{ width: "26%" }}
+              ></div>
+            </div>
+          </div>
+          <div className="flex w-full justify-between gap-4">
+            <Button
+              onClick={handleBack}
+              size="default"
+              variant="outline"
+              className="text-primary hover:border-primary hover:text-primary w-full cursor-pointer rounded-lg py-3 font-medium shadow-none transition-colors hover:bg-transparent"
+              disabled={!canGoBack}
+            >
+              Previous
+            </Button>
+            <Button
+              onClick={handleNext}
+              size="default"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full cursor-pointer rounded-lg py-3 font-medium transition-colors"
+              disabled={!canGoNext}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       </div>
     </div>
