@@ -32,7 +32,6 @@ const ContactInfoForm = ({
     },
     validators: {
       onChange: contactCompanyInfoSchema,
-      onBlur: contactCompanyInfoSchema,
     },
     onSubmit: (values) => {
       setOrganizationData({ ...organization, ...values.value });
@@ -64,7 +63,9 @@ const ContactInfoForm = ({
                     data-invalid={isInvalid}
                     className="grid w-full max-w-sm items-center gap-3"
                   >
-                    <FieldLabel htmlFor={field.name}>Company Logo</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>
+                      Company Logo (optional)
+                    </FieldLabel>
                     <Input
                       className="h-auto rounded-xl"
                       id={field.name}
@@ -79,8 +80,14 @@ const ContactInfoForm = ({
                       aria-invalid={isInvalid}
                       autoComplete="off"
                     />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
+                    {isInvalid && field.state.meta.errors.length > 0 && (
+                      <FieldError
+                        errors={field.state.meta.errors.map((error) =>
+                          typeof error === "string"
+                            ? { message: error }
+                            : error,
+                        )}
+                      />
                     )}
                   </Field>
                 );
@@ -99,18 +106,27 @@ const ContactInfoForm = ({
 
                 return (
                   <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Contact Phone</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>
+                      Contact Phone (optional)
+                    </FieldLabel>
                     <Input
                       className="rounded-xl"
                       id={field.name}
                       name={field.name}
                       value={field.state.value}
+                      onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={isInvalid}
                       autoComplete="off"
                     />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
+                    {isInvalid && field.state.meta.errors.length > 0 && (
+                      <FieldError
+                        errors={field.state.meta.errors.map((error) =>
+                          typeof error === "string"
+                            ? { message: error }
+                            : error,
+                        )}
+                      />
                     )}
                   </Field>
                 );
@@ -130,19 +146,26 @@ const ContactInfoForm = ({
                 return (
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>
-                      Company Website
+                      Company Website (optional)
                     </FieldLabel>
                     <Input
                       className="rounded-xl"
                       id={field.name}
                       name={field.name}
                       value={field.state.value}
+                      onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={isInvalid}
                       autoComplete="off"
                     />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
+                    {isInvalid && field.state.meta.errors.length > 0 && (
+                      <FieldError
+                        errors={field.state.meta.errors.map((error) =>
+                          typeof error === "string"
+                            ? { message: error }
+                            : error,
+                        )}
+                      />
                     )}
                   </Field>
                 );

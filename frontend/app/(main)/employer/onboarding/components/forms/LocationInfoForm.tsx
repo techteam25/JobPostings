@@ -51,7 +51,6 @@ const LocationInfoForm = ({
     },
     validators: {
       onChange: locationCompanyInfoSchema,
-      onBlur: locationCompanyInfoSchema,
     },
     onSubmit: (values) => {
       setOrganizationData({ ...organization, ...values.value });
@@ -75,6 +74,14 @@ const LocationInfoForm = ({
           <FieldGroup>
             <form.Field
               name="streetAddress"
+              validators={{
+                onBlur: ({ value }) => {
+                  if (!value || value.trim().length === 0) {
+                    return "Street Address is required";
+                  }
+                  return undefined;
+                },
+              }}
               children={(field) => {
                 const isInvalid =
                   field.state.meta.isTouched && !field.state.meta.isValid;
@@ -82,7 +89,7 @@ const LocationInfoForm = ({
                 return (
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>
-                      Company Address
+                      Company Address *
                     </FieldLabel>
                     <Input
                       className="rounded-xl"
@@ -96,8 +103,14 @@ const LocationInfoForm = ({
                       autoComplete="off"
                       autoFocus
                     />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
+                    {isInvalid && field.state.meta.errors.length > 0 && (
+                      <FieldError
+                        errors={field.state.meta.errors.map((error) =>
+                          typeof error === "string"
+                            ? { message: error }
+                            : error,
+                        )}
+                      />
                     )}
                   </Field>
                 );
@@ -110,13 +123,21 @@ const LocationInfoForm = ({
           <FieldGroup>
             <form.Field
               name="city"
+              validators={{
+                onBlur: ({ value }) => {
+                  if (!value || value.trim().length === 0) {
+                    return "City is required";
+                  }
+                  return undefined;
+                },
+              }}
               children={(field) => {
                 const isInvalid =
                   field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>City</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>City *</FieldLabel>
                     <Input
                       className="rounded-xl"
                       id={field.name}
@@ -127,8 +148,14 @@ const LocationInfoForm = ({
                       aria-invalid={isInvalid}
                       autoComplete="off"
                     />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
+                    {isInvalid && field.state.meta.errors.length > 0 && (
+                      <FieldError
+                        errors={field.state.meta.errors.map((error) =>
+                          typeof error === "string"
+                            ? { message: error }
+                            : error,
+                        )}
+                      />
                     )}
                   </Field>
                 );
@@ -146,7 +173,9 @@ const LocationInfoForm = ({
 
                 return (
                   <Field orientation="responsive" data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>State</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>
+                      State (optional)
+                    </FieldLabel>
                     <Select
                       name={field.name}
                       value={field.state.value}
@@ -188,7 +217,7 @@ const LocationInfoForm = ({
 
                 return (
                   <Field orientation="responsive" data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Country</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>Country *</FieldLabel>
                     <Select
                       name={field.name}
                       value={field.state.value}
@@ -230,19 +259,28 @@ const LocationInfoForm = ({
 
                 return (
                   <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>ZipCode</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>
+                      ZipCode (optional)
+                    </FieldLabel>
                     <Input
                       className="rounded-xl"
                       id={field.name}
                       name={field.name}
                       value={field.state.value}
+                      onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={isInvalid}
                       placeholder="12345"
                       autoComplete="off"
                     />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
+                    {isInvalid && field.state.meta.errors.length > 0 && (
+                      <FieldError
+                        errors={field.state.meta.errors.map((error) =>
+                          typeof error === "string"
+                            ? { message: error }
+                            : error,
+                        )}
+                      />
                     )}
                   </Field>
                 );

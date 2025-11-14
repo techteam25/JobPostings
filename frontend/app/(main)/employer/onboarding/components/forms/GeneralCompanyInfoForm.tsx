@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useForm } from "@tanstack/react-form";
+import DOMPurify from "dompurify";
 
 import { TCreateOrganizationFormProps } from "@/lib/types";
 import {
@@ -15,6 +16,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { RichTextEditor } from "@/components/common";
 
 const defaultValues: GeneralCompanyInfoData = {
   name: "",
@@ -36,7 +38,6 @@ const GeneralCompanyInfoForm = ({
     },
     validators: {
       onChange: generalCompanyInfoSchema,
-      onBlur: generalCompanyInfoSchema,
     },
     onSubmit: (values) => {
       setOrganizationData({ ...organization, ...values.value });
@@ -59,12 +60,23 @@ const GeneralCompanyInfoForm = ({
           <div className="col-span-2">
             <form.Field
               name="name"
+              validators={{
+                onBlur: ({ value }) => {
+                  if (!value || value.trim().length === 0) {
+                    return "Name is required";
+                  }
+                  if (value.length > 100) {
+                    return "Name can't be longer than 100 characters";
+                  }
+                  return undefined;
+                },
+              }}
               children={(field) => {
                 const isInvalid =
                   field.state.meta.isTouched && !field.state.meta.isValid;
                 return (
                   <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Company Name</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>Company Name *</FieldLabel>
                     <Input
                       id={field.name}
                       name={field.name}
@@ -73,10 +85,15 @@ const GeneralCompanyInfoForm = ({
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={isInvalid}
                       autoComplete="off"
-                      autoFocus
                     />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
+                    {isInvalid && field.state.meta.errors.length > 0 && (
+                      <FieldError
+                        errors={field.state.meta.errors.map((error) =>
+                          typeof error === "string"
+                            ? { message: error }
+                            : error,
+                        )}
+                      />
                     )}
                   </Field>
                 );
@@ -92,7 +109,9 @@ const GeneralCompanyInfoForm = ({
                   field.state.meta.isTouched && !field.state.meta.isValid;
                 return (
                   <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Industry</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>
+                      Industry (optional)
+                    </FieldLabel>
                     <Input
                       id={field.name}
                       name={field.name}
@@ -102,8 +121,14 @@ const GeneralCompanyInfoForm = ({
                       aria-invalid={isInvalid}
                       autoComplete="off"
                     />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
+                    {isInvalid && field.state.meta.errors.length > 0 && (
+                      <FieldError
+                        errors={field.state.meta.errors.map((error) =>
+                          typeof error === "string"
+                            ? { message: error }
+                            : error,
+                        )}
+                      />
                     )}
                   </Field>
                 );
@@ -118,32 +143,9 @@ const GeneralCompanyInfoForm = ({
                   field.state.meta.isTouched && !field.state.meta.isValid;
                 return (
                   <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Company Size</FieldLabel>
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      aria-invalid={isInvalid}
-                      autoComplete="off"
-                    />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
-                  </Field>
-                );
-              }}
-            />
-          </div>
-          <div className="col-span-2">
-            <form.Field
-              name="mission"
-              children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid;
-                return (
-                  <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Mission</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>
+                      Company Size (optional)
+                    </FieldLabel>
                     <Input
                       id={field.name}
                       name={field.name}
@@ -153,8 +155,55 @@ const GeneralCompanyInfoForm = ({
                       aria-invalid={isInvalid}
                       autoComplete="off"
                     />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
+                    {isInvalid && field.state.meta.errors.length > 0 && (
+                      <FieldError
+                        errors={field.state.meta.errors.map((error) =>
+                          typeof error === "string"
+                            ? { message: error }
+                            : error,
+                        )}
+                      />
+                    )}
+                  </Field>
+                );
+              }}
+            />
+          </div>
+          <div className="col-span-2">
+            <form.Field
+              name="mission"
+              validators={{
+                onBlur: ({ value }) => {
+                  // Strip HTML tags to check if there's actual content
+                  const textContent = value.replace(/<[^>]*>/g, "").trim();
+                  if (!textContent || textContent.length === 0) {
+                    return "Mission is required";
+                  }
+                  return undefined;
+                },
+              }}
+              children={(field) => {
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid;
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <FieldLabel htmlFor={field.name}>Mission *</FieldLabel>
+                    <RichTextEditor
+                      value={field.state.value}
+                      onChange={(value) => field.handleChange(value)}
+                      onBlur={field.handleBlur}
+                      placeholder="Describe your company's mission..."
+                      height={150}
+                      className={isInvalid ? "data-[invalid=true]" : ""}
+                    />
+                    {isInvalid && field.state.meta.errors.length > 0 && (
+                      <FieldError
+                        errors={field.state.meta.errors.map((error) =>
+                          typeof error === "string"
+                            ? { message: error }
+                            : error,
+                        )}
+                      />
                     )}
                   </Field>
                 );
