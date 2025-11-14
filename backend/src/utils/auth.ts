@@ -136,7 +136,10 @@ export const auth = betterAuth({
             // Modify and return the response with added 'intent' property
             return {
               ...userResult,
-              intent: body.intent,
+              user: {
+                ...userResult.user,
+                intent: body.intent,
+              },
             };
           } catch (error) {
             logger.error(error, "Error inserting into userOnBoarding");
