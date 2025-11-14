@@ -18,7 +18,7 @@ export const createOrganizationSchema = z
     phone: z.string(),
     logo: z.union([z.undefined(), z.file()]),
   })
-  .refine((data) => data.country === "Unites States" && data.state.length > 0, {
+  .refine((data) => data.country === "United States" && data.state.length > 0, {
     message: "State is required when country is United States",
   })
   .refine((data) => data.state.length > 0 && data.zipCode, {
