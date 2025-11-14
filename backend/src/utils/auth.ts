@@ -10,6 +10,8 @@ import { env, isProduction } from "@/config/env";
 import { EmailService } from "@/services/email.service";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 import { userOnBoarding } from "@/db/schema";
+import { withDbErrorHandling } from "@/db/dbErrorHandler";
+import logger from "@/logger";
 
 const emailService = new EmailService();
 
@@ -123,11 +125,25 @@ export const auth = betterAuth({
             .returned as BetterAuthSuccessResponseSchema;
           const body = ctx.body as UserRegistrationPayload;
 
-          await db.insert(userOnBoarding).values({
-            userId: Number(userResult.user.id),
-            intent: body.intent,
-            status: "pending",
-          });
+          try {
+            await withDbErrorHandling(async () =>
+              db.insert(userOnBoarding).values({
+                userId: Number(userResult.user.id),
+                intent: body.intent,
+                status: "pending",
+              }),
+            );
+            // Modify and return the response with added 'intent' property
+            return {
+              ...userResult,
+              intent: body.intent,
+            };
+          } catch (error) {
+            logger.error(error, "Error inserting into userOnBoarding");
+            throw new APIError("INTERNAL_SERVER_ERROR", {
+              message: "Error during user sign-up process",
+            });
+          }
         }
 
         const userId = ctx.context.session?.user.id;
@@ -137,6 +153,7 @@ export const auth = betterAuth({
           });
         }
       }
+      return;
     }),
   },
   plugins: [openAPI()],
