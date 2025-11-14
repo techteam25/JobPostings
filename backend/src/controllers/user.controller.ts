@@ -21,7 +21,7 @@ import {
   UserWithProfile,
 } from "@/validations/userProfile.validation";
 import { GetJobSchema } from "@/validations/job.validation";
-import { ChangeUserPasswordResponseSchema } from "@/validations/auth.validation";
+import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 
 export class UserController extends BaseController {
   private userService: UserService;
@@ -144,11 +144,10 @@ export class UserController extends BaseController {
     );
 
     if (result.isSuccess) {
-      return this.sendSuccess<ChangeUserPasswordResponseSchema>(
-        res,
-        result.value,
-        "Password changed successfully",
-      );
+      return this.sendSuccess<{
+        message: string;
+        data: BetterAuthSuccessResponseSchema;
+      }>(res, result.value, "Password changed successfully");
     } else {
       return this.handleControllerError(res, result.error);
     }
