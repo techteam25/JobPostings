@@ -30,6 +30,7 @@ export const registrationResponseSchema = z
       name: z.string(),
       image: z.string().nullable().optional(),
       emailVerified: z.boolean(),
+      intent: z.enum(["seeker", "employer"]),
       createdAt: z.date(),
       updatedAt: z.date(),
     }),
