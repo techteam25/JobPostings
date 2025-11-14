@@ -1,21 +1,26 @@
+import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type {
   RegistrationInput,
   RegistrationData,
 } from "@/schemas/auth/registration";
-import { authClient } from "@/lib/auth";
-import { redirect, RedirectType } from "next/navigation";
 import { toast } from "sonner";
 import useLocalStorage from "@/hooks/use-local-storage";
+import { instance } from "@/lib/axios-instance";
+import { RegistrationResponse } from "@/schemas/responses/auth";
 
 enum IntentEnum {
-  USER = "user",
+  SEEKER = "seeker",
   EMPLOYER = "employer",
 }
 export const useRegisterUser = () => {
+  const router = useRouter();
   const queryClient = useQueryClient();
-  const [intent] = useLocalStorage<"user" | "employer">("intent", "user");
+  const [intent] = useLocalStorage<"seeker" | "employer">(
+    "intent",
+    IntentEnum.SEEKER,
+  );
 
   const { mutateAsync: createUserAsync, isPending: isRegistrationPending } =
     useMutation({
@@ -25,37 +30,38 @@ export const useRegisterUser = () => {
           lastName: formData.lastName,
           email: formData.email,
           password: formData.password,
-          role: formData.accountType,
+          intent: formData.accountType,
         };
 
         // Make the POST request to the registration endpoint
-        const { data } = await authClient.signUp.email(
+        const res = await instance.post<RegistrationResponse>(
+          "/auth/sign-up/email",
           {
+            name: `${payload.firstName} ${payload.lastName}`,
             email: payload.email,
             password: payload.password,
-            name: payload.firstName + " " + payload.lastName,
-            callbackURL: "/",
-          },
-          {
-            onSuccess: () => {
-              toast.success("Account creation successful!");
-              queryClient.invalidateQueries({ queryKey: ["get-user-session"] });
-
-              if (intent === IntentEnum.EMPLOYER) {
-                redirect("/employer/onboarding", RedirectType.replace);
-              } else {
-                redirect("/", RedirectType.replace);
-              }
-            },
-            onError: (error) => {
-              toast.error(
-                error.error.message || "Account creation unsuccessful",
-              );
-            },
-          },
+            intent: payload.intent,
+          }, // Note: include intent in response from backend
         );
 
-        return data;
+        if (res.status !== 200) {
+          throw new Error("Failed to register user");
+        }
+
+        return res.data;
+      },
+      onSuccess: async (data) => {
+        toast.success("Account creation successful!");
+        await queryClient.invalidateQueries({ queryKey: ["get-user-session"] });
+
+        if (data?.user.intent === IntentEnum.EMPLOYER) {
+          router.replace("/employer/onboarding");
+        } else {
+          router.replace("/");
+        }
+      },
+      onError: (error) => {
+        toast.error(error.message || "Account creation unsuccessful");
       },
     });
 
