@@ -9,7 +9,7 @@ export const createOrganizationSchema = z
     streetAddress: z.string().min(1, "Street Address is required"),
     city: z.string().min(1, "City is required"),
     state: z.string(),
-    country: z.string().min(1, "Country is required"),
+    country: z.string(),
     zipCode: z.string(),
     industry: z.string(),
     size: z.string(),
