@@ -11,6 +11,8 @@ import { getJobApplicationSchema } from "@/validations/jobApplications.validatio
 
 // Zod schemas for validation
 export const selectOrganizationSchema = createSelectSchema(organizations);
+export const selectOrganizationMembersSchema =
+  createSelectSchema(organizationMembers);
 export const insertJobApplicationNoteSchema =
   createInsertSchema(applicationNotes);
 export const insertOrganizationSchema = createInsertSchema(organizations, {
@@ -21,6 +23,32 @@ export const insertOrganizationSchema = createInsertSchema(organizations, {
     .min(10, "Phone must be at least 10 characters")
     .max(20)
     .optional(),
+}).extend({
+  logo: z
+    .custom<Express.Multer.File>(
+      (val) =>
+        val != null &&
+        typeof val === "object" &&
+        "mimetype" in val &&
+        "size" in val,
+      {
+        message: "Expected a valid Multer file",
+      },
+    )
+    .refine((file) => file.mimetype.startsWith("image/"), {
+      message: "File must be an image",
+      path: ["mimetype"],
+    })
+    .refine((file) => file.size <= 5 * 1024 * 1024, {
+      message: "File size must be under 5MB",
+      path: ["size"],
+    })
+    .optional()
+    .openapi({
+      type: "string",
+      format: "binary",
+      description: "Logo image file (max size 5MB)",
+    }),
 });
 export const updateOrganizationInputSchema = insertOrganizationSchema
   .partial()
@@ -185,7 +213,10 @@ export const deleteOrganizationSchema = z.object({
 
 export type NewOrganization = z.infer<typeof insertOrganizationSchema>;
 export type Organization = z.infer<typeof selectOrganizationSchema>;
-export type OrganizationMember = z.infer<typeof organizationMembers>;
+// ^ ?
+export type OrganizationMember = z.infer<
+  typeof selectOrganizationMembersSchema
+>;
 
 export type GetOrganizationSchema = z.infer<typeof getOrganizationSchema>;
 export type CreateOrganizationSchema = z.infer<typeof createOrganizationSchema>;

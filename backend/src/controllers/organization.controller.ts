@@ -78,7 +78,8 @@ export class OrganizationController extends BaseController {
       ApiResponse<Organization & { members: OrganizationMember[] }>
     >,
   ) => {
-    const organizationData = req.body;
+    const organizationData = { ...req.body, logo: req.file?.fieldname?.[0] };
+
     const userId = req.userId;
     const organization = await this.organizationService.createOrganization(
       organizationData,
