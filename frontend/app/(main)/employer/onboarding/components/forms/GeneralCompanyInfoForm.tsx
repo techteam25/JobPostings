@@ -73,6 +73,7 @@ const GeneralCompanyInfoForm = ({
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={isInvalid}
                       autoComplete="off"
+                      autoFocus
                     />
                     {isInvalid && (
                       <FieldError errors={field.state.meta.errors} />

@@ -94,6 +94,7 @@ const LocationInfoForm = ({
                       aria-invalid={isInvalid}
                       placeholder="123 Main St"
                       autoComplete="off"
+                      autoFocus
                     />
                     {isInvalid && (
                       <FieldError errors={field.state.meta.errors} />

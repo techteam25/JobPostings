@@ -10,7 +10,7 @@ export const createOrganizationSchema = z
     city: z.string().min(1, "City is required"),
     state: z.string(),
     country: z.string().min(1, "Country is required"),
-    zipCode: z.string().min(5).max(20),
+    zipCode: z.string(),
     industry: z.string(),
     size: z.string(),
     url: z.string(),
