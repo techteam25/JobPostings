@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@custom-variant dark (&:is(.dark *));
+
 :root {
     --background: oklch(0.984 0.003 247.858);
     --foreground: oklch(0.2686 0 0);
@@ -179,5 +181,14 @@
 
     body {
         @apply bg-background text-foreground font-montserrat;
+    }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
     }
 }
