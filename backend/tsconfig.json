@@ -26,7 +26,7 @@
       "@/*": ["src/*"],
       "@tests/*": ["tests/*"]
     },
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals", "multer"]
   },
   "include": [
     "src/**/*",
@@ -34,8 +34,5 @@
     "eslint.config.mts",
     "vitest.config.mts"
   ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "exclude": ["node_modules", "dist"]
 }
