@@ -39,11 +39,11 @@ const CreateOrganizationWrapper = () => {
     (step) => step.key === currentStep,
   )?.component;
 
-  const handleNext = async () => {
-    if (!formRef.current) return;
+  const validateAndSubmitCurrentForm = async (): Promise<boolean> => {
+    if (!formRef.current) return false;
 
     // Validate current form
-    await formRef.current.validateAllFields("change");
+    await formRef.current.validateAllFields("blur");
 
     const formState = formRef.current.state;
     const hasErrors =
@@ -53,17 +53,22 @@ const CreateOrganizationWrapper = () => {
     if (hasErrors) {
       // Touch all fields to show errors
       Object.keys(formState.fieldMeta).forEach((fieldName) => {
-        formRef.current?.getFieldValue(fieldName);
         formRef.current?.setFieldMeta(fieldName, (prev: any) => ({
           ...prev,
           isTouched: true,
         }));
       });
-      return;
+      return false;
     }
 
     // Update companyData with current form values
     formRef.current.handleSubmit();
+    return true;
+  };
+
+  const handleNext = async () => {
+    const isValid = await validateAndSubmitCurrentForm();
+    if (!isValid) return;
 
     const currentIndex = steps.findIndex((step) => step.key === currentStep);
     if (currentIndex < steps.length - 1) {
@@ -84,29 +89,8 @@ const CreateOrganizationWrapper = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formRef.current) return;
-
-    // Validate final form
-    await formRef.current.validateAllFields("change");
-
-    const formState = formRef.current.state;
-    const hasErrors =
-      formState.errors.length > 0 ||
-      Object.values(formState.fieldMeta).some((meta: any) => !meta.isValid);
-
-    if (hasErrors) {
-      // Touch all fields to show errors
-      Object.keys(formState.fieldMeta).forEach((fieldName) => {
-        formRef.current?.setFieldMeta(fieldName, (prev: any) => ({
-          ...prev,
-          isTouched: true,
-        }));
-      });
-      return;
-    }
-
-    // Submit the form to update companyData
-    formRef.current.handleSubmit();
+    const isValid = await validateAndSubmitCurrentForm();
+    if (!isValid) return;
 
     // TODO: Add your final submission logic here (e.g., API call)
     console.log("Final submission with data:", companyData);
@@ -115,7 +99,7 @@ const CreateOrganizationWrapper = () => {
   return (
     <div className="flex w-full max-w-6xl gap-6">
       {/* Left Panel - Steps */}
-      <div className="bg-background w-80 rounded-3xl p-8 shadow-xl backdrop-blur-sm">
+      <div className="bg-background h-fit w-80 rounded-3xl p-8 shadow-xl backdrop-blur-sm">
         <div className="mb-8">
           <Image
             src={CompanyProfileGraphic}
