@@ -11,7 +11,7 @@ import { CreateOrganizationData } from "@/schemas/organizations";
 
 import CompanyProfileGraphic from "@/public/company-profile-graphic.png";
 
-const CreateOrganizationForm = () => {
+const CreateOrganizationWrapper = () => {
   const [companyData, setCompanyData] = useState<CreateOrganizationData>({
     name: "",
     industry: "",
@@ -189,4 +189,4 @@ const CreateOrganizationForm = () => {
   );
 };
 
-export default CreateOrganizationForm;
+export default CreateOrganizationWrapper;
