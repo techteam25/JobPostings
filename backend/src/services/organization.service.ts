@@ -76,6 +76,8 @@ export class OrganizationService extends BaseService {
         );
       }
 
+      // Todo: upload logo to cloud storage if provided in organizationData.logo
+
       const createdOrganization =
         await this.organizationRepository.createOrganization(
           organizationData,
