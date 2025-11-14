@@ -1,4 +1,5 @@
 import { Logger } from "pino";
+
 import { User } from "@/validations/userProfile.validation";
 
 declare global {
@@ -9,6 +10,10 @@ declare global {
       organizationId?: number;
       user?: User;
       log: Logger;
+      file?: Express.Multer.File;
+      files?:
+        | { [fieldname: string]: Express.Multer.File[] }
+        | Express.Multer.File[];
     }
   }
 }
