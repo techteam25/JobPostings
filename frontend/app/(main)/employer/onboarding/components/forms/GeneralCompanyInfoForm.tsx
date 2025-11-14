@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "@tanstack/react-form";
 
 import { TCreateOrganizationFormProps } from "@/lib/types";
@@ -24,6 +25,7 @@ const defaultValues: GeneralCompanyInfoData = {
 const GeneralCompanyInfoForm = ({
   organization,
   setOrganizationData,
+  formRef,
 }: TCreateOrganizationFormProps) => {
   const form = useForm({
     defaultValues: {
@@ -37,9 +39,15 @@ const GeneralCompanyInfoForm = ({
       onBlur: generalCompanyInfoSchema,
     },
     onSubmit: (values) => {
-      setOrganizationData({ ...organization, ...values });
+      setOrganizationData({ ...organization, ...values.value });
     },
   });
+
+  useEffect(() => {
+    if (formRef) {
+      formRef.current = form;
+    }
+  }, [form, formRef]);
   return (
     <form
       onSubmit={(e) => {

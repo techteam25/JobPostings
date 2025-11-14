@@ -1,3 +1,5 @@
+import { MutableRefObject } from "react";
+
 import { CreateOrganizationData } from "@/schemas/organizations";
 
 export enum JobType {
@@ -23,4 +25,5 @@ export interface JobCardType {
 export interface TCreateOrganizationFormProps {
   organization: CreateOrganizationData;
   setOrganizationData: (formData: CreateOrganizationData) => void;
+  formRef?: MutableRefObject<any>;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 
 import { steps } from "@/app/(main)/employer/onboarding/steps";
@@ -27,27 +27,89 @@ const CreateOrganizationForm = () => {
     logo: undefined,
   });
   const [currentStep, setCurrentStep] = useState("general-info");
+  const formRef = useRef<any>(null);
 
   const canGoBack = steps.findIndex((step) => step.key === currentStep) > 0;
   const canGoNext =
     steps.findIndex((step) => step.key === currentStep) < steps.length - 1;
+  const isLastStep =
+    steps.findIndex((step) => step.key === currentStep) === steps.length - 1;
 
   const FormComponent = steps.find(
     (step) => step.key === currentStep,
   )?.component;
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (!formRef.current) return;
+
+    // Validate current form
+    await formRef.current.validateAllFields("change");
+
+    const formState = formRef.current.state;
+    const hasErrors =
+      formState.errors.length > 0 ||
+      Object.values(formState.fieldMeta).some((meta: any) => !meta.isValid);
+
+    if (hasErrors) {
+      // Touch all fields to show errors
+      Object.keys(formState.fieldMeta).forEach((fieldName) => {
+        formRef.current?.getFieldValue(fieldName);
+        formRef.current?.setFieldMeta(fieldName, (prev: any) => ({
+          ...prev,
+          isTouched: true,
+        }));
+      });
+      return;
+    }
+
+    // Update companyData with current form values
+    formRef.current.handleSubmit();
+
     const currentIndex = steps.findIndex((step) => step.key === currentStep);
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1].key);
     }
   };
 
-  const handleBack = () => {
+  const handleBack = async () => {
+    if (!formRef.current) return;
+
+    // Update companyData with current form values before going back
+    formRef.current.handleSubmit();
+
     const currentIndex = steps.findIndex((step) => step.key === currentStep);
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1].key);
     }
+  };
+
+  const handleSubmit = async () => {
+    if (!formRef.current) return;
+
+    // Validate final form
+    await formRef.current.validateAllFields("change");
+
+    const formState = formRef.current.state;
+    const hasErrors =
+      formState.errors.length > 0 ||
+      Object.values(formState.fieldMeta).some((meta: any) => !meta.isValid);
+
+    if (hasErrors) {
+      // Touch all fields to show errors
+      Object.keys(formState.fieldMeta).forEach((fieldName) => {
+        formRef.current?.setFieldMeta(fieldName, (prev: any) => ({
+          ...prev,
+          isTouched: true,
+        }));
+      });
+      return;
+    }
+
+    // Submit the form to update companyData
+    formRef.current.handleSubmit();
+
+    // TODO: Add your final submission logic here (e.g., API call)
+    console.log("Final submission with data:", companyData);
   };
 
   return (
@@ -77,6 +139,7 @@ const CreateOrganizationForm = () => {
             <FormComponent
               organization={companyData}
               setOrganizationData={setCompanyData}
+              formRef={formRef}
             />
           )}
 
@@ -101,14 +164,24 @@ const CreateOrganizationForm = () => {
             >
               Previous
             </Button>
-            <Button
-              onClick={handleNext}
-              size="default"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full cursor-pointer rounded-lg py-3 font-medium transition-colors"
-              disabled={!canGoNext}
-            >
-              Next
-            </Button>
+            {isLastStep ? (
+              <Button
+                onClick={handleSubmit}
+                size="default"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 w-full cursor-pointer rounded-lg py-3 font-medium transition-colors"
+              >
+                Submit
+              </Button>
+            ) : (
+              <Button
+                onClick={handleNext}
+                size="default"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 w-full cursor-pointer rounded-lg py-3 font-medium transition-colors"
+                disabled={!canGoNext}
+              >
+                Next
+              </Button>
+            )}
           </div>
         </div>
       </div>

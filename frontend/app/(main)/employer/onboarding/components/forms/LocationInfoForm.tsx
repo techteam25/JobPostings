@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "@tanstack/react-form";
 import { countries } from "countries-list";
 import states from "states-us";
@@ -38,6 +39,7 @@ const defaultValues: LocationCompanyInfoData = {
 const LocationInfoForm = ({
   organization,
   setOrganizationData,
+  formRef,
 }: TCreateOrganizationFormProps) => {
   const form = useForm({
     defaultValues: {
@@ -52,9 +54,15 @@ const LocationInfoForm = ({
       onBlur: locationCompanyInfoSchema,
     },
     onSubmit: (values) => {
-      setOrganizationData({ ...organization, ...values });
+      setOrganizationData({ ...organization, ...values.value });
     },
   });
+
+  useEffect(() => {
+    if (formRef) {
+      formRef.current = form;
+    }
+  }, [form, formRef]);
 
   return (
     <form

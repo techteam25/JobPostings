@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "@tanstack/react-form";
 
 import { TCreateOrganizationFormProps } from "@/lib/types";
@@ -21,6 +22,7 @@ const defaultValues: ContactCompanyInfoData = {
 const ContactInfoForm = ({
   organization,
   setOrganizationData,
+  formRef,
 }: TCreateOrganizationFormProps) => {
   const form = useForm({
     defaultValues: {
@@ -33,9 +35,15 @@ const ContactInfoForm = ({
       onBlur: contactCompanyInfoSchema,
     },
     onSubmit: (values) => {
-      setOrganizationData({ ...organization, ...values });
+      setOrganizationData({ ...organization, ...values.value });
     },
   });
+
+  useEffect(() => {
+    if (formRef) {
+      formRef.current = form;
+    }
+  }, [form, formRef]);
   return (
     <form
       onSubmit={(e) => {
@@ -62,6 +70,7 @@ const ContactInfoForm = ({
                       id={field.name}
                       name={field.name}
                       type="file"
+                      accept="image/*"
                       onChange={(e) =>
                         field.handleChange(
                           e.target.files ? e.target.files[0] : undefined,
