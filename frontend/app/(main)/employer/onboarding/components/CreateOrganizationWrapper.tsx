@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import Image from "next/image";
+import DOMPurify from "isomorphic-dompurify";
 
 import { steps } from "@/app/(main)/employer/onboarding/steps";
 
@@ -10,6 +11,8 @@ import { Stepper } from "@/app/(main)/employer/onboarding/components/Stepper";
 import { CreateOrganizationData } from "@/schemas/organizations";
 
 import CompanyProfileGraphic from "@/public/company-profile-graphic.png";
+import { useCreateOrganization } from "@/app/(main)/employer/onboarding/hooks/use-create-organization";
+import { Loader2 } from "lucide-react";
 
 const CreateOrganizationWrapper = () => {
   const [companyData, setCompanyData] = useState<CreateOrganizationData>({
@@ -28,6 +31,8 @@ const CreateOrganizationWrapper = () => {
   });
   const [currentStep, setCurrentStep] = useState("general-info");
   const formRef = useRef<any>(null);
+  const { isCreatingOrganization, createOrganizationAsync } =
+    useCreateOrganization();
 
   const canGoBack = steps.findIndex((step) => step.key === currentStep) > 0;
   const canGoNext =
@@ -92,8 +97,18 @@ const CreateOrganizationWrapper = () => {
     const isValid = await validateAndSubmitCurrentForm();
     if (!isValid) return;
 
-    // TODO: Add your final submission logic here (e.g., API call)
-    console.log("Final submission with data:", companyData);
+    const cleanedCompanyData: CreateOrganizationData = {
+      ...companyData,
+      mission: DOMPurify.sanitize(companyData.mission),
+    };
+
+    const formData = new FormData();
+    Object.entries(cleanedCompanyData).forEach(([key, value]) => {
+      if (value !== undefined) {
+        formData.append(key, value as string | Blob);
+      }
+    });
+    await createOrganizationAsync(formData);
   };
 
   return (
@@ -152,9 +167,17 @@ const CreateOrganizationWrapper = () => {
               <Button
                 onClick={handleSubmit}
                 size="default"
-                className="bg-primary text-primary-foreground hover:bg-primary/90 w-full cursor-pointer rounded-lg py-3 font-medium transition-colors"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 w-full cursor-pointer rounded-lg py-3 font-medium transition-colors [&_svg]:size-5"
+                disabled={isCreatingOrganization}
               >
-                Submit
+                {isCreatingOrganization ? (
+                  <>
+                    <Loader2 className="animate-spin" />{" "}
+                    <span>Submitting...</span>
+                  </>
+                ) : (
+                  <span>Submit</span>
+                )}
               </Button>
             ) : (
               <Button

@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useForm } from "@tanstack/react-form";
-import DOMPurify from "dompurify";
 
 import { TCreateOrganizationFormProps } from "@/lib/types";
 import {
