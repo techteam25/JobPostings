@@ -9,13 +9,13 @@ export const createOrganizationSchema = z
     streetAddress: z.string().min(1, "Street Address is required"),
     city: z.string().min(1, "City is required"),
     state: z.string(),
-    country: z.string(),
+    country: z.string().min(1, "Country is required"),
     zipCode: z.string(),
     industry: z.string(),
     size: z.string(),
-    url: z.string(),
+    url: z.url("Invalid URL format").nonempty("Website URL is required"),
     mission: z.string().min(1, "Mission is required"),
-    phone: z.string(),
+    phone: z.string().min(10, "Phone number is required"),
     logo: z.union([z.undefined(), z.file()]),
   })
   .refine((data) => data.country === "United States" && data.state.length > 0, {
