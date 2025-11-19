@@ -92,6 +92,54 @@ registry.registerPath({
 router.get("/me/status", userController.getUserProfileStatus);
 
 registry.registerPath({
+  method: "get",
+  path: "/users/me/intent",
+  tags: ["Users"],
+  summary: "Get Current User Intent",
+  description: "Retrieve the intent of the currently logged-in user.",
+  responses: {
+    200: {
+      description: "User intent status retrieved successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.object({
+              intent: z.enum(["seeker", "employer"]),
+              status: z.enum(["completed", "pending"]),
+            }),
+          ),
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.get("/me/intent", userController.getCurrentUserIntent);
+
+registry.registerPath({
   method: "put",
   path: "/users/me/profile",
   tags: ["Users"],
