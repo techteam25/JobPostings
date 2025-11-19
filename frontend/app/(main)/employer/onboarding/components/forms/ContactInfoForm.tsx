@@ -107,7 +107,7 @@ const ContactInfoForm = ({
                 return (
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>
-                      Contact Phone (optional)
+                      Contact Phone *
                     </FieldLabel>
                     <Input
                       className="rounded-xl"
@@ -146,7 +146,7 @@ const ContactInfoForm = ({
                 return (
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>
-                      Company Website (optional)
+                      Company Website *
                     </FieldLabel>
                     <Input
                       className="rounded-xl"
