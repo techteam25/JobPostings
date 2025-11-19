@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { useForm } from "@tanstack/react-form";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ import { BsLinkedin } from "react-icons/bs";
 import { FcGoogle } from "react-icons/fc";
 import { MdWork } from "react-icons/md";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import useLocalStorage from "@/hooks/use-local-storage";
 import {
@@ -25,24 +27,19 @@ import {
   registrationSchema,
 } from "@/schemas/auth/registration";
 
-import { useRegisterUser } from "@/app/(auth)/sign-up/hooks/use-register-user";
-import {
-  useGoogleAuth,
-  useLinkedInAuth,
-} from "@/app/(auth)/sign-in/hooks/use-social";
+import { instance } from "@/lib/axios-instance";
+import { useSocialAuth } from "@/app/(auth)/sign-in/hooks/use-social";
 
 export default function RegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const { handleSocialAuth, isSocialPending } = useSocialAuth();
   const [_, setIntent] = useLocalStorage<"seeker" | "employer">(
     "intent",
     "seeker",
   );
-
-  const { createUserAsync, isRegistrationPending } = useRegisterUser();
-  const { isGoogleSignInPending, signInWithGoogleAsync } = useGoogleAuth();
-  const { isLinkedInSignInPending, signInWithLinkedInAsync } =
-    useLinkedInAuth();
+  const router = useRouter();
 
   const registrationInput: RegistrationData = {
     firstName: "",
@@ -60,8 +57,36 @@ export default function RegistrationForm() {
       onChange: registrationSchema,
     },
     onSubmit: async (values) => {
-      await createUserAsync(values.value);
-      form.reset();
+      startTransition(async () => {
+        try {
+          const response = await instance.post("/auth/sign-up/email", {
+            name: `${values.value.firstName} ${values.value.lastName}`,
+            email: values.value.email,
+            password: values.value.password,
+            intent: values.value.accountType,
+          });
+
+          if (response.status === 200) {
+            toast.success("Account creation successful!");
+            form.reset();
+
+            const redirectUrl =
+              response.data.user?.intent === "employer"
+                ? "/employer/onboarding"
+                : "/";
+            router.replace(redirectUrl);
+          } else {
+            toast.error(
+              response.data.message || "Account creation unsuccessful",
+            );
+          }
+        } catch (error: any) {
+          const errorMessage =
+            error.response?.data?.message || "Account creation unsuccessful";
+          toast.error(errorMessage);
+          console.error("Registration error:", error);
+        }
+      });
     },
   });
 
@@ -382,7 +407,7 @@ export default function RegistrationForm() {
                   },
                 )}
               >
-                {isRegistrationPending ? (
+                {isPending ? (
                   <span>
                     <Loader2 className="size-5 animate-spin" />
                   </span>
@@ -409,21 +434,21 @@ export default function RegistrationForm() {
         {/* Social Sign Up */}
         <div className="grid grid-cols-2 gap-3">
           <Button
-            disabled={isGoogleSignInPending}
+            disabled={isSocialPending}
             variant="ghost"
             type="button"
             className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
-            onClick={async () => signInWithGoogleAsync()}
+            onClick={() => handleSocialAuth("google")}
           >
             <FcGoogle className="size-6" />
             Google
           </Button>
           <Button
-            disabled={isLinkedInSignInPending}
+            disabled={isSocialPending}
             variant="ghost"
             type="button"
             className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
-            onClick={async () => signInWithLinkedInAsync()}
+            onClick={() => handleSocialAuth("linkedin")}
           >
             <BsLinkedin className="size-6 text-[#0072b1]" />
             LinkedIn
