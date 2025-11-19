@@ -38,3 +38,7 @@ export type OrganizationWithMembers = Organization & {
 
 export type OrganizationWithMembersResponse =
   ApiResponse<OrganizationWithMembers>;
+
+export type OrganizationIdByMemberIdResponse = ApiResponse<{
+  organizationId: number;
+}>;
