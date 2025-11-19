@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { openAPI } from "better-auth/plugins";
 import { createAuthMiddleware, APIError } from "better-auth/api";
+
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { z } from "zod";
 
@@ -12,8 +13,11 @@ import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 import { userOnBoarding } from "@/db/schema";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
 import logger from "@/logger";
+import { eq } from "drizzle-orm";
+import { OrganizationService } from "@/services/organization.service";
 
 const emailService = new EmailService();
+const organizationService = new OrganizationService();
 
 type UserRegistrationPayload = {
   name: string;
@@ -139,6 +143,8 @@ export const auth = betterAuth({
               user: {
                 ...userResult.user,
                 intent: body.intent,
+                redirectUrl:
+                  body.intent === "employer" ? "/employer/onboarding" : "/",
               },
             };
           } catch (error) {
@@ -148,12 +154,46 @@ export const auth = betterAuth({
             });
           }
         }
-
-        const userId = ctx.context.session?.user.id;
+      } else if (ctx.path === "/sign-in/email") {
+        // if sign-in not successful, do nothing
+        if (ctx.context.returned instanceof APIError) {
+          return;
+        }
+        // if successful, return response with user amended to include intent field and redirectUrl
+        const returned = ctx.context
+          .returned as BetterAuthSuccessResponseSchema;
+        const userId = returned.user.id;
         if (userId) {
-          await ctx.context.internalAdapter.updateUser(userId, {
-            lastLoginAt: new Date(),
-          });
+          const [onboarding] = await db
+            .select()
+            .from(userOnBoarding)
+            .where(eq(userOnBoarding.userId, Number(userId)))
+            .limit(1);
+
+          const member = await organizationService.getOrganizationMember(
+            Number(userId),
+          );
+
+          if (member.isSuccess) {
+            const intent = onboarding ? onboarding.intent : "seeker";
+            const organizationId = member.value.organizationId;
+            const redirectUrl =
+              intent === "employer"
+                ? `/employer/organizations/${organizationId}`
+                : "/";
+
+            const userResult = ctx.context
+              .returned as BetterAuthSuccessResponseSchema;
+
+            return {
+              ...userResult,
+              user: {
+                ...userResult.user,
+                intent,
+                redirectUrl,
+              },
+            };
+          }
         }
       }
       return;
