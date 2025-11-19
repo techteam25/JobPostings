@@ -43,10 +43,10 @@ export default function Navbar() {
             <Image
               src={GetInvolvedLogo}
               alt="Get Involved Logo"
-              className="h-14 w-auto"
+              className="h-10 w-auto md:h-12 lg:h-14"
               priority
             />
-            <nav className="flex items-center gap-1">
+            <nav className="hidden items-center gap-1 lg:flex">
               <Button
                 variant="link"
                 className="text-secondary-foreground rounded-2xl px-6 py-2 text-xs transition md:text-sm"
@@ -82,7 +82,7 @@ export default function Navbar() {
           </div>
 
           {/* Right Section */}
-          <div className="flex items-center gap-4">
+          <div className="hidden items-center gap-4 lg:flex">
             {/* Notification Bell */}
             <Button
               variant="outline"

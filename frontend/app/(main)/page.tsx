@@ -10,6 +10,7 @@ import { JobTypeDropDownButton } from "@/app/(main)/components/JobTypeDropDownBu
 import { ServiceRoleDropDownButton } from "@/app/(main)/components/ServiceRoleDropDownButton";
 import { DatePostedDropDownButton } from "@/app/(main)/components/DatePostedDropDownButton";
 import { SearchFilterDropDownButton } from "./components/SearchFilterDropDownButton";
+import { SearchFilterDialogButton } from "./components/SearchFilterDialogButton";
 import { RemoteOnlyBadge } from "@/app/(main)/components/RemoteOnlyBadge";
 import { UserProfileStatusBanner } from "@/app/(main)/components/UserProfileStatusBanner";
 import { ForYouJobsWrapper } from "@/app/(main)/components/ForYouJobsWrapper";
@@ -37,30 +38,37 @@ function Page() {
                 className="text-secondary-foreground border-input bg-input h-12 rounded-none rounded-r-full pl-10 text-lg shadow-none outline-none focus-visible:ring-0"
               />
             </div>
-            <SearchFilterDropDownButton />
+            {/* Mobile: Dialog */}
+            <div className="lg:hidden">
+              <SearchFilterDialogButton />
+            </div>
+            {/* Desktop: Dropdown */}
+            <div className="hidden lg:block">
+              <SearchFilterDropDownButton />
+            </div>
           </div>
         </div>
       </section>
 
       <div className="border-b">
         <div className="mx-auto max-w-7xl px-4">
-          <Tabs defaultValue="search" className="w-auto">
-            <TabsList className="h-auto w-full border-0">
-              <div className="flex w-full items-center justify-between">
-                <div className="flex-1" />
+          <Tabs defaultValue="search" className="w-auto py-3">
+            <TabsList className="h-auto w-full border-b p-0">
+              <div className="flex w-full items-center justify-center md:justify-between">
+                <div className="md:flex-1" />
                 <TabsTrigger
                   value="foryou"
-                  className="data-[state=active]:border-accent data-[state=active]:text-foreground rounded-none bg-transparent px-6 py-4 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                  className="data-[state=active]:border-accent data-[state=active]:text-foreground rounded-none bg-transparent px-6 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                 >
                   <HiSparkles className="mr-1" /> For You
                 </TabsTrigger>
                 <TabsTrigger
                   value="search"
-                  className="data-[state=active]:border-accent data-[state=active]:text-foreground rounded-none bg-transparent px-6 py-4 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                  className="data-[state=active]:border-accent data-[state=active]:text-foreground rounded-none bg-transparent px-6 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                 >
                   Search
                 </TabsTrigger>
-                <div className="flex w-full flex-1 justify-end">
+                <div className="hidden w-full flex-1 justify-end md:flex">
                   <Button
                     variant="ghost"
                     className="text-foreground/85 hover:text-foreground/95 decoration-accent cursor-pointer text-sm decoration-4 underline-offset-8 hover:bg-transparent hover:underline [&_svg]:size-4"
@@ -76,9 +84,9 @@ function Page() {
               <ForYouJobsWrapper />
             </TabsContent>
             <TabsContent value="search" className="w-full">
-              <div className="w-full border-b">
-                <div className="mx-auto max-w-7xl p-4">
-                  <div className="flex flex-wrap gap-4">
+              <div className="w-full">
+                <div className="mx-auto max-w-7xl p-1 sm:p-2 md:p-4">
+                  <div className="hidden flex-wrap gap-4 md:flex">
                     <Button className="text-secondary-foreground hover:bg-input bg-secondary cursor-pointer rounded-full px-3 py-4 shadow-none">
                       Easy Apply only
                     </Button>
