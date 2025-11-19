@@ -352,6 +352,21 @@ export class UserController extends BaseController {
     }
   };
 
+  getCurrentUserIntent = async (req: Request, res: Response) => {
+    const intentResult = await this.userService.getAuthenticatedUserIntent(
+      req.userId!,
+    );
+
+    if (intentResult.isSuccess) {
+      return this.sendSuccess<{
+        status: "completed" | "pending";
+        intent: "employer" | "seeker";
+      }>(res, intentResult.value, "User intent retrieved successfully");
+    } else {
+      return this.handleControllerError(res, intentResult.error);
+    }
+  };
+
   // getUserStats = async (_: Request, res: Response) => {
   //   const stats = {
   //     totalUsers: await this.userService.getUsersByRole("user"),
