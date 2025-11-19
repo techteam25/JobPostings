@@ -76,9 +76,9 @@ export default function LoginForm() {
           <Image
             src={GetInvolvedLogo}
             alt="Get Involved Logo"
-            className="mx-auto h-20 w-auto"
+            className="mx-auto h-16 w-auto md:h-20"
           />
-          <h2 className="text-foreground text-center text-2xl/9 font-bold tracking-tight">
+          <h2 className="text-foreground text-center text-xl font-bold tracking-tight md:text-2xl/9">
             Sign in to your account
           </h2>
         </div>
@@ -99,7 +99,7 @@ export default function LoginForm() {
                 <div>
                   <Label
                     htmlFor={field.name}
-                    className="text-secondary-foreground mb-2 block text-sm font-semibold"
+                    className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
                   >
                     Email Address
                   </Label>
@@ -125,7 +125,7 @@ export default function LoginForm() {
                 <div>
                   <Label
                     htmlFor={field.name}
-                    className="text-secondary-foreground mb-2 block text-sm font-semibold"
+                    className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
                   >
                     Password
                   </Label>
@@ -144,13 +144,9 @@ export default function LoginForm() {
                       size="icon"
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent"
+                      className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5 md:[&_svg]:size-6"
                     >
-                      {showPassword ? (
-                        <BsEye className="size-6" />
-                      ) : (
-                        <BsEyeSlash className="size-6" />
-                      )}
+                      {showPassword ? <BsEye /> : <BsEyeSlash />}
                     </Button>
                   </div>
                   <FieldInfo field={field} />
@@ -173,15 +169,15 @@ export default function LoginForm() {
                       onCheckedChange={(checked) =>
                         field.handleChange(checked === true)
                       }
-                      className="data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground border-accent mt-0.5 h-5 w-5 cursor-pointer"
+                      className="data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground border-accent mt-0.5 h-4 w-4 cursor-pointer md:h-5 md:w-5"
                     />
-                    <span className="text-secondary-foreground ml-2 text-sm">
+                    <span className="text-secondary-foreground ml-2 text-xs sm:text-sm">
                       Remember me
                     </span>
                   </Label>
                   <Button
                     variant="link"
-                    className="text-muted-foreground cursor-pointer text-sm"
+                    className="text-muted-foreground cursor-pointer text-xs sm:text-sm"
                   >
                     Forgot password?
                   </Button>

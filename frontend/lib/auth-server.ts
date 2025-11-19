@@ -28,8 +28,8 @@ export async function getServerSession(
     const data = await response.json();
 
     return {
-      session: data.session || null,
-      user: data.user || null,
+      session: data?.session || null,
+      user: data?.user || null,
     };
   } catch (error) {
     console.error("Error fetching server session:", error);
