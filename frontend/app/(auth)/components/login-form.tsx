@@ -2,17 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { useForm } from "@tanstack/react-form";
 import { cn } from "@/lib/utils";
 
 import { LoginInput, loginSchema } from "@/schemas/auth/login";
-import { useLoginUser } from "@/app/(auth)/sign-in/hooks/use-login-user";
-import {
-  useGoogleAuth,
-  useLinkedInAuth,
-} from "@/app/(auth)/sign-in/hooks/use-social";
+import { authClient } from "@/lib/auth";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,8 +20,11 @@ import { FieldInfo } from "@/components/common/FieldInfo";
 import { BsEye, BsEyeSlash, BsLinkedin } from "react-icons/bs";
 import { FcGoogle } from "react-icons/fc";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
+import { useSocialAuth } from "@/app/(auth)/sign-in/hooks/use-social";
+import { LoginResponse } from "@/schemas/responses/auth";
 
 const loginInput: LoginInput = {
   email: "",
@@ -33,20 +33,39 @@ const loginInput: LoginInput = {
 };
 
 export default function LoginForm() {
-  const { loginUserAsync, isLoginPending } = useLoginUser();
-  const { isGoogleSignInPending, signInWithGoogleAsync } = useGoogleAuth();
-  const { isLinkedInSignInPending, signInWithLinkedInAsync } =
-    useLinkedInAuth();
-
+  const [isPending, startTransition] = useTransition();
+  const { handleSocialAuth, isSocialPending } = useSocialAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+
   const form = useForm({
     defaultValues: loginInput,
     validators: {
       onChange: loginSchema,
     },
     onSubmit: async (values) => {
-      await loginUserAsync(values.value);
-      form.reset();
+      startTransition(async () => {
+        try {
+          const { error, data } = (await authClient.signIn.email({
+            email: values.value.email,
+            password: values.value.password,
+            rememberMe: values.value.rememberMe,
+          })) as unknown as { error: any; data: LoginResponse | null };
+
+          if (error) {
+            toast.error(error.message || "Login unsuccessful");
+            return;
+          }
+
+          toast.success("Login successful!");
+          form.reset();
+
+          router.replace(data?.user.redirectUrl || "/");
+        } catch (error) {
+          toast.error("An unexpected error occurred");
+          console.error("Login error:", error);
+        }
+      });
     },
   });
 
@@ -184,7 +203,7 @@ export default function LoginForm() {
                     },
                   )}
                 >
-                  {isLoginPending ? (
+                  {isPending ? (
                     <span>
                       <Loader2 className="size-5 animate-spin" />
                     </span>
@@ -209,21 +228,21 @@ export default function LoginForm() {
           {/* Social Sign Up */}
           <div className="grid grid-cols-2 gap-3">
             <Button
-              disabled={isGoogleSignInPending}
+              disabled={isSocialPending}
               variant="ghost"
               type="button"
               className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
-              onClick={async () => await signInWithGoogleAsync()}
+              onClick={async () => await handleSocialAuth("google")}
             >
               <FcGoogle className="size-6" />
               Google
             </Button>
             <Button
-              disabled={isLinkedInSignInPending}
+              disabled={isSocialPending}
               variant="ghost"
               type="button"
               className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
-              onClick={async () => await signInWithLinkedInAsync()}
+              onClick={async () => await handleSocialAuth("linkedin")}
             >
               <BsLinkedin className="size-6 text-[#0072b1]" />
               LinkedIn
