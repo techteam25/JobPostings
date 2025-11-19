@@ -1,4 +1,4 @@
-import { redirect, RedirectType } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth";
 
 export const useUserSignOut = () => {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { mutateAsync: signOutAsyncAction, isPending } = useMutation({
     mutationFn: async () =>
       await authClient.signOut({
@@ -14,7 +15,7 @@ export const useUserSignOut = () => {
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["get-user-session"] });
             toast.success("Signed out successfully");
-            redirect("/sign-in", RedirectType.replace);
+            router.replace("/sign-in");
           },
           onError: () => {
             toast.error("Sign out unsuccessful");
