@@ -1,13 +1,14 @@
-import { and, count, eq, like, or, sql, ne, desc } from "drizzle-orm";
+import { and, count, desc, eq, like, ne, or, sql } from "drizzle-orm";
 import {
   certifications,
   educations,
-  userCertifications,
-  userProfile,
-  user,
-  workExperiences,
-  savedJobs,
   jobsDetails,
+  savedJobs,
+  user,
+  userCertifications,
+  userOnBoarding,
+  userProfile,
+  workExperiences,
 } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
@@ -604,6 +605,18 @@ export class UserRepository extends BaseRepository<typeof user> {
       }
 
       return { success: true };
+    });
+  }
+
+  async getUserIntent(userId: number) {
+    return await withDbErrorHandling(async () => {
+      return await db.query.userOnBoarding.findFirst({
+        where: eq(userOnBoarding.userId, userId),
+        columns: {
+          intent: true,
+          status: true,
+        },
+      });
     });
   }
 }
