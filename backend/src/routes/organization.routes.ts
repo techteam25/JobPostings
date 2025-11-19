@@ -26,6 +26,7 @@ import {
   selectJobApplicationSchema,
 } from "@/validations/jobApplications.validation";
 import { getJobSchema } from "@/validations/job.validation";
+import { getUserSchema } from "@/validations/user.validation";
 
 const router = Router();
 const organizationController = new OrganizationController();
@@ -114,6 +115,59 @@ router.get(
   "/:organizationId",
   validate(getOrganizationSchema),
   organizationController.getOrganizationById,
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/organizations/members/{memberId}",
+  summary: "Get organization ID by member ID",
+  tags: ["Organizations"],
+  request: {
+    params: getOrganizationSchema.shape["params"],
+  },
+  responses: {
+    200: {
+      description: "Organization ID",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.object({
+              organizationId: z.number(),
+            }),
+          ),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Organization member not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.get(
+  "/members/:id",
+  validate(getUserSchema),
+  organizationController.getOrganizationIdByMemberId,
 );
 
 registry.registerPath({
