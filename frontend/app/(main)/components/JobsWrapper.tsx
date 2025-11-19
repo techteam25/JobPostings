@@ -38,7 +38,7 @@ const JobsWrapper = () => {
 
   if (fetchingJobs) {
     return (
-      <main className="mx-auto h-screen max-w-7xl px-4 py-6">
+      <main className="mx-auto max-w-7xl px-1 py-4 lg:px-4 lg:py-6">
         <SkeletonCard />
       </main>
     );
@@ -48,10 +48,10 @@ const JobsWrapper = () => {
     return <EmptyMuted />;
   }
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6">
+    <main className="mx-auto max-w-7xl px-1 py-4 lg:px-4 lg:py-6">
       <div className="flex gap-4">
         {/* Job Listings Sidebar */}
-        <div className="w-[28rem] space-y-1.5">
+        <div className="w-full space-y-1.5 lg:w-[28rem]">
           {/* Total results found in location, sort results dropdown */}
           <div className="mb-4 flex items-center justify-between">
             <div className="text-secondary-foreground mr-4 truncate text-sm text-ellipsis">
@@ -67,7 +67,7 @@ const JobsWrapper = () => {
           />
         </div>
         {/*  job detail component */}
-        <div className="sticky top-0 h-fit max-h-screen flex-1 pt-6">
+        <div className="sticky top-0 hidden h-fit max-h-screen flex-1 pt-6 lg:block">
           <JobDetailPanel jobId={jobId} />
         </div>
       </div>
@@ -80,12 +80,12 @@ export default JobsWrapper;
 export function SkeletonCard() {
   return (
     <div className="flex flex-col space-y-3">
-      <Skeleton className="h-[125px] w-[250px] rounded-xl" />
+      <Skeleton className="h-[125px] w-full rounded-xl lg:w-[250px]" />
       <div className="space-y-2">
-        <Skeleton className="h-4 w-[250px]" />
-        <Skeleton className="h-4 w-[200px]" />
-        <Skeleton className="h-4 w-[200px]" />
-        <Skeleton className="h-4 w-[200px]" />
+        <Skeleton className="h-4 w-3/4 lg:w-[250px]" />
+        <Skeleton className="h-4 w-3/4 lg:w-[200px]" />
+        <Skeleton className="h-4 w-3/4 lg:w-[200px]" />
+        <Skeleton className="h-4 w-3/4 lg:w-[200px]" />
       </div>
     </div>
   );

@@ -157,7 +157,7 @@ export default function LoginForm() {
             <form.Field
               name="rememberMe"
               children={(field) => (
-                <div className="mb-6 flex items-center justify-between">
+                <div className="mb-6 flex flex-col items-center justify-between space-y-4 sm:flex-row">
                   <Label
                     htmlFor={field.name}
                     className="flex cursor-pointer items-center"

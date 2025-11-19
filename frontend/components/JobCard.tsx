@@ -48,7 +48,7 @@ export const JobCard = ({
       <CardContent className="p-4">
         <div className="mb-2 flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <div className="text-primary-foreground flex h-10 w-10 items-center justify-center rounded text-xs font-bold">
+            <div className="text-primary-foreground flex size-8 items-center justify-center rounded text-xs font-bold md:h-10 md:w-10">
               {logoUrl ? (
                 <Image
                   src={logoUrl}
@@ -84,15 +84,19 @@ export const JobCard = ({
             </TooltipContent>
           </Tooltip>
         </div>
-        <h3 className="mb-1 font-semibold">{positionName}</h3>
-        <div className="text-secondary-foreground mb-2 text-sm">{location}</div>
-        <div className="text-foreground mb-2 text-sm font-semibold">
+        <h3 className="mb-1 text-sm font-semibold sm:text-base md:text-lg">
+          {positionName}
+        </h3>
+        <div className="text-secondary-foreground mb-2 text-xs sm:text-sm">
+          {location}
+        </div>
+        <div className="text-foreground mb-2 text-xs font-semibold sm:text-sm">
           {experienceLevel}
         </div>
-        <p className="text-secondary-foreground mb-2 line-clamp-3 text-xs">
+        <p className="text-secondary-foreground mb-2 line-clamp-2 text-xs md:line-clamp-3">
           {jobDescription}
         </p>
-        <div className="text-muted-foreground mb-2 text-xs">
+        <div className="text-muted-foreground mb-2 hidden text-xs md:block">
           <span className="font-semibold">Skills:</span> CI/CD, Customer
           retention, Software deployment, Salesforce, E-commerce
         </div>
