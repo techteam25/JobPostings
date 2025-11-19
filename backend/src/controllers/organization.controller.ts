@@ -19,6 +19,7 @@ import {
   OrganizationMember,
 } from "@/validations/organization.validation";
 import { JobApplicationWithNotes } from "@/validations/jobApplications.validation";
+import { GetUserSchema } from "@/validations/user.validation";
 
 export class OrganizationController extends BaseController {
   private organizationService: OrganizationService;
@@ -65,6 +66,25 @@ export class OrganizationController extends BaseController {
       return this.sendSuccess<Organization>(
         res,
         organization.value,
+        "Organization retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, organization.error);
+    }
+  };
+
+  getOrganizationIdByMemberId = async (
+    req: Request<GetUserSchema["params"]>,
+    res: Response<ApiResponse<OrganizationMember>>,
+  ) => {
+    const memberId = parseInt(req.params.id);
+    const organization =
+      await this.organizationService.getOrganizationMember(memberId);
+
+    if (organization.isSuccess) {
+      return this.sendSuccess<{ organizationId: number }>(
+        res,
+        { organizationId: organization.value.organizationId },
         "Organization retrieved successfully",
       );
     } else {
