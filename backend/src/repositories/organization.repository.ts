@@ -6,6 +6,7 @@ import {
   organizationMembers,
   organizations,
   user,
+  userOnBoarding,
 } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
@@ -109,6 +110,15 @@ export class OrganizationRepository extends BaseRepository<
           if (!organization) {
             throw new DatabaseError("Failed to retrieve created organization");
           }
+
+          // Update user onboarding status to complete when organization is created
+          await tx
+            .update(userOnBoarding)
+            .set({
+              intent: "employer",
+              status: "completed",
+            })
+            .where(eq(userOnBoarding.userId, sessionUserId));
 
           return organization;
         }),
