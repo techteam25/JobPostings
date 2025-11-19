@@ -14,6 +14,11 @@ export const registrationSchema = z
   })
   .refine((input) => input.password === input.confirmPassword, {
     message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+  .refine((input) => input.hasAgreedToTerms, {
+    message: "You must agree to the Terms & Conditions and Privacy Policy",
+    path: ["hasAgreedToTerms"],
   });
 
 export type RegistrationData = z.infer<typeof registrationSchema>;
