@@ -22,6 +22,7 @@ import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserSignOut } from "@/app/(main)/hooks/use-user-signout";
+import { NavbarMobile } from "@/app/(main)/components/NavbarMobile";
 export function SkeletonDemo() {
   return (
     <div className="flex items-center space-x-4">
@@ -46,6 +47,7 @@ export default function Navbar() {
               className="h-10 w-auto md:h-12 lg:h-14"
               priority
             />
+
             <nav className="hidden items-center gap-1 lg:flex">
               <Button
                 variant="link"
@@ -82,6 +84,11 @@ export default function Navbar() {
           </div>
 
           {/* Right Section */}
+          <NavbarMobile
+            username={data?.data?.user.name}
+            email={data?.data?.user.email}
+            profileImage={data?.data?.user.image}
+          />
           <div className="hidden items-center gap-4 lg:flex">
             {/* Notification Bell */}
             <Button
