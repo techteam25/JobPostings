@@ -70,8 +70,8 @@ export default function LoginForm() {
   });
 
   return (
-    <div className="bg-background flex w-full max-w-lg items-center justify-center rounded-2xl px-6 py-12 shadow-md lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-sm md:max-w-lg">
+    <div className="bg-background flex w-full max-w-lg items-center justify-center rounded-2xl px-4 py-12 shadow-md md:px-6 lg:px-8">
+      <div className="w-full sm:mx-auto sm:max-w-sm md:max-w-lg">
         <div className="mb-10 space-y-6 sm:mx-auto sm:w-full sm:max-w-sm">
           <Image
             src={GetInvolvedLogo}
