@@ -26,7 +26,7 @@ export const SortByDropDownButton = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="shadow-none focus:bg-transparent data-[state=open]:bg-transparent"
+        className="hidden shadow-none focus:bg-transparent data-[state=open]:bg-transparent lg:block"
         asChild
       >
         <Button
