@@ -33,8 +33,8 @@ export function NavbarMobile({
   return (
     <Sheet>
       <SheetTrigger className="items-center lg:hidden" asChild>
-        <Button variant="outline">
-          <Menu />
+        <Button variant="outline" className="border-0 shadow-none">
+          <Menu className="text-foreground" />
         </Button>
       </SheetTrigger>
       <SheetContent>
