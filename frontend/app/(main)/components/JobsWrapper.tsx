@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useMediaQuery } from "usehooks-ts";
 
 import { RefreshCcwIcon } from "lucide-react";
 import { useFetchJobs } from "@/app/(main)/hooks/use-fetch-jobs";
@@ -21,16 +22,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SortByDropDownButton } from "./SortByDropDownButton";
+import { JobDetailPanelMobile } from "@/app/(main)/components/JobDetailPanelMobile";
 
 const JobsWrapper = () => {
   const { data, error, fetchingJobs } = useFetchJobs();
   const [jobId, setJobId] = useState<number | undefined>(undefined);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   useEffect(() => {
-    if (data && data.data.length > 0) {
+    if (isDesktop && data && data.data.length > 0 && !jobId) {
       setJobId(data.data[0].job.id);
     }
-  }, [data]);
+  }, [isDesktop, data, jobId]);
+
+  const open = !isDesktop && !!jobId;
 
   const handleJobSelect = (id: number) => {
     setJobId(id);
@@ -67,6 +72,11 @@ const JobsWrapper = () => {
           />
         </div>
         {/*  job detail component */}
+        <JobDetailPanelMobile
+          jobId={jobId}
+          open={open}
+          onOpenChange={(o) => !o && setJobId(undefined)}
+        />
         <div className="sticky top-0 hidden h-fit max-h-screen flex-1 pt-6 lg:block">
           <JobDetailPanel jobId={jobId} />
         </div>
