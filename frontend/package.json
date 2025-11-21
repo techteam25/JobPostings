@@ -53,6 +53,7 @@
     "react-icons": "^5.5.0",
     "sonner": "^2.0.7",
     "states-us": "^1.1.1",
+    "usehooks-ts": "^3.1.1",
     "vaul": "^1.1.2",
     "zod": "^4.1.12",
     "zustand": "^5.0.8"
