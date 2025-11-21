@@ -37,7 +37,7 @@ export const SearchFiltersMobile = () => {
         </div>
         <DrawerFooter>
           <Button className="bg-foreground hover:bg-foreground/90">
-            Search
+            Apply Filters
           </Button>
           <DrawerClose asChild>
             <Button variant="outline">Clear</Button>
