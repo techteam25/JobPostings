@@ -14,6 +14,8 @@ import { SearchFilterDialogButton } from "./components/SearchFilterDialogButton"
 import { RemoteOnlyBadge } from "@/app/(main)/components/RemoteOnlyBadge";
 import { UserProfileStatusBanner } from "@/app/(main)/components/UserProfileStatusBanner";
 import { ForYouJobsWrapper } from "@/app/(main)/components/ForYouJobsWrapper";
+import { SearchInputMobile } from "@/app/(main)/components/SearchInputMobile";
+import { SearchFiltersMobile } from "@/app/(main)/components/SearchFiltersMobile";
 
 function Page() {
   return (
@@ -23,7 +25,11 @@ function Page() {
           <UserProfileStatusBanner />
         </div>
         <div className="mx-auto max-w-4xl px-4 py-6">
-          <div className="flex items-center gap-1">
+          <div className="bg-input flex h-12 items-center justify-start rounded-full shadow-none">
+            <SearchInputMobile />
+            <SearchFiltersMobile />
+          </div>
+          <div className="hidden items-center gap-1 lg:flex">
             <div className="relative flex-1">
               <Search className="text-secondary-foreground absolute top-1/2 left-3 mr-1 size-6 -translate-y-1/2" />
               <Input
