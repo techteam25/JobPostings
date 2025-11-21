@@ -1,5 +1,7 @@
 import { betterAuth } from "better-auth";
+import { openAPI } from "better-auth/plugins";
 import { createAuthMiddleware, APIError } from "better-auth/api";
+
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { z } from "zod";
 
@@ -7,8 +9,22 @@ import { db } from "@/db/connection";
 import { env, isProduction } from "@/config/env";
 
 import { EmailService } from "@/services/email.service";
+import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
+import { userOnBoarding } from "@/db/schema";
+import { withDbErrorHandling } from "@/db/dbErrorHandler";
+import logger from "@/logger";
+import { eq } from "drizzle-orm";
+import { OrganizationService } from "@/services/organization.service";
 
 const emailService = new EmailService();
+const organizationService = new OrganizationService();
+
+type UserRegistrationPayload = {
+  name: string;
+  email: string;
+  password: string;
+  intent: "seeker" | "employer";
+};
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -84,10 +100,12 @@ export const auth = betterAuth({
         return;
       }
 
+      // Check user status before allowing sign-in
       type InferredUser = typeof auth.$Infer.Session;
       const obj = await ctx.context.internalAdapter.findUserByEmail(email);
       const user = obj?.user as InferredUser["user"] | undefined;
 
+      // Disallow sign-in for non-active users
       if (user && user.status !== "active") {
         const message =
           user.status === "deleted"
@@ -99,5 +117,87 @@ export const auth = betterAuth({
         });
       }
     }),
+
+    after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === "/sign-up/email") {
+        // check if response status is 200
+        if (ctx.context.returned) {
+          if (ctx.context.returned instanceof APIError) {
+            return;
+          }
+          const userResult = ctx.context
+            .returned as BetterAuthSuccessResponseSchema;
+          const body = ctx.body as UserRegistrationPayload;
+
+          try {
+            await withDbErrorHandling(async () =>
+              db.insert(userOnBoarding).values({
+                userId: Number(userResult.user.id),
+                intent: body.intent,
+                status: "pending",
+              }),
+            );
+            // Modify and return the response with added 'intent' property
+            return {
+              ...userResult,
+              user: {
+                ...userResult.user,
+                intent: body.intent,
+                redirectUrl:
+                  body.intent === "employer" ? "/employer/onboarding" : "/",
+              },
+            };
+          } catch (error) {
+            logger.error(error, "Error inserting into userOnBoarding");
+            throw new APIError("INTERNAL_SERVER_ERROR", {
+              message: "Error during user sign-up process",
+            });
+          }
+        }
+      } else if (ctx.path === "/sign-in/email") {
+        // if sign-in not successful, do nothing
+        if (ctx.context.returned instanceof APIError) {
+          return;
+        }
+        // if successful, return response with user amended to include intent field and redirectUrl
+        const returned = ctx.context
+          .returned as BetterAuthSuccessResponseSchema;
+        const userId = returned.user.id;
+        if (userId) {
+          const [onboarding] = await db
+            .select()
+            .from(userOnBoarding)
+            .where(eq(userOnBoarding.userId, Number(userId)))
+            .limit(1);
+
+          const member = await organizationService.getOrganizationMember(
+            Number(userId),
+          );
+
+          if (member.isSuccess) {
+            const intent = onboarding ? onboarding.intent : "seeker";
+            const organizationId = member.value.organizationId;
+            const redirectUrl =
+              intent === "employer"
+                ? `/employer/organizations/${organizationId}`
+                : "/";
+
+            const userResult = ctx.context
+              .returned as BetterAuthSuccessResponseSchema;
+
+            return {
+              ...userResult,
+              user: {
+                ...userResult.user,
+                intent,
+                redirectUrl,
+              },
+            };
+          }
+        }
+      }
+      return;
+    }),
   },
+  plugins: [openAPI()],
 });

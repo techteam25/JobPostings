@@ -21,7 +21,7 @@ import {
   UserWithProfile,
 } from "@/validations/userProfile.validation";
 import { GetJobSchema } from "@/validations/job.validation";
-import { ChangeUserPasswordResponseSchema } from "@/validations/auth.validation";
+import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 
 export class UserController extends BaseController {
   private userService: UserService;
@@ -144,11 +144,10 @@ export class UserController extends BaseController {
     );
 
     if (result.isSuccess) {
-      return this.sendSuccess<ChangeUserPasswordResponseSchema>(
-        res,
-        result.value,
-        "Password changed successfully",
-      );
+      return this.sendSuccess<{
+        message: string;
+        data: BetterAuthSuccessResponseSchema;
+      }>(res, result.value, "Password changed successfully");
     } else {
       return this.handleControllerError(res, result.error);
     }
@@ -165,6 +164,20 @@ export class UserController extends BaseController {
         res,
         user.value,
         "Current user retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, user.error);
+    }
+  };
+
+  getUserProfileStatus = async (req: Request, res: Response) => {
+    const user = await this.userService.getUserProfileStatus(req.userId!);
+
+    if (user.isSuccess) {
+      return this.sendSuccess<{ complete: boolean }>(
+        res,
+        user.value,
+        "User profile status retrieved successfully",
       );
     } else {
       return this.handleControllerError(res, user.error);
@@ -336,6 +349,21 @@ export class UserController extends BaseController {
       return this.sendSuccess(res, null, "Job unsaved successfully", 200);
     } else {
       return this.handleControllerError(res, result.error);
+    }
+  };
+
+  getCurrentUserIntent = async (req: Request, res: Response) => {
+    const intentResult = await this.userService.getAuthenticatedUserIntent(
+      req.userId!,
+    );
+
+    if (intentResult.isSuccess) {
+      return this.sendSuccess<{
+        status: "completed" | "pending";
+        intent: "employer" | "seeker";
+      }>(res, intentResult.value, "User intent retrieved successfully");
+    } else {
+      return this.handleControllerError(res, intentResult.error);
     }
   };
 

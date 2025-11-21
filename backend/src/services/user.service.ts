@@ -69,6 +69,24 @@ export class UserService extends BaseService {
     }
   }
 
+  async getUserProfileStatus(id: number) {
+    try {
+      const status = await this.userRepository.getUserProfileStatus(id);
+      if (!status) {
+        return fail(
+          new DatabaseError("Failed to retrieve user profile status"),
+        );
+      }
+
+      return ok(status);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to retrieve user profile status"));
+    }
+  }
+
   async createUserProfile(
     userId: number,
     profileData: Omit<NewUserProfile, "userId">,
@@ -429,6 +447,26 @@ export class UserService extends BaseService {
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to unsave job"));
+    }
+  }
+
+  async getAuthenticatedUserIntent(userId: number) {
+    try {
+      const intent = await this.userRepository.getUserIntent(userId);
+      if (!intent) {
+        return fail(
+          new DatabaseError("Failed to retrieve user onboarding intent"),
+        );
+      }
+
+      return ok(intent);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to retrieve user onboarding intent"),
+      );
     }
   }
 }

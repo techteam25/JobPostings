@@ -19,6 +19,7 @@ import {
   OrganizationMember,
 } from "@/validations/organization.validation";
 import { JobApplicationWithNotes } from "@/validations/jobApplications.validation";
+import { GetUserSchema } from "@/validations/user.validation";
 
 export class OrganizationController extends BaseController {
   private organizationService: OrganizationService;
@@ -72,13 +73,33 @@ export class OrganizationController extends BaseController {
     }
   };
 
+  getOrganizationIdByMemberId = async (
+    req: Request<GetUserSchema["params"]>,
+    res: Response<ApiResponse<OrganizationMember>>,
+  ) => {
+    const memberId = parseInt(req.params.id);
+    const organization =
+      await this.organizationService.getOrganizationMember(memberId);
+
+    if (organization.isSuccess) {
+      return this.sendSuccess<{ organizationId: number }>(
+        res,
+        { organizationId: organization.value.organizationId },
+        "Organization retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, organization.error);
+    }
+  };
+
   createOrganization = async (
     req: Request<{}, {}, CreateOrganizationSchema["body"]>,
     res: Response<
       ApiResponse<Organization & { members: OrganizationMember[] }>
     >,
   ) => {
-    const organizationData = req.body;
+    const organizationData = { ...req.body, logo: req.file };
+
     const userId = req.userId;
     const organization = await this.organizationService.createOrganization(
       organizationData,

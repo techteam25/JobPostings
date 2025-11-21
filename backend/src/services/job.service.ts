@@ -11,6 +11,7 @@ import {
   UpdateJobApplication,
   JobWithSkills,
   CreateJobSchema,
+  JobWithEmployer,
 } from "@/validations/job.validation";
 
 import {
@@ -129,9 +130,11 @@ export class JobService extends BaseService {
     }
   }
 
-  async getJobById(id: number): Promise<Result<Job, Error>> {
+  async getJobById(
+    id: number,
+  ): Promise<Result<JobWithEmployer[number], Error>> {
     try {
-      const job = await this.jobRepository.findById(id);
+      const job = await this.jobRepository.findJobById(id);
 
       if (!job) {
         return fail(new NotFoundError("Job", id));
@@ -260,7 +263,7 @@ export class JobService extends BaseService {
         );
       }
 
-      if (job.value.employerId !== organization.id) {
+      if (job.value.job.employerId !== organization.id) {
         return fail(
           new ForbiddenError(
             "You can only update jobs posted by your organization",
@@ -326,7 +329,7 @@ export class JobService extends BaseService {
         );
       }
 
-      if (job.value.employerId !== organization.id) {
+      if (job.value.job.employerId !== organization.organizationId) {
         return fail(
           new ForbiddenError(
             "You can only delete jobs posted by your organization",
@@ -367,7 +370,7 @@ export class JobService extends BaseService {
       if (!job.isSuccess) {
         return fail(new NotFoundError("Job", applicationData.jobId));
       }
-      if (!job.value.isActive) {
+      if (!job.value.job.isActive) {
         return fail(
           new ValidationError("This job is no longer accepting applications"),
         );
@@ -375,8 +378,8 @@ export class JobService extends BaseService {
 
       // Check application deadline
       if (
-        job.value.applicationDeadline &&
-        new Date() > new Date(job.value.applicationDeadline)
+        job.value.job.applicationDeadline &&
+        new Date() > new Date(job.value.job.applicationDeadline)
       ) {
         return fail(new ValidationError("The application deadline has passed"));
       }
@@ -437,7 +440,7 @@ export class JobService extends BaseService {
         );
       }
 
-      if (job.value.employerId !== organization.id) {
+      if (job.value.job.employerId !== organization.id) {
         return fail(
           new ForbiddenError(
             "You can only view applications for jobs posted by your organization",
@@ -506,7 +509,7 @@ export class JobService extends BaseService {
         );
       }
 
-      if (organization.id !== job.value.employerId) {
+      if (organization.id !== job.value.job.employerId) {
         return fail(
           new ForbiddenError(
             "You can only update applications for jobs posted by your organization",

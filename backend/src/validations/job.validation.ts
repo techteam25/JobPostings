@@ -10,10 +10,7 @@ export const insertJobSchema = createInsertSchema(jobsDetails, {
     .min(5, "Title must be at least 5 characters")
     .max(255)
     .trim(),
-  description: z
-    .string()
-    .min(50, "Description must be at least 50 characters")
-    .max(5000),
+  description: z.string(),
   city: z.string().min(1, "City is required").max(255).trim(),
   state: z.string().max(50).trim().optional(),
   country: z.string().max(100).trim().optional().default("United States"),
@@ -126,7 +123,10 @@ export type UpdateJobApplication = z.infer<typeof updateJobApplicationSchema>;
 export type UpdateJobInsights = z.infer<typeof updateJobInsightsSchema>;
 export type JobWithEmployer = {
   job: Job;
-  employer: Pick<Organization, "id" | "name" | "city" | "state"> | null;
+  employer: Pick<
+    Organization,
+    "id" | "name" | "city" | "state" | "logoUrl"
+  > | null;
 }[];
 export type JobWithSkills = Job & {
   skills: JobSkills["name"][];

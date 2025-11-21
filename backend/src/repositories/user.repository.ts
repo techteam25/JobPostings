@@ -1,13 +1,14 @@
-import { and, count, eq, like, or, sql, ne, desc } from "drizzle-orm";
+import { and, count, desc, eq, like, ne, or, sql } from "drizzle-orm";
 import {
   certifications,
   educations,
-  userCertifications,
-  userProfile,
-  user,
-  workExperiences,
-  savedJobs,
   jobsDetails,
+  savedJobs,
+  user,
+  userCertifications,
+  userOnBoarding,
+  userProfile,
+  workExperiences,
 } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
@@ -76,6 +77,47 @@ export class UserRepository extends BaseRepository<typeof user> {
           },
         }),
     );
+  }
+
+  async getUserProfileStatus(userId: number) {
+    const result = await withDbErrorHandling(
+      async () =>
+        await db.query.userProfile.findFirst({
+          where: eq(userProfile.userId, userId),
+          columns: {
+            id: true,
+            resumeUrl: true,
+            bio: true,
+          },
+          with: {
+            certifications: {
+              columns: {},
+              with: { certification: true },
+            },
+            education: true,
+            workExperiences: true,
+          },
+        }),
+    );
+
+    if (!result) {
+      return { complete: false };
+    }
+
+    const hasCertifications = result.certifications.length > 0;
+    const hasEducation = result.education.length > 0;
+    const hasWorkExperiences = result.workExperiences.length > 0;
+    const hasResume = !!result.resumeUrl;
+    const hasBio = !!result.bio;
+
+    const complete =
+      hasCertifications &&
+      hasEducation &&
+      hasWorkExperiences &&
+      hasResume &&
+      hasBio;
+
+    return { complete };
   }
 
   async findByIdWithPassword(id: number): Promise<User | undefined> {
@@ -563,6 +605,18 @@ export class UserRepository extends BaseRepository<typeof user> {
       }
 
       return { success: true };
+    });
+  }
+
+  async getUserIntent(userId: number) {
+    return await withDbErrorHandling(async () => {
+      return await db.query.userOnBoarding.findFirst({
+        where: eq(userOnBoarding.userId, userId),
+        columns: {
+          intent: true,
+          status: true,
+        },
+      });
     });
   }
 }

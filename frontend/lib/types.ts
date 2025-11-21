@@ -1,3 +1,7 @@
+import { MutableRefObject } from "react";
+
+import { CreateOrganizationData } from "@/schemas/organizations";
+
 export enum JobType {
   FullTime = "Full-time",
   PartTime = "Part-time",
@@ -14,5 +18,12 @@ export interface JobCardType {
   experienceLevel: string;
   posted: string;
   jobDescription: string;
-  onApply: () => void;
+  logoUrl: string | null;
+  onJobSelected: () => void;
+}
+
+export interface TCreateOrganizationFormProps {
+  organization: CreateOrganizationData;
+  setOrganizationData: (formData: CreateOrganizationData) => void;
+  formRef?: MutableRefObject<any>;
 }

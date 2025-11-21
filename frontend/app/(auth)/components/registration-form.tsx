@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { useForm } from "@tanstack/react-form";
 import { cn } from "@/lib/utils";
@@ -17,28 +18,28 @@ import { BsFillPersonFill } from "react-icons/bs";
 import { BsLinkedin } from "react-icons/bs";
 import { FcGoogle } from "react-icons/fc";
 import { MdWork } from "react-icons/md";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
+import useLocalStorage from "@/hooks/use-local-storage";
 import {
   RegistrationData,
   registrationSchema,
 } from "@/schemas/auth/registration";
 
-import { useRegisterUser } from "@/app/(auth)/sign-up/hooks/use-register-user";
-import {
-  useGoogleAuth,
-  useLinkedInAuth,
-} from "@/app/(auth)/sign-in/hooks/use-social";
-
-import { Loader2 } from "lucide-react";
+import { instance } from "@/lib/axios-instance";
+import { useSocialAuth } from "@/app/(auth)/sign-in/hooks/use-social";
 
 export default function RegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const { createUserAsync, isRegistrationPending } = useRegisterUser();
-  const { isGoogleSignInPending, signInWithGoogleAsync } = useGoogleAuth();
-  const { isLinkedInSignInPending, signInWithLinkedInAsync } =
-    useLinkedInAuth();
+  const [isPending, startTransition] = useTransition();
+  const { handleSocialAuth, isSocialPending } = useSocialAuth();
+  const [_, setIntent] = useLocalStorage<"seeker" | "employer">(
+    "intent",
+    "seeker",
+  );
+  const router = useRouter();
 
   const registrationInput: RegistrationData = {
     firstName: "",
@@ -46,7 +47,7 @@ export default function RegistrationForm() {
     email: "",
     password: "",
     confirmPassword: "",
-    accountType: "user",
+    accountType: "seeker",
     hasAgreedToTerms: false,
   };
 
@@ -56,14 +57,42 @@ export default function RegistrationForm() {
       onChange: registrationSchema,
     },
     onSubmit: async (values) => {
-      await createUserAsync(values.value);
-      form.reset();
+      startTransition(async () => {
+        try {
+          const response = await instance.post("/auth/sign-up/email", {
+            name: `${values.value.firstName} ${values.value.lastName}`,
+            email: values.value.email,
+            password: values.value.password,
+            intent: values.value.accountType,
+          });
+
+          if (response.status === 200) {
+            toast.success("Account creation successful!");
+            form.reset();
+
+            const redirectUrl =
+              response.data.user?.intent === "employer"
+                ? "/employer/onboarding"
+                : "/";
+            router.replace(redirectUrl);
+          } else {
+            toast.error(
+              response.data.message || "Account creation unsuccessful",
+            );
+          }
+        } catch (error: any) {
+          const errorMessage =
+            error.response?.data?.message || "Account creation unsuccessful";
+          toast.error(errorMessage);
+          console.error("Registration error:", error);
+        }
+      });
     },
   });
 
   return (
-    <div className="bg-background rounded-2xl p-8 md:p-10">
-      <h2 className="text-foreground mb-2 text-3xl font-bold">
+    <div className="bg-background rounded-2xl p-6 sm:p-8 md:p-10">
+      <h2 className="text-foreground mb-2 text-lg font-bold sm:text-xl md:text-3xl">
         Create Account
       </h2>
 
@@ -79,7 +108,7 @@ export default function RegistrationForm() {
         >
           {/* Account Type Selection */}
           <div>
-            <Label className="text-secondary-foreground mb-3 block text-sm font-semibold">
+            <Label className="text-secondary-foreground mb-3 block text-xs font-semibold sm:text-sm">
               I am a...
             </Label>
             <div className="grid grid-cols-2 gap-3">
@@ -88,24 +117,27 @@ export default function RegistrationForm() {
                 children={(field) => (
                   <button
                     type="button"
-                    onClick={() => field.setValue("user")}
+                    onClick={() => {
+                      field.setValue("seeker");
+                      setIntent("seeker");
+                    }}
                     className={cn(
-                      "cursor-pointer rounded-2xl border-2 p-4 transition",
+                      "cursor-pointer rounded-2xl border-2 p-2 transition sm:p-4",
                       {
                         "border-chart-4 bg-background":
-                          field.state.value === "user",
+                          field.state.value === "seeker",
                         "border-secondary hover:border-border":
-                          field.state.value !== "user",
+                          field.state.value !== "seeker",
                       },
                     )}
                   >
-                    <div className="mb-2 flex justify-center text-4xl">
+                    <div className="mb-2 flex justify-center text-2xl sm:text-4xl">
                       <BsFillPersonFill className="text-chart-1" />
                     </div>
                     <div className="text-foreground font-semibold">
                       Job Seeker
                     </div>
-                    <div className="text-muted-foreground text-xs">
+                    <div className="text-muted-foreground hidden text-xs sm:block">
                       Looking for opportunities
                     </div>
                   </button>
@@ -117,9 +149,12 @@ export default function RegistrationForm() {
                 children={(field) => (
                   <button
                     type="button"
-                    onClick={() => field.setValue("employer")}
+                    onClick={() => {
+                      field.setValue("employer");
+                      setIntent("employer");
+                    }}
                     className={cn(
-                      "cursor-pointer rounded-2xl border-2 p-4 transition",
+                      "cursor-pointer rounded-2xl border-2 p-2 transition sm:p-4",
                       {
                         "border-chart-4 bg-background":
                           field.state.value === "employer",
@@ -128,13 +163,13 @@ export default function RegistrationForm() {
                       },
                     )}
                   >
-                    <div className="mb-2 flex justify-center text-4xl">
+                    <div className="mb-2 flex justify-center text-2xl sm:text-4xl">
                       <MdWork className="text-chart-2" />
                     </div>
                     <div className="text-foreground font-semibold">
                       Employer
                     </div>
-                    <div className="text-muted-foreground text-xs">
+                    <div className="text-muted-foreground hidden text-xs sm:block">
                       Hiring talent
                     </div>
                   </button>
@@ -147,7 +182,9 @@ export default function RegistrationForm() {
                     name={field.name}
                     value={field.state.value}
                     onChange={(e) =>
-                      field.handleChange(e.target.value as "user" | "employer")
+                      field.handleChange(
+                        e.target.value as "seeker" | "employer",
+                      )
                     }
                     type="hidden"
                   />
@@ -157,14 +194,14 @@ export default function RegistrationForm() {
           </div>
 
           {/* Name Fields */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 xl:grid-cols-2">
             <form.Field
               name="firstName"
               children={(field) => (
                 <div>
                   <Label
                     htmlFor={field.name}
-                    className="text-secondary-foreground mb-2 block text-sm font-semibold"
+                    className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
                   >
                     First Name
                   </Label>
@@ -188,7 +225,7 @@ export default function RegistrationForm() {
                 <div>
                   <Label
                     htmlFor={field.name}
-                    className="text-secondary-foreground mb-2 block text-sm font-semibold"
+                    className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
                   >
                     Last Name
                   </Label>
@@ -214,7 +251,7 @@ export default function RegistrationForm() {
               <div>
                 <Label
                   htmlFor={field.name}
-                  className="text-secondary-foreground mb-2 block text-sm font-semibold"
+                  className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
                 >
                   Email Address
                 </Label>
@@ -240,7 +277,7 @@ export default function RegistrationForm() {
               <div>
                 <Label
                   htmlFor={field.name}
-                  className="text-secondary-foreground mb-2 block text-sm font-semibold"
+                  className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
                 >
                   Password
                 </Label>
@@ -259,13 +296,9 @@ export default function RegistrationForm() {
                     size="icon"
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent"
+                    className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5 md:[&_svg]:size-6"
                   >
-                    {showPassword ? (
-                      <BsEye className="size-6" />
-                    ) : (
-                      <BsEyeSlash className="size-6" />
-                    )}
+                    {showPassword ? <BsEye /> : <BsEyeSlash />}
                   </Button>
                 </div>
                 <p className="text-muted-foreground mt-1 text-xs">
@@ -283,7 +316,7 @@ export default function RegistrationForm() {
               <div>
                 <Label
                   htmlFor={field.name}
-                  className="text-secondary-foreground mb-2 block text-sm font-semibold"
+                  className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
                 >
                   Confirm Password
                 </Label>
@@ -302,13 +335,9 @@ export default function RegistrationForm() {
                     size="icon"
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent"
+                    className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5 md:[&_svg]:size-6"
                   >
-                    {showConfirmPassword ? (
-                      <BsEye className="size-5" />
-                    ) : (
-                      <BsEyeSlash className="size-5" />
-                    )}
+                    {showConfirmPassword ? <BsEye /> : <BsEyeSlash />}
                   </Button>
                 </div>
                 <FieldInfo field={field} />
@@ -335,7 +364,7 @@ export default function RegistrationForm() {
                     onBlur={field.handleBlur}
                     className="data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground border-accent mt-0.5 h-5 w-5 cursor-pointer"
                   />
-                  <span className="text-secondary-foreground text-sm">
+                  <span className="text-secondary-foreground text-xs sm:text-sm">
                     I agree to the{" "}
                     <span className="text-accent hover:text-accent/90 cursor-pointer font-semibold">
                       Terms & Conditions
@@ -370,7 +399,7 @@ export default function RegistrationForm() {
                   },
                 )}
               >
-                {isRegistrationPending ? (
+                {isPending ? (
                   <span>
                     <Loader2 className="size-5 animate-spin" />
                   </span>
@@ -387,7 +416,7 @@ export default function RegistrationForm() {
           <div className="absolute inset-0 flex items-center">
             <div className="border-border w-full border-t"></div>
           </div>
-          <div className="relative flex justify-center text-sm">
+          <div className="relative flex justify-center text-xs sm:text-sm">
             <span className="bg-background text-muted-foreground px-4">
               Or sign up with
             </span>
@@ -397,21 +426,21 @@ export default function RegistrationForm() {
         {/* Social Sign Up */}
         <div className="grid grid-cols-2 gap-3">
           <Button
-            disabled={isGoogleSignInPending}
+            disabled={isSocialPending}
             variant="ghost"
             type="button"
             className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
-            onClick={async () => signInWithGoogleAsync()}
+            onClick={() => handleSocialAuth("google")}
           >
             <FcGoogle className="size-6" />
             Google
           </Button>
           <Button
-            disabled={isLinkedInSignInPending}
+            disabled={isSocialPending}
             variant="ghost"
             type="button"
             className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
-            onClick={async () => signInWithLinkedInAsync()}
+            onClick={() => handleSocialAuth("linkedin")}
           >
             <BsLinkedin className="size-6 text-[#0072b1]" />
             LinkedIn
@@ -419,12 +448,12 @@ export default function RegistrationForm() {
         </div>
 
         {/* Sign In Link */}
-        <p className="text-secondary-foreground mt-6 text-center text-sm">
+        <p className="text-secondary-foreground mt-6 text-center text-xs sm:text-sm">
           Already have an account?{" "}
           <Button
             asChild
             variant="link"
-            className="text-accent hover:text-accent/90 cursor-pointer font-semibold"
+            className="text-accent hover:text-accent/90 cursor-pointer text-xs font-semibold sm:text-sm"
           >
             <Link href="/sign-in">Sign in</Link>
           </Button>

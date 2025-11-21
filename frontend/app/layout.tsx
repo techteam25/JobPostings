@@ -34,11 +34,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body
-        className={cn(poppins.className, montserrat.className, "bg-slate-100")}
+        className={cn(
+          poppins.className,
+          montserrat.className,
+          "bg-background min-h-screen",
+        )}
       >
-        <div className="mx-auto max-w-7xl">
-          <Providers>{children}</Providers>
-        </div>
+        <Providers>{children}</Providers>
         <Toaster position="bottom-right" />
       </body>
     </html>

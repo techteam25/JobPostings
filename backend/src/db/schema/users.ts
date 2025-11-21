@@ -7,6 +7,7 @@ import {
   int,
   check,
   index,
+  mysqlEnum,
 } from "drizzle-orm/mysql-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -71,6 +72,17 @@ export const userProfile = mysqlTable("user_profile", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
+export const userOnBoarding = mysqlTable("user_onboarding", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id")
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+  intent: mysqlEnum(["seeker", "employer"]).default("seeker").notNull(), // User intent: job seeker or employer
+  status: mysqlEnum(["completed", "pending"]).default("pending").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
 
 // Relations
 export const userRelations = relations(user, ({ one, many }) => ({
@@ -84,6 +96,10 @@ export const userRelations = relations(user, ({ one, many }) => ({
     fields: [user.id],
     references: [account.userId],
   }),
+  onboarding: one(userOnBoarding, {
+    fields: [user.id],
+    references: [userOnBoarding.userId],
+  }),
 }));
 
 export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
@@ -94,4 +110,11 @@ export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
   education: many(educations),
   workExperiences: many(workExperiences),
   certifications: many(userCertifications),
+}));
+
+export const userOnBoardingRelations = relations(userOnBoarding, ({ one }) => ({
+  user: one(user, {
+    fields: [userOnBoarding.userId],
+    references: [user.id],
+  }),
 }));

@@ -57,6 +57,34 @@
       "when": 1761919375641,
       "tag": "0007_eager_dreaming_celestial",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1762468416350,
+      "tag": "0008_medical_scalphunter",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1762473608973,
+      "tag": "0009_dazzling_monster_badoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1762474162039,
+      "tag": "0010_dashing_dust",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1762970046010,
+      "tag": "0011_naive_meltdown",
+      "breakpoints": true
     }
   ]
 }

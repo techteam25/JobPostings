@@ -1,4 +1,6 @@
 import { Router } from "express";
+import multer from "multer";
+
 import { OrganizationController } from "@/controllers/organization.controller";
 import { AuthMiddleware } from "@/middleware/auth.middleware";
 import validate from "../middleware/validation.middleware";
@@ -24,6 +26,7 @@ import {
   selectJobApplicationSchema,
 } from "@/validations/jobApplications.validation";
 import { getJobSchema } from "@/validations/job.validation";
+import { getUserSchema } from "@/validations/user.validation";
 
 const router = Router();
 const organizationController = new OrganizationController();
@@ -35,6 +38,7 @@ const paginatedOrganizationResponse = apiResponseSchema(
 ).extend({
   pagination: paginationMetaSchema,
 });
+const upload = multer({ dest: "uploads/" });
 
 // Public routes
 
@@ -114,6 +118,59 @@ router.get(
 );
 
 registry.registerPath({
+  method: "get",
+  path: "/organizations/members/{memberId}",
+  summary: "Get organization ID by member ID",
+  tags: ["Organizations"],
+  request: {
+    params: getOrganizationSchema.shape["params"],
+  },
+  responses: {
+    200: {
+      description: "Organization ID",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.object({
+              organizationId: z.number(),
+            }),
+          ),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Organization member not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.get(
+  "/members/:id",
+  validate(getUserSchema),
+  organizationController.getOrganizationIdByMemberId,
+);
+
+registry.registerPath({
   method: "post",
   path: "/organizations",
   summary: "Create a new organization",
@@ -167,6 +224,7 @@ registry.registerPath({
 router.post(
   "/",
   authMiddleware.authenticate,
+  upload.single("logo"),
   validate(createOrganizationSchema),
   organizationController.createOrganization,
 );

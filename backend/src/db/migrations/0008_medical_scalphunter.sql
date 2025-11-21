@@ -1,0 +1,1 @@
+ALTER TABLE `organizations` ADD `country` varchar(100) NOT NULL;

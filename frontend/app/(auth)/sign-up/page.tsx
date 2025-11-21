@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import RegistrationForm from "@/app/(auth)/_components/registration-form";
+import RegistrationForm from "@/app/(auth)/components/registration-form";
 
 import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
 
@@ -9,9 +9,9 @@ import { CheckCircle } from "lucide-react";
 function Page() {
   return (
     <div className="bg-background flex min-h-screen flex-col items-center justify-center rounded-2xl shadow-2xl">
-      <div className="grid w-full max-w-6xl items-center gap-8 md:grid-cols-[1fr_auto_1fr]">
+      <div className="grid w-full max-w-6xl items-center gap-8 p-2 md:grid-cols-[1fr_auto_1fr] lg:p-4">
         {/* Left Side - Marketing Content */}
-        <div className="text-foreground hidden space-y-6 md:block">
+        <div className="text-foreground hidden space-y-6 px-4 lg:block">
           <div className="inline-block">
             <div className="bg-background flex items-center gap-2 rounded-full px-4 py-2 backdrop-blur-sm">
               <Image
@@ -25,7 +25,7 @@ function Page() {
           <h1 className="sm:text-md text-foreground text-sm leading-tight font-bold md:text-xl">
             Connecting Ministries with those called to serve
           </h1>
-          <p className="text-secondary-foreground text-sm md:text-base lg:text-xl">
+          <p className="text-secondary-foreground hidden text-sm md:text-base lg:text-xl xl:block">
             Join ministries and individuals answering the call to serve.
             Discover opportunities to use your gifts where they are needed most.
           </p>

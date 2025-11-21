@@ -2,17 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { useForm } from "@tanstack/react-form";
 import { cn } from "@/lib/utils";
 
 import { LoginInput, loginSchema } from "@/schemas/auth/login";
-import { useLoginUser } from "@/app/(auth)/sign-in/hooks/use-login-user";
-import {
-  useGoogleAuth,
-  useLinkedInAuth,
-} from "@/app/(auth)/sign-in/hooks/use-social";
+import { authClient } from "@/lib/auth";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,8 +20,11 @@ import { FieldInfo } from "@/components/common/FieldInfo";
 import { BsEye, BsEyeSlash, BsLinkedin } from "react-icons/bs";
 import { FcGoogle } from "react-icons/fc";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
+import { useSocialAuth } from "@/app/(auth)/sign-in/hooks/use-social";
+import { LoginResponse } from "@/schemas/responses/auth";
 
 const loginInput: LoginInput = {
   email: "",
@@ -33,33 +33,52 @@ const loginInput: LoginInput = {
 };
 
 export default function LoginForm() {
-  const { loginUserAsync, isLoginPending } = useLoginUser();
-  const { isGoogleSignInPending, signInWithGoogleAsync } = useGoogleAuth();
-  const { isLinkedInSignInPending, signInWithLinkedInAsync } =
-    useLinkedInAuth();
-
+  const [isPending, startTransition] = useTransition();
+  const { handleSocialAuth, isSocialPending } = useSocialAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+
   const form = useForm({
     defaultValues: loginInput,
     validators: {
       onChange: loginSchema,
     },
     onSubmit: async (values) => {
-      await loginUserAsync(values.value);
-      form.reset();
+      startTransition(async () => {
+        try {
+          const { error, data } = (await authClient.signIn.email({
+            email: values.value.email,
+            password: values.value.password,
+            rememberMe: values.value.rememberMe,
+          })) as unknown as { error: any; data: LoginResponse | null };
+
+          if (error) {
+            toast.error(error.message || "Login unsuccessful");
+            return;
+          }
+
+          toast.success("Login successful!");
+          form.reset();
+
+          router.replace(data?.user.redirectUrl || "/");
+        } catch (error) {
+          toast.error("An unexpected error occurred");
+          console.error("Login error:", error);
+        }
+      });
     },
   });
 
   return (
-    <div className="bg-background flex w-full max-w-lg items-center justify-center rounded-2xl px-6 py-12 shadow-md lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-sm md:max-w-lg">
+    <div className="bg-background flex w-full max-w-lg items-center justify-center rounded-2xl px-4 py-12 shadow-md md:px-6 lg:px-8">
+      <div className="w-full sm:mx-auto sm:max-w-sm md:max-w-lg">
         <div className="mb-10 space-y-6 sm:mx-auto sm:w-full sm:max-w-sm">
           <Image
             src={GetInvolvedLogo}
             alt="Get Involved Logo"
-            className="mx-auto h-20 w-auto"
+            className="mx-auto h-16 w-auto md:h-20"
           />
-          <h2 className="text-foreground text-center text-2xl/9 font-bold tracking-tight">
+          <h2 className="text-foreground text-center text-xl font-bold tracking-tight md:text-2xl/9">
             Sign in to your account
           </h2>
         </div>
@@ -80,7 +99,7 @@ export default function LoginForm() {
                 <div>
                   <Label
                     htmlFor={field.name}
-                    className="text-secondary-foreground mb-2 block text-sm font-semibold"
+                    className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
                   >
                     Email Address
                   </Label>
@@ -106,7 +125,7 @@ export default function LoginForm() {
                 <div>
                   <Label
                     htmlFor={field.name}
-                    className="text-secondary-foreground mb-2 block text-sm font-semibold"
+                    className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
                   >
                     Password
                   </Label>
@@ -125,13 +144,9 @@ export default function LoginForm() {
                       size="icon"
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent"
+                      className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5 md:[&_svg]:size-6"
                     >
-                      {showPassword ? (
-                        <BsEye className="size-6" />
-                      ) : (
-                        <BsEyeSlash className="size-6" />
-                      )}
+                      {showPassword ? <BsEye /> : <BsEyeSlash />}
                     </Button>
                   </div>
                   <FieldInfo field={field} />
@@ -142,7 +157,7 @@ export default function LoginForm() {
             <form.Field
               name="rememberMe"
               children={(field) => (
-                <div className="mb-6 flex items-center justify-between">
+                <div className="mb-6 flex flex-col items-center justify-between space-y-4 sm:flex-row">
                   <Label
                     htmlFor={field.name}
                     className="flex cursor-pointer items-center"
@@ -154,15 +169,15 @@ export default function LoginForm() {
                       onCheckedChange={(checked) =>
                         field.handleChange(checked === true)
                       }
-                      className="data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground border-accent mt-0.5 h-5 w-5 cursor-pointer"
+                      className="data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground border-accent mt-0.5 h-4 w-4 cursor-pointer md:h-5 md:w-5"
                     />
-                    <span className="text-secondary-foreground ml-2 text-sm">
+                    <span className="text-secondary-foreground ml-2 text-xs sm:text-sm">
                       Remember me
                     </span>
                   </Label>
                   <Button
                     variant="link"
-                    className="text-muted-foreground cursor-pointer text-sm"
+                    className="text-muted-foreground cursor-pointer text-xs sm:text-sm"
                   >
                     Forgot password?
                   </Button>
@@ -184,7 +199,7 @@ export default function LoginForm() {
                     },
                   )}
                 >
-                  {isLoginPending ? (
+                  {isPending ? (
                     <span>
                       <Loader2 className="size-5 animate-spin" />
                     </span>
@@ -209,21 +224,21 @@ export default function LoginForm() {
           {/* Social Sign Up */}
           <div className="grid grid-cols-2 gap-3">
             <Button
-              disabled={isGoogleSignInPending}
+              disabled={isSocialPending}
               variant="ghost"
               type="button"
               className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
-              onClick={async () => await signInWithGoogleAsync()}
+              onClick={async () => await handleSocialAuth("google")}
             >
               <FcGoogle className="size-6" />
               Google
             </Button>
             <Button
-              disabled={isLinkedInSignInPending}
+              disabled={isSocialPending}
               variant="ghost"
               type="button"
               className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
-              onClick={async () => await signInWithLinkedInAsync()}
+              onClick={async () => await handleSocialAuth("linkedin")}
             >
               <BsLinkedin className="size-6 text-[#0072b1]" />
               LinkedIn

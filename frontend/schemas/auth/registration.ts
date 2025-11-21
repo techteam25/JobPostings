@@ -7,13 +7,18 @@ export const registrationSchema = z
     email: z.email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters long"),
     confirmPassword: z.string(),
-    accountType: z.enum(["user", "employer"], {
+    accountType: z.enum(["seeker", "employer"], {
       error: "Account type is required",
     }),
     hasAgreedToTerms: z.boolean(),
   })
   .refine((input) => input.password === input.confirmPassword, {
     message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+  .refine((input) => input.hasAgreedToTerms, {
+    message: "You must agree to the Terms & Conditions and Privacy Policy",
+    path: ["hasAgreedToTerms"],
   });
 
 export type RegistrationData = z.infer<typeof registrationSchema>;
@@ -21,5 +26,5 @@ export type RegistrationInput = Omit<
   RegistrationData,
   "accountType" | "confirmPassword" | "hasAgreedToTerms"
 > & {
-  role: "user" | "employer";
+  intent: "seeker" | "employer";
 };
