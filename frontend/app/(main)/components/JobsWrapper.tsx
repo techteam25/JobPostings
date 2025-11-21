@@ -23,10 +23,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SortByDropDownButton } from "./SortByDropDownButton";
 import { JobDetailPanelMobile } from "@/app/(main)/components/JobDetailPanelMobile";
+import { SortByMobileButton } from "@/app/(main)/components/SortByMobileButton";
 
 const JobsWrapper = () => {
   const { data, error, fetchingJobs } = useFetchJobs();
   const [jobId, setJobId] = useState<number | undefined>(undefined);
+  const [sortBy, setSortBy] = useState<"Most Relevant" | "Most Recent">(
+    "Most Recent",
+  );
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   useEffect(() => {
@@ -62,6 +66,12 @@ const JobsWrapper = () => {
             <div className="text-secondary-foreground mr-4 truncate text-sm text-ellipsis">
               216 Back end engineer jobs in Plano, TX in Plano, TX
             </div>
+            <SortByMobileButton
+              defaultSort={sortBy}
+              onSortChange={(s) =>
+                setSortBy(s as "Most Relevant" | "Most Recent")
+              }
+            />
             <SortByDropDownButton />
           </div>
           {/*  job list component */}
