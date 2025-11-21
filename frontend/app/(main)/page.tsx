@@ -25,7 +25,7 @@ function Page() {
           <UserProfileStatusBanner />
         </div>
         <div className="mx-auto max-w-4xl px-4 py-6">
-          <div className="bg-input flex h-12 items-center justify-start rounded-full shadow-none">
+          <div className="bg-input flex h-12 items-center justify-start rounded-full shadow-none lg:hidden">
             <SearchInputMobile />
             <SearchFiltersMobile />
           </div>
