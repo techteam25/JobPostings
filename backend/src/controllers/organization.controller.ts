@@ -9,6 +9,7 @@ import {
   JobApplicationManagementSchema,
   JobApplicationsManagementSchema,
   JobApplicationsResponseSchema,
+  OrganizationJobApplications,
   OrganizationJobApplicationsResponse,
   UpdateJobStatusInputSchema,
   UpdateOrganizationSchema,
@@ -20,6 +21,7 @@ import {
 } from "@/validations/organization.validation";
 import { JobApplicationWithNotes } from "@/validations/jobApplications.validation";
 import { GetUserSchema } from "@/validations/user.validation";
+import { SearchParams } from "@/validations/base.validation";
 
 export class OrganizationController extends BaseController {
   private organizationService: OrganizationService;
@@ -30,14 +32,14 @@ export class OrganizationController extends BaseController {
   }
 
   getAllOrganizations = async (
-    req: Request,
+    req: Request<{}, {}, {}, SearchParams["query"]>,
     res: Response<PaginatedResponse<Organization>>,
   ) => {
-    const { page, limit, search } = req.query;
+    const { page, limit, q: search } = req.query;
     const options = {
-      page: page ? parseInt(page as string) : undefined,
-      limit: limit ? parseInt(limit as string) : undefined,
-      searchTerm: search as string,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      searchTerm: search,
     };
 
     const result = await this.organizationService.getAllOrganizations(options);
@@ -290,6 +292,37 @@ export class OrganizationController extends BaseController {
       return this.sendSuccess<JobApplicationsResponseSchema>(
         res,
         applications.value,
+        "Job applications retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, applications.error);
+    }
+  };
+
+  getApplicationsForOrganization = async (
+    req: Request<
+      GetOrganizationSchema["params"],
+      {},
+      {},
+      GetOrganizationSchema["query"]
+    >,
+    res: Response<PaginatedResponse<OrganizationJobApplications>>,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const { page, limit } = req.query;
+
+    const applications =
+      await this.organizationService.getApplicationsForOrganization(
+        organizationId,
+        { page, limit },
+      );
+
+    if (applications.isSuccess) {
+      const { items, pagination } = applications.value;
+      return this.sendPaginatedResponse<OrganizationJobApplications>(
+        res,
+        items,
+        pagination,
         "Job applications retrieved successfully",
       );
     } else {

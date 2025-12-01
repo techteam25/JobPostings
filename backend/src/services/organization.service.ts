@@ -367,4 +367,30 @@ export class OrganizationService extends BaseService {
       );
     }
   }
+
+  async getApplicationsForOrganization(
+    organizationId: number,
+    options: { page?: number; limit?: number },
+  ) {
+    try {
+      const applications =
+        await this.organizationRepository.getApplicationsForOrganization(
+          organizationId,
+          options,
+        );
+      if (!applications) {
+        return fail(
+          new NotFoundError("No applications found for this organization"),
+        );
+      }
+      return ok(applications);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to fetch applications for this organization"),
+      );
+    }
+  }
 }
