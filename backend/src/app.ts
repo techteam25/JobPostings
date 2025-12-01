@@ -18,7 +18,7 @@ import logger from "@/logger";
 
 import { auth } from "@/utils/auth";
 import { checkDatabaseConnection } from "@/db/connection";
-import { env } from "@/config/env";
+import { env, isTest } from "@/config/env";
 import { errorHandler } from "@/middleware/error.middleware";
 import { redisClient } from "@/config/redis";
 import { registry } from "@/swagger/registry";
@@ -69,6 +69,7 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: "Too many requests, please try again later.",
+  skip: () => isTest, // Skip rate limiting in test environment
 
   // Important security settings
   skipSuccessfulRequests: false, // Count all requests
