@@ -168,25 +168,16 @@ export class JobService extends BaseService {
 
   async getJobsByEmployer(
     employerId: number,
-    options: { page?: number; limit?: number } = {},
+    options: {
+      page?: number;
+      limit?: number;
+      sortBy?: string;
+      q?: string;
+      order?: string;
+    } = {},
     requesterId: number,
   ) {
     try {
-      // Todo: Additional check for employers - they can only see their own organization's jobs
-      const organization =
-        await this.organizationRepository.findByContact(requesterId);
-      if (!organization) {
-        return fail(
-          new ForbiddenError("You do not belong to any organization"),
-        );
-      }
-
-      if (organization.id !== employerId) {
-        return fail(
-          new ForbiddenError("You can only view jobs for your organization"),
-        );
-      }
-
       const jobsByEmployer = await this.jobRepository.findJobsByEmployer(
         employerId,
         options,
@@ -603,13 +594,35 @@ export class JobService extends BaseService {
   }
 
   // Dashboard and Statistics Methods
-  // async getJobStatistics() {
-  //   try {
-  //     return await this.jobRepository.getJobStatistics();
-  //   } catch (error) {
-  //     this.handleError(error);
-  //   }
-  // }
+
+  async getEmployerJobStats(organizationId: number) {
+    try {
+      const jobInsights =
+        await this.jobInsightsRepository.getJobInsightByOrganizationId(
+          organizationId,
+        );
+      return ok(jobInsights);
+    } catch {
+      return fail(
+        new DatabaseError("Failed to fetch job statistics for organization"),
+      );
+    }
+  }
+
+  private processSkillsArray(skills: string): string {
+    try {
+      // Validate if it's a JSON string
+      JSON.parse(skills);
+      return skills;
+    } catch {
+      // Convert comma-separated string to JSON array
+      const skillsArray = skills
+        .split(",")
+        .map((skill) => skill.trim())
+        .filter(Boolean);
+      return JSON.stringify(skillsArray);
+    }
+  }
 
   // async getUserDashboard(userId: number) {
   //   const user = await this.userRepository.findByIdWithProfile(userId);
@@ -651,39 +664,6 @@ export class JobService extends BaseService {
   //   };
   // }
 
-  // async getEmployerDashboard(organizationId: number) {
-  //   const organization =
-  //     await this.organizationRepository.findById(organizationId);
-  //   if (!organization) {
-  //     return this.handleError(
-  //       new NotFoundError("Organization", organizationId),
-  //     );
-  //   }
-  //
-  //   const jobs = await this.jobRepository.findJobsByEmployer(organizationId, {
-  //     limit: 1000,
-  //   });
-  //   const jobInsights =
-  //     await this.jobInsightsRepository.getJobInsightByOrganizationId(
-  //       organizationId,
-  //     );
-  //   const recentJobs = jobs.items.slice(0, 5);
-  //
-  //   // Get job statistics
-  //   const jobStats = {
-  //     total: jobs.items.length,
-  //     active: jobs.items.filter((job) => job.isActive).length,
-  //     inactive: jobs.items.filter((job) => !job.isActive).length,
-  //     totalViews: jobs.items.reduce(
-  //       (sum, job) => sum + (jobInsights?.viewCount || 0),
-  //       0,
-  //     ),
-  //     totalApplications: jobs.items.reduce(
-  //       (sum, job) => sum + (jobInsights?.applicationCount || 0),
-  //       0,
-  //     ),
-  //   };
-  //
   //   // Get recent applications across all jobs
   //   const allApplications = await Promise.all(
   //     jobs.items.map((job) => this.jobRepository.findApplicationsByJob(job.id)),
@@ -734,19 +714,4 @@ export class JobService extends BaseService {
   //     this.handleError(error);
   //   }
   // }
-
-  private processSkillsArray(skills: string): string {
-    try {
-      // Validate if it's a JSON string
-      JSON.parse(skills);
-      return skills;
-    } catch {
-      // Convert comma-separated string to JSON array
-      const skillsArray = skills
-        .split(",")
-        .map((skill) => skill.trim())
-        .filter(Boolean);
-      return JSON.stringify(skillsArray);
-    }
-  }
 }

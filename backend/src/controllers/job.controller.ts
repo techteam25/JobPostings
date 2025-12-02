@@ -271,22 +271,22 @@ export class JobController extends BaseController {
       GetOrganizationSchema["params"],
       {},
       {},
-      SearchParams["query"]
+      GetOrganizationSchema["query"]
     >,
     res: Response,
   ) => {
     const organizationId = Number(req.params.organizationId);
 
-    const { page, limit } = req.query;
+    const { page, limit, sortBy, q, order } = req.query;
 
     const result = await this.jobService.getJobsByEmployer(
       organizationId,
-      { page, limit },
+      { page, limit, sortBy, q, order },
       req.userId!,
     );
 
     if (result.isSuccess) {
-      return this.sendPaginatedResponse(
+      return this.sendPaginatedResponse<Job>(
         res,
         result.value.items,
         result.value.pagination,
@@ -486,6 +486,34 @@ export class JobController extends BaseController {
     }
   };
 
+  getOrganizationJobsStats = async (
+    req: Request<GetOrganizationSchema["params"]>,
+    res: Response,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const result = await this.jobService.getEmployerJobStats(organizationId);
+
+    if (result.isSuccess) {
+      return this.sendSuccess<{
+        total: number;
+        active: number;
+        inactive: number;
+        totalApplications: number;
+        totalViews: number;
+      }>(
+        res,
+        result.value,
+        "Organization job statistics retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(
+        res,
+        result.error,
+        "Failed to retrieve organization job statistics",
+      );
+    }
+  };
+
   // getJobStats = async (req: Request, res: Response) => {
   //   try {
   //     const stats = await this.jobService.getJobStatistics();
@@ -495,44 +523,6 @@ export class JobController extends BaseController {
   //       res,
   //       error,
   //       "Failed to retrieve job statistics",
-  //     );
-  //   }
-  // };
-
-  // getDashboardData = async (req: AuthRequest, res: Response) => {
-  //   try {
-  //     const userId = req.userId!;
-  //     const userRole = req.user!.role;
-  //
-  //     let dashboardData;
-  //
-  //     if (userRole === "user") {
-  //       dashboardData = await this.jobService.getUserDashboard(userId);
-  //     } else if (userRole === "employer") {
-  //       const organizationId = req.user!.organizationId;
-  //       if (!organizationId) {
-  //         throw new ForbiddenError(
-  //           "Employer must be associated with an organization",
-  //         );
-  //       }
-  //       dashboardData =
-  //         await this.jobService.getEmployerDashboard(organizationId);
-  //     } else if (userRole === "admin") {
-  //       dashboardData = await this.jobService.getAdminDashboard();
-  //     } else {
-  //       throw new ForbiddenError("Invalid user role for dashboard access");
-  //     }
-  //
-  //     this.sendSuccess(
-  //       res,
-  //       dashboardData,
-  //       "Dashboard data retrieved successfully",
-  //     );
-  //   } catch (error) {
-  //     this.handleControllerError(
-  //       res,
-  //       error,
-  //       "Failed to retrieve dashboard data",
   //     );
   //   }
   // };

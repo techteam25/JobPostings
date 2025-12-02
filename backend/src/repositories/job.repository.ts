@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql, SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, or, sql, SQL } from "drizzle-orm";
 import {
   jobApplications,
   jobInsights,
@@ -268,25 +268,67 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
 
   async findJobsByEmployer(
     employerId: number,
-    options: { page?: number; limit?: number } = {},
+    options: {
+      page?: number;
+      limit?: number;
+      sortBy?: string;
+      q?: string;
+      order?: string;
+    } = {},
   ) {
-    const { page = 1, limit = 10 } = options;
+    const { page = 1, limit = 10, q, sortBy, order } = options;
     const offset = (page - 1) * limit;
 
-    const whereCondition = eq(jobsDetails.employerId, employerId);
+    const whereCondition: SQL<unknown>[] = [
+      eq(jobsDetails.employerId, employerId),
+    ];
+
+    if (q) {
+      const searchCondition = or(
+        like(jobsDetails.title, `%${q}%`),
+        like(jobsDetails.description, `%${q}%`),
+      );
+
+      if (searchCondition) {
+        whereCondition.push(searchCondition);
+      }
+    }
+
+    let orderByCondition;
+    if (sortBy) {
+      const orderDirection = order === "asc" ? "asc" : "desc";
+      switch (sortBy) {
+        case "createdAt":
+          orderByCondition =
+            orderDirection === "asc"
+              ? asc(jobsDetails.createdAt)
+              : desc(jobsDetails.createdAt);
+          break;
+        case "applicationDeadline":
+          orderByCondition =
+            orderDirection === "asc"
+              ? asc(jobsDetails.applicationDeadline)
+              : desc(jobsDetails.applicationDeadline);
+          break;
+        default:
+          orderByCondition = desc(jobsDetails.createdAt);
+      }
+    } else {
+      orderByCondition = desc(jobsDetails.createdAt);
+    }
 
     const items = await withDbErrorHandling(
       async () =>
         await db
           .select()
           .from(jobsDetails)
-          .where(whereCondition)
-          .orderBy(desc(jobsDetails.createdAt))
+          .where(and(...whereCondition))
+          .orderBy(orderByCondition)
           .limit(limit)
           .offset(offset),
     );
 
-    const total = await countRecords(jobsDetails, whereCondition);
+    const total = await countRecords(jobsDetails, and(...whereCondition));
     const pagination = calculatePagination(total, page, limit);
 
     return { items, pagination };
