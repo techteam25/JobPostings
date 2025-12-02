@@ -4,7 +4,7 @@ import { reset, seed } from "drizzle-seed";
 import { sql } from "drizzle-orm";
 
 import * as schema from "./schema";
-import { userProfile, userOnBoarding } from "@/db/schema";
+import { userProfile } from "@/db/schema";
 import { organizations, organizationMembers } from "@/db/schema";
 import { jobsDetails } from "@/db/schema";
 import { env } from "@/config/env";
@@ -29,9 +29,6 @@ async function runSeed() {
   await db.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
 
   console.log("Starting database seeding...");
-
-  // Hash a default password for all test users
-  const defaultPassword = "Password123!";
 
   console.log("Seeding users...");
 
@@ -62,6 +59,8 @@ async function runSeed() {
         bio: f.loremIpsum({ sentencesCount: 3 }),
         phoneNumber: f.phoneNumber({ template: "(###) ###-####" }),
         address: f.streetAddress(),
+        linkedinUrl: f.default({ defaultValue: faker.internet.url() }),
+        portfolioUrl: f.default({ defaultValue: faker.internet.url() }),
         city: f.city(),
         state: f.state(),
         zipCode: f.postcode(),
@@ -78,7 +77,7 @@ async function runSeed() {
 
   console.log("Seeding organizations with job postings...");
 
-  await seed(db, { organizations }, { seed: 42 }).refine((f) => ({
+  await seed(db, { organizations, jobsDetails }, { seed: 42 }).refine((f) => ({
     organizations: {
       count: 10,
       columns: {
@@ -119,18 +118,14 @@ async function runSeed() {
           values: ["active", "suspended"],
         }),
       },
+      with: {
+        jobsDetails: 10,
+      },
     },
-  }));
-
-  console.log("Seeding job postings...");
-
-  // Seed all job postings in one call (50 total, distributed across organizations)
-  await seed(db, { jobsDetails }, { seed: 45 }).refine((f) => ({
     jobsDetails: {
-      count: 50,
       columns: {
         title: f.jobTitle(),
-        description: f.loremIpsum({ sentencesCount: 5 }),
+        description: f.loremIpsum({ sentencesCount: 12 }),
         city: f.city(),
         state: f.state(),
         country: f.country(),
@@ -142,6 +137,15 @@ async function runSeed() {
             "contract",
             "volunteer",
             "internship",
+          ],
+        }),
+        experience: f.valuesFromArray({
+          values: [
+            "Entry Level",
+            "Mid Level",
+            "Senior Level",
+            "Lead",
+            "Director",
           ],
         }),
         compensationType: f.valuesFromArray({
@@ -157,7 +161,6 @@ async function runSeed() {
           minDate: "2025-12-31",
           maxDate: "2026-08-31",
         }),
-        employerId: f.int({ minValue: 1, maxValue: 10 }), // Distribute across organizations
       },
     },
   }));
@@ -194,13 +197,12 @@ async function runSeed() {
     await db.insert(organizationMembers).values(additionalMembers);
   }
 
-  console.log(`Default password for all users: ${defaultPassword}`);
   console.log("✓ Users seeded: 50");
   console.log("✓ Organizations seeded: 10");
   console.log(
     "✓ Organization members seeded: 40 (10 owners + 30 other members)",
   );
-  console.log("✓ Job postings seeded: ~50 (5 per organization)");
+  console.log("✓ Job postings seeded: ~100 (10 per organization)");
 }
 
 runSeed()
