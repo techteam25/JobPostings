@@ -116,6 +116,9 @@ export const getOrganizationSchema = z.object({
     .pick({
       limit: true,
       page: true,
+      q: true,
+      sortBy: true,
+      order: true,
     })
     .strict(),
   params: organizationIdParamSchema,
