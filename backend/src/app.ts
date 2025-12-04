@@ -65,7 +65,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 100, // 100 requests per 15 minutes per IP
+  limit: 10000, // 100 requests per 15 minutes per IP
   standardHeaders: true,
   legacyHeaders: false,
   message: "Too many requests, please try again later.",
