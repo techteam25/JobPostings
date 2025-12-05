@@ -36,6 +36,52 @@ export class OrganizationRepository extends BaseRepository<
     return result;
   }
 
+  async findByIdIncludingMembers(organizationId: number) {
+    return await withDbErrorHandling(async () => {
+      const organization = await db.query.organizations.findFirst({
+        where: eq(organizations.id, organizationId),
+        with: {
+          members: {
+            with: {
+              user: {
+                columns: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  emailVerified: true,
+                  status: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!organization) {
+        throw new NotFoundError("Organization", organizationId);
+      }
+
+      // flatten members to include user details at the top level
+
+      return {
+        ...organization,
+        members: organization.members.map((member) => ({
+          id: member.id,
+          organizationId: member.organizationId,
+          userId: member.userId,
+          role: member.role,
+          isActive: member.isActive,
+          createdAt: member.createdAt,
+          updatedAt: member.updatedAt,
+          memberName: member.user.fullName,
+          memberEmail: member.user.email,
+          memberEmailVerified: member.user.emailVerified,
+          memberStatus: member.user.status,
+        })),
+      };
+    });
+  }
+
   async searchOrganizations(
     searchTerm: string,
     options: { page?: number; limit?: number } = {},

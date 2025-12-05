@@ -47,7 +47,8 @@ export class OrganizationService extends BaseService {
 
   async getOrganizationById(id: number) {
     try {
-      const organization = await this.organizationRepository.findById(id);
+      const organization =
+        await this.organizationRepository.findByIdIncludingMembers(id);
       if (!organization) {
         return fail(new NotFoundError("Organization not found"));
       }

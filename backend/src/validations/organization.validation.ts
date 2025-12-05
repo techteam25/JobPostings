@@ -245,10 +245,26 @@ export const deleteOrganizationSchema = z.object({
 
 export type NewOrganization = z.infer<typeof insertOrganizationSchema>;
 export type Organization = z.infer<typeof selectOrganizationSchema>;
-// ^ ?
+
 export type OrganizationMember = z.infer<
   typeof selectOrganizationMembersSchema
 >;
+
+export type OrganizationWithMembers = Organization & {
+  members: {
+    id: number;
+    organizationId: number;
+    userId: number;
+    role: "owner" | "admin" | "recruiter" | "member";
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    memberName: string;
+    memberEmail: string;
+    memberEmailVerified: boolean;
+    memberStatus: string;
+  }[];
+};
 
 export type GetOrganizationSchema = z.infer<typeof getOrganizationSchema>;
 export type CreateOrganizationSchema = z.infer<typeof createOrganizationSchema>;
