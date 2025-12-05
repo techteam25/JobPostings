@@ -1,10 +1,16 @@
 "use server";
 
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { env } from "@/env";
-import type { JobsResponse, JobResponse } from "@/schemas/responses/jobs";
-import type { ApiResponse, Organization } from "@/lib/types";
+import { JobsResponse, JobResponse, Job } from "@/schemas/responses/jobs";
+import {
+  ApiResponse,
+  Organization,
+  OrganizationWithMembers,
+  PaginatedApiResponse,
+} from "@/lib/types";
 
 export const getJobs = cache(async (): Promise<JobsResponse> => {
   const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs`, {
@@ -31,11 +37,12 @@ export const getJobById = cache(async (jobId: number): Promise<JobResponse> => {
 });
 
 export const getOrganization = cache(
-  async (id: number): Promise<Organization | null> => {
+  async (id: number): Promise<OrganizationWithMembers | null> => {
     try {
       const response = await fetch(
         `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${id}`,
         {
+          credentials: "include",
           next: { revalidate: 300, tags: [`organization-${id}`] },
         },
       );
@@ -45,7 +52,7 @@ export const getOrganization = cache(
         return null;
       }
 
-      const data: ApiResponse<Organization> = await response.json();
+      const data = await response.json();
 
       if (!data.success || !data.data) {
         console.error("Organization not found:", data.message);
@@ -90,3 +97,26 @@ export const updateOrganization = async (
 
   return data.data;
 };
+
+export const getOrganizationJobsList = cache(
+  async (organizationId: number): Promise<PaginatedApiResponse<Job>> => {
+    const cookieStore = await cookies();
+    const res = await fetch(
+      `${env.NEXT_PUBLIC_SERVER_URL}/jobs/employer/${organizationId}/jobs`,
+      {
+        credentials: "include",
+        headers: {
+          Cookie: cookieStore.toString(),
+        },
+        next: { revalidate: 60, tags: [`organization-${organizationId}-jobs`] },
+      },
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || "Failed to fetch organization's jobs");
+    }
+
+    return res.json();
+  },
+);
