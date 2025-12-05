@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Bookmark, Menu } from "lucide-react";
 
 import { useFetchJobDetails } from "@/app/(main)/hooks/use-fetch-jobs";
@@ -20,6 +21,11 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
     fetchJobDetailsError,
   } = useFetchJobDetails(jobId);
 
+  const jobData = useMemo(() => {
+    if (!jobDetails?.success) return null;
+    return jobDetails.data;
+  }, [jobDetails]);
+
   if (fetchingJobDetails || !jobDetails) {
     return (
       <div className="overflow-y-auto">
@@ -28,7 +34,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
     );
   }
 
-  if (fetchJobDetailsError || (jobDetails && !jobDetails.success)) {
+  if (fetchJobDetailsError || !jobData) {
     return (
       <div className="flex items-start justify-center">
         <p className="text-muted-foreground">Failed to load job details.</p>
@@ -36,7 +42,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
     );
   }
 
-  const { employer, job } = jobDetails.data;
+  const { employer, job } = jobData;
   return (
     <Card className="max-h-screen overflow-y-auto">
       <CardContent className="max-h-screen p-6">
@@ -50,6 +56,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
                   width={64}
                   height={64}
                   className="rounded-2xl object-cover"
+                  sizes="64px"
                 />
               ) : (
                 <span>employer?.name.charAt(0)</span>
