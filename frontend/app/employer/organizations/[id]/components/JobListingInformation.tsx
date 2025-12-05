@@ -1,16 +1,17 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Search, MoreVertical, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -19,108 +20,35 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Calendar, MoreVertical, Plus } from "lucide-react";
 
-export function JobListingsSection() {
-  const jobs = [
-    {
-      id: 1,
-      title: "Registered Nurse",
-      branch: "Rich memorial lapaz branch",
-      applicants: 124,
-      posted: "21 June 2025",
-      closing: "28 July 2025",
-      status: "Open",
-    },
-    {
-      id: 2,
-      title: "Lab Technician",
-      branch: "Lapaz memorial hospital main branch",
-      applicants: 3,
-      posted: "21 June 2025",
-      closing: "28 July 2025",
-      status: "Expiring",
-    },
-    {
-      id: 3,
-      title: "Vet Doctor",
-      branch: "Rich memorial centre kasoa branch",
-      applicants: 47,
-      posted: "21 June 2025",
-      closing: "28 July 2025",
-      status: "Open",
-    },
-    {
-      id: 4,
-      title: "Heart Surgeon",
-      branch: "Rich memorial centre kasoa branch",
-      applicants: 47,
-      posted: "21 June 2025",
-      closing: "28 July 2025",
-      status: "Open",
-    },
-    {
-      id: 5,
-      title: "Lab Technician",
-      branch: "Lapaz memorial hospital main branch",
-      applicants: 3,
-      posted: "21 June 2025",
-      closing: "28 July 2025",
-      status: "Expiring",
-    },
-    {
-      id: 6,
-      title: "Medical Doctor",
-      branch: "Rich memorial clinic dome branch",
-      applicants: 55,
-      posted: "21 June 2025",
-      closing: "28 July 2025",
-      status: "Expired",
-    },
-    {
-      id: 7,
-      title: "Medical Doctor",
-      branch: "Rich memorial clinic dome branch",
-      applicants: 55,
-      posted: "21 June 2025",
-      closing: "28 July 2025",
-      status: "Expired",
-    },
-    {
-      id: 8,
-      title: "Surgeon",
-      branch: "Rich memorial hospital main branch",
-      applicants: 101,
-      posted: "21 June 2025",
-      closing: "28 July 2025",
-      status: "Open",
-    },
-  ];
+import { formatToReadableDate } from "@/lib/utils";
 
-  const getStatusBadge = (status: string) => {
+import { Job } from "@/schemas/responses/jobs";
+import { PaginatedApiResponse } from "@/lib/types";
+
+interface JobListingInformationProps {
+  jobsList: PaginatedApiResponse<Job>;
+}
+
+export function JobListingsSection({ jobsList }: JobListingInformationProps) {
+  const getStatusBadge = (status: boolean) => {
     switch (status) {
-      case "Open":
+      case true:
         return (
-          <Badge className="border-green-200 bg-green-100 text-green-700 hover:bg-green-200">
-            Open
+          <Badge className="border-accent/80 bg-accent/10 text-accent/80 hover:bg-accent/20">
+            Active
           </Badge>
         );
-      case "Expiring":
+      // case "Expiring":
+      //   return (
+      //     <Badge className="border-amber-200 bg-amber-100 text-amber-700 hover:bg-amber-200">
+      //       Expiring
+      //     </Badge>
+      //   );
+      case false:
         return (
-          <Badge className="border-amber-200 bg-amber-100 text-amber-700 hover:bg-amber-200">
-            Expiring
-          </Badge>
-        );
-      case "Expired":
-        return (
-          <Badge className="border-red-200 bg-red-100 text-red-700 hover:bg-red-200">
+          <Badge className="border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20">
             Expired
           </Badge>
         );
@@ -135,15 +63,15 @@ export function JobListingsSection() {
         {/* Header */}
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">
+            <h1 className="text-foreground text-2xl font-semibold">
               Your Job Listings
             </h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="text-secondary-foreground mt-1 text-sm">
               Manage all your jobs in one place
             </p>
           </div>
-          <Button className="bg-purple-600 hover:bg-purple-700">
-            <Plus className="mr-2 h-4 w-4" />
+          <Button className="bg-primary/90 hover:bg-primary cursor-pointer [&_svg]:size-4">
+            <Plus className="size-4" />
             Post new job
           </Button>
         </div>
@@ -153,7 +81,7 @@ export function JobListingsSection() {
           <div className="p-6">
             {/* Status Tabs */}
             <Tabs defaultValue="all" className="mb-6">
-              <TabsList className="grid w-full max-w-md grid-cols-4 bg-gray-100">
+              <TabsList className="bg-background grid w-full max-w-md grid-cols-4">
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="open">Open</TabsTrigger>
                 <TabsTrigger value="expiring">Expiring soon</TabsTrigger>
@@ -164,30 +92,11 @@ export function JobListingsSection() {
             {/* Search & Filters */}
             <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center">
               <div className="relative max-w-md flex-1">
-                <Search className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <Search className="text-muted-foreground-foreground absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2" />
                 <Input
                   placeholder="Search by job title or location..."
-                  className="bg-white pl-10"
+                  className="bg-input/50 pl-10"
                 />
-              </div>
-
-              <div className="flex gap-3">
-                <Select defaultValue="all">
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Departments</SelectItem>
-                    <SelectItem value="nursing">Nursing</SelectItem>
-                    <SelectItem value="lab">Laboratory</SelectItem>
-                    <SelectItem value="surgery">Surgery</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Button variant="outline">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Date
-                </Button>
               </div>
             </div>
           </div>
@@ -196,9 +105,9 @@ export function JobListingsSection() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50">
+                <TableRow className="bg-background">
                   <TableHead>Job title</TableHead>
-                  <TableHead>Applicants</TableHead>
+                  <TableHead>Location (City)</TableHead>
                   <TableHead>Date posted</TableHead>
                   <TableHead>Closing date</TableHead>
                   <TableHead>Status</TableHead>
@@ -206,52 +115,150 @@ export function JobListingsSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {jobs.map((job) => (
-                  <TableRow key={job.id} className="hover:bg-gray-50">
-                    <TableCell className="font-medium">
-                      <div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {job.title}
+                {jobsList.data.map((job, idx) => {
+                  return (
+                    <TableRow key={job.id} className="hover:bg-background">
+                      <TableCell className="font-medium">
+                        <div>
+                          <div className="text-foreground text-sm font-semibold">
+                            {job.title}
+                          </div>
+                          <div className="text-secondary-foreground mt-1 text-xs">
+                            {job.jobType}
+                          </div>
                         </div>
-                        <div className="mt-1 text-xs text-gray-500">
-                          {job.branch}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{job.applicants}</span>
-                    </TableCell>
-                    <TableCell className="text-gray-600">
-                      {job.posted}
-                    </TableCell>
-                    <TableCell className="text-gray-600">
-                      {job.closing}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(job.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            Options
-                            <MoreVertical className="ml-2 h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Applicants</DropdownMenuItem>
-                          <DropdownMenuItem>Edit Job</DropdownMenuItem>
-                          <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">
-                            Close Job
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium">{job.city}</span>
+                      </TableCell>
+                      <TableCell className="text-secondary-foreground">
+                        {formatToReadableDate(job.createdAt)}
+                      </TableCell>
+                      <TableCell className="text-secondary-foreground">
+                        {formatToReadableDate(job.applicationDeadline!)}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(job.isActive)}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="hover:bg-primary hover:text-primary-foreground [&_svg]:size-4"
+                            >
+                              Options
+                              <MoreVertical className="ml-2" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>View Applicants</DropdownMenuItem>
+                            <DropdownMenuItem>Edit Job</DropdownMenuItem>
+                            <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive">
+                              Close Job
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         </Card>
+      </div>
+    </div>
+  );
+}
+
+export function JobListingsSectionSkeleton() {
+  return (
+    <div className="min-h-screen p-8">
+      <div>
+        {/* Header */}
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <Skeleton className="h-8 w-64 rounded-md" />
+            <Skeleton className="mt-2 h-4 w-48" />
+          </div>
+          <Skeleton className="h-10 w-40 rounded-md" />
+        </div>
+
+        {/* Stats cards */}
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-background rounded-md p-4 shadow-sm">
+              <Skeleton className="mb-3 h-4 w-24" />
+              <Skeleton className="h-8 w-32" />
+            </div>
+          ))}
+        </div>
+
+        {/* Filters & Tabs (card) */}
+        <div className="bg-background mb-6 rounded-md p-6 shadow-sm">
+          {/* Tabs */}
+          <div className="mb-6 grid w-full max-w-md grid-cols-4 gap-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 rounded-md" />
+            ))}
+          </div>
+
+          {/* Search & actions */}
+          <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center">
+            <div className="relative max-w-md flex-1">
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+            <div className="mt-2 flex items-center gap-2 lg:mt-0">
+              <Skeleton className="h-10 w-24 rounded-md" />
+              <Skeleton className="h-10 w-36 rounded-md" />
+            </div>
+          </div>
+        </div>
+
+        {/* Table skeleton */}
+        <div className="overflow-x-auto">
+          <div className="bg-background rounded-md shadow-sm">
+            {/* Table header */}
+            <div className="grid grid-cols-6 gap-4 border-b p-4">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-20" />
+              <div className="flex justify-end">
+                <Skeleton className="h-4 w-16" />
+              </div>
+            </div>
+
+            {/* Table rows */}
+            <div className="divide-y">
+              {Array.from({ length: 6 }).map((_, row) => (
+                <div
+                  key={row}
+                  className="hover:bg-background grid grid-cols-6 items-center gap-4 p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div>
+                      <Skeleton className="mb-2 h-4 w-36" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </div>
+
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-4 w-20" />
+
+                  <div className="flex justify-end">
+                    <Skeleton className="h-8 w-16 rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
