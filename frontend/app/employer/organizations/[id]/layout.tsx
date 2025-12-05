@@ -1,6 +1,15 @@
 import { ReactNode } from "react";
 import { getOrganizationAction } from "./actions/getOrganizationAction";
 import { LayoutClient } from "./components/LayoutClient";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { CircleOff } from "lucide-react";
 
 interface LayoutProps {
   children: ReactNode;
@@ -9,11 +18,24 @@ interface LayoutProps {
 
 export default async function Layout({ children, params }: LayoutProps) {
   const { id } = await params;
-  
+
   const organization = await getOrganizationAction(Number(id));
 
   if (!organization) {
-    return <div className="p-4">Error: Organization not found.</div>;
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <CircleOff />
+          </EmptyMedia>
+          <EmptyTitle>No organization</EmptyTitle>
+          <EmptyDescription>No organization found</EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <p>No organization information found</p>
+        </EmptyContent>
+      </Empty>
+    );
   }
 
   return (
