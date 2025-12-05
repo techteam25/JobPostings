@@ -51,3 +51,6 @@ export const jobResponseSchema = apiResponseSchema(jobWithEmployerSchema);
 
 export type JobsResponse = z.infer<typeof jobsResponseSchema>;
 export type JobResponse = z.infer<typeof jobResponseSchema>;
+export type Job = z.infer<typeof JobSchema>;
+export type Organization = z.infer<typeof organizationSchema>;
+export type JobWithEmployer = z.infer<typeof jobWithEmployerSchema>;
