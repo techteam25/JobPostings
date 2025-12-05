@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { JobType } from "@/lib/types";
 import { Bookmark } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,7 +26,7 @@ interface JobCardType {
   isSelected: boolean;
 }
 
-export const JobCard = ({
+export const JobCard = memo(({
   positionName,
   posted,
   companyName,
@@ -56,6 +57,7 @@ export const JobCard = ({
                   width={64}
                   height={64}
                   className="rounded-2xl object-cover"
+                  sizes="(max-width: 768px) 32px, 40px"
                 />
               ) : (
                 <span>name.charAt(0)</span>
@@ -104,4 +106,6 @@ export const JobCard = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+JobCard.displayName = "JobCard";
