@@ -50,6 +50,35 @@ export type Organization = {
   updatedAt: Date;
 };
 
+export type OrganizationWithMembers = Organization & {
+  members: {
+    id: number;
+    organizationId: number;
+    userId: number;
+    role: "owner" | "admin" | "recruiter" | "member";
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    memberName: string;
+    memberEmail: string;
+    memberEmailVerified: boolean;
+    memberStatus: string;
+  }[];
+};
+
+export type Member = OrganizationWithMembers["members"][number];
+
+export type PaginationMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  nextPage: number | null;
+  previousPage: number | null;
+};
+
 export type ApiErrorResponse = {
   success: false;
   message: string;
@@ -63,3 +92,6 @@ export type ApiSuccessResponse<T> = {
 };
 
 export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
+export type PaginatedApiResponse<T> = ApiSuccessResponse<T[]> & {
+  pagination: PaginationMeta;
+};
