@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -35,6 +36,10 @@ export default function Navbar() {
   const { isPending, data } = useUserSession();
   const { signOutAsyncAction, isPending: signOutPending } = useUserSignOut();
 
+  const handleSignOut = useCallback(async () => {
+    await signOutAsyncAction();
+  }, [signOutAsyncAction]);
+
   return (
     <header className="mb-6 border-b py-4">
       <div className="mx-auto max-w-7xl px-4 py-4">
@@ -46,6 +51,7 @@ export default function Navbar() {
               alt="Get Involved Logo"
               className="h-10 w-auto md:h-12 lg:h-14"
               priority
+              sizes="(max-width: 768px) 40px, (max-width: 1024px) 48px, 56px"
             />
 
             <nav className="hidden items-center gap-1 lg:flex">
@@ -115,6 +121,7 @@ export default function Navbar() {
                         alt="User Profile Image"
                         fill
                         className="rounded-full object-cover"
+                        sizes="40px"
                       />
                     </div>
                   ) : (
@@ -140,7 +147,7 @@ export default function Navbar() {
                   <Button
                     variant="link"
                     className="text-foreground cursor-pointer focus-visible:ring-0"
-                    onClick={async () => await signOutAsyncAction()}
+                    onClick={handleSignOut}
                   >
                     {signOutPending ? (
                       <span>
