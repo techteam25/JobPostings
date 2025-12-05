@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useState } from "react";
-import { Menu } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppSidebar } from "./dashboard-sidebar";
 
@@ -41,7 +41,7 @@ export function LayoutClient({
             className="hover:bg-primary cursor-pointer"
             onClick={() => setIsOpen(!isOpen)}
           >
-            <Menu className="h-5 w-5" />
+            <PanelLeft className="h-5 w-5" />
           </Button>
         </header>
         <div className="flex-1 overflow-y-auto p-4">{children}</div>
