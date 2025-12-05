@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { X } from "lucide-react";
 
 import { useFiltersStore } from "@/context/store";
@@ -11,18 +12,22 @@ export function RemoteOnlyBadge() {
   const remoteOnly = useFiltersStore((state) => state.remoteOnly);
   const setRemoteOnly = useFiltersStore((state) => state.setRemoteOnly);
 
+  const handleToggle = useCallback(() => {
+    setRemoteOnly(!remoteOnly);
+  }, [remoteOnly, setRemoteOnly]);
+
   return remoteOnly ? (
     <Badge
       variant="secondary"
       className="hover:bg-secondary/80 hidden cursor-pointer rounded-full px-3 py-1 text-sm font-medium sm:inline-flex"
-      onClick={() => setRemoteOnly(false)}
+      onClick={handleToggle}
     >
       Remote Only <X className="ml-1 size-5" />
     </Badge>
   ) : (
     <Button
       className="text-secondary-foreground hover:bg-input bg-secondary hidden cursor-pointer rounded-full px-3 py-4 shadow-none sm:inline-flex"
-      onClick={() => setRemoteOnly(true)}
+      onClick={handleToggle}
     >
       Remote only
     </Button>
