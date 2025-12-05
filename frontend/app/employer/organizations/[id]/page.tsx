@@ -11,7 +11,12 @@ import {
 import { CircleOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmployeeListSection } from "@/app/employer/organizations/[id]/components/MemberInformation";
-import { JobListingsSection } from "@/app/employer/organizations/[id]/components/JobListingInformation";
+import {
+  JobListingsSection,
+  JobListingsSectionSkeleton,
+} from "@/app/employer/organizations/[id]/components/JobListingInformation";
+import { getOrganizationJobsList } from "@/lib/api";
+import { Suspense } from "react";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -20,6 +25,7 @@ interface PageProps {
 export default async function Page({ params }: PageProps) {
   const { id } = await params;
   const organization = await getOrganizationAction(Number(id));
+  const organizationJobsList = await getOrganizationJobsList(Number(id));
 
   if (!organization) {
     return (
@@ -77,10 +83,12 @@ export default async function Page({ params }: PageProps) {
               <CompanyInformation organization={organization} />
             </TabsContent>
             <TabsContent value="members">
-              <EmployeeListSection />
+              <EmployeeListSection members={organization.members} />
             </TabsContent>
             <TabsContent value="jobs">
-              <JobListingsSection />
+              <Suspense fallback={<JobListingsSectionSkeleton />}>
+                <JobListingsSection jobsList={organizationJobsList} />
+              </Suspense>
             </TabsContent>
           </Tabs>
         </div>
