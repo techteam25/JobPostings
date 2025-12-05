@@ -9,7 +9,9 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { CircleOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmployeeListSection } from "@/app/employer/organizations/[id]/components/MemberInformation";
+import { JobListingsSection } from "@/app/employer/organizations/[id]/components/JobListingInformation";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -26,11 +28,11 @@ export default async function Page({ params }: PageProps) {
           <EmptyMedia variant="icon">
             <CircleOff />
           </EmptyMedia>
-          <EmptyTitle>No data</EmptyTitle>
-          <EmptyDescription>No data found</EmptyDescription>
+          <EmptyTitle>No organization</EmptyTitle>
+          <EmptyDescription>No organization found</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button>Add data</Button>
+          <p>No organization information found</p>
         </EmptyContent>
       </Empty>
     );
@@ -44,21 +46,44 @@ export default async function Page({ params }: PageProps) {
 
         {/* Tabs */}
         <div className="border-border mb-6 flex gap-6 border-b">
-          <button className="border-primary text-primary cursor-pointer border-b-2 pb-3 font-medium">
-            Company
-          </button>
-          <button className="text-secondary-foreground/90 hover:text-secondary-foreground cursor-pointer pb-3">
-            Members
-          </button>
-          <button className="text-secondary-foreground/90 hover:text-secondary-foreground cursor-pointer pb-3">
-            Jobs
-          </button>
-          <button className="text-secondary-foreground/90 hover:text-secondary-foreground cursor-pointer pb-3">
-            Advanced
-          </button>
+          <Tabs defaultValue="company" className="w-full">
+            <TabsList>
+              <TabsTrigger
+                value="company"
+                className="data-[state=active]:border-primary data-[state=active]:text-foreground rounded-none bg-transparent px-6 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              >
+                Company
+              </TabsTrigger>
+              <TabsTrigger
+                value="members"
+                className="data-[state=active]:border-primary data-[state=active]:text-foreground rounded-none bg-transparent px-6 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              >
+                Members
+              </TabsTrigger>
+              <TabsTrigger
+                value="jobs"
+                className="data-[state=active]:border-primary data-[state=active]:text-foreground rounded-none bg-transparent px-6 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              >
+                Jobs
+              </TabsTrigger>
+              <TabsTrigger
+                value="advanced"
+                className="data-[state=active]:border-primary data-[state=active]:text-foreground rounded-none bg-transparent px-6 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              >
+                Advanced
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="company">
+              <CompanyInformation organization={organization} />
+            </TabsContent>
+            <TabsContent value="members">
+              <EmployeeListSection />
+            </TabsContent>
+            <TabsContent value="jobs">
+              <JobListingsSection />
+            </TabsContent>
+          </Tabs>
         </div>
-
-        <CompanyInformation organization={organization} />
       </div>
     </div>
   );
