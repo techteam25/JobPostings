@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 import {
   datePostedSlice,
@@ -53,6 +53,18 @@ export const useFiltersStore = create<FiltersState>()(
       ...datePostedSlice(...args),
       ...sortBySlice(...args),
     }),
-    { name: "filters-storage" },
+    {
+      name: "filters-storage",
+      storage: createJSONStorage(() => {
+        if (typeof window === "undefined") {
+          return {
+            getItem: () => null,
+            setItem: () => {},
+            removeItem: () => {},
+          };
+        }
+        return window.localStorage;
+      }),
+    },
   ),
 );
