@@ -51,7 +51,6 @@ export default function Navbar() {
               alt="Get Involved Logo"
               className="h-10 w-auto md:h-12 lg:h-14"
               priority
-              sizes="(max-width: 768px) 40px, (max-width: 1024px) 48px, 56px"
             />
 
             <nav className="hidden items-center gap-1 lg:flex">
@@ -65,14 +64,16 @@ export default function Navbar() {
               <Button
                 variant="link"
                 className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                asChild
               >
-                Saved Jobs
+                <Link href="/saved">Saved Jobs</Link>
               </Button>
               <Button
                 variant="link"
                 className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                asChild
               >
-                Applications
+                <Link href="/applications">My Applications</Link>
               </Button>
               <Button
                 variant="link"
