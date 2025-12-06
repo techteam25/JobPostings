@@ -76,7 +76,7 @@ export async function middleware(req: NextRequest) {
       } else if (intent === "seeker") {
         // Redirect to home if not already there
         if (pathname !== "/" && !isPublicRoute) {
-          return NextResponse.redirect(new URL("/", req.url));
+          return NextResponse.next();
         }
       }
     }
