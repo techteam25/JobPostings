@@ -6,7 +6,8 @@ import Link from "next/link";
 
 import { Bell, Loader2 } from "lucide-react";
 import { BsFillPersonFill } from "react-icons/bs";
-import { TbLogout } from "react-icons/tb";
+import { AiOutlineProfile } from "react-icons/ai";
+import { TbLogout, TbSettings } from "react-icons/tb";
 
 import { useUserSession } from "@/app/(main)/hooks/use-user-session";
 
@@ -132,7 +133,10 @@ export default function Navbar() {
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[300px]">
+              <DropdownMenuContent
+                align="end"
+                className="flex w-[300px] flex-col items-start space-y-3"
+              >
                 <DropdownMenuItem className="">
                   <div className="space-y-1">
                     <p className="text-sm font-medium">
@@ -144,12 +148,34 @@ export default function Navbar() {
                   </div>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="hover:bg-muted/80">
+                <DropdownMenuItem
+                  asChild
+                  className="hover:bg-muted/80 [&>svg]:size-5"
+                >
+                  <Link href="/me/profile">
+                    <AiOutlineProfile className="text-foreground mr-2 size-8" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  asChild
+                  className="hover:bg-muted/80 [&>svg]:size-5"
+                >
+                  <Link href="/settings">
+                    <TbSettings className="text-foreground mr-2" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  asChild
+                  className="hover:bg-muted/80 [&>svg]:size-5"
+                >
                   <Button
                     variant="link"
                     className="text-foreground cursor-pointer focus-visible:ring-0"
                     onClick={handleSignOut}
                   >
+                    <TbLogout className="text-foreground mr-2" />
                     {signOutPending ? (
                       <span>
                         <Loader2 className="text-muted-foreground animate-spin" />{" "}
@@ -158,7 +184,6 @@ export default function Navbar() {
                     ) : (
                       <span>Sign out</span>
                     )}
-                    <TbLogout />
                   </Button>
                 </DropdownMenuItem>
               </DropdownMenuContent>
