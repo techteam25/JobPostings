@@ -8,8 +8,11 @@ import { JobsResponse, JobResponse, Job } from "@/schemas/responses/jobs";
 import {
   ApiResponse,
   Organization,
+  OrganizationJobApplications,
   OrganizationWithMembers,
   PaginatedApiResponse,
+  SavedJob,
+  UserJobApplications,
 } from "@/lib/types";
 
 export const getJobs = cache(async (): Promise<JobsResponse> => {
@@ -120,3 +123,127 @@ export const getOrganizationJobsList = cache(
     return res.json();
   },
 );
+
+export const getAllJobsApplicationsForOrganization = cache(
+  async (
+    organizationId: string,
+  ): Promise<PaginatedApiResponse<OrganizationJobApplications>> => {
+    const cookieStore = await cookies();
+    const res = await fetch(
+      `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${organizationId}/applications`,
+      {
+        credentials: "include",
+        headers: {
+          Cookie: cookieStore.toString(),
+        },
+        next: {
+          revalidate: 60,
+          tags: [`organization-${organizationId}-applications`],
+        },
+      },
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(
+        err.message || "Failed to fetch organization's job applications",
+      );
+    }
+
+    return res.json();
+  },
+);
+
+export const getAllApplicationsByUser = cache(
+  async (): Promise<PaginatedApiResponse<UserJobApplications>> => {
+    const cookieStore = await cookies();
+    const res = await fetch(
+      `${env.NEXT_PUBLIC_SERVER_URL}/jobs/me/applications/`,
+      {
+        credentials: "include",
+        headers: {
+          Cookie: cookieStore.toString(),
+        },
+        next: { revalidate: 60, tags: [`user-applications`] },
+      },
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || "Failed to fetch user's applications");
+    }
+
+    return res.json();
+  },
+);
+
+export const getUserSavedJobs = cache(
+  async (): Promise<PaginatedApiResponse<SavedJob>> => {
+    const cookieStore = await cookies();
+    const res = await fetch(
+      `${env.NEXT_PUBLIC_SERVER_URL}/users/me/saved-jobs/`,
+      {
+        credentials: "include",
+        headers: {
+          Cookie: cookieStore.toString(),
+        },
+        next: { revalidate: 60, tags: [`user-saved-jobs`] },
+      },
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || "Failed to fetch user's saved jobs");
+    }
+
+    return res.json();
+  },
+);
+
+export const saveJobForUser = async (jobId: number): Promise<boolean> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/users/me/saved-jobs/${jobId}`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+    },
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "Failed to save job for user");
+  }
+
+  revalidatePath("/saved");
+
+  return true;
+};
+
+export const removeSavedJobForUser = async (
+  jobId: number,
+): Promise<boolean> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/users/me/saved-jobs/${jobId}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+    },
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "Failed to remove saved job for user");
+  }
+
+  revalidatePath("/saved");
+
+  return true;
+};
