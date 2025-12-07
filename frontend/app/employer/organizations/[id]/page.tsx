@@ -11,12 +11,6 @@ import {
 import { CircleOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmployeeListSection } from "@/app/employer/organizations/[id]/components/MemberInformation";
-import {
-  JobListingsSection,
-  JobListingsSectionSkeleton,
-} from "@/app/employer/organizations/[id]/components/JobListingInformation";
-import { getOrganizationJobsList } from "@/lib/api";
-import { Suspense } from "react";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -25,7 +19,6 @@ interface PageProps {
 export default async function Page({ params }: PageProps) {
   const { id } = await params;
   const organization = await getOrganizationAction(Number(id));
-  const organizationJobsList = await getOrganizationJobsList(Number(id));
 
   if (!organization) {
     return (
@@ -66,29 +59,12 @@ export default async function Page({ params }: PageProps) {
               >
                 Members
               </TabsTrigger>
-              <TabsTrigger
-                value="jobs"
-                className="data-[state=active]:border-primary data-[state=active]:text-foreground rounded-none bg-transparent px-6 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-              >
-                Jobs
-              </TabsTrigger>
-              <TabsTrigger
-                value="advanced"
-                className="data-[state=active]:border-primary data-[state=active]:text-foreground rounded-none bg-transparent px-6 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-              >
-                Advanced
-              </TabsTrigger>
             </TabsList>
             <TabsContent value="company">
               <CompanyInformation organization={organization} />
             </TabsContent>
             <TabsContent value="members">
               <EmployeeListSection members={organization.members} />
-            </TabsContent>
-            <TabsContent value="jobs">
-              <Suspense fallback={<JobListingsSectionSkeleton />}>
-                <JobListingsSection jobsList={organizationJobsList} />
-              </Suspense>
             </TabsContent>
           </Tabs>
         </div>
