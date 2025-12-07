@@ -9,9 +9,14 @@ import {
   createUserPayloadSchema,
   deleteSelfSchema,
   getUserSavedJobsQuerySchema,
+  savedJobsSchema,
 } from "@/validations/user.validation";
 import { registry } from "@/swagger/registry";
-import { apiResponseSchema, errorResponseSchema } from "@/types";
+import {
+  apiPaginatedResponseSchema,
+  apiResponseSchema,
+  errorResponseSchema,
+} from "@/types";
 import {
   selectUserProfileSchema,
   selectUserSchema,
@@ -321,11 +326,7 @@ registry.registerPath({
       description: "Saved jobs retrieved successfully",
       content: {
         "application/json": {
-          schema: apiResponseSchema(
-            z.object({
-              jobs: z.array(z.any()), // Replace z.any() with actual job schema
-            }),
-          ),
+          schema: apiPaginatedResponseSchema(savedJobsSchema),
         },
       },
     },
