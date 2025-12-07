@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
+import { ImOffice } from "react-icons/im";
 
 interface JobDetailPanelProps {
   jobId: number | undefined;
@@ -49,18 +50,19 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="text-primary-foreground flex size-16 items-center justify-center rounded font-bold">
-              {employer?.logoUrl ? (
-                <Image
-                  src={employer?.logoUrl}
-                  alt="Employer's company logo"
-                  width={64}
-                  height={64}
-                  className="rounded-2xl object-cover"
-                  sizes="64px"
-                />
-              ) : (
-                <span>employer?.name.charAt(0)</span>
-              )}
+              {/*{employer?.logoUrl ? (*/}
+              {/*  <Image*/}
+              {/*    src={employer?.logoUrl}*/}
+              {/*    alt="Employer's company logo"*/}
+              {/*    width={64}*/}
+              {/*    height={64}*/}
+              {/*    className="rounded-2xl object-cover"*/}
+              {/*    sizes="64px"*/}
+              {/*  />*/}
+              {/*) : (*/}
+              {/*  <span>employer?.name.charAt(0)</span>*/}
+              {/*)}*/}
+              <ImOffice className="text-muted-foreground mr-2 size-5" />
             </div>
             <div>
               <div className="font-semibold">{employer?.name}</div>

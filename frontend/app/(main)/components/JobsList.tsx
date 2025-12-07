@@ -22,6 +22,7 @@ export const JobsList = ({
       data?.data.map(({ job, employer }) => (
         <JobCard
           key={job.id}
+          jobId={job.id}
           jobType={job.jobType as JobType}
           jobDescription={job.description}
           companyName={employer!.name}
@@ -34,7 +35,7 @@ export const JobsList = ({
           onJobSelected={() => onJobSelected(job.id)}
         />
       )),
-    [data, selectedId, onJobSelected]
+    [data, selectedId, onJobSelected],
   );
 
   return <>{jobs}</>;
