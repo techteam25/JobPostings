@@ -68,6 +68,102 @@ export type OrganizationWithMembers = Organization & {
 
 export type Member = OrganizationWithMembers["members"][number];
 
+export type OrganizationJobApplications = {
+  applicationId: number;
+  jobId: number;
+  applicantName: string;
+  applicantEmail: string;
+  status:
+    | "pending"
+    | "reviewed"
+    | "shortlisted"
+    | "interviewing"
+    | "rejected"
+    | "hired"
+    | "withdrawn";
+  coverLetter: string | null;
+  resumeUrl: string | null;
+  appliedAt: Date;
+  reviewedAt: Date | null;
+  jobTitle: string;
+  organizationId: number;
+  organizationName: string;
+};
+
+export type UserJobApplications = {
+  items: {
+    application: {
+      id: number;
+      jobId: number;
+      applicantId: number;
+      status:
+        | "pending"
+        | "reviewed"
+        | "shortlisted"
+        | "interviewing"
+        | "rejected"
+        | "hired"
+        | "withdrawn";
+      coverLetter: string | null;
+      resumeUrl: string | null;
+      appliedAt: Date;
+      reviewedAt: Date | null;
+      notes: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+    };
+    job: {
+      id: number;
+      title: string;
+      city: string;
+      state: string | null;
+      country: string;
+      zipcode: number | null;
+      isRemote: boolean;
+      jobType:
+        | "full-time"
+        | "part-time"
+        | "contract"
+        | "volunteer"
+        | "internship";
+    } | null;
+    employer: {
+      id: number;
+      name: string;
+    } | null;
+  }[];
+};
+
+export type SavedJob = {
+  id: number;
+  savedAt: Date;
+  isClosed: boolean;
+  isExpired: boolean;
+  job: {
+    id: number;
+    title: string;
+    city: string;
+    state: string | null;
+    country: string;
+    isActive: boolean;
+    compensationType: "volunteer" | "paid" | "missionary" | "stipend";
+    isRemote: boolean;
+    applicationDeadline: Date | null;
+    jobType:
+      | "full-time"
+      | "part-time"
+      | "contract"
+      | "volunteer"
+      | "internship";
+    employer: {
+      id: number;
+      name: string;
+      logoUrl: string | null;
+      url: string | null;
+    };
+  };
+};
+
 export type PaginationMeta = {
   total: number;
   page: number;
