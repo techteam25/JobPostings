@@ -6,12 +6,15 @@ import {
   MessageSquare,
   Settings,
 } from "lucide-react";
+import Link from "next/link";
 
 interface AppSidebarProps {
+  organizationId: number;
   organizationName: string;
   organizationLogoUrl: string | null;
 }
 export function AppSidebar({
+  organizationId,
   organizationName,
   organizationLogoUrl,
 }: AppSidebarProps) {
@@ -41,21 +44,21 @@ export function AppSidebar({
           <span>Home</span>
         </a>
 
-        <a
-          href="#"
+        <Link
+          href={`/employer/organizations/${organizationId}/applications`}
           className="text-secondary-foreground hover:bg-background flex items-center gap-3 rounded-lg px-3 py-2 transition-colors"
         >
           <BarChart3 size={20} />
-          <span>Analytics</span>
-        </a>
+          <span>Applications</span>
+        </Link>
 
-        <a
-          href="#"
+        <Link
+          href={`/employer/organizations/${organizationId}/jobs`}
           className="text-secondary-foreground hover:bg-background flex items-center gap-3 rounded-lg px-3 py-2 transition-colors"
         >
           <Calendar size={20} />
-          <span>Calendar</span>
-        </a>
+          <span>Jobs</span>
+        </Link>
 
         <a
           href="#"
