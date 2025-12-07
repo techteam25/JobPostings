@@ -183,13 +183,13 @@ router.use(authMiddleware.authenticate);
 
 // User routes (authenticated users)
 router.get(
-  "/recommendations/me",
+  "/me/recommendations",
   authMiddleware.requireUserRole,
   jobController.getRecommendedJobs,
 );
 
 router.get(
-  "/applications/my",
+  "/me/applications",
   authMiddleware.requireUserRole,
   jobController.getUserApplications,
 );
