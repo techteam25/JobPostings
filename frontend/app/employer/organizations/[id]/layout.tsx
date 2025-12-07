@@ -40,6 +40,7 @@ export default async function Layout({ children, params }: LayoutProps) {
 
   return (
     <LayoutClient
+      organizationId={organization.id}
       organizationName={organization.name}
       organizationLogoUrl={organization.logoUrl}
     >

@@ -7,12 +7,14 @@ import { AppSidebar } from "./dashboard-sidebar";
 
 interface LayoutClientProps {
   children: ReactNode;
+  organizationId: number;
   organizationName: string;
   organizationLogoUrl: string | null;
 }
 
 export function LayoutClient({
   children,
+  organizationId,
   organizationName,
   organizationLogoUrl,
 }: LayoutClientProps) {
@@ -27,6 +29,7 @@ export function LayoutClient({
         } border-background bg-background overflow-hidden border-r transition-all duration-300 ease-in-out`}
       >
         <AppSidebar
+          organizationId={organizationId}
           organizationName={organizationName}
           organizationLogoUrl={organizationLogoUrl}
         />
