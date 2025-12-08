@@ -13,6 +13,7 @@ import {
   PaginatedApiResponse,
   SavedJob,
   UserJobApplications,
+  UserProfile,
 } from "@/lib/types";
 
 export const getJobs = cache(async (): Promise<JobsResponse> => {
@@ -247,3 +248,23 @@ export const removeSavedJobForUser = async (
 
   return true;
 };
+
+export const getUserInformation = cache(
+  async (): Promise<ApiResponse<UserProfile>> => {
+    const cookieStore = await cookies();
+    const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/users/me`, {
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+      next: { revalidate: 300, tags: [`user-bio-info`] },
+    });
+
+    if (!res.ok) {
+      console.error("Failed to fetch user bio info");
+      return await res.json();
+    }
+
+    return await res.json();
+  },
+);
