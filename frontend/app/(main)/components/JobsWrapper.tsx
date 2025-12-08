@@ -105,13 +105,76 @@ export default JobsWrapper;
 
 export function SkeletonCard() {
   return (
-    <div className="flex flex-col space-y-3">
-      <Skeleton className="h-[125px] w-full rounded-xl lg:w-[250px]" />
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-3/4 lg:w-[250px]" />
-        <Skeleton className="h-4 w-3/4 lg:w-[200px]" />
-        <Skeleton className="h-4 w-3/4 lg:w-[200px]" />
-        <Skeleton className="h-4 w-3/4 lg:w-[200px]" />
+    <div className="mx-auto max-w-7xl px-4 py-6">
+      <div className="flex gap-4">
+        {/* Sidebar: filters + job list */}
+        <div className="w-full space-y-4 lg:w-[28rem]">
+          <div className="mb-4 flex items-center justify-between">
+            <Skeleton className="h-5 w-48" />
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <Skeleton className="h-10 w-10 rounded-full" />
+            </div>
+          </div>
+
+          {/* Multiple job card skeletons */}
+          <div className="space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-card flex items-start gap-3 rounded-lg border p-4"
+              >
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="flex-1">
+                  <Skeleton className="mb-2 h-4 w-3/4" />
+                  <Skeleton className="mb-1 h-3 w-1/2" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+                <Skeleton className="h-6 w-6 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Mobile detail drawer placeholder */}
+        <div className="w-0 lg:hidden" />
+
+        {/* Detail panel (desktop) */}
+        <div className="sticky top-0 hidden h-fit flex-1 pt-6 lg:block">
+          <div className="max-h-screen overflow-y-auto rounded-lg border bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-20 w-20 rounded-2xl" />
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Skeleton className="h-10 w-10 rounded-md" />
+                <Skeleton className="h-10 w-10 rounded-md" />
+                <Skeleton className="h-10 w-36 rounded-md" />
+              </div>
+            </div>
+
+            <Skeleton className="mb-2 h-8 w-2/3" />
+            <Skeleton className="mb-6 h-4 w-1/3" />
+
+            <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-6">
+              <Skeleton className="mb-3 h-5 w-1/3" />
+              <Skeleton className="mb-4 h-4 w-3/4" />
+              <Skeleton className="h-10 w-40" />
+            </div>
+
+            <div className="prose max-w-none space-y-3">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/5" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
