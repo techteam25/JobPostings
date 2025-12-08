@@ -164,6 +164,38 @@ export type SavedJob = {
   };
 };
 
+export type UserProfile = {
+  id: number;
+  fullName: string;
+  email: string;
+  emailVerified: true;
+  image: string;
+  createdAt: Date;
+  updatedAt: Date;
+  status: string;
+  deletedAt: Date;
+  lastLoginAt: Date;
+  profile: {
+    id: number;
+    userId: number;
+    profilePicture: string;
+    bio: string;
+    resumeUrl: string;
+    linkedinUrl: string;
+    portfolioUrl: string;
+    phoneNumber: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    isProfilePublic: true;
+    isAvailableForWork: true;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+};
+
 export type PaginationMeta = {
   total: number;
   page: number;
