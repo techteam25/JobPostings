@@ -7,14 +7,11 @@ import {
   MapPin,
   Mail,
   Phone,
-  Edit,
-  Eye,
-  FileText,
   ChevronRight,
   MoreVertical,
   Briefcase,
   DollarSign,
-  Shield,
+  Watch,
   X,
   ArrowRight,
 } from "lucide-react";
@@ -23,6 +20,8 @@ import { FaSearch } from "react-icons/fa";
 
 import { getUserInformation } from "@/lib/api";
 import ProfileVisibilityDialog from "@/app/(main)/me/profile/components/ProfileVisibilityDialog";
+import Link from "next/link";
+import ResumeContextMenu from "@/app/(main)/me/profile/components/ResumeContextMenu";
 
 export default async function ProfilePage() {
   const profile = await getUserInformation();
@@ -78,8 +77,15 @@ export default async function ProfilePage() {
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="icon">
-              <ChevronRight />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:bg-secondary hover:text-secondary-foreground"
+              asChild
+            >
+              <Link href="/me/profile/edit">
+                <ChevronRight />
+              </Link>
             </Button>
           </div>
 
@@ -106,9 +112,7 @@ export default async function ProfilePage() {
                     <p className="text-xs text-gray-500">Added Nov 2, 2025</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical />
-                </Button>
+                <ResumeContextMenu />
               </div>
             </CardContent>
           </Card>
@@ -163,7 +167,16 @@ export default async function ProfilePage() {
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="text-muted-foreground size-5" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-secondary hover:text-secondary-foreground"
+                    asChild
+                  >
+                    <Link href="/me/profile/qualifications">
+                      <ChevronRight />
+                    </Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -185,7 +198,16 @@ export default async function ProfilePage() {
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="text-muted-foreground size-5" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-secondary hover:text-secondary-foreground"
+                    asChild
+                  >
+                    <Link href="/me/profile/preferences">
+                      <ChevronRight />
+                    </Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -194,19 +216,29 @@ export default async function ProfilePage() {
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-red-100">
-                      <Shield className="text-destructive size-5" />
+                    <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100">
+                      <Watch className="size-5 text-emerald-600" />
                     </div>
                     <div>
                       <h3 className="text-foreground mb-1 font-semibold">
-                        Block employers
+                        Ready to work
                       </h3>
                       <p className="text-secondary-foreground text-sm">
-                        Prevent employers from finding you.
+                        Let employers know you're available to start
+                        immediately.
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="text-muted-foreground size-5" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-secondary hover:text-secondary-foreground"
+                    asChild
+                  >
+                    <Link href="/me/profile/readytowork">
+                      <ChevronRight />
+                    </Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
