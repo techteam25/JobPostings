@@ -1,4 +1,4 @@
-import { and, eq, inArray, like, or } from "drizzle-orm";
+import { and, count, desc, eq, inArray, like, or } from "drizzle-orm";
 import {
   applicationNotes,
   jobApplications,
@@ -34,6 +34,52 @@ export class OrganizationRepository extends BaseRepository<
           .where(eq(organizations.name, name)),
     );
     return result;
+  }
+
+  async findByIdIncludingMembers(organizationId: number) {
+    return await withDbErrorHandling(async () => {
+      const organization = await db.query.organizations.findFirst({
+        where: eq(organizations.id, organizationId),
+        with: {
+          members: {
+            with: {
+              user: {
+                columns: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  emailVerified: true,
+                  status: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!organization) {
+        throw new NotFoundError("Organization", organizationId);
+      }
+
+      // flatten members to include user details at the top level
+
+      return {
+        ...organization,
+        members: organization.members.map((member) => ({
+          id: member.id,
+          organizationId: member.organizationId,
+          userId: member.userId,
+          role: member.role,
+          isActive: member.isActive,
+          createdAt: member.createdAt,
+          updatedAt: member.updatedAt,
+          memberName: member.user.fullName,
+          memberEmail: member.user.email,
+          memberEmailVerified: member.user.emailVerified,
+          memberStatus: member.user.status,
+        })),
+      };
+    });
   }
 
   async searchOrganizations(
@@ -539,6 +585,72 @@ export class OrganizationRepository extends BaseRepository<
             },
           },
         });
+      });
+    });
+  }
+
+  async getApplicationsForOrganization(
+    organizationId: number,
+    options: { page?: number; limit?: number },
+  ) {
+    return withDbErrorHandling(async () => {
+      return await db.transaction(async (tx) => {
+        const { page = 1, limit = 10 } = options;
+        const offset = (page - 1) * limit;
+
+        // Verify organization exists
+        const org = await tx
+          .select({ id: organizations.id })
+          .from(organizations)
+          .where(eq(organizations.id, organizationId))
+          .limit(1);
+
+        if (org.length === 0) {
+          throw new NotFoundError("Organization", organizationId);
+        }
+
+        // Fetch applications for the organization's jobs
+
+        const results = await tx
+          .select({
+            applicationId: jobApplications.id,
+            jobId: jobApplications.jobId,
+            applicantName: user.fullName,
+            applicantEmail: user.email,
+            status: jobApplications.status,
+            coverLetter: jobApplications.coverLetter,
+            resumeUrl: jobApplications.resumeUrl,
+            appliedAt: jobApplications.appliedAt,
+            reviewedAt: jobApplications.reviewedAt,
+            jobTitle: jobsDetails.title,
+            organizationId: organizations.id,
+            organizationName: organizations.name,
+          })
+          .from(jobApplications)
+          .innerJoin(jobsDetails, eq(jobsDetails.id, jobApplications.jobId))
+          .innerJoin(
+            organizations,
+            eq(organizations.id, jobsDetails.employerId),
+          )
+          .innerJoin(user, eq(user.id, jobApplications.applicantId))
+          .where(eq(organizations.id, organizationId))
+          .orderBy(desc(jobApplications.appliedAt))
+          .limit(limit)
+          .offset(offset);
+
+        const [total] = await tx
+          .select({ count: count() })
+          .from(jobApplications)
+          .innerJoin(jobsDetails, eq(jobsDetails.id, jobApplications.jobId))
+          .innerJoin(
+            organizations,
+            eq(organizations.id, jobsDetails.employerId),
+          )
+          .where(eq(organizations.id, organizationId));
+
+        const pagination = calculatePagination(total?.count ?? 0, page, limit);
+
+        return { items: results, pagination };
       });
     });
   }

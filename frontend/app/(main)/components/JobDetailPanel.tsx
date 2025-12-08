@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Bookmark, Menu } from "lucide-react";
 
 import { useFetchJobDetails } from "@/app/(main)/hooks/use-fetch-jobs";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
+import { ImOffice } from "react-icons/im";
 
 interface JobDetailPanelProps {
   jobId: number | undefined;
@@ -20,6 +22,11 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
     fetchJobDetailsError,
   } = useFetchJobDetails(jobId);
 
+  const jobData = useMemo(() => {
+    if (!jobDetails?.success) return null;
+    return jobDetails.data;
+  }, [jobDetails]);
+
   if (fetchingJobDetails || !jobDetails) {
     return (
       <div className="overflow-y-auto">
@@ -28,7 +35,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
     );
   }
 
-  if (fetchJobDetailsError || (jobDetails && !jobDetails.success)) {
+  if (fetchJobDetailsError || !jobData) {
     return (
       <div className="flex items-start justify-center">
         <p className="text-muted-foreground">Failed to load job details.</p>
@@ -36,24 +43,26 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
     );
   }
 
-  const { employer, job } = jobDetails.data;
+  const { employer, job } = jobData;
   return (
     <Card className="max-h-screen overflow-y-auto">
       <CardContent className="max-h-screen p-6">
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="text-primary-foreground flex size-16 items-center justify-center rounded font-bold">
-              {employer?.logoUrl ? (
-                <Image
-                  src={employer?.logoUrl}
-                  alt="Employer's company logo"
-                  width={64}
-                  height={64}
-                  className="rounded-2xl object-cover"
-                />
-              ) : (
-                <span>employer?.name.charAt(0)</span>
-              )}
+              {/*{employer?.logoUrl ? (*/}
+              {/*  <Image*/}
+              {/*    src={employer?.logoUrl}*/}
+              {/*    alt="Employer's company logo"*/}
+              {/*    width={64}*/}
+              {/*    height={64}*/}
+              {/*    className="rounded-2xl object-cover"*/}
+              {/*    sizes="64px"*/}
+              {/*  />*/}
+              {/*) : (*/}
+              {/*  <span>employer?.name.charAt(0)</span>*/}
+              {/*)}*/}
+              <ImOffice className="text-muted-foreground mr-2 size-5" />
             </div>
             <div>
               <div className="font-semibold">{employer?.name}</div>

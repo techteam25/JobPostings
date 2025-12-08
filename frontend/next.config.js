@@ -15,6 +15,14 @@ const nextConfig = {
         hostname: "*.licdn.com",
         pathname: "/dms/image/**", // More restrictive - only image paths
       },
+      {
+        protocol: "https",
+        hostname: "cdn.jsdelivr.net",
+      },
+      {
+        protocol: "https",
+        hostname: "avatars.githubusercontent.com",
+      },
     ],
   },
 };

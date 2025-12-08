@@ -33,8 +33,10 @@ export const SortByDropDownButton = () => {
           variant="outline"
           className="hover:text-foreground cursor-pointer hover:bg-transparent"
         >
-          {sortOptions[sortBy]}
-          <BsChevronDown className="ml-1" />
+          <span>
+            {sortOptions[sortBy]}
+            <BsChevronDown className="ml-1 inline-flex" />
+          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">

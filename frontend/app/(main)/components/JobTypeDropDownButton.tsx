@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { BsChevronDown } from "react-icons/bs";
 
 import { DropdownMenuCheckboxItemProps } from "@radix-ui/react-dropdown-menu";
@@ -10,13 +11,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { useFiltersStore } from "@/context/store";
+import { useFiltersStore, JobType } from "@/context/store";
 
 type Checked = DropdownMenuCheckboxItemProps["checked"];
 
 export const JobTypeDropDownButton = () => {
   const jobTypes = useFiltersStore((state) => state.jobTypes);
   const setJobTypes = useFiltersStore((state) => state.setJobTypes);
+
+  const handleJobTypeChange = useCallback(
+    (type: JobType, checked: boolean) => {
+      if (checked) {
+        setJobTypes([...jobTypes, type]);
+      } else {
+        setJobTypes(jobTypes.filter((t) => t !== type));
+      }
+    },
+    [jobTypes, setJobTypes],
+  );
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -34,49 +47,33 @@ export const JobTypeDropDownButton = () => {
       <DropdownMenuContent className="w-56">
         <DropdownMenuCheckboxItem
           checked={jobTypes.includes("full-time") as Checked}
-          onCheckedChange={(checked) => {
-            if (checked) {
-              setJobTypes([...jobTypes, "full-time"]);
-            } else {
-              setJobTypes(jobTypes.filter((type) => type !== "full-time"));
-            }
-          }}
+          onCheckedChange={(checked) =>
+            handleJobTypeChange("full-time", checked)
+          }
         >
           Full-time
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           checked={jobTypes.includes("part-time") as Checked}
-          onCheckedChange={(checked) => {
-            if (checked) {
-              setJobTypes([...jobTypes, "part-time"]);
-            } else {
-              setJobTypes(jobTypes.filter((type) => type !== "part-time"));
-            }
-          }}
+          onCheckedChange={(checked) =>
+            handleJobTypeChange("part-time", checked)
+          }
         >
           Part-time
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           checked={jobTypes.includes("contract") as Checked}
-          onCheckedChange={(checked) => {
-            if (checked) {
-              setJobTypes([...jobTypes, "contract"]);
-            } else {
-              setJobTypes(jobTypes.filter((type) => type !== "contract"));
-            }
-          }}
+          onCheckedChange={(checked) =>
+            handleJobTypeChange("contract", checked)
+          }
         >
           Contract
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           checked={jobTypes.includes("internship") as Checked}
-          onCheckedChange={(checked) => {
-            if (checked) {
-              setJobTypes([...jobTypes, "internship"]);
-            } else {
-              setJobTypes(jobTypes.filter((type) => type !== "internship"));
-            }
-          }}
+          onCheckedChange={(checked) =>
+            handleJobTypeChange("internship", checked)
+          }
         >
           Internship
         </DropdownMenuCheckboxItem>

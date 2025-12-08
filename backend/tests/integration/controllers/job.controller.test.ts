@@ -32,14 +32,15 @@ describe("Job Controller Integration Tests", () => {
       const response = await request.get("/api/jobs/1");
 
       TestHelpers.validateApiResponse(response, 200);
-      expect(response.body.data).toHaveProperty("id", 1);
-      expect(response.body.data).toHaveProperty("title");
-      expect(response.body.data).toHaveProperty("description");
-      expect(response.body.data).toHaveProperty("city");
-      expect(response.body.data).toHaveProperty("state");
-      expect(response.body.data).toHaveProperty("country");
-      expect(response.body.data).toHaveProperty("zipcode");
-      expect(response.body.data).toHaveProperty("employerId");
+      expect(response.body.data).toHaveProperty("job");
+      expect(response.body.data.job).toHaveProperty("id", 1);
+      expect(response.body.data.job).toHaveProperty("title");
+      expect(response.body.data.job).toHaveProperty("description");
+      expect(response.body.data.job).toHaveProperty("city");
+      expect(response.body.data.job).toHaveProperty("state");
+      expect(response.body.data.job).toHaveProperty("country");
+      expect(response.body.data.job).toHaveProperty("zipcode");
+      expect(response.body.data.job).toHaveProperty("employerId");
       expect(response.body).toHaveProperty(
         "message",
         "Job retrieved successfully",
@@ -276,9 +277,222 @@ describe("Job Controller Integration Tests", () => {
       TestHelpers.validateApiResponse(getResponse, 404);
       expect(getResponse.body).toHaveProperty(
         "message",
-        "Job with id 1 does not exist.",
+        "Job with Id: 1 not found",
       );
       expect(getResponse.body).toHaveProperty("errorCode", "NOT_FOUND");
+    });
+  });
+
+  describe("GET /:organizationId/jobs - getJobsByEmployer", () => {
+    let cookie: string;
+
+    beforeEach(async () => {
+      await seedJobs(); // Seeds jobs for organization 1
+
+      const response = await request.post("/api/auth/sign-in/email").send({
+        email: "org.member@example.com",
+        password: "Password@123",
+      });
+
+      cookie = response.headers["set-cookie"]![0]!;
+    });
+
+    it("should retrieve all jobs for an organization with default pagination returning 200", async () => {
+      const response = await request
+        .get("/api/jobs/employer/1/jobs")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Jobs retrieved successfully",
+      );
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(response.body.data.length).toBeGreaterThan(0);
+
+      // Validate pagination metadata
+      expect(response.body).toHaveProperty("pagination");
+      expect(response.body.pagination).toHaveProperty("page");
+      expect(response.body.pagination).toHaveProperty("limit");
+      expect(response.body.pagination).toHaveProperty("total");
+      expect(response.body.pagination).toHaveProperty("totalPages");
+
+      // Validate job structure
+      const job = response.body.data[0];
+      expect(job).toHaveProperty("id");
+      expect(job).toHaveProperty("title");
+      expect(job).toHaveProperty("description");
+      expect(job).toHaveProperty("employerId", 1);
+      expect(job).toHaveProperty("city");
+      expect(job).toHaveProperty("state");
+      expect(job).toHaveProperty("country");
+    });
+
+    it("should retrieve jobs with custom pagination parameters returning 200", async () => {
+      const response = await request
+        .get("/api/jobs/employer/1/jobs?page=1&limit=2")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(Array.isArray(response.body.data)).toBe(true);
+
+      // Validate pagination respects custom parameters
+      expect(response.body.pagination).toHaveProperty("page", "1");
+      expect(response.body.pagination).toHaveProperty("limit", "2");
+      expect(response.body.data.length).toBeLessThanOrEqual(3);
+    });
+
+    it("should sort jobs by createdAt in ascending order returning 200", async () => {
+      const response = await request
+        .get("/api/jobs/employer/1/jobs?sortBy=createdAt&order=asc")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      const jobs = response.body.data;
+      if (jobs.length > 1) {
+        const firstDate = new Date(jobs[0].createdAt);
+        const secondDate = new Date(jobs[1].createdAt);
+        expect(firstDate.getTime()).toBeLessThanOrEqual(secondDate.getTime());
+      }
+    });
+
+    it("should only return jobs for the specified organization", async () => {
+      const response = await request
+        .get("/api/jobs/employer/1/jobs")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      // All jobs should belong to organization with ID 1
+      const jobs = response.body.data;
+      jobs.forEach((job: any) => {
+        expect(job.employerId).toBe(1);
+      });
+    });
+
+    it("should return correct total count in pagination metadata", async () => {
+      const response = await request
+        .get("/api/jobs/employer/1/jobs")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      const { pagination } = response.body;
+      expect(pagination.total).toBeGreaterThanOrEqual(
+        response.body.data.length,
+      );
+      expect(pagination.totalPages).toBe(
+        Math.ceil(pagination.total / pagination.limit),
+      );
+    });
+  });
+
+  describe("GET /employer/:organizationId/jobs/stats - getOrganizationJobsStats", () => {
+    let cookie: string;
+
+    beforeEach(async () => {
+      await seedJobs(); // Seeds jobs for organization 1
+
+      const response = await request.post("/api/auth/sign-in/email").send({
+        email: "org.member@example.com",
+        password: "Password@123",
+      });
+
+      cookie = response.headers["set-cookie"]![0]!;
+    });
+
+    it("should retrieve job statistics for an organization returning 200", async () => {
+      const response = await request
+        .get("/api/jobs/employer/1/jobs/stats")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Organization job statistics retrieved successfully",
+      );
+      expect(response.body).toHaveProperty("data");
+
+      // Validate statistics structure
+      const stats = response.body.data;
+      expect(stats).toHaveProperty("total");
+      expect(stats).toHaveProperty("active");
+      expect(stats).toHaveProperty("inactive");
+      expect(stats).toHaveProperty("totalApplications");
+      expect(stats).toHaveProperty("totalViews");
+
+      // Validate data types
+      expect(typeof stats.total).toBe("number");
+      expect(typeof stats.active).toBe("number");
+      expect(typeof stats.inactive).toBe("number");
+      expect(typeof stats.totalApplications).toBe("number");
+      expect(typeof stats.totalViews).toBe("number");
+
+      // Validate logical constraints
+      expect(stats.total).toBeGreaterThanOrEqual(0);
+      expect(stats.active).toBeGreaterThanOrEqual(0);
+      expect(stats.inactive).toBeGreaterThanOrEqual(0);
+      expect(stats.totalApplications).toBeGreaterThanOrEqual(0);
+      expect(stats.totalViews).toBeGreaterThanOrEqual(0);
+
+      // Total should equal active + inactive
+      expect(stats.total).toBeGreaterThanOrEqual(stats.active);
+    });
+
+    it("should return 401 when user is not authenticated", async () => {
+      const response = await request.get("/api/jobs/employer/1/jobs/stats");
+
+      TestHelpers.validateApiResponse(response, 401);
+
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body).toHaveProperty("status", "error");
+      expect(response.body).toHaveProperty(
+        "message",
+        "Authentication required",
+      );
+    });
+
+    it("should include all required fields in the response", async () => {
+      const response = await request
+        .get("/api/jobs/employer/1/jobs/stats")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 200);
+
+      const requiredFields = [
+        "total",
+        "active",
+        "inactive",
+        "totalApplications",
+        "totalViews",
+      ];
+
+      const stats = response.body.data;
+      requiredFields.forEach((field) => {
+        expect(stats).toHaveProperty(field);
+      });
+    });
+
+    it("should return consistent statistics across multiple requests", async () => {
+      const response1 = await request
+        .get("/api/jobs/employer/1/jobs/stats")
+        .set("Cookie", cookie);
+
+      const response2 = await request
+        .get("/api/jobs/employer/1/jobs/stats")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response1, 200);
+      TestHelpers.validateApiResponse(response2, 200);
+
+      expect(response1.body.data).toEqual(response2.body.data);
     });
   });
 });

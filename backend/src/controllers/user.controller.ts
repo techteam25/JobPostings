@@ -286,9 +286,10 @@ export class UserController extends BaseController {
     );
 
     if (savedJobs.isSuccess) {
-      return this.sendSuccess<SavedJobs>(
+      return this.sendPaginatedResponse<SavedJobs>(
         res,
-        savedJobs.value,
+        savedJobs.value.items,
+        savedJobs.value.pagination,
         "Saved jobs retrieved successfully",
       );
     } else {

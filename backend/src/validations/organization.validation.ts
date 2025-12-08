@@ -8,6 +8,7 @@ import {
 } from "@/db/schema";
 import { getJobSchema } from "@/validations/job.validation";
 import { getJobApplicationSchema } from "@/validations/jobApplications.validation";
+import { searchParams } from "@/validations/base.validation";
 
 // Zod schemas for validation
 export const selectOrganizationSchema = createSelectSchema(organizations);
@@ -70,6 +71,29 @@ const updateJobStatusInput = z.object({
   ]),
 });
 
+export const getOrganizationJobApplicationsSchema = z.object({
+  applicationId: z.number(),
+  jobId: z.number(),
+  applicantName: z.string(),
+  applicantEmail: z.string(),
+  status: z.enum([
+    "pending",
+    "reviewed",
+    "shortlisted",
+    "interviewing",
+    "rejected",
+    "hired",
+    "withdrawn",
+  ]),
+  coverLetter: z.string().nullable(),
+  resumeUrl: z.string().nullable(),
+  appliedAt: z.date(),
+  reviewedAt: z.date().nullable(),
+  jobTitle: z.string(),
+  organizationId: z.number(),
+  organizationName: z.string(),
+});
+
 const createJobApplicationNoteInput = z.object({
   note: z.string().min(1, "Note cannot be empty"),
 });
@@ -88,7 +112,15 @@ export const updateOrganizationSchema = z.object({
 
 export const getOrganizationSchema = z.object({
   body: z.object({}).strict(),
-  query: z.object({}).strict(),
+  query: searchParams.shape["query"]
+    .pick({
+      limit: true,
+      page: true,
+      q: true,
+      sortBy: true,
+      order: true,
+    })
+    .strict(),
   params: organizationIdParamSchema,
 });
 
@@ -213,10 +245,26 @@ export const deleteOrganizationSchema = z.object({
 
 export type NewOrganization = z.infer<typeof insertOrganizationSchema>;
 export type Organization = z.infer<typeof selectOrganizationSchema>;
-// ^ ?
+
 export type OrganizationMember = z.infer<
   typeof selectOrganizationMembersSchema
 >;
+
+export type OrganizationWithMembers = Organization & {
+  members: {
+    id: number;
+    organizationId: number;
+    userId: number;
+    role: "owner" | "admin" | "recruiter" | "member";
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    memberName: string;
+    memberEmail: string;
+    memberEmailVerified: boolean;
+    memberStatus: string;
+  }[];
+};
 
 export type GetOrganizationSchema = z.infer<typeof getOrganizationSchema>;
 export type CreateOrganizationSchema = z.infer<typeof createOrganizationSchema>;
@@ -230,6 +278,9 @@ export type JobApplicationsManagementSchema = z.infer<
 >;
 export type OrganizationJobApplicationsResponse = z.infer<
   typeof organizationJobApplicationsResponseSchema
+>;
+export type OrganizationJobApplications = z.infer<
+  typeof getOrganizationJobApplicationsSchema
 >;
 export type JobApplicationsResponseSchema = z.infer<
   typeof jobApplicationsResponseSchema

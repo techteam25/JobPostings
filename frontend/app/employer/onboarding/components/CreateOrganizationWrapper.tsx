@@ -4,14 +4,14 @@ import { useState, useRef } from "react";
 import Image from "next/image";
 import DOMPurify from "isomorphic-dompurify";
 
-import { steps } from "@/app/(main)/employer/onboarding/steps";
+import { steps } from "@/app/employer/onboarding/steps";
 
 import { Button } from "@/components/ui/button";
-import { Stepper } from "@/app/(main)/employer/onboarding/components/Stepper";
+import { Stepper } from "@/app/employer/onboarding/components/Stepper";
 import { CreateOrganizationData } from "@/schemas/organizations";
 
 import CompanyProfileGraphic from "@/public/company-profile-graphic.png";
-import { useCreateOrganization } from "@/app/(main)/employer/onboarding/hooks/use-create-organization";
+import { useCreateOrganization } from "@/app/employer/onboarding/hooks/use-create-organization";
 import { Loader2 } from "lucide-react";
 
 const CreateOrganizationWrapper = () => {

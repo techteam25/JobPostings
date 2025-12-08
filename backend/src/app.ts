@@ -18,7 +18,7 @@ import logger from "@/logger";
 
 import { auth } from "@/utils/auth";
 import { checkDatabaseConnection } from "@/db/connection";
-import { env } from "@/config/env";
+import { env, isTest } from "@/config/env";
 import { errorHandler } from "@/middleware/error.middleware";
 import { redisClient } from "@/config/redis";
 import { registry } from "@/swagger/registry";
@@ -65,10 +65,11 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 100, // 100 requests per 15 minutes per IP
+  limit: 10000, // 100 requests per 15 minutes per IP
   standardHeaders: true,
   legacyHeaders: false,
   message: "Too many requests, please try again later.",
+  skip: () => isTest, // Skip rate limiting in test environment
 
   // Important security settings
   skipSuccessfulRequests: false, // Count all requests

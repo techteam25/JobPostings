@@ -45,47 +45,35 @@ const getUsersQuerySchema = z.object({
   role: z.enum(["user", "employer", "admin"]).optional(),
 });
 
-const savedJobsSchema = z.object({
-  pagination: z.object({
-    page: z.number(),
-    limit: z.number(),
-    totalPages: z.number(),
-    hasNext: z.boolean(),
-    hasPrevious: z.boolean(),
-    nextPage: z.number().nullable(),
-    previousPage: z.number().nullable(),
-  }),
-  items: z
-    .object({
+export const savedJobsSchema = z.object({
+  id: z.number(),
+  savedAt: z.date(),
+  isClosed: z.boolean(),
+  isExpired: z.boolean(),
+  job: z.object({
+    id: z.number(),
+    title: z.string(),
+    city: z.string(),
+    state: z.string().nullable(),
+    country: z.string(),
+    isActive: z.boolean(),
+    compensationType: z.enum(["paid", "missionary", "volunteer", "stipend"]),
+    isRemote: z.boolean(),
+    applicationDeadline: z.date().nullable(),
+    jobType: z.enum([
+      "full-time",
+      "part-time",
+      "contract",
+      "volunteer",
+      "internship",
+    ]),
+    employer: z.object({
       id: z.number(),
-      savedAt: z.date(),
-      isClosed: z.boolean(),
-      isExpired: z.boolean(),
-      job: z.object({
-        id: z.number(),
-        title: z.string(),
-        city: z.string(),
-        state: z.string().nullable(),
-        country: z.string(),
-        isActive: z.boolean(),
-        compensationType: z.enum([
-          "paid",
-          "missionary",
-          "volunteer",
-          "stipend",
-        ]),
-        isRemote: z.boolean(),
-        applicationDeadline: z.date().nullable(),
-        jobType: z.enum([
-          "full-time",
-          "part-time",
-          "contract",
-          "volunteer",
-          "internship",
-        ]),
-      }),
-    })
-    .array(),
+      name: z.string(),
+      logoUrl: z.string().nullable(),
+      url: z.string().nullable(),
+    }),
+  }),
 });
 
 export const getSavedJobsQuerySchema = z.object({

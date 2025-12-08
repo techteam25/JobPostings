@@ -74,6 +74,7 @@ export const organizationFixture = async () => {
     streetAddress: faker.location.streetAddress(),
     city: faker.location.city(),
     state: faker.location.state(),
+    country: faker.location.country(),
     zipCode: faker.location.zipCode("#####"),
     phone: faker.phone.number({ style: "national" }),
     url: faker.internet.url(),

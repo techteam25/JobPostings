@@ -15,7 +15,10 @@ import {
 } from "@/validations/job.validation";
 import { searchJobResult, searchParams } from "@/validations/base.validation";
 import { updateApplicationStatusSchema } from "@/validations/jobApplications.validation";
-import { selectOrganizationSchema } from "@/validations/organization.validation";
+import {
+  getOrganizationSchema,
+  selectOrganizationSchema,
+} from "@/validations/organization.validation";
 
 import { registry, z } from "@/swagger/registry";
 
@@ -180,13 +183,13 @@ router.use(authMiddleware.authenticate);
 
 // User routes (authenticated users)
 router.get(
-  "/recommendations/me",
+  "/me/recommendations",
   authMiddleware.requireUserRole,
   jobController.getRecommendedJobs,
 );
 
 router.get(
-  "/applications/my",
+  "/me/applications",
   authMiddleware.requireUserRole,
   jobController.getUserApplications,
 );
@@ -410,18 +413,117 @@ router.patch(
 );
 
 // Organization-specific routes
+
+registry.registerPath({
+  method: "get",
+  path: "/api/jobs/employer/{organizationId}/jobs",
+  summary: "Get all job postings for an organization",
+  tags: ["Jobs"],
+  request: {
+    params: getOrganizationSchema.shape["params"],
+  },
+  responses: {
+    200: {
+      description: "List of job postings for the organization",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(selectJobSchema.array()),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
 router.get(
-  "/employer/:employerId",
+  "/employer/:organizationId/jobs",
   authMiddleware.requireJobPostingRole(),
-  validate(getJobSchema),
+  authMiddleware.ensureIsOrganizationMember,
+  validate(getOrganizationSchema),
   jobController.getJobsByEmployer,
 );
 
 // Dashboard routes
-// router.get(
-//   "/dashboard/data",
-//   authMiddleware.requireActiveUser,
-//   jobController.getDashboardData,
-// );
+
+registry.registerPath({
+  method: "get",
+  path: "/api/jobs/employer/{organizationId}/jobs/stats",
+  summary: "Get job postings statistics for an organization",
+  tags: ["Jobs"],
+  request: {
+    params: getOrganizationSchema.shape["params"],
+  },
+  responses: {
+    200: {
+      description: "Job postings statistics",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.object({
+              totalJobs: z.number(),
+              activeJobs: z.number(),
+              inactiveJobs: z.number(),
+              totalApplications: z.number(),
+              totalViews: z.number(),
+            }),
+          ),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.get(
+  "/employer/:organizationId/jobs/stats",
+  authMiddleware.requireJobPostingRole(),
+  authMiddleware.ensureIsOrganizationMember,
+  validate(getOrganizationSchema),
+  jobController.getOrganizationJobsStats,
+);
 
 export default router;

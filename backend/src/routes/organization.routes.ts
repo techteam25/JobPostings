@@ -13,6 +13,7 @@ import {
   organizationJobApplicationsResponseSchema,
   updateJobStatusInputSchema,
   createJobApplicationNoteSchema,
+  getOrganizationJobApplicationsSchema,
 } from "@/validations/organization.validation";
 import { registry, z } from "@/swagger/registry";
 import { selectOrganizationSchema } from "@/validations/organization.validation";
@@ -723,6 +724,69 @@ router.get(
   validate(getJobApplicationSchema),
   authMiddleware.ensureIsOrganizationMember,
   organizationController.getNotesForJobApplication,
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/organizations/{organizationId}/applications",
+  summary: "Get all applications for an organization",
+  tags: ["Organizations"],
+  security: [{ cookie: [] }],
+  request: {
+    params: getOrganizationSchema.shape["params"],
+  },
+  responses: {
+    200: {
+      description: "List of applications for the organization",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            getOrganizationJobApplicationsSchema.array(),
+          ),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Organization not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+router.get(
+  "/:organizationId/applications",
+  authMiddleware.authenticate,
+  authMiddleware.requireJobPostingRole(),
+  authMiddleware.ensureIsOrganizationMember,
+  validate(getOrganizationSchema),
+  organizationController.getApplicationsForOrganization,
 );
 
 export default router;

@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { user } from "./users";
-import { jobInsights } from "./jobsDetails";
+import { jobInsights, jobsDetails } from "./jobsDetails";
 
 export const organizations = mysqlTable(
   "organizations",
@@ -90,6 +90,7 @@ export const organizationMembers = mysqlTable(
 export const organizationRelations = relations(organizations, ({ many }) => ({
   jobInsights: many(jobInsights),
   members: many(organizationMembers),
+  jobPosts: many(jobsDetails),
 }));
 
 export const organizationMemberRelations = relations(

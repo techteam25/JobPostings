@@ -1,11 +1,13 @@
 "use client";
 
+import { useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
 import { Bell, Loader2 } from "lucide-react";
 import { BsFillPersonFill } from "react-icons/bs";
-import { TbLogout } from "react-icons/tb";
+import { AiOutlineProfile } from "react-icons/ai";
+import { TbLogout, TbSettings } from "react-icons/tb";
 
 import { useUserSession } from "@/app/(main)/hooks/use-user-session";
 
@@ -35,6 +37,10 @@ export default function Navbar() {
   const { isPending, data } = useUserSession();
   const { signOutAsyncAction, isPending: signOutPending } = useUserSignOut();
 
+  const handleSignOut = useCallback(async () => {
+    await signOutAsyncAction();
+  }, [signOutAsyncAction]);
+
   return (
     <header className="mb-6 border-b py-4">
       <div className="mx-auto max-w-7xl px-4 py-4">
@@ -59,14 +65,16 @@ export default function Navbar() {
               <Button
                 variant="link"
                 className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                asChild
               >
-                Saved Jobs
+                <Link href="/saved">Saved Jobs</Link>
               </Button>
               <Button
                 variant="link"
                 className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                asChild
               >
-                Applications
+                <Link href="/applications">My Applications</Link>
               </Button>
               <Button
                 variant="link"
@@ -115,6 +123,7 @@ export default function Navbar() {
                         alt="User Profile Image"
                         fill
                         className="rounded-full object-cover"
+                        sizes="40px"
                       />
                     </div>
                   ) : (
@@ -124,7 +133,10 @@ export default function Navbar() {
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[300px]">
+              <DropdownMenuContent
+                align="end"
+                className="flex w-[300px] flex-col items-start space-y-3"
+              >
                 <DropdownMenuItem className="">
                   <div className="space-y-1">
                     <p className="text-sm font-medium">
@@ -136,12 +148,34 @@ export default function Navbar() {
                   </div>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="hover:bg-muted/80">
+                <DropdownMenuItem
+                  asChild
+                  className="hover:bg-muted/80 [&>svg]:size-5"
+                >
+                  <Link href="/me/profile">
+                    <AiOutlineProfile className="text-foreground mr-2 size-8" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  asChild
+                  className="hover:bg-muted/80 [&>svg]:size-5"
+                >
+                  <Link href="/settings">
+                    <TbSettings className="text-foreground mr-2" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  asChild
+                  className="hover:bg-muted/80 [&>svg]:size-5"
+                >
                   <Button
                     variant="link"
                     className="text-foreground cursor-pointer focus-visible:ring-0"
-                    onClick={async () => await signOutAsyncAction()}
+                    onClick={handleSignOut}
                   >
+                    <TbLogout className="text-foreground mr-2" />
                     {signOutPending ? (
                       <span>
                         <Loader2 className="text-muted-foreground animate-spin" />{" "}
@@ -150,7 +184,6 @@ export default function Navbar() {
                     ) : (
                       <span>Sign out</span>
                     )}
-                    <TbLogout />
                   </Button>
                 </DropdownMenuItem>
               </DropdownMenuContent>

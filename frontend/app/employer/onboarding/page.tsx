@@ -1,4 +1,4 @@
-import CreateOrganizationWrapper from "@/app/(main)/employer/onboarding/components/CreateOrganizationWrapper";
+import CreateOrganizationWrapper from "@/app/employer/onboarding/components/CreateOrganizationWrapper";
 
 export default function CompanyProfileForm() {
   return (

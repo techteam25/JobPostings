@@ -512,6 +512,7 @@ export class UserRepository extends BaseRepository<typeof user> {
       return {
         items: response,
         pagination: {
+          total: response.length,
           page,
           limit,
           totalPages,

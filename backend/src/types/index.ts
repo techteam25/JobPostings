@@ -48,6 +48,16 @@ export const apiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
     data: dataSchema,
   });
 
+export const apiPaginatedResponseSchema = <T extends z.ZodTypeAny>(
+  dataSchema: T,
+) =>
+  z.object({
+    success: z.boolean(),
+    message: z.string(),
+    data: dataSchema.array(),
+    pagination: paginationMetaSchema,
+  });
+
 /* API Response Types */
 
 export type ApiResponse<T> =

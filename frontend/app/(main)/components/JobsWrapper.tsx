@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
 
 import { RefreshCcwIcon } from "lucide-react";
@@ -41,9 +41,17 @@ const JobsWrapper = () => {
 
   const open = !isDesktop && !!jobId;
 
-  const handleJobSelect = (id: number) => {
+  const handleJobSelect = useCallback((id: number) => {
     setJobId(id);
-  };
+  }, []);
+
+  const handleOpenChange = useCallback((o: boolean) => {
+    if (!o) setJobId(undefined);
+  }, []);
+
+  const handleSortChange = useCallback((s: string) => {
+    setSortBy(s as "Most Relevant" | "Most Recent");
+  }, []);
 
   if (fetchingJobs) {
     return (
@@ -68,9 +76,7 @@ const JobsWrapper = () => {
             </div>
             <SortByMobileButton
               defaultSort={sortBy}
-              onSortChange={(s) =>
-                setSortBy(s as "Most Relevant" | "Most Recent")
-              }
+              onSortChange={handleSortChange}
             />
             <SortByDropDownButton />
           </div>
@@ -85,7 +91,7 @@ const JobsWrapper = () => {
         <JobDetailPanelMobile
           jobId={jobId}
           open={open}
-          onOpenChange={(o) => !o && setJobId(undefined)}
+          onOpenChange={handleOpenChange}
         />
         <div className="sticky top-0 hidden h-fit max-h-screen flex-1 pt-6 lg:block">
           <JobDetailPanel jobId={jobId} />
