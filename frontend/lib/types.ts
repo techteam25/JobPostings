@@ -196,6 +196,10 @@ export type UserProfile = {
   };
 };
 
+export type SavedState = {
+  isSaved: boolean;
+};
+
 export type PaginationMeta = {
   total: number;
   page: number;
