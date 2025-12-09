@@ -4,7 +4,7 @@ import { useState } from "react";
 import { BsChevronLeft } from "react-icons/bs";
 
 import { useFetchJobDetails } from "@/app/(main)/hooks/use-fetch-jobs";
-import { SkeletonCard } from "@/app/(main)/components/JobsWrapper";
+import { JobsWrapperSkeleton } from "@/app/(main)/components/JobsWrapper";
 
 import {
   Drawer,
@@ -35,7 +35,7 @@ export const JobDetailPanelMobile = ({
   if (fetchingJobDetails || !jobDetails) {
     return (
       <div className="overflow-y-auto">
-        <SkeletonCard />
+        <JobsWrapperSkeleton />
       </div>
     );
   }
