@@ -4,11 +4,17 @@ import { useMemo } from "react";
 import { Bookmark, Menu } from "lucide-react";
 
 import { useFetchJobDetails } from "@/app/(main)/hooks/use-fetch-jobs";
+import { useJobSaved } from "@/hooks/use-job-saved";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import Image from "next/image";
+import { Toggle } from "@/components/ui/toggle";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ImOffice } from "react-icons/im";
 
 interface JobDetailPanelProps {
@@ -21,6 +27,8 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
     fetchingJobDetails,
     fetchJobDetailsError,
   } = useFetchJobDetails(jobId);
+
+  const { hasSaved, toggleSaved } = useJobSaved(jobId);
 
   const jobData = useMemo(() => {
     if (!jobDetails?.success) return null;
@@ -50,18 +58,6 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="text-primary-foreground flex size-16 items-center justify-center rounded font-bold">
-              {/*{employer?.logoUrl ? (*/}
-              {/*  <Image*/}
-              {/*    src={employer?.logoUrl}*/}
-              {/*    alt="Employer's company logo"*/}
-              {/*    width={64}*/}
-              {/*    height={64}*/}
-              {/*    className="rounded-2xl object-cover"*/}
-              {/*    sizes="64px"*/}
-              {/*  />*/}
-              {/*) : (*/}
-              {/*  <span>employer?.name.charAt(0)</span>*/}
-              {/*)}*/}
               <ImOffice className="text-muted-foreground mr-2 size-5" />
             </div>
             <div>
@@ -73,9 +69,25 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
             <Button variant="outline" size="icon">
               <Menu className="h-5 w-5" />
             </Button>
-            <Button variant="outline" size="icon">
-              <Bookmark className="h-5 w-5" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Toggle
+                    pressed={hasSaved}
+                    onPressedChange={toggleSaved}
+                    aria-label="Toggle bookmark"
+                    size="sm"
+                    variant="outline"
+                    className="data-[state=on]:*:[svg]:fill-accent data-[state=on]:*:[svg]:stroke-accent hover:*:[svg]:stroke-accent hover:text-accent-foreground size-9 cursor-pointer transition-colors hover:bg-transparent data-[state=on]:bg-transparent [&_svg]:size-5"
+                  >
+                    <Bookmark className="text-muted-foreground" />
+                  </Toggle>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="bg-foreground text-primary-foreground border-input border">
+                <p>Save this job</p>
+              </TooltipContent>
+            </Tooltip>
             <Button className="bg-foreground text-primary-foreground hover:bg-foreground/95 cursor-pointer">
               Apply on employer site
             </Button>
