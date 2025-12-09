@@ -5,7 +5,9 @@ import { HiSparkles } from "react-icons/hi2";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import JobsWrapper from "@/app/(main)/components/JobsWrapper";
+import JobsWrapper, {
+  JobsWrapperSkeleton,
+} from "@/app/(main)/components/JobsWrapper";
 import { JobTypeDropDownButton } from "@/app/(main)/components/JobTypeDropDownButton";
 import { ServiceRoleDropDownButton } from "@/app/(main)/components/ServiceRoleDropDownButton";
 import { DatePostedDropDownButton } from "@/app/(main)/components/DatePostedDropDownButton";
@@ -16,8 +18,11 @@ import { UserProfileStatusBanner } from "@/app/(main)/components/UserProfileStat
 import { ForYouJobsWrapper } from "@/app/(main)/components/ForYouJobsWrapper";
 import { SearchInputMobile } from "@/app/(main)/components/SearchInputMobile";
 import { SearchFiltersMobile } from "@/app/(main)/components/SearchFiltersMobile";
+import { getJobs } from "@/lib/api";
+import { Suspense } from "react";
 
-function Page() {
+async function Page() {
+  const jobs = await getJobs();
   return (
     <>
       <section className="border-b">
@@ -103,7 +108,9 @@ function Page() {
                   </div>
                 </div>
               </div>
-              <JobsWrapper />
+              <Suspense fallback={<JobsWrapperSkeleton />}>
+                <JobsWrapper jobs={jobs} />
+              </Suspense>
             </TabsContent>
           </Tabs>
         </div>
