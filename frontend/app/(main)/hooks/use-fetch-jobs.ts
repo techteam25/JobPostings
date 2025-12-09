@@ -1,10 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { instance } from "@/lib/axios-instance";
-import type { JobResponse, JobsResponse } from "@/schemas/responses/jobs";
+import { JobResponse, JobWithEmployer } from "@/schemas/responses/jobs";
 import { toast } from "sonner";
+import { PaginatedApiResponse } from "@/lib/types";
 
-export const useFetchJobs = () => {
+export const useFetchJobs = (
+  initialData: PaginatedApiResponse<JobWithEmployer>,
+) => {
   const {
     data,
     error,
@@ -13,9 +16,11 @@ export const useFetchJobs = () => {
   } = useQuery({
     queryKey: ["fetch-jobs"],
     queryFn: async () => {
-      const response = await instance.get<JobsResponse>("/jobs");
+      const response =
+        await instance.get<PaginatedApiResponse<JobWithEmployer>>("/jobs");
       return response.data;
     },
+    initialData,
   });
 
   if ((data && !data.success) || isError) {
