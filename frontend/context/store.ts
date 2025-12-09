@@ -7,6 +7,8 @@ import {
   remoteOnlySlice,
   serviceRoleSlice,
   sortBySlice,
+  savedJobsSlice,
+  type SavedJobsState,
 } from "./slices";
 
 export type DatePosted = "last-24-hours" | "last-7-days" | "last-14-days";
@@ -67,4 +69,8 @@ export const useFiltersStore = create<FiltersState>()(
       }),
     },
   ),
+);
+
+export const useSavedJobsStore = create<SavedJobsState>()((...args) =>
+  savedJobsSlice(...args),
 );

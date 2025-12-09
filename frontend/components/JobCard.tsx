@@ -2,9 +2,8 @@
 
 import { memo } from "react";
 import { cn } from "@/lib/utils";
-
-import { saveJobForUser } from "@/lib/api";
 import { JobType } from "@/lib/types";
+import { useJobSaved } from "@/hooks/use-job-saved";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Toggle } from "./ui/toggle";
@@ -45,6 +44,12 @@ export const JobCard = memo(
     logoUrl,
     isSelected,
   }: JobCardType) => {
+    const { hasSaved, toggleSaved } = useJobSaved(jobId);
+
+    const handleSaveJobChange = async () => {
+      await toggleSaved();
+    };
+
     return (
       <Card
         className={cn(
@@ -78,9 +83,10 @@ export const JobCard = memo(
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span>
+                <span onClick={(e) => e.stopPropagation()}>
                   <Toggle
-                    onClick={() => saveJobForUser(jobId)}
+                    pressed={hasSaved}
+                    onPressedChange={handleSaveJobChange}
                     aria-label="Toggle bookmark"
                     size="sm"
                     variant="outline"

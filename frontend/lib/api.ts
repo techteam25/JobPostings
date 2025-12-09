@@ -2,9 +2,9 @@
 
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { env } from "@/env";
-import { JobsResponse, JobResponse, Job } from "@/schemas/responses/jobs";
+import { JobResponse, Job, JobWithEmployer } from "@/schemas/responses/jobs";
 import {
   ApiResponse,
   Organization,
@@ -12,33 +12,38 @@ import {
   OrganizationWithMembers,
   PaginatedApiResponse,
   SavedJob,
+  SavedState,
   UserJobApplications,
   UserProfile,
 } from "@/lib/types";
 
-export const getJobs = cache(async (): Promise<JobsResponse> => {
-  const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs`, {
-    next: { revalidate: 60, tags: ["jobs"] },
-  });
+export const getJobs = cache(
+  async (): Promise<PaginatedApiResponse<JobWithEmployer>> => {
+    const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs`, {
+      next: { revalidate: 60, tags: ["jobs"] },
+    });
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch jobs");
-  }
+    if (!res.ok) {
+      return await res.json();
+    }
 
-  return res.json();
-});
+    return res.json();
+  },
+);
 
-export const getJobById = cache(async (jobId: number): Promise<JobResponse> => {
-  const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}`, {
-    next: { revalidate: 300, tags: [`job-${jobId}`] },
-  });
+export const getJobById = cache(
+  async (jobId: number): Promise<ApiResponse<JobResponse>> => {
+    const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}`, {
+      next: { revalidate: 300, tags: [`job-${jobId}`] },
+    });
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch job");
-  }
+    if (!res.ok) {
+      throw new Error("Failed to fetch job");
+    }
 
-  return res.json();
-});
+    return res.json();
+  },
+);
 
 export const getOrganization = cache(
   async (id: number): Promise<OrganizationWithMembers | null> => {
@@ -220,6 +225,7 @@ export const saveJobForUser = async (jobId: number): Promise<boolean> => {
   }
 
   revalidatePath("/saved");
+  revalidateTag(`user-saved-job-${jobId}-exists`);
 
   return true;
 };
@@ -245,9 +251,33 @@ export const removeSavedJobForUser = async (
   }
 
   revalidatePath("/saved");
+  revalidateTag(`user-saved-job-${jobId}-exists`);
 
   return true;
 };
+
+export const isJobSavedByUser = cache(
+  async (jobId: number): Promise<ApiResponse<SavedState>> => {
+    const cookieStore = await cookies();
+    const res = await fetch(
+      `${env.NEXT_PUBLIC_SERVER_URL}/users/me/saved-jobs/${jobId}/check`,
+      {
+        credentials: "include",
+        headers: {
+          Cookie: cookieStore.toString(),
+        },
+        next: { revalidate: 300, tags: [`user-saved-job-${jobId}-exists`] },
+      },
+    );
+
+    if (!res.ok) {
+      console.error("Failed to check if job is saved by user");
+      return await res.json();
+    }
+
+    return await res.json();
+  },
+);
 
 export const getUserInformation = cache(
   async (): Promise<ApiResponse<UserProfile>> => {

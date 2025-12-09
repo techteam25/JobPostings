@@ -8,7 +8,6 @@ import {
   Mail,
   Phone,
   ChevronRight,
-  MoreVertical,
   Briefcase,
   DollarSign,
   Watch,

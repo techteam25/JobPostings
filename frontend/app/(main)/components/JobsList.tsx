@@ -5,10 +5,10 @@ import { formatPostedDate } from "@/lib/utils";
 import { JobCard } from "@/components/JobCard";
 
 import { JobType } from "@/lib/types";
-import type { JobsResponse } from "@/schemas/responses/jobs";
+import type { JobsResponse, JobWithEmployer } from "@/schemas/responses/jobs";
 
 interface JobsListProps {
-  data: JobsResponse;
+  data: JobWithEmployer[];
   onJobSelected: (id: number) => void;
   selectedId: number | undefined;
 }
@@ -19,7 +19,7 @@ export const JobsList = ({
 }: JobsListProps) => {
   const jobs = useMemo(
     () =>
-      data?.data.map(({ job, employer }) => (
+      data.map(({ job, employer }) => (
         <JobCard
           key={job.id}
           jobId={job.id}
