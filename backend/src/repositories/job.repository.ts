@@ -552,21 +552,21 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     );
   }
 
-  async hasUserAppliedToJob(userId: number, jobId: number) {
-    return await withDbErrorHandling(
-      async () =>
-        await db
-          .select({ exists: sql`(SELECT 1)` })
-          .from(jobApplications)
-          .where(
-            and(
-              eq(jobApplications.applicantId, userId),
-              eq(jobApplications.jobId, jobId),
-            ),
-          )
-          .limit(1)
-          .then((result) => result.length > 0),
-    );
+  async hasUserAppliedToJob(userId: number, jobId: number): Promise<boolean> {
+    return await withDbErrorHandling(async () => {
+      const result = await db
+        .select()
+        .from(jobApplications)
+        .where(
+          and(
+            eq(jobApplications.applicantId, userId),
+            eq(jobApplications.jobId, jobId),
+          ),
+        )
+        .limit(1);
+
+      return result.length > 0;
+    });
   }
 
   async deleteJobApplicationsByUserId(userId: number): Promise<void> {
