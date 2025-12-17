@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "@/utils/auth";
 import { JobService } from "@/services/job.service";
 import { ok } from "@/services/base.service";
+import { JobRepository } from "@/repositories/job.repository";
+import { emailSenderQueue } from "@/utils/bullmq.utils";
 
 describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
   let userCookie: string;
@@ -278,6 +280,217 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
 
       TestHelpers.validateApiResponse(response, 201);
       expect(response.body.data).toHaveProperty("applicationId");
+    });
+  });
+});
+
+describe("Withdraw Job Application Integration Tests", () => {
+  let jobRepository: JobRepository;
+  let userCookie: string;
+  let otherUserCookie: string;
+  let jobId: number;
+  let applicationId: number;
+  let otherUserApplicationId: number;
+
+  beforeAll(() => {
+    jobRepository = new JobRepository();
+
+    // Mock email queue to prevent actual email sending during tests
+    vi.spyOn(emailSenderQueue, "add").mockResolvedValue({} as any);
+  });
+
+  beforeEach(async () => {
+    const { faker } = await import("@faker-js/faker");
+
+    await seedJobs();
+
+    // Create first test user
+    await auth.api.signUpEmail({
+      body: {
+        email: "test.user1@example.com",
+        password: "Password@123",
+        name: faker.person.firstName() + " " + faker.person.lastName(),
+        image: faker.image.avatar(),
+      },
+    });
+
+    // Create second test user
+    await auth.api.signUpEmail({
+      body: {
+        email: "test.user2@example.com",
+        password: "Password@123",
+        name: faker.person.firstName() + " " + faker.person.lastName(),
+        image: faker.image.avatar(),
+      },
+    });
+
+    // Login first user
+    const loginResponse1 = await request
+      .post("/api/auth/sign-in/email")
+      .send({ email: "test.user1@example.com", password: "Password@123" });
+
+    userCookie = loginResponse1.headers["set-cookie"]
+      ? loginResponse1.headers["set-cookie"][0]!
+      : "";
+
+    // Login second user
+    const loginResponse2 = await request
+      .post("/api/auth/sign-in/email")
+      .send({ email: "test.user2@example.com", password: "Password@123" });
+
+    otherUserCookie = loginResponse2.headers["set-cookie"]
+      ? loginResponse2.headers["set-cookie"][0]!
+      : "";
+
+    jobId = 1; // From seeded jobs
+
+    // Create application for first user
+    const appResponse1 = await request
+      .post(`/api/jobs/${jobId}/apply`)
+      .set("Cookie", userCookie)
+      .send({});
+
+    applicationId = appResponse1.body.data.applicationId;
+
+    // Create application for second user
+    const appResponse2 = await request
+      .post(`/api/jobs/${jobId}/apply`)
+      .set("Cookie", otherUserCookie)
+      .send({});
+
+    otherUserApplicationId = appResponse2.body.data.applicationId;
+  });
+
+  afterAll(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe("PATCH /api/jobs/applications/:applicationId/withdraw", () => {
+    it("should successfully withdraw user's own application", async () => {
+      const response = await request
+        .patch(`/api/jobs/applications/${applicationId}/withdraw`)
+        .set("Cookie", userCookie)
+        .expect(200);
+
+      TestHelpers.validateApiResponse(response, 200);
+      expect(response.body.message).toBe("Application withdrawn successfully");
+
+      // Verify email queue was called
+      expect(emailSenderQueue.add).toHaveBeenCalledWith(
+        "sendApplicationWithdrawalConfirmation",
+        expect.objectContaining({
+          email: expect.any(String),
+          fullName: expect.any(String),
+          jobTitle: expect.any(String),
+          applicationId: applicationId,
+        }),
+      );
+
+      // Verify application status was updated in database
+      const application =
+        await jobRepository.findApplicationById(applicationId);
+      expect(application?.application.status).toBe("withdrawn");
+    });
+
+    it("should return 401 when user is not authenticated", async () => {
+      const response = await request
+        .patch(`/api/jobs/applications/${applicationId}/withdraw`)
+        .expect(401);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        status: "error",
+        error: "UNAUTHORIZED",
+        message: "Authentication required",
+      });
+    });
+
+    it("should return 403 when user attempts to withdraw another user's application", async () => {
+      const response = await request
+        .patch(`/api/jobs/applications/${otherUserApplicationId}/withdraw`)
+        .set("Cookie", userCookie)
+        .expect(403);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        status: "error",
+        error: "FORBIDDEN",
+        message: "You can only withdraw your own applications",
+      });
+    });
+
+    it("should return 404 when application does not exist", async () => {
+      const nonExistentId = 999999;
+
+      const response = await request
+        .patch(`/api/jobs/applications/${nonExistentId}/withdraw`)
+        .set("Cookie", userCookie)
+        .expect(404);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        status: "error",
+        error: "NOT_FOUND",
+        message: "Application not found",
+      });
+    });
+
+    it("should return 400 for invalid application ID format", async () => {
+      const response = await request
+        .patch("/api/jobs/applications/invalid-id/withdraw")
+        .set("Cookie", userCookie)
+        .expect(400);
+
+      expect(response.body).toMatchObject({
+        success: false,
+      });
+    });
+
+    it("should allow withdrawal of application with pending status", async () => {
+      const response = await request
+        .patch(`/api/jobs/applications/${applicationId}/withdraw`)
+        .set("Cookie", userCookie)
+        .expect(200);
+
+      TestHelpers.validateApiResponse(response, 200);
+    });
+
+    it("should send email with correct job title and user details", async () => {
+      await request
+        .patch(`/api/jobs/applications/${applicationId}/withdraw`)
+        .set("Cookie", userCookie)
+        .expect(200);
+
+      expect(emailSenderQueue.add).toHaveBeenCalledWith(
+        "sendApplicationWithdrawalConfirmation",
+        expect.objectContaining({
+          email: expect.stringMatching(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/),
+          fullName: expect.any(String),
+          jobTitle: expect.any(String),
+          applicationId: expect.any(Number),
+        }),
+      );
+    });
+  });
+
+  describe("Middleware chain validation", () => {
+    it("should execute middlewares in correct order - auth before validation", async () => {
+      const response = await request
+        .patch("/api/jobs/applications/invalid/withdraw")
+        .expect(401);
+
+      expect(response.body.error).toBe("UNAUTHORIZED");
+    });
+
+    it("should validate request params format", async () => {
+      const response = await request
+        .patch("/api/jobs/applications/not-a-number/withdraw")
+        .set("Cookie", userCookie)
+        .expect(400);
+
+      expect(response.body).toMatchObject({
+        success: false,
+      });
     });
   });
 });
