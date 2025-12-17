@@ -3,6 +3,7 @@ import { JobInsightsRepository } from "@/repositories/jobInsights.repository";
 import { JobRepository } from "@/repositories/job.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { TypesenseService } from "@/services/typesense.service/typesense.service";
+import { UserRepository } from "@/repositories/user.repository";
 
 import {
   NewJobApplication,
@@ -25,7 +26,7 @@ import { SecurityUtils } from "@/utils/security";
 import { AppError } from "@/utils/errors";
 
 import { SearchParams } from "@/validations/base.validation";
-import { jobIndexerQueue } from "@/utils/bullmq.utils";
+import { emailSenderQueue, jobIndexerQueue } from "@/utils/bullmq.utils";
 import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
 
 import { fail, ok } from "./base.service";
@@ -36,6 +37,7 @@ export class JobService extends BaseService {
   private organizationRepository: OrganizationRepository;
   private jobInsightsRepository: JobInsightsRepository;
   private typesenseService: TypesenseService;
+  private userRepository: UserRepository;
 
   constructor() {
     super();
@@ -43,6 +45,7 @@ export class JobService extends BaseService {
     this.organizationRepository = new OrganizationRepository();
     this.jobInsightsRepository = new JobInsightsRepository();
     this.typesenseService = new TypesenseService();
+    this.userRepository = new UserRepository();
   }
 
   async getAllActiveJobs(options: { page?: number; limit?: number } = {}) {
@@ -400,12 +403,28 @@ export class JobService extends BaseService {
         return fail(new DatabaseError("Failed to submit application"));
       }
 
+      // Fetch user details for email notification
+      const applicant = await this.userRepository.findById(
+        applicationData.applicantId,
+      );
+
+      if (applicant) {
+        // Enqueue email notification
+        await emailSenderQueue.add("sendJobApplicationConfirmation", {
+          email: applicant.email,
+          fullName: applicant.fullName,
+          jobTitle: job.value.job.title,
+          jobId: applicationData.jobId,
+        });
+      }
+
       return ok({
         applicationId,
         message: "Application submitted successfully",
       });
-    } catch {
-      return fail(new DatabaseError("Failed to retrieve application"));
+    } catch (error) {
+      logger.error(error);
+      return fail(new DatabaseError("Failed to submit application"));
     }
   }
 
