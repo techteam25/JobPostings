@@ -210,7 +210,13 @@ export class JobController extends BaseController {
       );
     }
 
-    const job = await this.jobService.createJob(req.body);
+    // Auto-populate employerId from authenticated user's organization
+    const jobData = {
+      ...req.body,
+      employerId: req.organizationId,
+    };
+
+    const job = await this.jobService.createJob(jobData);
 
     if (job.isSuccess) {
       return this.sendSuccess<JobWithSkills>(
