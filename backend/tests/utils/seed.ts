@@ -256,6 +256,7 @@ export const seedJobs = async () => {
       await _seedDbOrganization(t, Number(createdUser.user.id));
 
       await _seedDbJobs(t);
+      console.log("Seeded jobs successfully");
     });
   } catch (error) {
     logger.error(`Error seeding jobs:, ${JSON.stringify(error, null, 2)}`);
