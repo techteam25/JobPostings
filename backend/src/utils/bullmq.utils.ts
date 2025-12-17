@@ -84,6 +84,14 @@ const emailSenderWorker = new Worker(
       case "sendPasswordResetEmail":
         // await emailService.sendPasswordResetEmail(job.data);
         break;
+      case "sendJobApplicationConfirmation":
+        await emailService.sendJobApplicationConfirmation(
+          job.data.email,
+          job.data.fullName,
+          (job.data as any).jobTitle,
+          (job.data as any).jobId,
+        );
+        break;
       case "sendAccountDeletionConfirmation":
         const user = job.data;
         await emailService.sendAccountDeletionConfirmation(
