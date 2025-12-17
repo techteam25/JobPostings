@@ -235,17 +235,17 @@ Tech Team`,
   ): Promise<void> {
     try {
       const template = await this.loadTemplate("deleteEmail");
-      const logoBase64 = await this.getImageAsBase64("GetInvolved_Logo.png");
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
 
       const htmlContent = template
         .replace(/{{userName}}/g, userName)
         .replace(/{{jobTitle}}/g, jobTitle)
         .replace(/{{jobId}}/g, jobId.toString())
         .replace(/{{deletionDate}}/g, new Date().toLocaleDateString())
-        .replace(/{{logoBase64}}/g, logoBase64);
+        .replace("{{logoPath}}", logoPath);
 
       const mailOptions = {
-        from: env.SMTP_FROM,
+        from: env.EMAIL_FROM,
         to: userEmail,
         subject: "Job Posting Deleted Successfully",
         html: htmlContent,
