@@ -501,15 +501,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     applicationId: number,
     updateData: UpdateJobApplication,
   ) {
-    // const updateData: any = { status };
-    // if (status === "reviewed") {
-    //   updateData.reviewedAt = new Date();
-    // }
-    // if (notes) {
-    //   updateData.notes = notes;
-    // }
-
-    const result = await withDbErrorHandling(
+    const [result] = await withDbErrorHandling(
       async () =>
         await db
           .update(jobApplications)
@@ -517,39 +509,47 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
           .where(eq(jobApplications.id, applicationId)),
     );
 
-    return (result as any).affectedRows > 0;
+    return result.affectedRows > 0;
   }
 
   async findApplicationById(applicationId: number) {
-    return withDbErrorHandling(
-      async () =>
-        await db
-          .select({
-            application: {
-              id: jobApplications.id,
-              jobId: jobApplications.jobId,
-              reviewedAt: jobApplications.reviewedAt,
-            },
-            job: {
-              id: jobsDetails.id,
-              title: jobsDetails.title,
-              city: jobsDetails.city,
-              state: jobsDetails.state,
-              country: jobsDetails.country,
-              zipcode: jobsDetails.zipcode,
-              isRemote: jobsDetails.isRemote,
-              jobType: jobsDetails.jobType,
-              employerId: jobsDetails.employerId,
-            },
-            user: {
-              id: user.id,
-            },
-          })
-          .from(jobApplications)
-          .where(eq(jobApplications.id, applicationId))
-          .innerJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
-          .innerJoin(user, eq(jobApplications.applicantId, user.id)),
-    );
+    return withDbErrorHandling(async () => {
+      const result = await db
+        .select({
+          application: {
+            id: jobApplications.id,
+            jobId: jobApplications.jobId,
+            applicantId: jobApplications.applicantId,
+            status: jobApplications.status,
+            reviewedAt: jobApplications.reviewedAt,
+            appliedAt: jobApplications.appliedAt,
+            coverLetter: jobApplications.coverLetter,
+            resumeUrl: jobApplications.resumeUrl,
+          },
+          job: {
+            id: jobsDetails.id,
+            title: jobsDetails.title,
+            city: jobsDetails.city,
+            state: jobsDetails.state,
+            country: jobsDetails.country,
+            zipcode: jobsDetails.zipcode,
+            isRemote: jobsDetails.isRemote,
+            jobType: jobsDetails.jobType,
+            employerId: jobsDetails.employerId,
+          },
+          applicant: {
+            id: user.id,
+            email: user.email,
+            fullName: user.fullName,
+          },
+        })
+        .from(jobApplications)
+        .where(eq(jobApplications.id, applicationId))
+        .innerJoin(jobsDetails, eq(jobApplications.jobId, jobsDetails.id))
+        .innerJoin(user, eq(jobApplications.applicantId, user.id));
+
+      return result[0] || null;
+    });
   }
 
   async hasUserAppliedToJob(userId: number, jobId: number): Promise<boolean> {
