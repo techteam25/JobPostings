@@ -162,4 +162,35 @@ Tech Team`,
       console.error(error);
     }
   }
+
+  async sendJobApplicationConfirmation(
+    email: string,
+    fullName: string,
+    jobTitle: string,
+    jobId: number,
+  ): Promise<void> {
+    try {
+      const template = await this.loadTemplate("jobApplicationConfirmation");
+
+      const dashboardLink = `${env.FRONTEND_URL}/applications`;
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      const htmlContent = template
+        .replace("{{name}}", fullName)
+        .replace("{{jobTitle}}", jobTitle)
+        .replace("{{dashboardLink}}", dashboardLink)
+        .replace("{{logoPath}}", logoPath);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: "Application Submitted Successfully",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 }
