@@ -178,7 +178,6 @@ export class JobService extends BaseService {
       q?: string;
       order?: string;
     } = {},
-    requesterId: number,
   ) {
     try {
       const jobsByEmployer = await this.jobRepository.findJobsByEmployer(
@@ -192,10 +191,9 @@ export class JobService extends BaseService {
   }
 
   async createJob(
-    jobData: CreateJobSchema["body"],
+    jobData: CreateJobSchema["body"] & { employerId: number },
   ): Promise<Result<JobWithSkills, Error>> {
     try {
-      // Todo Fetch this from organizationMembers table
       // Validate employer exists
       const employer = await this.organizationRepository.findById(
         jobData.employerId,
@@ -305,6 +303,7 @@ export class JobService extends BaseService {
   async deleteJob(
     id: number,
     requesterId: number,
+    organizationId: number,
   ): Promise<Result<null, Error>> {
     try {
       const job = await this.getJobById(id);
@@ -313,25 +312,6 @@ export class JobService extends BaseService {
         return fail(new NotFoundError("Job", id));
       }
 
-      // Authorization check - only admin or employer who posted the job can delete
-      const organization =
-        await this.organizationRepository.findByContact(requesterId);
-
-      if (!organization) {
-        return fail(
-          new ForbiddenError("You do not belong to any organization"),
-        );
-      }
-
-      if (job.value.job.employerId !== organization.organizationId) {
-        return fail(
-          new ForbiddenError(
-            "You can only delete jobs posted by your organization",
-          ),
-        );
-      }
-
-      // Check if job has applications - if so, prevent deletion
       const applications = await this.jobRepository.findApplicationsByJob(id);
 
       if (applications.items.length > 0) {
@@ -345,8 +325,19 @@ export class JobService extends BaseService {
         return fail(new DatabaseError("Failed to delete job"));
       }
 
-      // Delete job indexes in Typesense
       await jobIndexerQueue.add("deleteJobIndex", { id });
+
+      const user = await this.userRepository.findById(requesterId);
+      if (user) {
+        await emailSenderQueue.add("sendJobDeletionEmail", {
+          userEmail: user.email,
+          userName: user.fullName,
+          jobTitle: job.value.job.title,
+          jobId: id,
+          organizationId,
+        });
+      }
+
       return ok(null);
     } catch {
       return fail(new DatabaseError("Failed to delete job"));
