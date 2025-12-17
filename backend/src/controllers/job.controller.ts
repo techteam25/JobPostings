@@ -291,11 +291,13 @@ export class JobController extends BaseController {
 
     const { page, limit, sortBy, q, order } = req.query;
 
-    const result = await this.jobService.getJobsByEmployer(
-      organizationId,
-      { page, limit, sortBy, q, order },
-      req.userId!,
-    );
+    const result = await this.jobService.getJobsByEmployer(organizationId, {
+      page,
+      limit,
+      sortBy,
+      q,
+      order,
+    });
 
     if (result.isSuccess) {
       return this.sendPaginatedResponse<Job>(
@@ -334,11 +336,10 @@ export class JobController extends BaseController {
       );
     }
 
-    const result = await this.jobService.getJobsByEmployer(
-      organizationId,
-      { page, limit },
-      req.userId!,
-    );
+    const result = await this.jobService.getJobsByEmployer(organizationId, {
+      page,
+      limit,
+    });
 
     if (result.isSuccess) {
       return this.sendPaginatedResponse(
