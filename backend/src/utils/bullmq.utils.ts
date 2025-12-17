@@ -92,6 +92,14 @@ const emailSenderWorker = new Worker(
           (job.data as any).jobId,
         );
         break;
+      case "sendApplicationWithdrawalConfirmation":
+        await emailService.sendApplicationWithdrawalConfirmation(
+          job.data.email,
+          job.data.fullName,
+          (job.data as any).jobTitle,
+          (job.data as any).applicationId,
+        );
+        break;
       case "sendAccountDeletionConfirmation":
         const user = job.data;
         await emailService.sendAccountDeletionConfirmation(
