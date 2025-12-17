@@ -14,7 +14,10 @@ import {
   updateJobSchema,
 } from "@/validations/job.validation";
 import { searchJobResult, searchParams } from "@/validations/base.validation";
-import { updateApplicationStatusSchema } from "@/validations/jobApplications.validation";
+import {
+  applyForJobSchema,
+  updateApplicationStatusSchema,
+} from "@/validations/jobApplications.validation";
 import {
   getOrganizationSchema,
   selectOrganizationSchema,
@@ -194,10 +197,81 @@ router.get(
   jobController.getUserApplications,
 );
 
+registry.registerPath({
+  method: "post",
+  path: "/api/jobs/{jobId}/apply",
+  summary: "Apply for a job posting",
+  tags: ["Jobs"],
+  request: {
+    params: applyForJobSchema.shape["params"],
+    body: {
+      content: {
+        "application/json": {
+          schema: applyForJobSchema.shape["body"],
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Application submitted successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.object({
+              applicationId: z.number(),
+              message: z.string(),
+            }),
+          ),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Job not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    409: {
+      description: "Already applied for this job",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
 router.post(
   "/:jobId/apply",
   authMiddleware.requireUserRole,
-  validate(getJobSchema),
+  validate(applyForJobSchema),
   jobController.applyForJob,
 );
 
