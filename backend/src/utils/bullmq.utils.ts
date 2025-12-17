@@ -113,6 +113,14 @@ const emailSenderWorker = new Worker(
           job.data.fullName,
         );
         break;
+      case "sendJobDeletionEmail":
+        await emailService.sendJobDeletionEmail(
+          job.data.userEmail,
+          job.data.userName,
+          job.data.jobTitle,
+          job.data.jobId,
+        );
+        break;
 
       default:
         logger.error(`Unknown email job type: ${job.name}`);
