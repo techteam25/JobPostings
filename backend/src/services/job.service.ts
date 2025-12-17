@@ -495,15 +495,13 @@ export class JobService extends BaseService {
     requesterId: number,
   ): Promise<Result<{ message: string }, Error>> {
     try {
-      // Get application details
-      const [application] =
+      const application =
         await this.jobRepository.findApplicationById(applicationId);
 
       if (!application) {
         return fail(new NotFoundError("Application", applicationId));
       }
 
-      // Authorization check - only admin or employer who posted the job can update application status
       const [job, organization] = await Promise.all([
         this.getJobById(application.job.id),
         this.organizationRepository.findByContact(requesterId),
@@ -563,19 +561,12 @@ export class JobService extends BaseService {
     try {
       const application =
         await this.jobRepository.findApplicationById(applicationId);
+
       if (!application) {
         return fail(new NotFoundError("Application", applicationId));
       }
 
-      // Check if user owns this application
-      if ((application as any).applicantId !== userId) {
-        return fail(
-          new ForbiddenError("You can only withdraw your own applications"),
-        );
-      }
-
-      // Check if application can be withdrawn
-      if (["hired", "rejected"].includes((application as any).status)) {
+      if (["hired", "rejected"].includes(application.application.status)) {
         return fail(
           new ValidationError("Cannot withdraw application with final status"),
         );
@@ -585,11 +576,22 @@ export class JobService extends BaseService {
         applicationId,
         {
           status: "withdrawn",
-        } as any,
+        },
       );
 
       if (!success) {
         return fail(new DatabaseError("Failed to withdraw application"));
+      }
+
+      const applicant = await this.userRepository.findById(userId);
+
+      if (applicant) {
+        await emailSenderQueue.add("sendApplicationWithdrawalConfirmation", {
+          email: applicant.email,
+          fullName: applicant.fullName,
+          jobTitle: application.job.title,
+          applicationId: applicationId,
+        });
       }
 
       return ok({ message: "Application withdrawn successfully" });
