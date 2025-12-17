@@ -349,7 +349,7 @@ describe("Job Controller Integration Tests", () => {
       it("should reject job with invalid skills format (not an array)", async () => {
         const invalidJob = await jobPostingFixture();
         // @ts-expect-error - Testing invalid input
-        invalidJob.skills = "JavaScript, TypeScript"; // Should be array
+        invalidJob.skills = "JavaScript, TypeScript"; // Should be an array
 
         const response = await request
           .post("/api/jobs")
@@ -377,6 +377,7 @@ describe("Job Controller Integration Tests", () => {
 
       it("should sanitize input to prevent XSS attacks", async () => {
         const fixture = await jobPostingFixture();
+        // noinspection HtmlUnknownTarget,HtmlDeprecatedAttribute
         const xssJob = {
           ...fixture,
           title: "<script>alert('XSS')</script>Legitimate Title",
@@ -451,26 +452,17 @@ describe("Job Controller Integration Tests", () => {
     let cookie: string;
 
     beforeEach(async () => {
-      await db.delete(jobsDetails);
-
-      // Reset auto-increment counters
-      await db.execute(sql`ALTER TABLE job_details AUTO_INCREMENT = 1`);
-
-      await seedAdminUser();
+      await seedJobs();
 
       const response = await request.post("/api/auth/sign-in/email").send({
-        email: "admin.user@example.com",
+        email: "owner.user@example.com",
         password: "Password@123",
       });
 
       cookie = response.headers["set-cookie"]![0]!;
-
-      const newJob = await jobPostingFixture();
-
-      await request.post("/api/jobs").set("Cookie", cookie).send(newJob);
     });
 
-    it("should delete a job returning 200", async () => {
+    it("should delete a job when user is admin/owner with proper permissions returning 200", async () => {
       const response = await request
         .delete("/api/jobs/1")
         .set("Cookie", cookie);
@@ -485,14 +477,41 @@ describe("Job Controller Integration Tests", () => {
       // Verify the job is actually deleted
       const getResponse = await request.get("/api/jobs/1");
 
-      console.log(JSON.stringify(getResponse.body, null, 2));
-
       TestHelpers.validateApiResponse(getResponse, 404);
       expect(getResponse.body).toHaveProperty(
         "message",
         "Job with Id: 1 not found",
       );
       expect(getResponse.body).toHaveProperty("errorCode", "NOT_FOUND");
+    });
+
+    it("should return 401 when user is not authenticated", async () => {
+      const response = await request.delete("/api/jobs/1");
+
+      TestHelpers.validateApiResponse(response, 401);
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body).toHaveProperty("error", "UNAUTHORIZED");
+    });
+
+    it("should return 404 when job does not exist", async () => {
+      const response = await request
+        .delete("/api/jobs/9999")
+        .set("Cookie", cookie);
+
+      console.log(JSON.stringify(response.body, null, 2));
+
+      TestHelpers.validateApiResponse(response, 404);
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body).toHaveProperty("error", "NOT_FOUND");
+    });
+
+    it("should return 400 when job ID is invalid", async () => {
+      const response = await request
+        .delete("/api/jobs/invalid")
+        .set("Cookie", cookie);
+
+      TestHelpers.validateApiResponse(response, 400);
+      expect(response.body).toHaveProperty("success", false);
     });
   });
 
