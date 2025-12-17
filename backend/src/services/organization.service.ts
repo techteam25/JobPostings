@@ -394,4 +394,18 @@ export class OrganizationService extends BaseService {
       );
     }
   }
+
+  async hasDeletePermission(
+    userId: number,
+    organizationId: number,
+  ): Promise<boolean> {
+    try {
+      return await this.organizationRepository.hasDeletePermission(
+        userId,
+        organizationId,
+      );
+    } catch (error) {
+      return false;
+    }
+  }
 }
