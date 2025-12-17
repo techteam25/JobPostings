@@ -256,6 +256,7 @@ export const seedJobs = async () => {
       await _seedDbOrganization(t, Number(createdUser.user.id));
 
       await _seedDbJobs(t);
+      console.log("Seeded jobs successfully");
     });
   } catch (error) {
     logger.error(`Error seeding jobs:, ${JSON.stringify(error, null, 2)}`);
@@ -406,5 +407,61 @@ export const seedJobApplications = async () => {
     });
   } catch (e) {
     logger.error(`Error seeding jobs:, ${JSON.stringify(e, null, 2)}`);
+  }
+};
+
+export const seedUserWithRole = async (
+  role: "owner" | "admin" | "recruiter" | "member",
+  email: string = "test.user@example.com",
+) => {
+  const { faker } = await import("@faker-js/faker");
+
+  try {
+    await db.transaction(async (t) => {
+      await t.delete(organizationMembers);
+      await t.delete(organizations);
+      await t.delete(user);
+
+      await t.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
+      await t.execute(sql`ALTER TABLE organization_members AUTO_INCREMENT = 1`);
+      await t.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+
+      const createdUser = await auth.api.signUpEmail({
+        body: {
+          email,
+          password: "Password@123",
+          name: faker.person.firstName() + " " + faker.person.lastName(),
+          image: faker.image.avatar(),
+        },
+      });
+
+      const [orgId] = await t
+        .insert(organizations)
+        .values({
+          name: faker.company.name(),
+          streetAddress: faker.location.streetAddress(),
+          city: faker.location.city(),
+          state: faker.location.state(),
+          country: faker.location.country(),
+          zipCode: faker.location.zipCode("#####"),
+          phone: faker.phone.number({ style: "international" }),
+          url: faker.internet.url(),
+          mission: faker.lorem.sentence(),
+        })
+        .$returningId();
+
+      if (!orgId) {
+        throw new Error("Failed to create organization for user");
+      }
+
+      await t.insert(organizationMembers).values({
+        userId: Number(createdUser.user.id),
+        organizationId: orgId.id,
+        role,
+        isActive: true,
+      });
+    });
+  } catch (error) {
+    console.error(error);
   }
 };

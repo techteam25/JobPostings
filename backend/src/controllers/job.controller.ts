@@ -16,7 +16,10 @@ import {
 } from "@/validations/job.validation";
 import { GetOrganizationSchema } from "@/validations/organization.validation";
 import { SearchParams } from "@/validations/base.validation";
-import { GetJobApplicationSchema } from "@/validations/jobApplications.validation";
+import {
+  ApplyForJobSchema,
+  GetJobApplicationSchema,
+} from "@/validations/jobApplications.validation";
 import { ApiResponse, PaginatedResponse } from "@/types";
 import { buildPaginationMeta } from "@/utils/build-search-pagination";
 
@@ -207,7 +210,12 @@ export class JobController extends BaseController {
       );
     }
 
-    const job = await this.jobService.createJob(req.body);
+    const jobData = {
+      ...req.body,
+      employerId: req.organizationId,
+    };
+
+    const job = await this.jobService.createJob(jobData);
 
     if (job.isSuccess) {
       return this.sendSuccess<JobWithSkills>(
@@ -253,7 +261,11 @@ export class JobController extends BaseController {
   ) => {
     const jobId = parseInt(req.params.jobId);
 
-    const result = await this.jobService.deleteJob(jobId, req.userId!);
+    const result = await this.jobService.deleteJob(
+      jobId,
+      req.userId!,
+      req.organizationId!,
+    );
 
     if (result.isSuccess) {
       return this.sendSuccess<void>(res, undefined, "Job deleted successfully");
@@ -279,11 +291,13 @@ export class JobController extends BaseController {
 
     const { page, limit, sortBy, q, order } = req.query;
 
-    const result = await this.jobService.getJobsByEmployer(
-      organizationId,
-      { page, limit, sortBy, q, order },
-      req.userId!,
-    );
+    const result = await this.jobService.getJobsByEmployer(organizationId, {
+      page,
+      limit,
+      sortBy,
+      q,
+      order,
+    });
 
     if (result.isSuccess) {
       return this.sendPaginatedResponse<Job>(
@@ -322,11 +336,10 @@ export class JobController extends BaseController {
       );
     }
 
-    const result = await this.jobService.getJobsByEmployer(
-      organizationId,
-      { page, limit },
-      req.userId!,
-    );
+    const result = await this.jobService.getJobsByEmployer(organizationId, {
+      page,
+      limit,
+    });
 
     if (result.isSuccess) {
       return this.sendPaginatedResponse(
@@ -345,29 +358,32 @@ export class JobController extends BaseController {
   };
 
   // Job Application Methods
-  applyForJob = async (req: Request<GetJobSchema["params"]>, res: Response) => {
-    try {
-      const jobId = Number(req.params.jobId);
+  applyForJob = async (
+    req: Request<ApplyForJobSchema["params"], {}, ApplyForJobSchema["body"]>,
+    res: Response,
+  ) => {
+    const jobId = Number(req.params.jobId);
 
-      const applicationData = {
-        ...req.body,
-        jobId,
-        applicantId: req.userId!,
-      };
+    const applicationData = {
+      ...req.body,
+      jobId,
+      applicantId: req.userId!,
+    };
 
-      const result = await this.jobService.applyForJob(applicationData);
+    const result = await this.jobService.applyForJob(applicationData);
+
+    if (result.isSuccess) {
       return this.sendSuccess(
         res,
-        result,
+        result.value,
         "Application submitted successfully",
         201,
       );
-    } catch (error) {
+    } else {
       return this.handleControllerError(
         res,
-        error,
+        result.error,
         "Failed to submit application",
-        400,
       );
     }
   };

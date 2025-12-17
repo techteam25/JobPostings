@@ -77,7 +77,7 @@ export const updateJobInsightsSchema = insertJobInsightsSchema
   .omit({ id: true });
 
 const createJobPayloadSchema = insertJobSchema
-  .omit({ applicationDeadline: true })
+  .omit({ applicationDeadline: true, employerId: true })
   .extend({
     applicationDeadline: z.iso.datetime(),
     skills: z.array(z.string()),

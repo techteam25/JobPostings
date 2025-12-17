@@ -21,6 +21,23 @@ const applicationIdParamSchema = z.object({
     .regex(/^\d+$/, "applicationId must be a valid number"),
 });
 
+const jobIdParamSchema = z.object({
+  jobId: z.string().regex(/^\d+$/, "jobId must be a valid number"),
+});
+
+export const applyForJobSchema = z.object({
+  body: z.object({
+    coverLetter: z
+      .string()
+      .min(50, "Cover letter must be at least 50 characters")
+      .max(2000, "Cover letter must not exceed 2000 characters")
+      .optional(),
+    resumeUrl: z.string().url("Invalid resume URL").optional(),
+  }).strict(),
+  params: jobIdParamSchema,
+  query: z.object({}).strict(),
+});
+
 export const jobApplicationSchema = z.object({
   body: jobApplicationPayload,
   params: z.object({}).strict(),
@@ -61,6 +78,7 @@ export const selectJobApplicationSchema = createSelectSchema(jobApplications)
   });
 
 export type GetJobApplicationSchema = z.infer<typeof getJobApplicationSchema>;
+export type ApplyForJobSchema = z.infer<typeof applyForJobSchema>;
 
 export type JobApplicationWithNotes = z.infer<
   typeof selectJobApplicationSchema

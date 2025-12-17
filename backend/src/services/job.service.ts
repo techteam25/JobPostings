@@ -3,6 +3,7 @@ import { JobInsightsRepository } from "@/repositories/jobInsights.repository";
 import { JobRepository } from "@/repositories/job.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { TypesenseService } from "@/services/typesense.service/typesense.service";
+import { UserRepository } from "@/repositories/user.repository";
 
 import {
   NewJobApplication,
@@ -25,7 +26,7 @@ import { SecurityUtils } from "@/utils/security";
 import { AppError } from "@/utils/errors";
 
 import { SearchParams } from "@/validations/base.validation";
-import { jobIndexerQueue } from "@/utils/bullmq.utils";
+import { emailSenderQueue, jobIndexerQueue } from "@/utils/bullmq.utils";
 import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
 
 import { fail, ok } from "./base.service";
@@ -36,6 +37,7 @@ export class JobService extends BaseService {
   private organizationRepository: OrganizationRepository;
   private jobInsightsRepository: JobInsightsRepository;
   private typesenseService: TypesenseService;
+  private userRepository: UserRepository;
 
   constructor() {
     super();
@@ -43,6 +45,7 @@ export class JobService extends BaseService {
     this.organizationRepository = new OrganizationRepository();
     this.jobInsightsRepository = new JobInsightsRepository();
     this.typesenseService = new TypesenseService();
+    this.userRepository = new UserRepository();
   }
 
   async getAllActiveJobs(options: { page?: number; limit?: number } = {}) {
@@ -175,7 +178,6 @@ export class JobService extends BaseService {
       q?: string;
       order?: string;
     } = {},
-    requesterId: number,
   ) {
     try {
       const jobsByEmployer = await this.jobRepository.findJobsByEmployer(
@@ -189,10 +191,9 @@ export class JobService extends BaseService {
   }
 
   async createJob(
-    jobData: CreateJobSchema["body"],
+    jobData: CreateJobSchema["body"] & { employerId: number },
   ): Promise<Result<JobWithSkills, Error>> {
     try {
-      // Todo Fetch this from organizationMembers table
       // Validate employer exists
       const employer = await this.organizationRepository.findById(
         jobData.employerId,
@@ -302,6 +303,7 @@ export class JobService extends BaseService {
   async deleteJob(
     id: number,
     requesterId: number,
+    organizationId: number,
   ): Promise<Result<null, Error>> {
     try {
       const job = await this.getJobById(id);
@@ -310,25 +312,6 @@ export class JobService extends BaseService {
         return fail(new NotFoundError("Job", id));
       }
 
-      // Authorization check - only admin or employer who posted the job can delete
-      const organization =
-        await this.organizationRepository.findByContact(requesterId);
-
-      if (!organization) {
-        return fail(
-          new ForbiddenError("You do not belong to any organization"),
-        );
-      }
-
-      if (job.value.job.employerId !== organization.organizationId) {
-        return fail(
-          new ForbiddenError(
-            "You can only delete jobs posted by your organization",
-          ),
-        );
-      }
-
-      // Check if job has applications - if so, prevent deletion
       const applications = await this.jobRepository.findApplicationsByJob(id);
 
       if (applications.items.length > 0) {
@@ -342,8 +325,19 @@ export class JobService extends BaseService {
         return fail(new DatabaseError("Failed to delete job"));
       }
 
-      // Delete job indexes in Typesense
       await jobIndexerQueue.add("deleteJobIndex", { id });
+
+      const user = await this.userRepository.findById(requesterId);
+      if (user) {
+        await emailSenderQueue.add("sendJobDeletionEmail", {
+          userEmail: user.email,
+          userName: user.fullName,
+          jobTitle: job.value.job.title,
+          jobId: id,
+          organizationId,
+        });
+      }
+
       return ok(null);
     } catch {
       return fail(new DatabaseError("Failed to delete job"));
@@ -400,12 +394,28 @@ export class JobService extends BaseService {
         return fail(new DatabaseError("Failed to submit application"));
       }
 
+      // Fetch user details for email notification
+      const applicant = await this.userRepository.findById(
+        applicationData.applicantId,
+      );
+
+      if (applicant) {
+        // Enqueue email notification
+        await emailSenderQueue.add("sendJobApplicationConfirmation", {
+          email: applicant.email,
+          fullName: applicant.fullName,
+          jobTitle: job.value.job.title,
+          jobId: applicationData.jobId,
+        });
+      }
+
       return ok({
         applicationId,
         message: "Application submitted successfully",
       });
-    } catch {
-      return fail(new DatabaseError("Failed to retrieve application"));
+    } catch (error) {
+      logger.error(error);
+      return fail(new DatabaseError("Failed to submit application"));
     }
   }
 
@@ -476,15 +486,13 @@ export class JobService extends BaseService {
     requesterId: number,
   ): Promise<Result<{ message: string }, Error>> {
     try {
-      // Get application details
-      const [application] =
+      const application =
         await this.jobRepository.findApplicationById(applicationId);
 
       if (!application) {
         return fail(new NotFoundError("Application", applicationId));
       }
 
-      // Authorization check - only admin or employer who posted the job can update application status
       const [job, organization] = await Promise.all([
         this.getJobById(application.job.id),
         this.organizationRepository.findByContact(requesterId),
@@ -544,19 +552,12 @@ export class JobService extends BaseService {
     try {
       const application =
         await this.jobRepository.findApplicationById(applicationId);
+
       if (!application) {
         return fail(new NotFoundError("Application", applicationId));
       }
 
-      // Check if user owns this application
-      if ((application as any).applicantId !== userId) {
-        return fail(
-          new ForbiddenError("You can only withdraw your own applications"),
-        );
-      }
-
-      // Check if application can be withdrawn
-      if (["hired", "rejected"].includes((application as any).status)) {
+      if (["hired", "rejected"].includes(application.application.status)) {
         return fail(
           new ValidationError("Cannot withdraw application with final status"),
         );
@@ -566,11 +567,22 @@ export class JobService extends BaseService {
         applicationId,
         {
           status: "withdrawn",
-        } as any,
+        },
       );
 
       if (!success) {
         return fail(new DatabaseError("Failed to withdraw application"));
+      }
+
+      const applicant = await this.userRepository.findById(userId);
+
+      if (applicant) {
+        await emailSenderQueue.add("sendApplicationWithdrawalConfirmation", {
+          email: applicant.email,
+          fullName: applicant.fullName,
+          jobTitle: application.job.title,
+          applicationId: applicationId,
+        });
       }
 
       return ok({ message: "Application withdrawn successfully" });

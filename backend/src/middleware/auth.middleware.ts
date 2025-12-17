@@ -9,14 +9,23 @@ import { auth } from "@/utils/auth";
 import { OrganizationService } from "@/services/organization.service";
 import { GetOrganizationSchema } from "@/validations/organization.validation";
 import { GetUserSchema } from "@/validations/user.validation";
+import { JobRepository } from "@/repositories/job.repository";
+import { GetJobApplicationSchema } from "@/validations/jobApplications.validation";
+import { GetJobSchema } from "@/validations/job.validation";
+import { NotFoundError } from "@/utils/errors";
+import { JobService } from "@/services/job.service";
 
 export class AuthMiddleware {
   private readonly organizationService: OrganizationService;
   private readonly userService: UserService;
+  private readonly jobRepository: JobRepository;
+  private readonly jobService: JobService;
 
   constructor() {
     this.organizationService = new OrganizationService();
     this.userService = new UserService();
+    this.jobRepository = new JobRepository();
+    this.jobService = new JobService();
   }
 
   authenticate = async (
@@ -90,7 +99,7 @@ export class AuthMiddleware {
           req.userId,
         );
 
-        if (!isPermitted) {
+        if (!isPermitted.isSuccess || !isPermitted.value) {
           return res.status(403).json({
             success: false,
             status: "error",
@@ -341,5 +350,174 @@ export class AuthMiddleware {
         message: "Error checking user permissions",
       });
     }
+  };
+
+  ensureApplicationOwnership = async (
+    req: Request<GetJobApplicationSchema["params"]>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      if (!req.userId) {
+        return res.status(401).json({
+          success: false,
+          status: "error",
+          error: "UNAUTHORIZED",
+          message: "Authentication required",
+        });
+      }
+
+      const applicationId = Number(req.params.applicationId);
+
+      const application =
+        await this.jobRepository.findApplicationById(applicationId);
+
+      if (!application) {
+        return res.status(404).json({
+          success: false,
+          status: "error",
+          error: "NOT_FOUND",
+          message: "Application not found",
+        });
+      }
+
+      if (application.application.applicantId !== req.userId) {
+        return res.status(403).json({
+          success: false,
+          status: "error",
+          error: "FORBIDDEN",
+          message: "You can only withdraw your own applications",
+        });
+      }
+
+      return next();
+    } catch (error) {
+      logger.error(error);
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        error: "INTERNAL_SERVER_ERROR",
+        message: "Error checking application ownership",
+      });
+    }
+  };
+
+  ensureJobOwnership = async (
+    req: Request<GetJobSchema["params"]>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      if (!req.userId) {
+        return res.status(401).json({
+          success: false,
+          status: "error",
+          error: "UNAUTHORIZED",
+          message: "Authentication required",
+        });
+      }
+
+      const jobId = parseInt(req.params.jobId);
+      if (isNaN(jobId)) {
+        return res.status(400).json({
+          success: false,
+          status: "error",
+          error: "BAD_REQUEST",
+          message: "Invalid job ID",
+        });
+      }
+
+      const job = await this.jobService.getJobById(jobId);
+      if (!job || !job.isSuccess) {
+        return res.status(404).json({
+          success: false,
+          status: "error",
+          error: "NOT_FOUND",
+          message: `Job with Id: ${jobId} not found`,
+        });
+      }
+
+      const member = await this.organizationService.getOrganizationMember(
+        req.userId,
+      );
+
+      if (!member.isSuccess) {
+        return res.status(403).json({
+          success: false,
+          status: "error",
+          error: "FORBIDDEN",
+          message: "You do not belong to any organization",
+        });
+      }
+
+      if (job.value.job.employerId !== member.value.organizationId) {
+        return res.status(403).json({
+          success: false,
+          status: "error",
+          error: "FORBIDDEN",
+          message: "You can only delete jobs posted by your organization",
+        });
+      }
+
+      req.organizationId = member.value.organizationId;
+
+      return next();
+    } catch (error) {
+      logger.error(error);
+      if (error instanceof NotFoundError) {
+        return res.status(404).json({
+          success: false,
+          status: "error",
+          error: "NOT_FOUND",
+          message: error.message,
+        });
+      }
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        error: "INTERNAL_SERVER_ERROR",
+        message: "Error checking job ownership",
+      });
+    }
+  };
+
+  requireDeleteJobPermission = () => {
+    return async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        if (!req.userId || !req.organizationId) {
+          return res.status(401).json({
+            success: false,
+            status: "error",
+            error: "UNAUTHORIZED",
+            message: "Authentication required",
+          });
+        }
+
+        const hasPermission =
+          await this.organizationService.hasDeletePermission(
+            req.userId,
+            req.organizationId,
+          );
+
+        if (!hasPermission) {
+          return res.status(403).json({
+            success: false,
+            status: "error",
+            error: "FORBIDDEN",
+            message: "Insufficient permissions to delete jobs",
+          });
+        }
+
+        return next();
+      } catch (error) {
+        logger.error(error);
+        return res.status(500).json({
+          success: false,
+          status: "error",
+          error: "INTERNAL_SERVER_ERROR",
+          message: "Error checking delete permissions",
+        });
+      }
+    };
   };
 }

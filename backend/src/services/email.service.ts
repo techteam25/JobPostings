@@ -162,4 +162,98 @@ Tech Team`,
       console.error(error);
     }
   }
+
+  async sendJobApplicationConfirmation(
+    email: string,
+    fullName: string,
+    jobTitle: string,
+    jobId: number,
+  ): Promise<void> {
+    try {
+      const template = await this.loadTemplate("jobApplicationConfirmation");
+
+      const dashboardLink = `${env.FRONTEND_URL}/applications`;
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      const htmlContent = template
+        .replace("{{name}}", fullName)
+        .replace("{{jobTitle}}", jobTitle)
+        .replace("{{dashboardLink}}", dashboardLink)
+        .replace("{{logoPath}}", logoPath);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: "Application Submitted Successfully",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async sendApplicationWithdrawalConfirmation(
+    email: string,
+    fullName: string,
+    jobTitle: string,
+    applicationId: number,
+  ): Promise<void> {
+    try {
+      const template = await this.loadTemplate(
+        "applicationWithdrawalConfirmation",
+      );
+
+      const dashboardLink = `${env.FRONTEND_URL}/applications`;
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      const htmlContent = template
+        .replace("{{name}}", fullName)
+        .replace("{{jobTitle}}", jobTitle)
+        .replace("{{dashboardLink}}", dashboardLink)
+        .replace("{{logoPath}}", logoPath);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: "Application Withdrawn Successfully",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async sendJobDeletionEmail(
+    userEmail: string,
+    userName: string,
+    jobTitle: string,
+    jobId: number,
+  ): Promise<void> {
+    try {
+      const template = await this.loadTemplate("deleteEmail");
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      const htmlContent = template
+        .replace(/{{userName}}/g, userName)
+        .replace(/{{jobTitle}}/g, jobTitle)
+        .replace(/{{jobId}}/g, jobId.toString())
+        .replace(/{{deletionDate}}/g, new Date().toLocaleDateString())
+        .replace("{{logoPath}}", logoPath);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: userEmail,
+        subject: "Job Posting Deleted Successfully",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 }
