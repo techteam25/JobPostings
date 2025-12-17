@@ -1,7 +1,12 @@
 // noinspection DuplicatedCode
 
 import { request, TestHelpers } from "@tests/utils/testHelpers";
-import { seedAdminUser, seedJobs, seedUser } from "@tests/utils/seed";
+import {
+  seedAdminUser,
+  seedJobs,
+  seedUser,
+  seedUserWithRole,
+} from "@tests/utils/seed";
 import { jobPostingFixture } from "@tests/utils/fixtures";
 import { jobsDetails } from "@/db/schema";
 import { sql } from "drizzle-orm";
@@ -63,7 +68,7 @@ describe("Job Controller Integration Tests", () => {
         : "";
     });
 
-    it("should create a single job returning 200", async () => {
+    it("should create a single job returning 201", async () => {
       const newJob = await jobPostingFixture();
 
       const response = await request
@@ -97,10 +102,7 @@ describe("Job Controller Integration Tests", () => {
       expect(response.body.data.skills).toEqual(
         expect.arrayContaining(newJob.skills),
       );
-      expect(response.body.data).toHaveProperty(
-        "employerId",
-        newJob.employerId,
-      );
+      expect(response.body.data).toHaveProperty("employerId", 1);
       expect(response.body).toHaveProperty(
         "message",
         "Job created successfully",
@@ -121,7 +123,6 @@ describe("Job Controller Integration Tests", () => {
         isRemote: false,
         applicationDeadline: "invalid-date", // Invalid date format
         skills: "JavaScript, TypeScript, Node.js",
-        employerId: 9999, // Assuming this org does not exist
       };
 
       const response = await request
@@ -180,6 +181,218 @@ describe("Job Controller Integration Tests", () => {
         "message",
         "Insufficient permissions",
       );
+    });
+
+    describe("Authorization & Permission Tests", () => {
+      it("should allow owner role to create a job", async () => {
+        await seedUserWithRole("owner", "owner.user@example.com");
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "owner.user@example.com",
+            password: "Password@123",
+          });
+
+        const ownerCookie = loginResponse.headers["set-cookie"]
+          ? loginResponse.headers["set-cookie"][0]!
+          : "";
+
+        const newJob = await jobPostingFixture();
+        const response = await request
+          .post("/api/jobs")
+          .set("Cookie", ownerCookie)
+          .send(newJob);
+
+        TestHelpers.validateApiResponse(response, 201);
+        expect(response.body.data).toHaveProperty("id");
+        expect(response.body).toHaveProperty(
+          "message",
+          "Job created successfully",
+        );
+      });
+
+      it("should allow admin role to create a job", async () => {
+        await seedUserWithRole("admin", "admin.role@example.com");
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "admin.role@example.com",
+            password: "Password@123",
+          });
+
+        const adminCookie = loginResponse.headers["set-cookie"]
+          ? loginResponse.headers["set-cookie"][0]!
+          : "";
+
+        const newJob = await jobPostingFixture();
+        const response = await request
+          .post("/api/jobs")
+          .set("Cookie", adminCookie)
+          .send(newJob);
+
+        TestHelpers.validateApiResponse(response, 201);
+        expect(response.body.data).toHaveProperty("id");
+        expect(response.body).toHaveProperty(
+          "message",
+          "Job created successfully",
+        );
+      });
+
+      it("should allow recruiter role to create a job", async () => {
+        await seedUserWithRole("recruiter", "recruiter.user@example.com");
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "recruiter.user@example.com",
+            password: "Password@123",
+          });
+
+        const recruiterCookie = loginResponse.headers["set-cookie"]
+          ? loginResponse.headers["set-cookie"][0]!
+          : "";
+
+        const newJob = await jobPostingFixture();
+        const response = await request
+          .post("/api/jobs")
+          .set("Cookie", recruiterCookie)
+          .send(newJob);
+
+        TestHelpers.validateApiResponse(response, 201);
+        expect(response.body.data).toHaveProperty("id");
+        expect(response.body).toHaveProperty(
+          "message",
+          "Job created successfully",
+        );
+      });
+
+      it("should deny member role from creating a job", async () => {
+        await seedUserWithRole("member", "member.user@example.com");
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "member.user@example.com",
+            password: "Password@123",
+          });
+
+        const memberCookie = loginResponse.headers["set-cookie"]
+          ? loginResponse.headers["set-cookie"][0]!
+          : "";
+
+        const newJob = await jobPostingFixture();
+        const response = await request
+          .post("/api/jobs")
+          .set("Cookie", memberCookie)
+          .send(newJob);
+
+        TestHelpers.validateApiResponse(response, 403);
+        expect(response.body).toHaveProperty(
+          "message",
+          "Insufficient permissions",
+        );
+      });
+    });
+
+    describe("Data Validation Tests", () => {
+      it("should reject job with missing required fields", async () => {
+        const invalidJob = {
+          title: "Test Job",
+          // Missing required fields: description, city, etc.
+        };
+
+        const response = await request
+          .post("/api/jobs")
+          .set("Cookie", cookie)
+          .send(invalidJob);
+
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty("success", false);
+        expect(response.body.error).toHaveProperty("code", "VALIDATION_ERROR");
+      });
+
+      it("should reject job with title too short", async () => {
+        const invalidJob = await jobPostingFixture();
+
+        const response = await request
+          .post("/api/jobs")
+          .set("Cookie", cookie)
+          .send({ ...invalidJob, title: "ABC" });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty("success", false);
+        expect(response.body.error.details[0]).toHaveProperty(
+          "message",
+          "Title must be at least 5 characters",
+        );
+        expect(response.body.error.details[0]).toHaveProperty(
+          "field",
+          "body.title",
+        );
+      });
+
+      it("should reject job with invalid date format", async () => {
+        const invalidJob = await jobPostingFixture();
+        invalidJob.applicationDeadline = "not-a-date";
+
+        const response = await request
+          .post("/api/jobs")
+          .set("Cookie", cookie)
+          .send(invalidJob);
+
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty("success", false);
+      });
+
+      it("should reject job with invalid skills format (not an array)", async () => {
+        const invalidJob = await jobPostingFixture();
+        // @ts-expect-error - Testing invalid input
+        invalidJob.skills = "JavaScript, TypeScript"; // Should be array
+
+        const response = await request
+          .post("/api/jobs")
+          .set("Cookie", cookie)
+          .send(invalidJob);
+
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty("success", false);
+      });
+    });
+
+    describe("Security Tests", () => {
+      it("should auto-populate employerId from authenticated user's organization", async () => {
+        const newJob = await jobPostingFixture();
+
+        const response = await request
+          .post("/api/jobs")
+          .set("Cookie", cookie)
+          .send(newJob);
+
+        TestHelpers.validateApiResponse(response, 201);
+        expect(response.body.data).toHaveProperty("employerId", 1);
+        expect(response.body.data.employerId).toBe(1);
+      });
+
+      it("should sanitize input to prevent XSS attacks", async () => {
+        const fixture = await jobPostingFixture();
+        const xssJob = {
+          ...fixture,
+          title: "<script>alert('XSS')</script>Legitimate Title",
+          description:
+            "<img src=x onerror=alert('XSS') alt=''>Legitimate description",
+        };
+
+        const response = await request
+          .post("/api/jobs")
+          .set("Cookie", cookie)
+          .send(xssJob);
+
+        TestHelpers.validateApiResponse(response, 201);
+        expect(response.body.data.title).not.toContain("<script>");
+        expect(response.body.data.description).not.toContain("<img");
+      });
     });
   });
 
