@@ -654,4 +654,44 @@ export class OrganizationRepository extends BaseRepository<
       });
     });
   }
+
+  async findMemberByUserId(userId: number) {
+    return await withDbErrorHandling(async () => {
+      const member = await db.query.organizationMembers.findFirst({
+        where: and(
+          eq(organizationMembers.userId, userId),
+          eq(organizationMembers.isActive, true),
+        ),
+      });
+      return member ?? null;
+    });
+  }
+
+  async validateOrganizationExists(orgId: number): Promise<boolean> {
+    return await withDbErrorHandling(async () => {
+      const org = await db.query.organizations.findFirst({
+        where: eq(organizations.id, orgId),
+      });
+      return !!org;
+    });
+  }
+
+  async hasDeletePermission(
+    userId: number,
+    orgId: number,
+  ): Promise<boolean> {
+    return await withDbErrorHandling(async () => {
+      const member = await db.query.organizationMembers.findFirst({
+        where: and(
+          eq(organizationMembers.userId, userId),
+          eq(organizationMembers.organizationId, orgId),
+          eq(organizationMembers.isActive, true),
+        ),
+      });
+
+      if (!member) return false;
+
+      return ["owner", "admin"].includes(member.role);
+    });
+  }
 }
