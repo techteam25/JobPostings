@@ -115,10 +115,10 @@ const emailSenderWorker = new Worker(
         break;
       case "sendJobDeletionEmail":
         await emailService.sendJobDeletionEmail(
-          job.data.userEmail,
-          job.data.userName,
-          job.data.jobTitle,
-          job.data.jobId,
+          job.data.email,
+          job.data.fullName,
+          (job.data as any).jobTitle,
+          (job.data as any).jobId,
         );
         break;
 
