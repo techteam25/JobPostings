@@ -193,4 +193,37 @@ Tech Team`,
       console.error(error);
     }
   }
+
+  async sendApplicationWithdrawalConfirmation(
+    email: string,
+    fullName: string,
+    jobTitle: string,
+    applicationId: number,
+  ): Promise<void> {
+    try {
+      const template = await this.loadTemplate(
+        "applicationWithdrawalConfirmation",
+      );
+
+      const dashboardLink = `${env.FRONTEND_URL}/applications`;
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      const htmlContent = template
+        .replace("{{name}}", fullName)
+        .replace("{{jobTitle}}", jobTitle)
+        .replace("{{dashboardLink}}", dashboardLink)
+        .replace("{{logoPath}}", logoPath);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: "Application Withdrawn Successfully",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 }
