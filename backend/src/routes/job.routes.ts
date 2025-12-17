@@ -394,7 +394,8 @@ registry.registerPath({
       },
     },
     403: {
-      description: "Forbidden - user not associated with organization or lacks permission",
+      description:
+        "Forbidden - user not associated with organization or lacks permission",
       content: {
         "application/json": {
           schema: errorResponseSchema,
@@ -548,7 +549,8 @@ registry.registerPath({
 });
 router.delete(
   "/:jobId",
-  authMiddleware.requireJobPostingRole(),
+  authMiddleware.ensureJobOwnership,
+  authMiddleware.requireDeleteJobPermission(),
   validate(deleteJobSchema),
   jobController.deleteJob,
 );
