@@ -210,7 +210,6 @@ export class JobController extends BaseController {
       );
     }
 
-    // Auto-populate employerId from authenticated user's organization
     const jobData = {
       ...req.body,
       employerId: req.organizationId,
@@ -262,7 +261,11 @@ export class JobController extends BaseController {
   ) => {
     const jobId = parseInt(req.params.jobId);
 
-    const result = await this.jobService.deleteJob(jobId, req.userId!);
+    const result = await this.jobService.deleteJob(
+      jobId,
+      req.userId!,
+      req.organizationId!,
+    );
 
     if (result.isSuccess) {
       return this.sendSuccess<void>(res, undefined, "Job deleted successfully");
