@@ -9,14 +9,18 @@ import { auth } from "@/utils/auth";
 import { OrganizationService } from "@/services/organization.service";
 import { GetOrganizationSchema } from "@/validations/organization.validation";
 import { GetUserSchema } from "@/validations/user.validation";
+import { JobRepository } from "@/repositories/job.repository";
+import { GetJobApplicationSchema } from "@/validations/jobApplications.validation";
 
 export class AuthMiddleware {
   private readonly organizationService: OrganizationService;
   private readonly userService: UserService;
+  private readonly jobRepository: JobRepository;
 
   constructor() {
     this.organizationService = new OrganizationService();
     this.userService = new UserService();
+    this.jobRepository = new JobRepository();
   }
 
   authenticate = async (
@@ -90,7 +94,7 @@ export class AuthMiddleware {
           req.userId,
         );
 
-        if (!isPermitted) {
+        if (!isPermitted.isSuccess || !isPermitted.value) {
           return res.status(403).json({
             success: false,
             status: "error",
@@ -339,6 +343,56 @@ export class AuthMiddleware {
         status: "error",
         error: "INTERNAL_SERVER_ERROR",
         message: "Error checking user permissions",
+      });
+    }
+  };
+
+  ensureApplicationOwnership = async (
+    req: Request<GetJobApplicationSchema["params"]>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      if (!req.userId) {
+        return res.status(401).json({
+          success: false,
+          status: "error",
+          error: "UNAUTHORIZED",
+          message: "Authentication required",
+        });
+      }
+
+      const applicationId = Number(req.params.applicationId);
+
+      const application =
+        await this.jobRepository.findApplicationById(applicationId);
+
+      if (!application) {
+        return res.status(404).json({
+          success: false,
+          status: "error",
+          error: "NOT_FOUND",
+          message: "Application not found",
+        });
+      }
+
+      if (application.application.applicantId !== req.userId) {
+        return res.status(403).json({
+          success: false,
+          status: "error",
+          error: "FORBIDDEN",
+          message: "You can only withdraw your own applications",
+        });
+      }
+
+      return next();
+    } catch (error) {
+      logger.error(error);
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        error: "INTERNAL_SERVER_ERROR",
+        message: "Error checking application ownership",
       });
     }
   };
