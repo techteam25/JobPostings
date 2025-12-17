@@ -114,6 +114,5 @@ export const jobPostingFixture = async () => {
       Date.now() + 30 * 24 * 60 * 60 * 1000,
     ).toISOString(), // 30 days from now
     skills: ["JavaScript", "TypeScript", "Node.js"],
-    employerId: 1, // Assuming organization with ID 1 exists
   };
 };
