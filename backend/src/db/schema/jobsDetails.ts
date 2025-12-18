@@ -10,10 +10,12 @@ import {
   check,
   foreignKey,
   unique,
+  json,
 } from "drizzle-orm/mysql-core";
 import { relations, sql } from "drizzle-orm";
 import { user } from "./users";
 import { organizations } from "./organizations";
+import type { FileMetadata } from "@/validations/file.validation";
 
 // Jobs table
 export const jobsDetails = mysqlTable(
@@ -90,6 +92,7 @@ export const jobApplications = mysqlTable(
     appliedAt: timestamp("applied_at").defaultNow().notNull(),
     reviewedAt: timestamp("reviewed_at"),
     notes: text("notes"),
+    fileMetadata: json("file_metadata").$type<FileMetadata[]>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },
