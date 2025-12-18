@@ -11,15 +11,28 @@ type TableWithId<T extends MySqlTable> = T & {
   createdAt: MySqlColumn;
 };
 
+/**
+ * Abstract base repository class providing common CRUD operations for database tables.
+ */
 export class BaseRepository<T extends TableWithId<MySqlTable>> {
   protected table: T;
   protected resourceName: string;
 
+  /**
+   * Creates an instance of BaseRepository.
+   * @param table The Drizzle table schema.
+   * @param resourceName The name of the resource for error messages.
+   */
   constructor(table: T, resourceName?: string) {
     this.table = table;
     this.resourceName = resourceName || "resource";
   }
 
+  /**
+   * Creates a new record in the table.
+   * @param data The data to insert.
+   * @returns The ID of the created record.
+   */
   async create(data: T["$inferInsert"]): Promise<number> {
     const [result] = await withDbErrorHandling(
       async () => await db.insert(this.table).values(data),
@@ -31,6 +44,12 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
     return result.insertId;
   }
 
+  /**
+   * Finds a record by its ID.
+   * @param id The ID of the record to find.
+   * @returns The found record.
+   * @throws NotFoundError if the record is not found.
+   */
   async findById(id: number): Promise<T["$inferSelect"]> {
     const [result] = await withDbErrorHandling(
       async () =>
@@ -48,6 +67,11 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
     return result;
   }
 
+  /**
+   * Finds all records with pagination.
+   * @param options Pagination options including page and limit.
+   * @returns An object containing the items and pagination metadata.
+   */
   async findAll(
     options: Partial<Pick<PaginationMeta, "limit" | "page">> = {
       limit: 20,
@@ -78,6 +102,12 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
     return { items, pagination };
   }
 
+  /**
+   * Updates a record by its ID.
+   * @param id The ID of the record to update.
+   * @param data The data to update.
+   * @returns True if the update was successful, false otherwise.
+   */
   async update(id: number, data: Partial<T["$inferInsert"]>): Promise<boolean> {
     const [result] = await withDbErrorHandling(
       async () =>
@@ -97,6 +127,11 @@ export class BaseRepository<T extends TableWithId<MySqlTable>> {
     return result.affectedRows > 0;
   }
 
+  /**
+   * Deletes a record by its ID.
+   * @param id The ID of the record to delete.
+   * @returns True if the deletion was successful, false otherwise.
+   */
   async delete(id: number): Promise<boolean> {
     const [result] = await withDbErrorHandling(
       async () => await db.delete(this.table).where(eq(this.table.id, id)),

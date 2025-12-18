@@ -15,12 +15,18 @@ import { GetJobSchema } from "@/validations/job.validation";
 import { NotFoundError } from "@/utils/errors";
 import { JobService } from "@/services/job.service";
 
+/**
+ * Middleware class for handling authentication and authorization in the application.
+ */
 export class AuthMiddleware {
   private readonly organizationService: OrganizationService;
   private readonly userService: UserService;
   private readonly jobRepository: JobRepository;
   private readonly jobService: JobService;
 
+  /**
+   * Creates an instance of AuthMiddleware and initializes the required services.
+   */
   constructor() {
     this.organizationService = new OrganizationService();
     this.userService = new UserService();
@@ -28,6 +34,12 @@ export class AuthMiddleware {
     this.jobService = new JobService();
   }
 
+  /**
+   * Authenticates the user by checking the session and attaching user info to the request.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   * @param next The next middleware function.
+   */
   authenticate = async (
     req: Request,
     res: Response<ApiResponse<void>>,
@@ -82,6 +94,10 @@ export class AuthMiddleware {
     }
   };
 
+  /**
+   * Middleware to require job posting role for the user.
+   * @returns A middleware function that checks if the user has permission to post jobs.
+   */
   requireJobPostingRole = () => {
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -134,6 +150,11 @@ export class AuthMiddleware {
     };
   };
 
+  /**
+   * Middleware to require admin or owner role for the user.
+   * @param roles The roles to check for (owner or admin).
+   * @returns A middleware function that checks if the user has the required role.
+   */
   requireAdminOrOwnerRole = (roles: string[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -207,7 +228,12 @@ export class AuthMiddleware {
     };
   };
 
-  // This will check for 'user' role (i.e., not pure employer)
+  /**
+   * Middleware to require user role (job seeker).
+   * @param req The Express request object.
+   * @param res The Express response object.
+   * @param next The next middleware function.
+   */
   requireUserRole = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.userId) {
@@ -259,6 +285,13 @@ export class AuthMiddleware {
       });
     }
   };
+
+  /**
+   * Middleware to require an active user.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   * @param next The next middleware function.
+   */
   requireActiveUser = async (
     req: Request,
     res: Response,
@@ -275,6 +308,12 @@ export class AuthMiddleware {
     return next();
   };
 
+  /**
+   * Middleware to ensure the user is a member of the specified organization.
+   * @param req The Express request object with organization params.
+   * @param res The Express response object.
+   * @param next The next middleware function.
+   */
   ensureIsOrganizationMember = async (
     req: Request<GetOrganizationSchema["params"]>,
     res: Response,
@@ -317,6 +356,12 @@ export class AuthMiddleware {
     }
   };
 
+  /**
+   * Middleware to require ownership of the account.
+   * @param req The Express request object with user params.
+   * @param res The Express response object.
+   * @param next The next middleware function.
+   */
   requireOwnAccount = async (
     req: Request<GetUserSchema["params"]>,
     res: Response,
@@ -352,6 +397,12 @@ export class AuthMiddleware {
     }
   };
 
+  /**
+   * Middleware to ensure ownership of the job application.
+   * @param req The Express request object with application params.
+   * @param res The Express response object.
+   * @param next The next middleware function.
+   */
   ensureApplicationOwnership = async (
     req: Request<GetJobApplicationSchema["params"]>,
     res: Response,
@@ -402,6 +453,12 @@ export class AuthMiddleware {
     }
   };
 
+  /**
+   * Middleware to ensure ownership of the job.
+   * @param req The Express request object with job params.
+   * @param res The Express response object.
+   * @param next The next middleware function.
+   */
   ensureJobOwnership = async (
     req: Request<GetJobSchema["params"]>,
     res: Response,
@@ -481,6 +538,10 @@ export class AuthMiddleware {
     }
   };
 
+  /**
+   * Middleware to require delete job permission.
+   * @returns A middleware function that checks if the user has permission to delete jobs.
+   */
   requireDeleteJobPermission = () => {
     return async (req: Request, res: Response, next: NextFunction) => {
       try {

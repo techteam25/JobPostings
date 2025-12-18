@@ -18,13 +18,24 @@ import {
   NewOrganization,
 } from "@/validations/organization.validation";
 
+/**
+ * Repository class for managing organization-related database operations, including members and applications.
+ */
 export class OrganizationRepository extends BaseRepository<
   typeof organizations
 > {
+  /**
+   * Creates an instance of OrganizationRepository.
+   */
   constructor() {
     super(organizations);
   }
 
+  /**
+   * Finds an organization by its name.
+   * @param name The name of the organization.
+   * @returns The organization data.
+   */
   async findByName(name: string) {
     const [result] = await withDbErrorHandling(
       async () =>
@@ -36,6 +47,11 @@ export class OrganizationRepository extends BaseRepository<
     return result;
   }
 
+  /**
+   * Finds an organization by its ID, including members with user details.
+   * @param organizationId The ID of the organization.
+   * @returns The organization with flattened member details.
+   */
   async findByIdIncludingMembers(organizationId: number) {
     return await withDbErrorHandling(async () => {
       const organization = await db.query.organizations.findFirst({
@@ -82,6 +98,12 @@ export class OrganizationRepository extends BaseRepository<
     });
   }
 
+  /**
+   * Searches organizations by name, city, or state with pagination.
+   * @param searchTerm The term to search for.
+   * @param options Pagination options including page and limit.
+   * @returns An object containing the organizations and pagination metadata.
+   */
   async searchOrganizations(
     searchTerm: string,
     options: { page?: number; limit?: number } = {},
@@ -115,6 +137,12 @@ export class OrganizationRepository extends BaseRepository<
     return { items, pagination };
   }
 
+  /**
+   * Creates a new organization and adds the creator as the owner.
+   * @param data The organization data.
+   * @param sessionUserId The ID of the user creating the organization.
+   * @returns The created organization with members.
+   */
   async createOrganization(data: NewOrganization, sessionUserId: number) {
     return await withDbErrorHandling(
       async () =>
@@ -171,6 +199,11 @@ export class OrganizationRepository extends BaseRepository<
     );
   }
 
+  /**
+   * Finds an organization member by contact (user) ID.
+   * @param contactId The ID of the user.
+   * @returns The organization member with user details.
+   */
   async findByContact(contactId: number) {
     return await withDbErrorHandling(async () => {
       const orgMember = await db.query.organizationMembers.findFirst({
@@ -196,6 +229,11 @@ export class OrganizationRepository extends BaseRepository<
     });
   }
 
+  /**
+   * Checks if a user can post jobs based on their organization memberships.
+   * @param userId The ID of the user.
+   * @returns True if the user can post jobs, false otherwise.
+   */
   async canPostJobs(userId: number): Promise<boolean> {
     return withDbErrorHandling(async () => {
       const memberships = await db.query.organizationMembers.findMany({
@@ -216,6 +254,12 @@ export class OrganizationRepository extends BaseRepository<
     });
   }
 
+  /**
+   * Checks if a user can reject job applications for a specific organization.
+   * @param userId The ID of the user.
+   * @param organizationId The ID of the organization.
+   * @returns True if the user can reject applications, false otherwise.
+   */
   async canRejectJobApplications(
     userId: number,
     organizationId: number,
@@ -238,6 +282,12 @@ export class OrganizationRepository extends BaseRepository<
     );
   }
 
+  /**
+   * Checks if a user has any of the specified elevated roles in an organization.
+   * @param userId The ID of the user.
+   * @param roles The roles to check for.
+   * @returns True if the user has any of the roles, false otherwise.
+   */
   async checkHasElevatedRole(
     userId: number,
     roles: ("owner" | "admin" | "recruiter" | "member")[],
@@ -259,7 +309,11 @@ export class OrganizationRepository extends BaseRepository<
     );
   }
 
-  // Get user's active organizations
+  /**
+   * Retrieves all active organizations for a user.
+   * @param userId The ID of the user.
+   * @returns The user's active organization memberships with organization details.
+   */
   async getUserOrganizations(userId: number) {
     return withDbErrorHandling(async () => {
       return await db.query.organizationMembers.findMany({
@@ -274,6 +328,12 @@ export class OrganizationRepository extends BaseRepository<
     });
   }
 
+  /**
+   * Retrieves organization members by their role.
+   * @param organizationId The ID of the organization.
+   * @param role The role to filter by.
+   * @returns The members with the specified role, including user details.
+   */
   async getOrganizationMembersByRole(
     organizationId: number,
     role: "owner" | "admin" | "recruiter",
@@ -298,6 +358,14 @@ export class OrganizationRepository extends BaseRepository<
     );
   }
 
+  /**
+   * Retrieves job application details with job and organization information.
+   * @param dbOrTx The database instance or transaction.
+   * @param organizationId The ID of the organization.
+   * @param jobId The ID of the job.
+   * @param applicationId The ID of the application.
+   * @returns The application details.
+   */
   private async getJobApplicationWithDetails(
     dbOrTx: typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0],
     organizationId: number,
@@ -341,6 +409,13 @@ export class OrganizationRepository extends BaseRepository<
     return application;
   }
 
+  /**
+   * Retrieves a specific job application for an organization.
+   * @param organizationId The ID of the organization.
+   * @param jobId The ID of the job.
+   * @param applicationId The ID of the application.
+   * @returns The job application details.
+   */
   async getJobApplicationForOrganization(
     organizationId: number,
     jobId: number,
@@ -362,6 +437,14 @@ export class OrganizationRepository extends BaseRepository<
     });
   }
 
+  /**
+   * Updates the status of a job application.
+   * @param organizationId The ID of the organization.
+   * @param jobId The ID of the job.
+   * @param applicationId The ID of the application.
+   * @param status The new status for the application.
+   * @returns The updated application details.
+   */
   updateJobApplicationStatus(
     organizationId: number,
     jobId: number,
@@ -416,6 +499,11 @@ export class OrganizationRepository extends BaseRepository<
     });
   }
 
+  /**
+   * Creates a note for a job application.
+   * @param data The note data including application ID, user ID, and note text.
+   * @returns The application with its notes.
+   */
   createJobApplicationNote(data: NewJobApplicationNote) {
     return withDbErrorHandling(
       async () =>
@@ -467,6 +555,13 @@ export class OrganizationRepository extends BaseRepository<
     );
   }
 
+  /**
+   * Retrieves notes for a specific job application.
+   * @param organizationId The ID of the organization.
+   * @param jobId The ID of the job.
+   * @param applicationId The ID of the application.
+   * @returns The notes for the application.
+   */
   getNotesForJobApplication(
     organizationId: number,
     jobId: number,
@@ -512,6 +607,15 @@ export class OrganizationRepository extends BaseRepository<
       });
     });
   }
+
+  /**
+   * Fetches a job application to verify its existence.
+   * @param tx The database transaction.
+   * @param applicationId The ID of the application.
+   * @param jobId The ID of the job.
+   * @param organizationId The ID of the organization.
+   * @returns The application data.
+   */
   private async fetchJobApplication(
     tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
     applicationId: number,
@@ -535,6 +639,12 @@ export class OrganizationRepository extends BaseRepository<
       .limit(1);
   }
 
+  /**
+   * Retrieves job applications for a specific job in an organization.
+   * @param organizationId The ID of the organization.
+   * @param jobId The ID of the job.
+   * @returns The applications for the job.
+   */
   getJobApplicationsForOrganization(organizationId: number, jobId: number) {
     return withDbErrorHandling(async () => {
       return await db.transaction(async (tx) => {
@@ -589,6 +699,12 @@ export class OrganizationRepository extends BaseRepository<
     });
   }
 
+  /**
+   * Retrieves all applications for an organization with pagination.
+   * @param organizationId The ID of the organization.
+   * @param options Pagination options including page and limit.
+   * @returns An object containing the applications and pagination metadata.
+   */
   async getApplicationsForOrganization(
     organizationId: number,
     options: { page?: number; limit?: number },
@@ -655,6 +771,11 @@ export class OrganizationRepository extends BaseRepository<
     });
   }
 
+  /**
+   * Finds an organization member by user ID.
+   * @param userId The ID of the user.
+   * @returns The organization member.
+   */
   async findMemberByUserId(userId: number) {
     return await withDbErrorHandling(async () => {
       const member = await db.query.organizationMembers.findFirst({
@@ -667,6 +788,11 @@ export class OrganizationRepository extends BaseRepository<
     });
   }
 
+  /**
+   * Validates if an organization exists.
+   * @param orgId The ID of the organization.
+   * @returns True if the organization exists, false otherwise.
+   */
   async validateOrganizationExists(orgId: number): Promise<boolean> {
     return await withDbErrorHandling(async () => {
       const org = await db.query.organizations.findFirst({
@@ -676,10 +802,13 @@ export class OrganizationRepository extends BaseRepository<
     });
   }
 
-  async hasDeletePermission(
-    userId: number,
-    orgId: number,
-  ): Promise<boolean> {
+  /**
+   * Checks if a user has delete permission for an organization.
+   * @param userId The ID of the user.
+   * @param orgId The ID of the organization.
+   * @returns True if the user has delete permission, false otherwise.
+   */
+  async hasDeletePermission(userId: number, orgId: number): Promise<boolean> {
     return await withDbErrorHandling(async () => {
       const member = await db.query.organizationMembers.findFirst({
         where: and(

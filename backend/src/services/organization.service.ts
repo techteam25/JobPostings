@@ -17,14 +17,25 @@ import {
   NotFoundError,
 } from "@/utils/errors";
 
+/**
+ * Service class for managing organization-related operations, including CRUD for organizations and their members.
+ */
 export class OrganizationService extends BaseService {
   private organizationRepository: OrganizationRepository;
 
+  /**
+   * Creates an instance of OrganizationService and initializes the repository.
+   */
   constructor() {
     super();
     this.organizationRepository = new OrganizationRepository();
   }
 
+  /**
+   * Retrieves all organizations with optional pagination and search.
+   * @param options Pagination and search options including page, limit, and searchTerm.
+   * @returns A Result containing the organizations or an error.
+   */
   async getAllOrganizations(
     options: { page?: number; limit?: number; searchTerm?: string } = {},
   ) {
@@ -45,6 +56,11 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Retrieves an organization by its ID, including members.
+   * @param id The ID of the organization.
+   * @returns A Result containing the organization or an error.
+   */
   async getOrganizationById(id: number) {
     try {
       const organization =
@@ -62,6 +78,12 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Creates a new organization.
+   * @param organizationData The data for the new organization.
+   * @param sessionUserId The ID of the user creating the organization.
+   * @returns A Result containing the created organization or an error.
+   */
   async createOrganization(
     organizationData: NewOrganization,
     sessionUserId: number,
@@ -98,6 +120,12 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Updates an existing organization.
+   * @param id The ID of the organization to update.
+   * @param updateData The data to update.
+   * @returns A Result containing the updated organization or an error.
+   */
   async updateOrganization(id: number, updateData: Partial<NewOrganization>) {
     try {
       const success = await this.organizationRepository.update(id, updateData);
@@ -114,6 +142,11 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Deletes an organization.
+   * @param id The ID of the organization to delete.
+   * @returns A Result containing a success message or an error.
+   */
   async deleteOrganization(id: number) {
     try {
       const success = await this.organizationRepository.delete(id);
@@ -130,6 +163,11 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Checks if a user has permission to post jobs.
+   * @param userId The ID of the user.
+   * @returns A Result containing the permission status or an error.
+   */
   async isRolePermitted(userId: number) {
     try {
       return ok(await this.organizationRepository.canPostJobs(userId));
@@ -143,6 +181,12 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Checks if a user has permission to reject applications for an organization.
+   * @param userId The ID of the user.
+   * @param organizationId The ID of the organization.
+   * @returns A Result containing the permission status or an error.
+   */
   async isRolePermittedToRejectApplications(
     userId: number,
     organizationId: number,
@@ -173,6 +217,12 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Retrieves organization members by their role.
+   * @param organizationId The ID of the organization.
+   * @param role The role to filter by (owner, admin, recruiter).
+   * @returns A Result containing the members or an error.
+   */
   async getOrganizationMembersByRole(
     organizationId: number,
     role: "owner" | "admin" | "recruiter",
@@ -198,6 +248,11 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Retrieves the organization member for a given user.
+   * @param sessionUserId The ID of the user.
+   * @returns A Result containing the member or an error.
+   */
   async getOrganizationMember(sessionUserId: number) {
     try {
       const member =
@@ -214,6 +269,13 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Retrieves a specific job application for an organization.
+   * @param organizationId The ID of the organization.
+   * @param jobId The ID of the job.
+   * @param applicationId The ID of the application.
+   * @returns A Result containing the job application or an error.
+   */
   async getJobApplicationForOrganization(
     organizationId: number,
     jobId: number,
@@ -240,6 +302,14 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Updates the status of a job application.
+   * @param organizationId The ID of the organization.
+   * @param jobId The ID of the job.
+   * @param applicationId The ID of the application.
+   * @param status The new status for the application.
+   * @returns A Result containing the updated application or an error.
+   */
   async updateJobApplicationStatus(
     organizationId: number,
     jobId: number,
@@ -292,6 +362,13 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Creates a note for a job application.
+   * @param applicationId The ID of the application.
+   * @param userId The ID of the user creating the note.
+   * @param body The body containing the note.
+   * @returns A Result containing the application with notes or an error.
+   */
   async createJobApplicationNote(
     applicationId: number,
     userId: number,
@@ -318,6 +395,13 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Retrieves notes for a specific job application.
+   * @param organizationId The ID of the organization.
+   * @param jobId The ID of the job.
+   * @param applicationId The ID of the application.
+   * @returns A Result containing the notes or an error.
+   */
   async getNotesForJobApplication(
     organizationId: number,
     jobId: number,
@@ -345,6 +429,12 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Retrieves job applications for a specific job in an organization.
+   * @param organizationId The ID of the organization.
+   * @param jobId The ID of the job.
+   * @returns A Result containing the applications or an error.
+   */
   async getJobApplicationsForOrganization(
     organizationId: number,
     jobId: number,
@@ -369,6 +459,12 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Retrieves all applications for an organization with pagination.
+   * @param organizationId The ID of the organization.
+   * @param options Pagination options including page and limit.
+   * @returns A Result containing the applications or an error.
+   */
   async getApplicationsForOrganization(
     organizationId: number,
     options: { page?: number; limit?: number },
@@ -395,6 +491,12 @@ export class OrganizationService extends BaseService {
     }
   }
 
+  /**
+   * Checks if a user has delete permission for an organization.
+   * @param userId The ID of the user.
+   * @param organizationId The ID of the organization.
+   * @returns A boolean indicating if the user has delete permission.
+   */
   async hasDeletePermission(
     userId: number,
     organizationId: number,

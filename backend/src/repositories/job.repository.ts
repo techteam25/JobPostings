@@ -22,11 +22,22 @@ import {
 } from "@/validations/job.validation";
 import { DatabaseError, NotFoundError } from "@/utils/errors";
 
+/**
+ * Repository class for managing job-related database operations, including jobs and applications.
+ */
 export class JobRepository extends BaseRepository<typeof jobsDetails> {
+  /**
+   * Creates an instance of JobRepository.
+   */
   constructor() {
     super(jobsDetails, "Job");
   }
 
+  /**
+   * Creates a new job with associated skills.
+   * @param jobData The job data including skills.
+   * @returns The created job with skills.
+   */
   async createJob(
     jobData: NewJob & { skills: JobSkills["name"][] },
   ): Promise<JobWithSkills> {
@@ -114,6 +125,12 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     );
   }
 
+  /**
+   * Updates an existing job with associated skills.
+   * @param jobData The updated job data including skills.
+   * @param jobId The ID of the job to update.
+   * @returns The updated job with skills.
+   */
   async updateJob(jobData: UpdateJob, jobId: number): Promise<JobWithSkills> {
     return await withDbErrorHandling(async () =>
       db.transaction(async (transaction) => {
@@ -203,6 +220,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     );
   }
 
+  /**
+   * Finds a job by its ID, including employer details.
+   * @param id The ID of the job.
+   * @returns The job with employer details.
+   */
   async findJobById(id: number) {
     return withDbErrorHandling(async () => {
       const result = await db.query.jobsDetails.findFirst({
@@ -232,6 +254,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     });
   }
 
+  /**
+   * Finds active jobs with pagination.
+   * @param options Pagination options including page and limit.
+   * @returns An object containing the jobs and pagination metadata.
+   */
   async findActiveJobs(options: { page?: number; limit?: number } = {}) {
     const { page = 1, limit = 10 } = options;
     const offset = (page - 1) * limit;
@@ -266,6 +293,12 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     return { items, pagination };
   }
 
+  /**
+   * Finds jobs by employer with optional filters and pagination.
+   * @param employerId The ID of the employer.
+   * @param options Pagination and search options.
+   * @returns An object containing the jobs and pagination metadata.
+   */
   async findJobsByEmployer(
     employerId: number,
     options: {
@@ -334,6 +367,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     return { items, pagination };
   }
 
+  /**
+   * Finds a job with its applications and employer details.
+   * @param jobId The ID of the job.
+   * @returns The job with applications and employer details.
+   */
   async findJobWithApplications(jobId: number) {
     return withDbErrorHandling(
       async () =>
@@ -357,6 +395,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
   }
 
   // Job Applications
+  /**
+   * Creates a new job application and increments job view count.
+   * @param applicationData The application data.
+   * @returns The ID of the created application.
+   */
   async createApplication(applicationData: NewJobApplication) {
     const result = await withDbErrorHandling(async () =>
       db.transaction(async (transaction) => {
@@ -378,6 +421,12 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     return result?.id;
   }
 
+  /**
+   * Finds applications for a specific job with pagination and optional status filter.
+   * @param jobId The ID of the job.
+   * @param options Pagination and status options.
+   * @returns An object containing the applications and pagination metadata.
+   */
   async findApplicationsByJob(
     jobId: number,
     options: { page?: number; limit?: number; status?: string } = {},
@@ -421,6 +470,12 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     return { items, pagination };
   }
 
+  /**
+   * Finds applications submitted by a specific user with pagination and optional status filter.
+   * @param userId The ID of the user.
+   * @param options Pagination and status options.
+   * @returns An object containing the applications and pagination metadata.
+   */
   async findApplicationsByUser(
     userId: number,
     options: {
@@ -497,6 +552,12 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     return { items, pagination };
   }
 
+  /**
+   * Updates the status of a job application.
+   * @param applicationId The ID of the application.
+   * @param updateData The data to update.
+   * @returns True if the update was successful, false otherwise.
+   */
   async updateApplicationStatus(
     applicationId: number,
     updateData: UpdateJobApplication,
@@ -512,6 +573,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     return result.affectedRows > 0;
   }
 
+  /**
+   * Finds a job application by its ID, including job and applicant details.
+   * @param applicationId The ID of the application.
+   * @returns The application with job and applicant details.
+   */
   async findApplicationById(applicationId: number) {
     return withDbErrorHandling(async () => {
       const result = await db
@@ -552,6 +618,12 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     });
   }
 
+  /**
+   * Checks if a user has applied to a specific job.
+   * @param userId The ID of the user.
+   * @param jobId The ID of the job.
+   * @returns True if the user has applied, false otherwise.
+   */
   async hasUserAppliedToJob(userId: number, jobId: number): Promise<boolean> {
     return await withDbErrorHandling(async () => {
       const result = await db
@@ -569,6 +641,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     });
   }
 
+  /**
+   * Deletes all job applications for a specific user.
+   * @param userId The ID of the user.
+   * @returns A promise that resolves when the deletion is complete.
+   */
   async deleteJobApplicationsByUserId(userId: number): Promise<void> {
     return withDbErrorHandling(async () => {
       await db
@@ -577,6 +654,11 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     });
   }
 
+  /**
+   * Finds a job by its ID, including associated skills.
+   * @param jobId The ID of the job.
+   * @returns The job with skills.
+   */
   async findJobByIdWithSkills(jobId: number) {
     return withDbErrorHandling(async () => {
       const jobWithSkills = await db.query.jobsDetails.findFirst({
