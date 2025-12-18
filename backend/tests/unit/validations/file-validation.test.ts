@@ -84,7 +84,7 @@ describe("file.validation", () => {
     });
 
     it("should replace special characters with underscores", () => {
-      expect(sanitizeFilename("my file@2024!.pdf")).toBe("my_file_2024_.pdf");
+      expect(sanitizeFilename("my file@2024!.pdf")).toBe("my_file_2024.pdf");
     });
 
     it("should collapse multiple underscores", () => {
@@ -121,7 +121,7 @@ describe("file.validation", () => {
 
     it("should sanitize the original filename", () => {
       const result = generateUniqueFilename("my file@2024.pdf");
-      expect(result).toMatch(/^\d+-[a-f0-9]+-my_file_2024_\.pdf$/);
+      expect(result).toMatch(/^\d+-[a-f0-9]+-my_file_2024\.pdf$/);
     });
   });
 
