@@ -8,11 +8,16 @@ import {
   timestamp,
   unique,
   varchar,
+  json,
 } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { user } from "./users";
 import { jobInsights, jobsDetails } from "./jobsDetails";
+import type { FileMetadata } from "@/validations/file.validation";
 
+/**
+ * Organizations table schema defining the structure for storing organization information.
+ */
 export const organizations = mysqlTable(
   "organizations",
   {
@@ -49,6 +54,7 @@ export const organizations = mysqlTable(
     status: mysqlEnum("status", ["active", "suspended", "deleted"])
       .default("active")
       .notNull(),
+    fileMetadata: json("file_metadata").$type<FileMetadata[]>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },
@@ -61,6 +67,9 @@ export const organizations = mysqlTable(
   ],
 );
 
+/**
+ * Organization members table schema defining the structure for storing organization memberships.
+ */
 export const organizationMembers = mysqlTable(
   "organization_members",
   {
@@ -87,12 +96,18 @@ export const organizationMembers = mysqlTable(
 );
 
 // Relations
+/**
+ * Relations for the organizations table, defining relationships with job insights, members, and job posts.
+ */
 export const organizationRelations = relations(organizations, ({ many }) => ({
   jobInsights: many(jobInsights),
   members: many(organizationMembers),
   jobPosts: many(jobsDetails),
 }));
 
+/**
+ * Relations for the organizationMembers table, defining relationships with user and organization.
+ */
 export const organizationMemberRelations = relations(
   organizationMembers,
   ({ one }) => ({

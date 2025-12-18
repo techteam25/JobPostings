@@ -14,13 +14,19 @@ const connection = mysql.createPool({
 });
 
 // Create Drizzle instance
+/**
+ * Drizzle ORM instance configured with the database schema and connection.
+ */
 export const db = drizzle(connection, {
   schema,
   mode: "default",
   logger: isDevelopment, // Enable logging in development
 });
 
-// Database health check
+/**
+ * Checks the health of the database connection by executing a simple query.
+ * @returns A promise that resolves to true if the connection is healthy, false otherwise.
+ */
 export async function checkDatabaseConnection(): Promise<boolean> {
   try {
     const result = await connection.execute("SELECT 1 as healthy");
@@ -31,7 +37,10 @@ export async function checkDatabaseConnection(): Promise<boolean> {
   }
 }
 
-// Graceful shutdown
+/**
+ * Closes the database connection gracefully.
+ * @returns A promise that resolves when the connection is closed.
+ */
 export async function closeDatabaseConnection(): Promise<void> {
   try {
     await connection.end();
@@ -42,4 +51,7 @@ export async function closeDatabaseConnection(): Promise<void> {
 }
 
 // Export connection for direct use if needed
+/**
+ * MySQL connection pool for direct database operations if needed.
+ */
 export { connection };

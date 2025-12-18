@@ -8,15 +8,12 @@ import {
   check,
   int,
 } from "drizzle-orm/mysql-core";
-import {
-  createInsertSchema,
-  createSelectSchema,
-  createUpdateSchema,
-} from "drizzle-zod";
-import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
 import { userProfile } from "./users";
 
+/**
+ * Educations table schema defining the structure for storing user education information.
+ */
 export const educations = mysqlTable(
   "educations",
   {
@@ -51,6 +48,9 @@ export const educations = mysqlTable(
 );
 
 // Relations
+/**
+ * Relations for the educations table, defining one-to-one relationship with userProfile.
+ */
 export const educationsRelations = relations(educations, ({ one }) => ({
   education: one(userProfile, {
     fields: [educations.userProfileId],

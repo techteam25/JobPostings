@@ -24,14 +24,25 @@ import { JobApplicationWithNotes } from "@/validations/jobApplications.validatio
 import { GetUserSchema } from "@/validations/user.validation";
 import { SearchParams } from "@/validations/base.validation";
 
+/**
+ * Controller class for handling organization-related API endpoints.
+ */
 export class OrganizationController extends BaseController {
   private organizationService: OrganizationService;
 
+  /**
+   * Creates an instance of OrganizationController and initializes the required services.
+   */
   constructor() {
     super();
     this.organizationService = new OrganizationService();
   }
 
+  /**
+   * Retrieves all organizations with pagination and search.
+   * @param req The Express request object with query parameters.
+   * @param res The Express response object.
+   */
   getAllOrganizations = async (
     req: Request<{}, {}, {}, SearchParams["query"]>,
     res: Response<PaginatedResponse<Organization>>,
@@ -58,6 +69,11 @@ export class OrganizationController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves an organization by its ID, including members.
+   * @param req The Express request object with organization ID parameters.
+   * @param res The Express response object.
+   */
   getOrganizationById = async (
     req: Request<GetOrganizationSchema["params"]>,
     res: Response<ApiResponse<Organization>>,
@@ -76,6 +92,11 @@ export class OrganizationController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves the organization ID for a given member ID.
+   * @param req The Express request object with user ID parameters.
+   * @param res The Express response object.
+   */
   getOrganizationIdByMemberId = async (
     req: Request<GetUserSchema["params"]>,
     res: Response<ApiResponse<OrganizationMember>>,
@@ -95,6 +116,11 @@ export class OrganizationController extends BaseController {
     }
   };
 
+  /**
+   * Creates a new organization.
+   * @param req The Express request object with organization creation data.
+   * @param res The Express response object.
+   */
   createOrganization = async (
     req: Request<{}, {}, CreateOrganizationSchema["body"]>,
     res: Response<
@@ -121,6 +147,11 @@ export class OrganizationController extends BaseController {
     }
   };
 
+  /**
+   * Updates an existing organization.
+   * @param req The Express request object with organization update data.
+   * @param res The Express response object.
+   */
   updateOrganization = async (
     req: Request<
       UpdateOrganizationSchema["params"],
@@ -147,6 +178,11 @@ export class OrganizationController extends BaseController {
     }
   };
 
+  /**
+   * Deletes an organization.
+   * @param req The Express request object with organization ID parameters.
+   * @param res The Express response object.
+   */
   deleteOrganization = async (
     req: Request<DeleteOrganizationSchema["params"]>,
     res: Response<ApiResponse<void>>,
@@ -162,6 +198,11 @@ export class OrganizationController extends BaseController {
   };
 
   // Job Application Controller methods
+  /**
+   * Retrieves a specific job application for an organization.
+   * @param req The Express request object with organization, job, and application ID parameters.
+   * @param res The Express response object.
+   */
   getJobApplicationForOrganization = async (
     req: Request<JobApplicationManagementSchema["params"]>,
     res: Response<ApiResponse<OrganizationJobApplicationsResponse>>,
@@ -188,6 +229,11 @@ export class OrganizationController extends BaseController {
     }
   };
 
+  /**
+   * Updates the status of a job application.
+   * @param req The Express request object with organization, job, and application ID parameters and status update data.
+   * @param res The Express response object.
+   */
   updateJobApplicationStatus = async (
     req: Request<
       JobApplicationManagementSchema["params"],
@@ -219,6 +265,11 @@ export class OrganizationController extends BaseController {
     }
   };
 
+  /**
+   * Attaches a note to a job application.
+   * @param req The Express request object with organization, job, and application ID parameters and note data.
+   * @param res The Express response object.
+   */
   attachNoteToJobApplication = async (
     req: Request<
       JobApplicationManagementSchema["params"],
@@ -250,6 +301,11 @@ export class OrganizationController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves notes for a specific job application.
+   * @param req The Express request object with organization, job, and application ID parameters.
+   * @param res The Express response object.
+   */
   getNotesForJobApplication = async (
     req: Request<JobApplicationManagementSchema["params"]>,
     res: Response<ApiResponse<{ note: string; createdAt: Date }[]>>,
@@ -276,6 +332,11 @@ export class OrganizationController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves job applications for a specific job in an organization.
+   * @param req The Express request object with organization and job ID parameters.
+   * @param res The Express response object.
+   */
   getJobApplicationsForOrganization = async (
     req: Request<JobApplicationsManagementSchema["params"]>,
     res: Response<ApiResponse<JobApplicationsResponseSchema>>,
@@ -300,6 +361,11 @@ export class OrganizationController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves all applications for an organization with pagination.
+   * @param req The Express request object with organization ID parameters and query parameters.
+   * @param res The Express response object.
+   */
   getApplicationsForOrganization = async (
     req: Request<
       GetOrganizationSchema["params"],

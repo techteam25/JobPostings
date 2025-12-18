@@ -9,6 +9,7 @@ import { organizations, organizationMembers } from "@/db/schema";
 import { jobsDetails } from "@/db/schema";
 import { env } from "@/config/env";
 import { auth } from "@/utils/auth";
+import logger from "@/logger";
 
 const connection = mysql.createPool({
   host: env.DB_HOST,
@@ -18,19 +19,30 @@ const connection = mysql.createPool({
   database: env.DB_NAME,
 });
 
+/**
+ * Seeds the database with fake data for development and testing purposes.
+ * This function resets the database, creates users, user profiles, organizations, job postings, and organization members.
+ * It uses Faker.js to generate realistic fake data and ensures data integrity with proper relationships.
+ * The seeding process includes:
+ * - 50 users with authentication accounts
+ * - User profiles for all users
+ * - 10 organizations with job postings (10 jobs each)
+ * - Organization members including owners and additional roles
+ * After seeding, it logs the completion and exits the process.
+ */
 async function runSeed() {
   const { faker } = await import("@faker-js/faker");
   const db = drizzle(connection, { schema, mode: "default" });
 
-  console.log("Starting database reset...");
+  logger.info("Starting database reset...");
   await reset(db, schema);
   await db.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
   await db.execute(sql`ALTER TABLE job_details AUTO_INCREMENT = 1`);
   await db.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
 
-  console.log("Starting database seeding...");
+  logger.info("Starting database seeding...");
 
-  console.log("Seeding users...");
+  logger.info("Seeding users...");
 
   // Seed users sequentially to avoid race conditions with unique constraints
   for (let idx = 0; idx < 50; idx++) {
@@ -46,9 +58,9 @@ async function runSeed() {
 
   // Verify users were inserted
   const userCount = await db.select().from(schema.user);
-  console.log(`✓ Verified ${userCount.length} users inserted`);
+  logger.info(`✓ Verified ${userCount.length} users inserted`);
 
-  console.log("Seeding user profiles...");
+  logger.info("Seeding user profiles...");
 
   // Seed user profiles
   await seed(db, { userProfile }, { seed: 43 }).refine((f) => ({
@@ -75,7 +87,7 @@ async function runSeed() {
     },
   }));
 
-  console.log("Seeding organizations with job postings...");
+  logger.info("Seeding organizations with job postings...");
 
   await seed(db, { organizations, jobsDetails }, { seed: 42 }).refine((f) => ({
     organizations: {
@@ -165,7 +177,7 @@ async function runSeed() {
     },
   }));
 
-  console.log("Seeding organization members (including owners)...");
+  logger.info("Seeding organization members (including owners)...");
 
   // Seed owners first (users 1-10 as owners of orgs 1-10)
   for (let i = 1; i <= 10; i++) {
@@ -197,20 +209,20 @@ async function runSeed() {
     await db.insert(organizationMembers).values(additionalMembers);
   }
 
-  console.log("✓ Users seeded: 50");
-  console.log("✓ Organizations seeded: 10");
-  console.log(
+  logger.info("✓ Users seeded: 50");
+  logger.info("✓ Organizations seeded: 10");
+  logger.info(
     "✓ Organization members seeded: 40 (10 owners + 30 other members)",
   );
-  console.log("✓ Job postings seeded: ~100 (10 per organization)");
+  logger.info("✓ Job postings seeded: ~100 (10 per organization)");
 }
 
 runSeed()
   .then(() => {
-    console.log("Seeding completed.");
+    logger.info("Seeding completed.");
     process.exit(0);
   })
   .catch((error) => {
-    console.error("Seeding failed:", error);
+    logger.error(`Seeding failed: ${error}`);
     process.exit(1);
   });

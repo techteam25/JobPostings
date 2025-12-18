@@ -6,9 +6,15 @@ import { BaseService } from "./base.service";
 import { env } from "@/config/env";
 import { AppError } from "@/utils/errors";
 
+/**
+ * Service for handling email operations, including sending various types of emails.
+ */
 export class EmailService extends BaseService {
   private transporter: nodemailer.Transporter;
 
+  /**
+   * Creates an instance of EmailService and initializes the email transporter.
+   */
   constructor() {
     super();
     this.transporter = nodemailer.createTransport({
@@ -22,6 +28,11 @@ export class EmailService extends BaseService {
     });
   }
 
+  /**
+   * Loads an HTML email template from the file system.
+   * @param templateName The name of the template file (without extension).
+   * @returns The template content as a string.
+   */
   private async loadTemplate(templateName: string): Promise<string> {
     const templatePath = path.join(
       __dirname,
@@ -32,6 +43,11 @@ export class EmailService extends BaseService {
     return fs.promises.readFile(templatePath, "utf-8");
   }
 
+  /**
+   * Converts an image file to a base64 encoded string for embedding in emails.
+   * @param imageName The name of the image file.
+   * @returns The base64 encoded image string.
+   */
   private async getImageAsBase64(imageName: string): Promise<string> {
     const logoPath = path.join(__dirname, "..", "assets", imageName);
 
@@ -42,6 +58,11 @@ export class EmailService extends BaseService {
     return `data:${mimeType};base64,${base64Logo}`;
   }
 
+  /**
+   * Sends an account deactivation confirmation email to the user.
+   * @param email The recipient's email address.
+   * @param firstName The recipient's first name.
+   */
   async sendAccountDeactivationConfirmation(
     email: string,
     firstName: string,
@@ -74,6 +95,11 @@ Tech Team`,
     }
   }
 
+  /**
+   * Sends an account deletion confirmation email to the user.
+   * @param email The recipient's email address.
+   * @param firstName The recipient's first name.
+   */
   async sendAccountDeletionConfirmation(
     email: string,
     firstName: string,
@@ -106,6 +132,12 @@ Tech Team`,
     }
   }
 
+  /**
+   * Sends an email verification link to the user.
+   * @param email The recipient's email address.
+   * @param name The recipient's name.
+   * @param token The verification token.
+   */
   async sendEmailVerification(
     email: string,
     name: string,
@@ -134,6 +166,13 @@ Tech Team`,
     }
   }
 
+  /**
+   * Sends an email verification for account deletion.
+   * @param email The recipient's email address.
+   * @param name The recipient's name.
+   * @param url The verification URL.
+   * @param token The verification token.
+   */
   async sendDeleteAccountEmailVerification(
     email: string,
     name: string,
@@ -163,11 +202,16 @@ Tech Team`,
     }
   }
 
+  /**
+   * Sends a job application confirmation email to the user.
+   * @param email The recipient's email address.
+   * @param fullName The recipient's full name.
+   * @param jobTitle The title of the job applied for.
+   */
   async sendJobApplicationConfirmation(
     email: string,
     fullName: string,
     jobTitle: string,
-    jobId: number,
   ): Promise<void> {
     try {
       const template = await this.loadTemplate("jobApplicationConfirmation");
@@ -194,11 +238,16 @@ Tech Team`,
     }
   }
 
+  /**
+   * Sends an application withdrawal confirmation email to the user.
+   * @param email The recipient's email address.
+   * @param fullName The recipient's full name.
+   * @param jobTitle The title of the job.
+   */
   async sendApplicationWithdrawalConfirmation(
     email: string,
     fullName: string,
     jobTitle: string,
-    applicationId: number,
   ): Promise<void> {
     try {
       const template = await this.loadTemplate(
@@ -227,6 +276,13 @@ Tech Team`,
     }
   }
 
+  /**
+   * Sends a job deletion confirmation email to the user.
+   * @param userEmail The recipient's email address.
+   * @param userName The recipient's name.
+   * @param jobTitle The title of the deleted job.
+   * @param jobId The ID of the deleted job.
+   */
   async sendJobDeletionEmail(
     userEmail: string,
     userName: string,

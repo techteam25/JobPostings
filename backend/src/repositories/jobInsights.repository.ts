@@ -4,12 +4,26 @@ import { db } from "@/db/connection";
 import { and, count, eq, sql, sum } from "drizzle-orm";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
 
+/**
+ * Repository class for managing job insights data, including views and applications.
+ */
 export class JobInsightsRepository extends BaseRepository<typeof jobInsights> {
+  /**
+   * Creates an instance of JobInsightsRepository.
+   */
   constructor() {
     super(jobInsights);
   }
+
+  /**
+   * Placeholder method for getting job insights.
+   */
   async getJobInsights() {}
 
+  /**
+   * Increments the view count for a specific job.
+   * @param jobId The ID of the job.
+   */
   async incrementJobViews(jobId: number) {
     await withDbErrorHandling(
       async () =>
@@ -21,6 +35,11 @@ export class JobInsightsRepository extends BaseRepository<typeof jobInsights> {
           .where(eq(jobInsights.job, jobId)),
     );
   }
+
+  /**
+   * Increments the application count for a specific job.
+   * @param jobId The ID of the job.
+   */
   async incrementJobApplications(jobId: number) {
     await withDbErrorHandling(
       async () =>
@@ -33,6 +52,11 @@ export class JobInsightsRepository extends BaseRepository<typeof jobInsights> {
     );
   }
 
+  /**
+   * Retrieves job insights aggregated by organization ID.
+   * @param organizationId The ID of the organization.
+   * @returns An object containing total jobs, active jobs, inactive jobs, total views, and total applications.
+   */
   async getJobInsightByOrganizationId(organizationId: number) {
     return await withDbErrorHandling(async () => {
       return await db.transaction(async (transaction) => {
@@ -92,6 +116,11 @@ export class JobInsightsRepository extends BaseRepository<typeof jobInsights> {
     });
   }
 
+  /**
+   * Retrieves job insights for a specific job by its ID.
+   * @param jobId The ID of the job.
+   * @returns The job insights data.
+   */
   async getJobInsightByJobId(jobId: number) {
     const [result] = await withDbErrorHandling(
       async () =>

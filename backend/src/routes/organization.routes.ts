@@ -1,8 +1,8 @@
 import { Router } from "express";
-import multer from "multer";
 
 import { OrganizationController } from "@/controllers/organization.controller";
 import { AuthMiddleware } from "@/middleware/auth.middleware";
+import { uploadMiddleware } from "@/middleware/multer.middleware";
 import validate from "../middleware/validation.middleware";
 import {
   createOrganizationSchema,
@@ -39,7 +39,6 @@ const paginatedOrganizationResponse = apiResponseSchema(
 ).extend({
   pagination: paginationMetaSchema,
 });
-const upload = multer({ dest: "uploads/" });
 
 // Public routes
 
@@ -225,7 +224,7 @@ registry.registerPath({
 router.post(
   "/",
   authMiddleware.authenticate,
-  upload.single("logo"),
+  uploadMiddleware.organizationLogo,
   validate(createOrganizationSchema),
   organizationController.createOrganization,
 );

@@ -20,11 +20,22 @@ import {
   User,
 } from "@/validations/userProfile.validation";
 
+/**
+ * Repository class for managing user-related database operations, including profiles and saved jobs.
+ */
 export class UserRepository extends BaseRepository<typeof user> {
+  /**
+   * Creates an instance of UserRepository.
+   */
   constructor() {
     super(user);
   }
 
+  /**
+   * Finds a user by their email address, excluding deleted users.
+   * @param email The email address to search for.
+   * @returns The user data or undefined if not found.
+   */
   async findByEmail(email: string): Promise<User | undefined> {
     return await withDbErrorHandling(
       async () =>
@@ -46,6 +57,11 @@ export class UserRepository extends BaseRepository<typeof user> {
     );
   }
 
+  /**
+   * Finds a user by their ID, including profile information with related data.
+   * @param id The ID of the user.
+   * @returns The user with profile, certifications, education, and work experiences.
+   */
   async findByIdWithProfile(id: number) {
     return await withDbErrorHandling(
       async () =>
@@ -79,6 +95,11 @@ export class UserRepository extends BaseRepository<typeof user> {
     );
   }
 
+  /**
+   * Retrieves the profile completion status for a user.
+   * @param userId The ID of the user.
+   * @returns An object indicating if the profile is complete and what components are present.
+   */
   async getUserProfileStatus(userId: number) {
     const result = await withDbErrorHandling(
       async () =>
@@ -120,6 +141,11 @@ export class UserRepository extends BaseRepository<typeof user> {
     return { complete };
   }
 
+  /**
+   * Finds a user by their ID, including password information.
+   * @param id The ID of the user.
+   * @returns The user data with password or undefined if not found.
+   */
   async findByIdWithPassword(id: number): Promise<User | undefined> {
     return await withDbErrorHandling(
       async () =>
@@ -148,6 +174,11 @@ export class UserRepository extends BaseRepository<typeof user> {
     );
   }
 
+  /**
+   * Finds a user by their ID without profile information.
+   * @param id The ID of the user.
+   * @returns The user data.
+   */
   async findUserById(id: number) {
     return await withDbErrorHandling(
       async () =>
@@ -168,6 +199,12 @@ export class UserRepository extends BaseRepository<typeof user> {
     );
   }
 
+  /**
+   * Creates a user profile for an existing user.
+   * @param userId The ID of the user.
+   * @param profileData The profile data to create.
+   * @returns The created user profile with related data.
+   */
   async createProfile(
     userId: number,
     profileData: Omit<NewUserProfile, "userId">,
@@ -202,6 +239,12 @@ export class UserRepository extends BaseRepository<typeof user> {
     );
   }
 
+  /**
+   * Updates a user's profile, including education, work experiences, and certifications.
+   * @param userId The ID of the user.
+   * @param profileData The profile data to update.
+   * @returns The updated user with profile information.
+   */
   async updateProfile(userId: number, profileData: UpdateUserProfile) {
     return await withDbErrorHandling(
       async () =>
@@ -333,6 +376,12 @@ export class UserRepository extends BaseRepository<typeof user> {
     );
   }
 
+  /**
+   * Searches users by name or email with pagination.
+   * @param searchTerm The term to search for.
+   * @param options Pagination options including page and limit.
+   * @returns An object containing the users and pagination metadata.
+   */
   async searchUsers(
     searchTerm: string,
     options: { page?: number; limit?: number } = {},
@@ -404,6 +453,10 @@ export class UserRepository extends BaseRepository<typeof user> {
     };
   }
 
+  /**
+   * Finds all active users including their profiles.
+   * @returns An array of active users with profile information.
+   */
   async findActiveUsersIncludingProfile() {
     return await withDbErrorHandling(async () =>
       db.query.user.findMany({
@@ -421,6 +474,12 @@ export class UserRepository extends BaseRepository<typeof user> {
     );
   }
 
+  /**
+   * Deactivates or activates a user account.
+   * @param id The ID of the user.
+   * @param data The status update data.
+   * @returns The updated user data.
+   */
   async deactivateUserAccount(
     id: number,
     data: { status: "active" | "deactivated" | "deleted" },
@@ -447,7 +506,11 @@ export class UserRepository extends BaseRepository<typeof user> {
     );
   }
 
-  // Check if user can act as jobseeker
+  /**
+   * Checks if a user can seek jobs by verifying if they have a profile.
+   * @param userId The ID of the user.
+   * @returns True if the user has a profile, false otherwise.
+   */
   async canSeekJobs(userId: number): Promise<boolean> {
     return await withDbErrorHandling(async () => {
       const profile = await db.query.userProfile.findFirst({
@@ -457,6 +520,13 @@ export class UserRepository extends BaseRepository<typeof user> {
     });
   }
 
+  /**
+   * Retrieves saved jobs for a user with pagination.
+   * @param userId The ID of the user.
+   * @param page The page number for pagination.
+   * @param limit The number of jobs per page.
+   * @returns An object containing the saved jobs and pagination metadata.
+   */
   async getSavedJobsForUser(userId: number, page: number, limit: number) {
     return withDbErrorHandling(async () => {
       const offset = Math.max(0, (page - 1) * limit);
@@ -525,6 +595,12 @@ export class UserRepository extends BaseRepository<typeof user> {
     });
   }
 
+  /**
+   * Saves a job for a user, with a limit of 50 saved jobs.
+   * @param userId The ID of the user.
+   * @param jobId The ID of the job to save.
+   * @returns An object indicating success.
+   */
   async saveJobForUser(userId: number, jobId: number) {
     return withDbErrorHandling(async () => {
       return await db.transaction(async (tx) => {
@@ -571,6 +647,12 @@ export class UserRepository extends BaseRepository<typeof user> {
     });
   }
 
+  /**
+   * Checks if a job is saved by a user.
+   * @param userId The ID of the user.
+   * @param jobId The ID of the job.
+   * @returns True if the job is saved, false otherwise.
+   */
   async isJobSavedByUser(userId: number, jobId: number) {
     return withDbErrorHandling(async () => {
       const savedJob = await db.query.savedJobs.findFirst({
@@ -584,6 +666,12 @@ export class UserRepository extends BaseRepository<typeof user> {
     });
   }
 
+  /**
+   * Unsaves a job for a user.
+   * @param userId The ID of the user.
+   * @param jobId The ID of the job to unsave.
+   * @returns An object indicating success.
+   */
   async unsaveJobForUser(userId: number, jobId: number) {
     return withDbErrorHandling(async () => {
       const savedJob = await db.query.savedJobs.findFirst({
@@ -609,6 +697,11 @@ export class UserRepository extends BaseRepository<typeof user> {
     });
   }
 
+  /**
+   * Retrieves the onboarding intent for a user.
+   * @param userId The ID of the user.
+   * @returns The user's onboarding intent and status.
+   */
   async getUserIntent(userId: number) {
     return await withDbErrorHandling(async () => {
       return await db.query.userOnBoarding.findFirst({

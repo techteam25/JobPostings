@@ -10,6 +10,9 @@ import {
 import { relations, sql } from "drizzle-orm";
 import { userProfile } from "./users";
 
+/**
+ * Work experiences table schema defining the structure for storing user work experience information.
+ */
 export const workExperiences = mysqlTable(
   "work_experiences",
   {
@@ -34,6 +37,9 @@ export const workExperiences = mysqlTable(
 );
 
 // Relations
+/**
+ * Relations for the workExperiences table, defining one-to-one relationship with userProfile.
+ */
 export const workExperiencesRelations = relations(
   workExperiences,
   ({ one }) => ({

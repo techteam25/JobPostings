@@ -3,6 +3,13 @@ import { AppError, createErrorResponse, ValidationError } from "@/utils/errors";
 import { env } from "@/config/env";
 import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 
+/**
+ * Express error handling middleware that processes various types of errors and sends appropriate responses.
+ * @param err The error object, which can be a standard Error or an AppError.
+ * @param _ The Express request object (unused in this middleware).
+ * @param res The Express response object used to send the error response.
+ * @param __ The next middleware function (unused in this middleware).
+ */
 export const errorHandler = (
   err: Error | AppError,
   _: Request,

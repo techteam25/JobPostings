@@ -32,6 +32,9 @@ import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
 import { fail, ok } from "./base.service";
 import logger from "@/logger";
 
+/**
+ * Service class for managing job-related operations, including CRUD for jobs and applications.
+ */
 export class JobService extends BaseService {
   private jobRepository: JobRepository;
   private organizationRepository: OrganizationRepository;
@@ -39,6 +42,9 @@ export class JobService extends BaseService {
   private typesenseService: TypesenseService;
   private userRepository: UserRepository;
 
+  /**
+   * Creates an instance of JobService and initializes repositories and services.
+   */
   constructor() {
     super();
     this.jobRepository = new JobRepository();
@@ -48,6 +54,11 @@ export class JobService extends BaseService {
     this.userRepository = new UserRepository();
   }
 
+  /**
+   * Retrieves all active jobs with optional pagination.
+   * @param options Pagination options including page and limit.
+   * @returns A Result containing the list of active jobs or a DatabaseError.
+   */
   async getAllActiveJobs(options: { page?: number; limit?: number } = {}) {
     try {
       const activeJobs = await this.jobRepository.findActiveJobs(options);
@@ -57,6 +68,11 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Retrieves active jobs posted by a specific organization.
+   * @param organizationId The ID of the organization.
+   * @returns A Result containing the list of active jobs or a DatabaseError.
+   */
   async getActiveJobsByOrganization(
     organizationId: number,
   ): Promise<Result<Job[], Error>> {
@@ -74,6 +90,11 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Searches for jobs based on various filters using Typesense.
+   * @param filters Search parameters including query, location, skills, etc.
+   * @returns A Result containing the search results or an AppError.
+   */
   async searchJobs(filters: SearchParams["query"]) {
     try {
       const {
@@ -133,6 +154,11 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Retrieves a job by its ID and increments the view count.
+   * @param id The ID of the job.
+   * @returns A Result containing the job with employer details or an error.
+   */
   async getJobById(
     id: number,
   ): Promise<Result<JobWithEmployer[number], Error>> {
@@ -155,6 +181,11 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Increments the view count for a job.
+   * @param jobId The ID of the job.
+   * @returns A Result indicating success or an error.
+   */
   async incrementJobViews(jobId: number): Promise<Result<null, Error>> {
     try {
       const job = await this.jobRepository.findById(jobId);
@@ -169,6 +200,12 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Retrieves jobs posted by a specific employer with optional filters.
+   * @param employerId The ID of the employer (organization).
+   * @param options Pagination and search options.
+   * @returns A Result containing the jobs or a DatabaseError.
+   */
   async getJobsByEmployer(
     employerId: number,
     options: {
@@ -190,6 +227,11 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Creates a new job posting.
+   * @param jobData The data for the new job, including employer ID.
+   * @returns A Result containing the created job with skills or an error.
+   */
   async createJob(
     jobData: CreateJobSchema["body"] & { employerId: number },
   ): Promise<Result<JobWithSkills, Error>> {
@@ -233,6 +275,13 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Updates an existing job posting.
+   * @param id The ID of the job to update.
+   * @param updateData The data to update.
+   * @param requesterId The ID of the user making the request.
+   * @returns A Result containing the updated job or an error.
+   */
   async updateJob(
     id: number,
     updateData: UpdateJob,
@@ -300,6 +349,13 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Deletes a job posting if it has no applications.
+   * @param id The ID of the job to delete.
+   * @param requesterId The ID of the user making the request.
+   * @param organizationId The ID of the organization.
+   * @returns A Result indicating success or an error.
+   */
   async deleteJob(
     id: number,
     requesterId: number,
@@ -345,6 +401,11 @@ export class JobService extends BaseService {
   }
 
   // Job Application Methods
+  /**
+   * Allows a user to apply for a job.
+   * @param applicationData The application data including job ID and applicant ID.
+   * @returns A Result containing the application ID and message or an error.
+   */
   async applyForJob(
     applicationData: NewJobApplication,
   ): Promise<Result<{ applicationId: number; message: string }, Error>> {
@@ -419,6 +480,13 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Retrieves applications for a specific job, with authorization checks.
+   * @param jobId The ID of the job.
+   * @param query Search parameters including page, limit, status.
+   * @param requesterId The ID of the user making the request.
+   * @returns A Result containing the applications or an error.
+   */
   async getJobApplications(
     jobId: number,
     { page, limit, status }: SearchParams["query"],
@@ -461,6 +529,12 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Retrieves applications submitted by a specific user.
+   * @param userId The ID of the user.
+   * @param query Search parameters including page, limit, status.
+   * @returns A Result containing the user's applications or an error.
+   */
   async getUserApplications(
     userId: number,
     { page, limit, status }: SearchParams["query"],
@@ -480,6 +554,13 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Updates the status of a job application.
+   * @param applicationId The ID of the application.
+   * @param data The update data including new status.
+   * @param requesterId The ID of the user making the request.
+   * @returns A Result containing a success message or an error.
+   */
   async updateApplicationStatus(
     applicationId: number,
     data: UpdateJobApplication,
@@ -545,6 +626,12 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Allows a user to withdraw their job application.
+   * @param applicationId The ID of the application.
+   * @param userId The ID of the user withdrawing the application.
+   * @returns A Result containing a success message or an error.
+   */
   async withdrawApplication(
     applicationId: number,
     userId: number,
@@ -591,6 +678,11 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Deletes all job applications for a specific user.
+   * @param userId The ID of the user.
+   * @returns A Result indicating success or an error.
+   */
   async deleteJobApplicationsByUserId(
     userId: number,
   ): Promise<Result<null, Error>> {
@@ -607,6 +699,11 @@ export class JobService extends BaseService {
 
   // Dashboard and Statistics Methods
 
+  /**
+   * Retrieves job statistics for an employer organization.
+   * @param organizationId The ID of the organization.
+   * @returns A Result containing the job insights or a DatabaseError.
+   */
   async getEmployerJobStats(organizationId: number) {
     try {
       const jobInsights =
@@ -621,6 +718,11 @@ export class JobService extends BaseService {
     }
   }
 
+  /**
+   * Processes a skills string, converting comma-separated values to JSON array if needed.
+   * @param skills The skills string.
+   * @returns The processed skills string.
+   */
   private processSkillsArray(skills: string): string {
     try {
       // Validate if it's a JSON string

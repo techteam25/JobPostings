@@ -23,16 +23,27 @@ import {
 import { ApiResponse, PaginatedResponse } from "@/types";
 import { buildPaginationMeta } from "@/utils/build-search-pagination";
 
+/**
+ * Controller class for handling job-related API endpoints.
+ */
 export class JobController extends BaseController {
   private jobService: JobService;
   private jobMatchingService: JobMatchingService;
 
+  /**
+   * Creates an instance of JobController and initializes the required services.
+   */
   constructor() {
     super();
     this.jobService = new JobService();
     this.jobMatchingService = new JobMatchingService();
   }
 
+  /**
+   * Retrieves all active jobs with pagination.
+   * @param req The Express request object with query parameters.
+   * @param res The Express response object.
+   */
   getAllJobs = async (
     req: Request<{}, {}, {}, SearchParams["query"]>,
     res: Response<PaginatedResponse<JobWithEmployer>>,
@@ -60,6 +71,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Searches for jobs based on various filters using Typesense.
+   * @param req The Express request object with search query parameters.
+   * @param res The Express response object.
+   */
   searchJobs = async (
     req: Request<{}, {}, {}, SearchParams["query"]>,
     res: Response,
@@ -119,6 +135,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves a specific job by its ID.
+   * @param req The Express request object with job ID parameters.
+   * @param res The Express response object.
+   */
   getJobById = async (
     req: Request<GetJobSchema["params"]>,
     res: Response<
@@ -140,6 +161,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves recommended jobs for the authenticated user.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
   getRecommendedJobs = async (req: Request, res: Response) => {
     const userId = req.userId;
     const { page, limit } = this.extractPaginationParams(req);
@@ -173,6 +199,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves jobs similar to a given job.
+   * @param req The Express request object with job ID parameters.
+   * @param res The Express response object.
+   */
   getSimilarJobs = async (
     req: Request<GetJobSchema["params"]>,
     res: Response,
@@ -197,6 +228,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Creates a new job posting.
+   * @param req The Express request object with job creation data.
+   * @param res The Express response object.
+   */
   createJob = async (
     req: Request<{}, {}, CreateJobSchema["body"]>,
     res: Response<ApiResponse<JobWithSkills>>,
@@ -229,6 +265,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Updates an existing job posting.
+   * @param req The Express request object with job update data.
+   * @param res The Express response object.
+   */
   updateJob = async (
     req: Request<UpdateJobSchema["params"], {}, UpdateJobSchema["body"]>,
     res: Response<ApiResponse<Job>>,
@@ -255,6 +296,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Deletes a job posting.
+   * @param req The Express request object with job ID parameters.
+   * @param res The Express response object.
+   */
   deleteJob = async (
     req: Request<DeleteJobSchema["params"]>,
     res: Response<ApiResponse<void>>,
@@ -278,6 +324,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves jobs posted by a specific employer.
+   * @param req The Express request object with organization ID parameters.
+   * @param res The Express response object.
+   */
   getJobsByEmployer = async (
     req: Request<
       GetOrganizationSchema["params"],
@@ -315,6 +366,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves jobs posted by the user's organization.
+   * @param req The Express request object with organization ID parameters.
+   * @param res The Express response object.
+   */
   getMyJobs = async (
     req: Request<
       GetOrganizationSchema["params"],
@@ -358,6 +414,11 @@ export class JobController extends BaseController {
   };
 
   // Job Application Methods
+  /**
+   * Allows a user to apply for a job.
+   * @param req The Express request object with job application data.
+   * @param res The Express response object.
+   */
   applyForJob = async (
     req: Request<ApplyForJobSchema["params"], {}, ApplyForJobSchema["body"]>,
     res: Response,
@@ -388,6 +449,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves applications for a specific job.
+   * @param req The Express request object with job ID parameters.
+   * @param res The Express response object.
+   */
   getJobApplications = async (
     req: Request<GetJobSchema["params"], {}, {}, SearchParams["query"]>,
     res: Response,
@@ -418,6 +484,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves applications submitted by the authenticated user.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
   getUserApplications = async (
     req: Request<{}, {}, {}, SearchParams["query"]>,
     res: Response,
@@ -447,6 +518,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Updates the status of a job application.
+   * @param req The Express request object with application ID parameters and update data.
+   * @param res The Express response object.
+   */
   updateApplicationStatus = async (
     req: Request<GetJobApplicationSchema["params"], {}, UpdateJobApplication>,
     res: Response,
@@ -476,6 +552,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Allows a user to withdraw their job application.
+   * @param req The Express request object with application ID parameters.
+   * @param res The Express response object.
+   */
   withdrawApplication = async (
     req: Request<GetJobApplicationSchema["params"]>,
     res: Response,
@@ -502,6 +583,11 @@ export class JobController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves job statistics for an organization.
+   * @param req The Express request object with organization ID parameters.
+   * @param res The Express response object.
+   */
   getOrganizationJobsStats = async (
     req: Request<GetOrganizationSchema["params"]>,
     res: Response,
