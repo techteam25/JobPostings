@@ -9,6 +9,9 @@ import {
 import { relations } from "drizzle-orm";
 import { user } from "./users";
 
+/**
+ * Session table schema defining the structure for storing user session information.
+ */
 export const session = mysqlTable(
   "session",
   {
@@ -28,6 +31,9 @@ export const session = mysqlTable(
   (table) => [index("idx_session_user_id").on(table.userId)],
 );
 
+/**
+ * Account table schema defining the structure for storing user authentication accounts.
+ */
 export const account = mysqlTable(
   "account",
   {
@@ -52,6 +58,9 @@ export const account = mysqlTable(
   (table) => [index("idx_session_user_id").on(table.userId)],
 );
 
+/**
+ * Verification table schema defining the structure for storing verification tokens.
+ */
 export const verification = mysqlTable("verification", {
   id: int("id").autoincrement().primaryKey(),
   identifier: text("identifier").notNull(),
@@ -65,6 +74,9 @@ export const verification = mysqlTable("verification", {
 });
 
 // Relations
+/**
+ * Relations for the session table, defining one-to-one relationship with user.
+ */
 export const sessionsRelations = relations(session, ({ one }) => ({
   user: one(user, {
     fields: [session.userId],
@@ -72,6 +84,9 @@ export const sessionsRelations = relations(session, ({ one }) => ({
   }),
 }));
 
+/**
+ * Relations for the account table, defining one-to-one relationship with user.
+ */
 export const accountsRelations = relations(account, ({ one }) => ({
   user: one(user, {
     fields: [account.userId],

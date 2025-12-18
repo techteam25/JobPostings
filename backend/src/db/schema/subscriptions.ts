@@ -13,6 +13,9 @@ import { z } from "zod";
 import { relations } from "drizzle-orm";
 import { organizations } from "./organizations";
 
+/**
+ * Subscriptions table schema defining the structure for storing organization subscription information.
+ */
 export const subscriptions = mysqlTable(
   "subscriptions",
   {
@@ -35,10 +38,13 @@ export const subscriptions = mysqlTable(
     index("organization_idx").on(table.organizationId),
     index("status_idx").on(table.status),
     index("provider_idx").on(table.providerId),
-  ]
+  ],
 );
 
 // Relations
+/**
+ * Relations for the subscriptions table, defining one-to-one relationship with organizations.
+ */
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
   organization: one(organizations, {
     fields: [subscriptions.organizationId],
@@ -47,13 +53,35 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
 }));
 
 // Zod schemas
+/**
+ * Zod schema for selecting subscription data.
+ */
 export const selectSubscriptionSchema = createSelectSchema(subscriptions);
+
+/**
+ * Zod schema for inserting new subscription data.
+ */
 export const insertSubscriptionSchema = createInsertSchema(subscriptions);
+
+/**
+ * Zod schema for updating subscription data, omitting id and createdAt.
+ */
 export const updateSubscriptionSchema = insertSubscriptionSchema
   .partial()
   .omit({ id: true, createdAt: true });
 
 // Type exports
+/**
+ * TypeScript type for subscription data.
+ */
 export type Subscription = z.infer<typeof selectSubscriptionSchema>;
+
+/**
+ * TypeScript type for new subscription data.
+ */
 export type NewSubscription = z.infer<typeof insertSubscriptionSchema>;
+
+/**
+ * TypeScript type for updating subscription data.
+ */
 export type UpdateSubscription = z.infer<typeof updateSubscriptionSchema>;

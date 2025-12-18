@@ -8,18 +8,18 @@ import {
 import { relations } from "drizzle-orm";
 
 import { userProfile } from "./users";
-import {
-  createInsertSchema,
-  createSelectSchema,
-  createUpdateSchema,
-} from "drizzle-zod";
-import { z } from "zod";
 
+/**
+ * Certifications table schema defining the structure for storing certification information.
+ */
 export const certifications = mysqlTable("certifications", {
   id: int("id").primaryKey().autoincrement(),
   certificationName: varchar("certification_name", { length: 100 }).notNull(),
 });
 
+/**
+ * User certifications junction table schema linking users to their certifications.
+ */
 export const userCertifications = mysqlTable(
   "user_certifications",
   {
@@ -42,6 +42,9 @@ export const userCertifications = mysqlTable(
 );
 
 // Relations
+/**
+ * Relations for the certifications table, defining many-to-many relationship with users through userCertifications.
+ */
 export const userCertificationsRelation = relations(
   certifications,
   ({ many }) => ({
@@ -49,6 +52,9 @@ export const userCertificationsRelation = relations(
   }),
 );
 
+/**
+ * Relations for the userCertifications junction table, defining one-to-one relationships with userProfile and certifications.
+ */
 export const userToCertificationsRelations = relations(
   userCertifications,
   ({ one }) => ({

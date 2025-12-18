@@ -19,7 +19,9 @@ import { userCertifications } from "./certifications";
 import { organizationMembers } from "./organizations";
 import { FileMetadata } from "@/validations/file.validation";
 
-// Users table
+/**
+ * Users table schema defining the structure for storing user account information.
+ */
 export const user = mysqlTable(
   "users",
   {
@@ -52,6 +54,9 @@ export const user = mysqlTable(
   ],
 );
 
+/**
+ * User profile table schema defining the structure for storing detailed user profile information.
+ */
 export const userProfile = mysqlTable("user_profile", {
   id: int("id").primaryKey().autoincrement(),
   userId: int("user_id")
@@ -75,6 +80,10 @@ export const userProfile = mysqlTable("user_profile", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
+
+/**
+ * User onboarding table schema defining the structure for storing user onboarding information.
+ */
 export const userOnBoarding = mysqlTable("user_onboarding", {
   id: int("id").primaryKey().autoincrement(),
   userId: int("user_id")
@@ -88,6 +97,9 @@ export const userOnBoarding = mysqlTable("user_onboarding", {
 });
 
 // Relations
+/**
+ * Relations for the user table, defining relationships with profile, sessions, organization members, account, and onboarding.
+ */
 export const userRelations = relations(user, ({ one, many }) => ({
   profile: one(userProfile, {
     fields: [user.id],
@@ -105,6 +117,9 @@ export const userRelations = relations(user, ({ one, many }) => ({
   }),
 }));
 
+/**
+ * Relations for the userProfile table, defining relationships with user, education, work experiences, and certifications.
+ */
 export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
   user: one(user, {
     fields: [userProfile.userId],
@@ -115,6 +130,9 @@ export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
   certifications: many(userCertifications),
 }));
 
+/**
+ * Relations for the userOnBoarding table, defining one-to-one relationship with user.
+ */
 export const userOnBoardingRelations = relations(userOnBoarding, ({ one }) => ({
   user: one(user, {
     fields: [userOnBoarding.userId],

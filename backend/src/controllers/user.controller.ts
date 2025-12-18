@@ -23,14 +23,25 @@ import {
 import { GetJobSchema } from "@/validations/job.validation";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 
+/**
+ * Controller class for handling user-related API endpoints.
+ */
 export class UserController extends BaseController {
   private userService: UserService;
 
+  /**
+   * Creates an instance of UserController and initializes the required services.
+   */
   constructor() {
     super();
     this.userService = new UserService();
   }
 
+  /**
+   * Retrieves all users with pagination and search.
+   * @param req The Express request object with query parameters.
+   * @param res The Express response object.
+   */
   getAllUsers = async (
     req: Request<{}, {}, {}, UserQuerySchema["query"]>,
     res: Response,
@@ -53,6 +64,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves a user by their ID.
+   * @param req The Express request object with user ID parameters.
+   * @param res The Express response object.
+   */
   getUserById = async (
     req: Request<GetUserSchema["params"]>,
     res: Response,
@@ -72,6 +88,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Updates a user's basic information.
+   * @param req The Express request object with user ID parameters and update data.
+   * @param res The Express response object.
+   */
   updateUser = async (
     req: Request<GetUserSchema["params"], {}, UpdateUser>,
     res: Response,
@@ -92,6 +113,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Creates a user profile for the authenticated user.
+   * @param req The Express request object with profile creation data.
+   * @param res The Express response object.
+   */
   createProfile = async (
     req: Request<{}, {}, CreateUserProfile["body"]>,
     res: Response<ApiResponse<UserProfile>>,
@@ -110,6 +136,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Updates the authenticated user's profile.
+   * @param req The Express request object with profile update data.
+   * @param res The Express response object.
+   */
   updateProfile = async (
     req: Request<{}, {}, UpdateUserProfile>,
     res: Response<ApiResponse<UserWithProfile>>,
@@ -131,6 +162,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Changes the authenticated user's password.
+   * @param req The Express request object with password change data.
+   * @param res The Express response object.
+   */
   changePassword = async (
     req: Request<{}, {}, ChangePasswordSchema["body"]>,
     res: Response,
@@ -153,6 +189,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves the authenticated user's information.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
   getCurrentUser = async (
     req: Request,
     res: Response<ApiResponse<UserWithProfile>>,
@@ -170,6 +211,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves the profile completion status for the authenticated user.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
   getUserProfileStatus = async (req: Request, res: Response) => {
     const user = await this.userService.getUserProfileStatus(req.userId!);
 
@@ -184,6 +230,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Deactivates the authenticated user's account.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
   deactivateSelf = async (req: Request, res: Response) => {
     const result = await this.userService.deactivateSelf(req.userId!);
 
@@ -198,6 +249,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Deactivates another user's account (admin action).
+   * @param req The Express request object with user ID parameters.
+   * @param res The Express response object.
+   */
   deactivateUser = async (
     req: Request<GetUserSchema["params"]>,
     res: Response,
@@ -217,6 +273,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Activates a user's account.
+   * @param req The Express request object with user ID parameters.
+   * @param res The Express response object.
+   */
   activateUser = async (
     req: Request<GetUserSchema["params"]>,
     res: Response,
@@ -236,6 +297,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Deletes the authenticated user's account.
+   * @param req The Express request object with deletion confirmation data.
+   * @param res The Express response object.
+   */
   deleteSelf = async (
     req: Request<{}, {}, DeleteSelfSchema["body"]>,
     res: Response,
@@ -254,6 +320,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Deletes a user account (admin action).
+   * @param req The Express request object with user ID parameters and deletion token.
+   * @param res The Express response object.
+   */
   deleteUser = async (
     req: Request<GetUserSchema["params"], {}, DeleteUserSchema["body"]>,
     res: Response,
@@ -272,6 +343,11 @@ export class UserController extends BaseController {
     return this.sendSuccess(res, result, "User deleted successfully", 200);
   };
 
+  /**
+   * Retrieves saved jobs for the authenticated user with pagination.
+   * @param req The Express request object with query parameters.
+   * @param res The Express response object.
+   */
   getSavedJobsForCurrentUser = async (
     req: Request<{}, {}, {}, SavedJobsQuerySchema["query"]>,
     res: Response<ApiResponse<SavedJobs>>,
@@ -297,6 +373,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Checks if a job is saved by the authenticated user.
+   * @param req The Express request object with job ID parameters.
+   * @param res The Express response object.
+   */
   checkIfJobIsSaved = async (
     req: Request<GetJobSchema["params"]>,
     res: Response<ApiResponse<{ isSaved: boolean }>>,
@@ -317,6 +398,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Saves a job for the authenticated user.
+   * @param req The Express request object with job ID parameters.
+   * @param res The Express response object.
+   */
   saveJobForCurrentUser = async (
     req: Request<GetJobSchema["params"]>,
     res: Response<ApiResponse<void>>,
@@ -334,6 +420,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Unsaves a job for the authenticated user.
+   * @param req The Express request object with job ID parameters.
+   * @param res The Express response object.
+   */
   unsaveJobForCurrentUser = async (
     req: Request<GetJobSchema["params"]>,
     res: Response<ApiResponse<void>>,
@@ -353,6 +444,11 @@ export class UserController extends BaseController {
     }
   };
 
+  /**
+   * Retrieves the onboarding intent for the authenticated user.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
   getCurrentUserIntent = async (req: Request, res: Response) => {
     const intentResult = await this.userService.getAuthenticatedUserIntent(
       req.userId!,

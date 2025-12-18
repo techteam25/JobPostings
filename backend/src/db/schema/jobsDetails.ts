@@ -17,7 +17,9 @@ import { user } from "./users";
 import { organizations } from "./organizations";
 import type { FileMetadata } from "@/validations/file.validation";
 
-// Jobs table
+/**
+ * Jobs details table schema defining the structure for storing job postings.
+ */
 export const jobsDetails = mysqlTable(
   "job_details",
   {
@@ -69,7 +71,9 @@ export const jobsDetails = mysqlTable(
   ],
 );
 
-// Job applications table
+/**
+ * Job applications table schema defining the structure for storing job applications.
+ */
 export const jobApplications = mysqlTable(
   "job_applications",
   {
@@ -114,6 +118,9 @@ export const jobApplications = mysqlTable(
   ],
 );
 
+/**
+ * Application notes table schema defining the structure for storing notes on job applications.
+ */
 export const applicationNotes = mysqlTable(
   "application_notes",
   {
@@ -140,7 +147,9 @@ export const applicationNotes = mysqlTable(
   ],
 );
 
-// Job Statistics table
+/**
+ * Job insights table schema defining the structure for storing job statistics like views and applications.
+ */
 export const jobInsights = mysqlTable(
   "job_insights",
   {
@@ -165,6 +174,9 @@ export const jobInsights = mysqlTable(
   ],
 );
 
+/**
+ * Skills table schema defining the structure for storing skill names.
+ */
 export const skills = mysqlTable(
   "skills",
   {
@@ -176,6 +188,9 @@ export const skills = mysqlTable(
   (table) => [index("skill_name_idx").on(table.name)],
 );
 
+/**
+ * Job skills junction table schema linking jobs to their required skills.
+ */
 export const jobSkills = mysqlTable(
   "job_skills",
   {
@@ -196,6 +211,9 @@ export const jobSkills = mysqlTable(
   ],
 );
 
+/**
+ * Saved jobs table schema defining the structure for storing user-saved jobs.
+ */
 export const savedJobs = mysqlTable(
   "saved_jobs",
   {
@@ -216,6 +234,9 @@ export const savedJobs = mysqlTable(
 );
 
 // Relations
+/**
+ * Relations for the jobsDetails table, defining relationships with employer, applications, insights, and skills.
+ */
 export const jobsRelations = relations(jobsDetails, ({ one, many }) => ({
   employer: one(organizations, {
     fields: [jobsDetails.employerId],
@@ -229,6 +250,9 @@ export const jobsRelations = relations(jobsDetails, ({ one, many }) => ({
   skills: many(jobSkills),
 }));
 
+/**
+ * Relations for the jobApplications table, defining relationships with job, applicant, and notes.
+ */
 export const jobApplicationsRelations = relations(
   jobApplications,
   ({ one, many }) => ({
@@ -244,6 +268,9 @@ export const jobApplicationsRelations = relations(
   }),
 );
 
+/**
+ * Relations for the applicationNotes table, defining relationships with application and user.
+ */
 export const applicationNotesRelations = relations(
   applicationNotes,
   ({ one }) => ({
@@ -258,6 +285,9 @@ export const applicationNotesRelations = relations(
   }),
 );
 
+/**
+ * Relations for the jobInsights table, defining relationships with job and organization.
+ */
 export const jobInsightsRelations = relations(jobInsights, ({ one }) => ({
   job: one(jobsDetails, {
     fields: [jobInsights.job],
@@ -269,6 +299,9 @@ export const jobInsightsRelations = relations(jobInsights, ({ one }) => ({
   }),
 }));
 
+/**
+ * Relations for the jobSkills table, defining relationships with job and skill.
+ */
 export const jobSkillsRelations = relations(jobSkills, ({ one }) => ({
   job: one(jobsDetails, {
     fields: [jobSkills.jobId],
@@ -280,10 +313,16 @@ export const jobSkillsRelations = relations(jobSkills, ({ one }) => ({
   }),
 }));
 
+/**
+ * Relations for the skills table, defining many-to-many relationship with jobs through jobSkills.
+ */
 export const skillsRelations = relations(skills, ({ many }) => ({
   jobSkills: many(jobSkills),
 }));
 
+/**
+ * Relations for the savedJobs table, defining relationships with user and job.
+ */
 export const savedJobsRelations = relations(savedJobs, ({ one }) => ({
   user: one(user, {
     fields: [savedJobs.userId],

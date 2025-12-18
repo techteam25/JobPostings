@@ -48,6 +48,11 @@ export const MYSQL_ERROR_MAP: Record<string, string> = {
 
 /**
  * Maps a MySQL error (from mysql2 or Drizzle) to a DatabaseError instance.
+ * This function takes a MySQL error object, extracts the error code, and maps it to a user-friendly message
+ * using the MYSQL_ERROR_MAP. If the error is already an AppError, it re-throws it. Otherwise, it creates
+ * a new DatabaseError with the friendly message and logs the error details.
+ * @param err The MySQL error object containing code, errno, and message properties.
+ * @throws Always throws a DatabaseError or re-throws the original AppError.
  */
 export function handleMySqlError(err: any): never {
   // Try both symbolic code and numeric errno
@@ -68,6 +73,13 @@ export function handleMySqlError(err: any): never {
 
 /**
  * Wrapper helper: runs an async DB operation and translates any MySQL error.
+ * This function wraps database operations to catch MySQL-specific errors and convert them into
+ * user-friendly DatabaseError instances. It checks if the error is a MySQL error by looking for
+ * error codes starting with 'ER_' or numeric errno. Non-MySQL errors are logged and wrapped in
+ * a generic DatabaseError. AppError instances are re-thrown as-is.
+ * @param operation A function that performs the database operation and returns a Promise<T>.
+ * @returns The result of the database operation if successful.
+ * @throws DatabaseError if a MySQL error occurs, or AppError if it was already an AppError.
  */
 export async function withDbErrorHandling<T>(
   operation: () => Promise<T>,
