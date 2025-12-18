@@ -101,7 +101,6 @@ const emailSenderWorker = new Worker(
           job.data.email,
           job.data.fullName,
           (job.data as any).jobTitle,
-          (job.data as any).jobId,
         );
         break;
       case "sendApplicationWithdrawalConfirmation":
@@ -109,7 +108,6 @@ const emailSenderWorker = new Worker(
           job.data.email,
           job.data.fullName,
           (job.data as any).jobTitle,
-          (job.data as any).applicationId,
         );
         break;
       case "sendAccountDeletionConfirmation":
