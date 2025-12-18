@@ -28,6 +28,10 @@ import {
 } from "@/validations/jobApplications.validation";
 import { getJobSchema } from "@/validations/job.validation";
 import { getUserSchema } from "@/validations/user.validation";
+import {
+  cacheMiddleware,
+  invalidateCacheMiddleware,
+} from "@/middleware/cache.middleware";
 
 const router = Router();
 const organizationController = new OrganizationController();
@@ -66,7 +70,21 @@ registry.registerPath({
     },
   },
 });
-router.get("/", organizationController.getAllOrganizations);
+
+/**
+ * Retrieves all organizations with pagination and search.
+ * This public endpoint allows users to browse organizations, with support for search and pagination.
+ * Includes caching for performance optimization.
+ * @route GET /organizations
+ * @param {Object} req.query - Query parameters for pagination and search term.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with a paginated list of organizations.
+ */
+router.get(
+  "/",
+  cacheMiddleware({ ttl: 300 }),
+  organizationController.getAllOrganizations,
+);
 
 registry.registerPath({
   method: "get",
@@ -111,9 +129,20 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Retrieves detailed information about a specific organization by its ID.
+ * This public endpoint fetches organization details, including members if applicable.
+ * Includes caching for performance optimization.
+ * @route GET /organizations/:organizationId
+ * @param {Object} req.params - Route parameters including the organizationId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the organization details.
+ */
 router.get(
   "/:organizationId",
   validate(getOrganizationSchema),
+  cacheMiddleware({ ttl: 300 }),
   organizationController.getOrganizationById,
 );
 
@@ -164,6 +193,15 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Retrieves the organization ID associated with a specific member (user) ID.
+ * This public endpoint finds the organization for a given user.
+ * @route GET /organizations/members/:id
+ * @param {Object} req.params - Route parameters including the user id.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the organization ID.
+ */
 router.get(
   "/members/:id",
   validate(getUserSchema),
@@ -221,11 +259,23 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Creates a new organization and sets the authenticated user as the owner.
+ * This authenticated endpoint allows users to create organizations, automatically adding them as owners.
+ * Requires authentication.
+ * Invalidates cache for organization listings.
+ * @route POST /organizations
+ * @param {Object} req.body - Request body with organization details.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the created organization.
+ */
 router.post(
   "/",
   authMiddleware.authenticate,
   uploadMiddleware.organizationLogo,
   validate(createOrganizationSchema),
+  invalidateCacheMiddleware(() => "/organizations"),
   organizationController.createOrganization,
 );
 
@@ -288,12 +338,28 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Updates an existing organization.
+ * This authenticated endpoint allows organization owners or admins to modify organization details.
+ * Requires authentication and admin/owner role in the organization.
+ * Invalidates cache for organization listings and specific organization.
+ * @route PUT /organizations/:organizationId
+ * @param {Object} req.params - Route parameters including the organizationId.
+ * @param {Object} req.body - Request body with updated organization details.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the updated organization.
+ */
 router.put(
   "/:organizationId",
   authMiddleware.authenticate,
   authMiddleware.requireAdminOrOwnerRole(["owner"]),
   validate(updateOrganizationInputSchema),
   authMiddleware.ensureIsOrganizationMember,
+  invalidateCacheMiddleware(() => "/organizations"),
+  invalidateCacheMiddleware(
+    (req) => `/organizations/${req.params.organizationId}`,
+  ),
   organizationController.updateOrganization,
 );
 
@@ -353,12 +419,27 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Deletes an organization.
+ * This authenticated endpoint allows organization owners to delete their organizations.
+ * Requires authentication and owner role in the organization.
+ * Invalidates cache for organization listings and specific organization.
+ * @route DELETE /organizations/:organizationId
+ * @param {Object} req.params - Route parameters including the organizationId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response confirming the organization deletion.
+ */
 router.delete(
   "/:organizationId",
   authMiddleware.authenticate,
   authMiddleware.requireAdminOrOwnerRole(["owner"]),
   validate(deleteOrganizationSchema),
   authMiddleware.ensureIsOrganizationMember,
+  invalidateCacheMiddleware(() => "/organizations"),
+  invalidateCacheMiddleware(
+    (req) => `/organizations/${req.params.organizationId}`,
+  ),
   organizationController.deleteOrganization,
 );
 
@@ -420,6 +501,17 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Retrieves job applications for a specific job in an organization.
+ * This authenticated endpoint fetches all applications for a job posted by the organization.
+ * Requires authentication, job posting role, and membership in the organization.
+ * Includes caching for performance optimization.
+ * @route GET /organizations/:organizationId/jobs/:jobId/applications
+ * @param {Object} req.params - Route parameters including organizationId and jobId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the list of applications.
+ */
 router.get(
   "/:organizationId/jobs/:jobId/applications",
   authMiddleware.authenticate,
@@ -427,6 +519,7 @@ router.get(
   validate(getOrganizationSchema),
   validate(getJobSchema),
   authMiddleware.ensureIsOrganizationMember,
+  cacheMiddleware({ ttl: 300 }),
   organizationController.getJobApplicationsForOrganization,
 );
 
@@ -488,6 +581,17 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Retrieves a specific job application for an organization.
+ * This authenticated endpoint fetches details of a job application for a job posted by the organization.
+ * Requires authentication, job posting role, and membership in the organization.
+ * Includes caching for performance optimization.
+ * @route GET /organizations/:organizationId/jobs/:jobId/applications/:applicationId
+ * @param {Object} req.params - Route parameters including organizationId, jobId, and applicationId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the job application details.
+ */
 router.get(
   "/:organizationId/jobs/:jobId/applications/:applicationId",
   authMiddleware.authenticate,
@@ -496,6 +600,7 @@ router.get(
   validate(getJobSchema),
   validate(getJobApplicationSchema),
   authMiddleware.ensureIsOrganizationMember,
+  cacheMiddleware({ ttl: 300 }),
   organizationController.getJobApplicationForOrganization,
 );
 
@@ -565,12 +670,32 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Updates the status of a job application.
+ * This authenticated endpoint allows employers to change application statuses (e.g., reviewed, shortlisted).
+ * Requires authentication, admin/owner role, and membership in the organization.
+ * Invalidates cache for job applications and specific application.
+ * @route PATCH /organizations/:organizationId/jobs/:jobId/applications/:applicationId/status
+ * @param {Object} req.params - Route parameters including organizationId, jobId, and applicationId.
+ * @param {Object} req.body - Request body with the new status.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the updated application.
+ */
 router.patch(
   "/:organizationId/jobs/:jobId/applications/:applicationId/status",
   authMiddleware.authenticate,
   authMiddleware.requireAdminOrOwnerRole(["owner", "admin"]),
   validate(updateJobStatusInputSchema),
   authMiddleware.ensureIsOrganizationMember,
+  invalidateCacheMiddleware(
+    (req) =>
+      `/${req.params.organizationId}/jobs/${req.params.jobId}/applications`,
+  ),
+  invalidateCacheMiddleware(
+    (req) =>
+      `/${req.params.organizationId}/jobs/${req.params.jobId}/applications/${req.params.applicationId}`,
+  ),
   organizationController.updateJobApplicationStatus,
 );
 
@@ -640,12 +765,28 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Attaches a note to a job application.
+ * This authenticated endpoint allows employers to add notes to job applications for internal tracking.
+ * Requires authentication, job posting role, and membership in the organization.
+ * Invalidates cache for the specific application.
+ * @route POST /organizations/:organizationId/jobs/:jobId/applications/:applicationId/notes
+ * @param {Object} req.params - Route parameters including organizationId, jobId, and applicationId.
+ * @param {Object} req.body - Request body with the note text.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the added note.
+ */
 router.post(
   "/:organizationId/jobs/:jobId/applications/:applicationId/notes",
   authMiddleware.authenticate,
   authMiddleware.requireJobPostingRole(),
   validate(createJobApplicationNoteSchema),
   authMiddleware.ensureIsOrganizationMember,
+  invalidateCacheMiddleware(
+    (req) =>
+      `/${req.params.organizationId}/jobs/${req.params.jobId}/applications/${req.params.applicationId}`,
+  ),
   organizationController.attachNoteToJobApplication,
 );
 
@@ -714,6 +855,16 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Retrieves notes for a specific job application.
+ * This authenticated endpoint fetches all notes attached to a job application.
+ * Requires authentication, job posting role, and membership in the organization.
+ * @route GET /organizations/:organizationId/jobs/:jobId/applications/:applicationId/notes
+ * @param {Object} req.params - Route parameters including organizationId, jobId, and applicationId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the list of notes.
+ */
 router.get(
   "/:organizationId/jobs/:jobId/applications/:applicationId/notes",
   authMiddleware.authenticate,
@@ -779,6 +930,17 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Retrieves all applications for an organization with pagination.
+ * This authenticated endpoint fetches all job applications for jobs posted by the organization.
+ * Requires authentication, job posting role, and membership in the organization.
+ * @route GET /organizations/:organizationId/applications
+ * @param {Object} req.params - Route parameters including the organizationId.
+ * @param {Object} req.query - Query parameters for pagination.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the paginated list of applications.
+ */
 router.get(
   "/:organizationId/applications",
   authMiddleware.authenticate,

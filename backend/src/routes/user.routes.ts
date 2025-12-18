@@ -22,6 +22,10 @@ import {
   selectUserSchema,
 } from "@/validations/userProfile.validation";
 import { getJobSchema } from "@/validations/job.validation";
+import {
+  cacheMiddleware,
+  invalidateCacheMiddleware,
+} from "@/middleware/cache.middleware";
 
 const router = Router();
 const userController = new UserController();
@@ -63,7 +67,16 @@ registry.registerPath({
     },
   },
 });
-router.get("/me", userController.getCurrentUser);
+
+/**
+ * Retrieves the authenticated user's profile information.
+ * This authenticated endpoint fetches the current user's details, including profile.
+ * Includes caching for performance optimization.
+ * @route GET /users/me
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the user details.
+ */
+router.get("/me", cacheMiddleware({ ttl: 600 }), userController.getCurrentUser);
 
 registry.registerPath({
   method: "get",
@@ -94,6 +107,14 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Retrieves the profile completion status for the authenticated user.
+ * This authenticated endpoint checks if the user's profile is complete based on required fields.
+ * @route GET /users/me/status
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the profile completion status.
+ */
 router.get("/me/status", userController.getUserProfileStatus);
 
 registry.registerPath({
@@ -142,6 +163,14 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Retrieves the onboarding intent for the authenticated user.
+ * This authenticated endpoint fetches the user's intent (job seeker or employer) and status.
+ * @route GET /users/me/intent
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the user's intent and status.
+ */
 router.get("/me/intent", userController.getCurrentUserIntent);
 
 registry.registerPath({
@@ -187,9 +216,20 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Updates the authenticated user's profile.
+ * This authenticated endpoint allows users to modify their profile information.
+ * Invalidates cache for current user data.
+ * @route PUT /users/me/profile
+ * @param {Object} req.body - Request body with updated profile details.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the updated profile.
+ */
 router.put(
   "/me/profile",
   validate(updateUserPayloadSchema),
+  invalidateCacheMiddleware(() => "users/me"),
   userController.updateProfile,
 );
 
@@ -235,9 +275,20 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Creates a user profile for the authenticated user.
+ * This authenticated endpoint allows users to create their profile with education, work experience, etc.
+ * Invalidates cache for current user data.
+ * @route POST /users/me/profile
+ * @param {Object} req.body - Request body with profile details.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the created profile.
+ */
 router.post(
   "/me/profile",
   validate(createUserPayloadSchema),
+  invalidateCacheMiddleware(() => "users/me"),
   userController.createProfile,
 );
 
@@ -274,7 +325,20 @@ registry.registerPath({
     },
   },
 });
-router.patch("/me/deactivate", userController.deactivateSelf);
+
+/**
+ * Deactivates the authenticated user's account.
+ * This authenticated endpoint allows users to deactivate their own account.
+ * Invalidates cache for current user data.
+ * @route PATCH /users/me/deactivate
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response confirming account deactivation.
+ */
+router.patch(
+  "/me/deactivate",
+  invalidateCacheMiddleware(() => "users/me"),
+  userController.deactivateSelf,
+);
 
 registry.registerPath({
   method: "delete",
@@ -308,9 +372,20 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Deletes the authenticated user's account.
+ * This authenticated endpoint allows users to permanently delete their own account.
+ * Invalidates cache for current user data.
+ * @route DELETE /users/me
+ * @param {Object} req.body - Request body with password confirmation.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response confirming account deletion.
+ */
 router.delete(
   "/me/delete",
   validate(deleteSelfSchema),
+  invalidateCacheMiddleware(() => "users/me"),
   userController.deleteSelf,
 );
 
@@ -340,10 +415,22 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Retrieves saved jobs for the authenticated user with pagination.
+ * This authenticated endpoint fetches the user's saved jobs list.
+ * Requires user authentication and job seeker role.
+ * Includes caching for performance optimization.
+ * @route GET /users/me/saved-jobs
+ * @param {Object} req.query - Query parameters for pagination.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the paginated list of saved jobs.
+ */
 router.get(
   "/me/saved-jobs",
   authMiddleware.requireUserRole,
   validate(getUserSavedJobsQuerySchema),
+  cacheMiddleware({ ttl: 300 }),
   userController.getSavedJobsForCurrentUser,
 );
 
@@ -394,6 +481,16 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Checks if a job is saved by the authenticated user.
+ * This authenticated endpoint verifies if a specific job is in the user's saved jobs list.
+ * Requires user authentication and job seeker role.
+ * @route GET /users/me/saved-jobs/:jobId/check
+ * @param {Object} req.params - Route parameters including the jobId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the saved status.
+ */
 router.get(
   "/me/saved-jobs/:jobId/check",
   authMiddleware.requireUserRole,
@@ -443,10 +540,22 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Saves a job for the authenticated user.
+ * This authenticated endpoint adds a job to the user's saved jobs list.
+ * Requires user authentication and job seeker role.
+ * Invalidates cache for saved jobs list.
+ * @route POST /users/me/saved-jobs/:jobId
+ * @param {Object} req.params - Route parameters including the jobId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response confirming the job was saved.
+ */
 router.post(
   "/me/saved-jobs/:jobId",
   authMiddleware.requireUserRole,
   validate(getJobSchema),
+  invalidateCacheMiddleware(() => "users/me/saved-jobs"),
   userController.saveJobForCurrentUser,
 );
 
@@ -493,14 +602,36 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Unsaves a job for the authenticated user.
+ * This authenticated endpoint removes a job from the user's saved jobs list.
+ * Requires user authentication and job seeker role.
+ * Invalidates cache for saved jobs list.
+ * @route DELETE /users/me/saved-jobs/:jobId
+ * @param {Object} req.params - Route parameters including the jobId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response confirming the job was unsaved.
+ */
 router.delete(
   "/me/saved-jobs/:jobId",
   authMiddleware.requireUserRole,
   validate(getJobSchema),
+  invalidateCacheMiddleware(() => "users/me/saved-jobs"),
   userController.unsaveJobForCurrentUser,
 );
 
 // Admin only routes for user management
+
+/**
+ * Retrieves all users with pagination and search.
+ * This authenticated endpoint fetches a list of users, with support for search and pagination.
+ * Requires admin or owner role.
+ * @route GET /users
+ * @param {Object} req.query - Query parameters for pagination and search term.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with a paginated list of users.
+ */
 router.get(
   "/",
   authMiddleware.requireAdminOrOwnerRole(["admin", "owner"]),
@@ -514,6 +645,16 @@ router.get(
 // );
 
 // User management routes (admin or self)
+
+/**
+ * Retrieves a user by their ID.
+ * This authenticated endpoint fetches details of a specific user.
+ * Requires admin/owner role or access to own account.
+ * @route GET /users/:id
+ * @param {Object} req.params - Route parameters including the user id.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the user details.
+ */
 router.get(
   "/:id",
   authMiddleware.requireOwnAccount,
@@ -521,6 +662,16 @@ router.get(
   userController.getUserById,
 );
 
+/**
+ * Updates a user's basic information.
+ * This authenticated endpoint allows updating user details like name and email.
+ * Requires admin/owner role or access to own account.
+ * @route PUT /users/:id
+ * @param {Object} req.params - Route parameters including the user id.
+ * @param {Object} req.body - Request body with updated user details.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the updated user.
+ */
 router.put(
   "/:id",
   authMiddleware.requireOwnAccount,
@@ -529,6 +680,16 @@ router.put(
 );
 
 // Admin-only user activation/deactivation
+
+/**
+ * Deactivates another user's account.
+ * This authenticated endpoint allows deactivating another user's account (admin action).
+ * Requires admin or owner role.
+ * @route PATCH /users/:id/deactivate
+ * @param {Object} req.params - Route parameters including the user id.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response confirming account deactivation.
+ */
 router.patch(
   "/:id/deactivate",
   validate(getUserSchema),
@@ -536,6 +697,15 @@ router.patch(
   userController.deactivateUser,
 );
 
+/**
+ * Activates a user's account.
+ * This authenticated endpoint allows activating a deactivated user account.
+ * Requires admin or owner role.
+ * @route PATCH /users/:id/activate
+ * @param {Object} req.params - Route parameters including the user id.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response confirming account activation.
+ */
 router.patch(
   "/:id/activate",
   validate(getUserSchema),
@@ -543,6 +713,16 @@ router.patch(
   userController.activateUser,
 );
 
+/**
+ * Deletes a user account.
+ * This authenticated endpoint allows deleting another user's account (admin action).
+ * Requires owner role.
+ * @route DELETE /users/:id
+ * @param {Object} req.params - Route parameters including the user id.
+ * @param {Object} req.body - Request body with deletion token.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response confirming user deletion.
+ */
 router.delete(
   "/:id",
   validate(getUserSchema),
