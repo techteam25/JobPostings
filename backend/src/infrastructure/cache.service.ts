@@ -1,0 +1,175 @@
+import { redisCacheService } from "./redis-cache.service";
+import logger from "@/logger";
+
+export interface CacheOptions {
+  ttl?: number; // Time to live in seconds
+  prefix?: string;
+}
+
+export class CacheService {
+  private static readonly DEFAULT_TTL = 3600; // 1 hour
+  private static readonly CACHE_PREFIX = "cache:";
+
+  private static buildKey(key: string, prefix?: string): string {
+    const finalPrefix = prefix || this.CACHE_PREFIX;
+    return `${finalPrefix}${key}`;
+  }
+
+  static async get<T>(key: string, options?: CacheOptions): Promise<T | null> {
+    try {
+      if (!redisCacheService.isReady()) {
+        logger.warn("Redis Cache not ready, cache GET skipped", { key });
+        return null;
+      }
+
+      const cacheKey = this.buildKey(key, options?.prefix);
+      const cached = await redisCacheService.getJSON<T>(cacheKey);
+
+      if (cached) {
+        logger.debug("Cache HIT", { key: cacheKey });
+        return cached;
+      }
+
+      logger.debug("Cache MISS", { key: cacheKey });
+      return null;
+    } catch (error) {
+      logger.error("Cache GET error", {
+        key,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return null;
+    }
+  }
+
+  static async set<T>(
+    key: string,
+    value: T,
+    options?: CacheOptions,
+  ): Promise<boolean> {
+    try {
+      if (!redisCacheService.isReady()) {
+        logger.warn("Redis Cache not ready, cache SET skipped", { key });
+        return false;
+      }
+
+      const cacheKey = this.buildKey(key, options?.prefix);
+      const ttl = options?.ttl || this.DEFAULT_TTL;
+
+      const result = await redisCacheService.setJSON(cacheKey, value, ttl);
+
+      if (result) {
+        logger.debug("Cache SET", { key: cacheKey, ttl });
+      }
+
+      return result;
+    } catch (error) {
+      logger.error("Cache SET error", {
+        key,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return false;
+    }
+  }
+
+  static async del(key: string, options?: CacheOptions): Promise<boolean> {
+    try {
+      if (!redisCacheService.isReady()) {
+        logger.warn("Redis Cache not ready, cache DEL skipped", { key });
+        return false;
+      }
+
+      const cacheKey = this.buildKey(key, options?.prefix);
+      const result = await redisCacheService.del(cacheKey);
+
+      if (result > 0) {
+        logger.debug("Cache DEL", { key: cacheKey });
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      logger.error("Cache DEL error", {
+        key,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return false;
+    }
+  }
+
+  static async invalidate(
+    pattern: string,
+    options?: CacheOptions,
+  ): Promise<number> {
+    try {
+      if (!redisCacheService.isReady()) {
+        logger.warn("Redis Cache not ready, cache invalidation skipped", {
+          pattern,
+        });
+        return 0;
+      }
+
+      const cachePattern = this.buildKey(pattern, options?.prefix);
+      const count = await redisCacheService.invalidatePattern(cachePattern);
+
+      logger.debug("Cache invalidated", { pattern: cachePattern, count });
+      return count;
+    } catch (error) {
+      logger.error("Cache invalidation error", {
+        pattern,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return 0;
+    }
+  }
+
+  static async getOrSet<T>(
+    key: string,
+    fetchFn: () => Promise<T>,
+    options?: CacheOptions,
+  ): Promise<T | null> {
+    // Try to get from cache
+    const cached = await this.get<T>(key, options);
+    if (cached !== null) {
+      return cached;
+    }
+
+    // Fetch fresh data
+    const data = await fetchFn();
+
+    // Store in cache (but don't fail if caching fails)
+    try {
+      await this.set(key, data, options);
+    } catch (error) {
+      logger.error("Cache SET failed in getOrSet", {
+        key,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+
+    return data;
+  }
+
+  // Cache keys for different entities
+  static readonly Keys = {
+    allJobs: "jobs:all",
+    experience: (level: string) => `experience:${level}`,
+    isRemoteJob: (isRemote: boolean) => `jobs:is_remote:${isRemote}`,
+    job: (jobId: string) => `job:${jobId}`,
+    jobsByType: (jobType: string) => `jobs:jobType:${jobType}`,
+    jobsByLocation: (location: string) => `jobs:location:${location}`,
+    jobsByCompany: (companyId: string) => `jobs:company:${companyId}`,
+    userSavedJobs: (userId: string) => `user:${userId}:saved_jobs`,
+  };
+
+  // Cache invalidation patterns
+  static readonly Patterns = {
+    allJobs: "cache:jobs:*",
+    experience: () => `cache:experience:*`,
+    isRemoteJob: () => `cache:jobs:is_remote:*`,
+    job: (jobId: string) => `cache:job:${jobId}*`,
+    jobsByType: (jobType: string) => `cache:jobs:jobType:${jobType}*`,
+    jobsByLocation: (location: string) => `cache:jobs:location:${location}*`,
+    jobsByCompany: (companyId: string) => `cache:jobs:company:${companyId}*`,
+    userSavedJobs: (userId: string) => `cache:user:${userId}:saved_jobs*`,
+  };
+}
