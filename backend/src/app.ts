@@ -1,49 +1,33 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import pinoHttp from "pino-http";
+import swaggerUi from "swagger-ui-express";
 
-import { rateLimit } from "express-rate-limit";
 import { toNodeHandler } from "better-auth/node";
 
-import { RedisStore } from "rate-limit-redis";
 import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
 
 import type { Application, Request, Response, NextFunction } from "express";
 
-import pinoHttp from "pino-http";
-import swaggerUi from "swagger-ui-express";
-
-import apiRoutes from "@/routes";
 import logger from "@/logger";
-
 import { auth } from "@/utils/auth";
+import { env } from "@/config/env";
+
 import { checkDatabaseConnection } from "@/db/connection";
-import { env, isTest } from "@/config/env";
-import { errorHandler } from "@/middleware/error.middleware";
-import { redisClient } from "@/config/redis";
 import { registry } from "@/swagger/registry";
+
+import { errorHandler } from "@/middleware/error.middleware";
+import { apiLimiter } from "@/middleware/rate-limit.middleware";
+import { requestLogger } from "@/middleware/request-logger.middleware";
 
 // Create Express application
 const app: Application = express();
 
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 10000, // 100 requests per 15 minutes per IP
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: "Too many requests, please try again later.",
-  skip: () => isTest, // Skip rate limiting in test environment
+// Request logging middleware (should be early)
+app.use(requestLogger);
 
-  // Important security settings
-  skipSuccessfulRequests: false, // Count all requests
-  skipFailedRequests: false, // Count failed requests too
-
-  // Redis store configuration
-  store: new RedisStore({
-    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
-  }),
-});
-
+// Security and CORS middleware
 app.use(
   cors({
     origin: [env.FRONTEND_URL],
@@ -56,7 +40,7 @@ app.use(
 app.use(helmet());
 
 // Disable CSP for the API docs route
-app.use("/api/auth/reference", (req, res, next) => {
+app.use("/api/auth/reference", (_req, res, next) => {
   res.removeHeader("Content-Security-Policy");
   next();
 });
@@ -68,7 +52,7 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(pinoHttp({ logger }));
 
 // Rate limiting middleware
-app.use(globalLimiter); // All routes
+app.use(apiLimiter); // All routes
 
 // Basic middleware
 app.use(express.json({ limit: "10mb" }));
@@ -83,7 +67,7 @@ const swaggerOptions = generator.generateDocument({
     version: "1.0.0",
     description: "Job Postings API with Swagger documentation",
   },
-  servers: [{ url: `http://${env.HOST}:${env.PORT}` }],
+  servers: [{ url: `${env.SERVER_URL}` }],
 });
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerOptions));
@@ -184,9 +168,6 @@ app.get("/health", cors({ origin: "*" }), async (_: Request, res: Response) => {
     });
   }
 });
-
-// Mount API routes
-app.use("/api", globalLimiter, apiRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
