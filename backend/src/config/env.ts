@@ -42,7 +42,9 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
 
   // redis configuration
-  REDIS_URL: z.url({ error: "REDIS_URL must be a valid URL" }),
+  REDIS_CACHE_URL: z.url({ error: "REDIS_URL must be a valid URL" }),
+  REDIS_QUEUE_URL: z.url({ error: "REDIS_URL must be a valid URL" }),
+  REDIS_RATE_LIMITER_URL: z.url({ error: "REDIS_URL must be a valid URL" }),
 
   // email service configuration could be added here
   SMTP_HOST: z.string().min(1, "SMTP host is required"),
@@ -129,7 +131,10 @@ function validateEnv(): Env {
           LOG_LEVEL: (process.env.LOG_LEVEL as LogLevel) || "info",
 
           // Redis configuration
-          REDIS_URL: process.env.REDIS_URL || "redis://localhost:6379",
+          REDIS_CACHE_URL: process.env.REDIS_URL || "redis://localhost:6379",
+          REDIS_QUEUE_URL: process.env.REDIS_URL || "redis://localhost:6379",
+          REDIS_RATE_LIMITER_URL:
+            process.env.REDIS_URL || "redis://localhost:6379",
 
           // Email service configuration
           SMTP_HOST: process.env.SMTP_HOST || "smtp.example.com",

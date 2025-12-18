@@ -7,9 +7,9 @@ import logger from "@/logger";
 
 import { env } from "@/config/env";
 import { JobWithSkills } from "@/validations/job.validation";
-import { TypesenseService } from "@/services/typesense.service/typesense.service";
-import { EmailService } from "@/services/email.service";
-import { firebaseUploadService } from "@/services/firebase-upload.service";
+import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
+import { EmailService } from "@/infrastructure/email.service";
+import { firebaseUploadService } from "@/infrastructure/firebase-upload.service";
 import {
   FileUploadJobData,
   FileMetadata,
@@ -23,15 +23,15 @@ const typesenseService = new TypesenseService();
 const emailService = new EmailService();
 
 export const jobIndexerQueueEvents = new QueueEvents("jobIndexQueue", {
-  connection: { url: env.REDIS_URL },
+  connection: { url: env.REDIS_QUEUE_URL },
 });
 const emailSenderQueueEvents = new QueueEvents("emailQueue", {
-  connection: { url: env.REDIS_URL },
+  connection: { url: env.REDIS_QUEUE_URL },
 });
 
 export const jobIndexerQueue = new Queue("jobIndexQueue", {
   connection: {
-    url: env.REDIS_URL,
+    url: env.REDIS_QUEUE_URL,
   },
   defaultJobOptions: {
     removeOnComplete: true,
@@ -46,7 +46,7 @@ export const jobIndexerQueue = new Queue("jobIndexQueue", {
 
 export const emailSenderQueue = new Queue("emailQueue", {
   connection: {
-    url: env.REDIS_URL,
+    url: env.REDIS_QUEUE_URL,
   },
   defaultJobOptions: {
     removeOnComplete: true,
@@ -79,7 +79,7 @@ const jobIndexerWorker = new Worker(
   },
   {
     connection: {
-      url: env.REDIS_URL,
+      url: env.REDIS_QUEUE_URL,
     },
     removeOnComplete: { count: 100 },
     removeOnFail: { count: 500 },
@@ -138,7 +138,7 @@ const emailSenderWorker = new Worker(
   },
   {
     connection: {
-      url: env.REDIS_URL,
+      url: env.REDIS_QUEUE_URL,
     },
     removeOnComplete: { count: 100 },
     removeOnFail: { count: 500 },
@@ -180,12 +180,12 @@ logger.info("🚀 Worker started for queue:" + emailSenderWorker.name);
 // ============================================================================
 
 export const fileUploadQueueEvents = new QueueEvents("fileUploadQueue", {
-  connection: { url: env.REDIS_URL },
+  connection: { url: env.REDIS_QUEUE_URL },
 });
 
 export const fileUploadQueue = new Queue<FileUploadJobData>("fileUploadQueue", {
   connection: {
-    url: env.REDIS_URL,
+    url: env.REDIS_QUEUE_URL,
   },
   defaultJobOptions: {
     removeOnComplete: true,
@@ -343,7 +343,7 @@ const fileUploadWorker = new Worker<FileUploadJobData>(
   },
   {
     connection: {
-      url: env.REDIS_URL,
+      url: env.REDIS_QUEUE_URL,
     },
     concurrency: 3, // Process 2-3 jobs simultaneously
     limiter: {
@@ -361,7 +361,7 @@ const fileUploadWorker = new Worker<FileUploadJobData>(
 
 export const tempFileCleanupQueue = new Queue("tempFileCleanupQueue", {
   connection: {
-    url: env.REDIS_URL,
+    url: env.REDIS_QUEUE_URL,
   },
   defaultJobOptions: {
     removeOnComplete: true,
@@ -421,7 +421,7 @@ const tempFileCleanupWorker = new Worker(
   },
   {
     connection: {
-      url: env.REDIS_URL,
+      url: env.REDIS_QUEUE_URL,
     },
     removeOnComplete: { count: 10 },
     removeOnFail: { count: 50 },
@@ -448,7 +448,7 @@ async function scheduleCleanupJob() {
 }
 
 // Initialize cleanup job
-scheduleCleanupJob();
+scheduleCleanupJob().catch((err) => logger.error(err));
 
 // ============================================================================
 // File Upload Queue Event Handlers
