@@ -8,10 +8,12 @@ import {
   timestamp,
   unique,
   varchar,
+  json,
 } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { user } from "./users";
 import { jobInsights, jobsDetails } from "./jobsDetails";
+import type { FileMetadata } from "@/validations/file.validation";
 
 export const organizations = mysqlTable(
   "organizations",
@@ -49,6 +51,7 @@ export const organizations = mysqlTable(
     status: mysqlEnum("status", ["active", "suspended", "deleted"])
       .default("active")
       .notNull(),
+    fileMetadata: json("file_metadata").$type<FileMetadata[]>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },

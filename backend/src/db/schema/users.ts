@@ -5,6 +5,7 @@ import {
   text,
   boolean,
   int,
+  json,
   check,
   index,
   mysqlEnum,
@@ -16,6 +17,7 @@ import { educations } from "./educations";
 import { workExperiences } from "./workExperiences";
 import { userCertifications } from "./certifications";
 import { organizationMembers } from "./organizations";
+import { FileMetadata } from "@/validations/file.validation";
 
 // Users table
 export const user = mysqlTable(
@@ -69,6 +71,7 @@ export const userProfile = mysqlTable("user_profile", {
   country: varchar("country", { length: 100 }).default("US"),
   isProfilePublic: boolean("is_profile_public").default(true).notNull(),
   isAvailableForWork: boolean("is_available_for_work").default(true).notNull(),
+  fileMetadata: json("file_metadata").$type<FileMetadata[]>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
