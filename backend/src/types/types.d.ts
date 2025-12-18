@@ -8,6 +8,7 @@ declare global {
       userId?: number;
       sessionId?: number;
       organizationId?: number;
+      correlationId?: string;
       user?: User;
       log: Logger;
       file?: Express.Multer.File;
