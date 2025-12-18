@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { db } from "@/db/connection";
-import { firebaseUploadService } from "@/services/firebase-upload.service";
+import { firebaseUploadService } from "@/infrastructure/firebase-upload.service";
 
 import {
   FileUploadJobData,

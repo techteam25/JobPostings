@@ -2,7 +2,7 @@ import { BaseService, Result } from "./base.service";
 import { JobInsightsRepository } from "@/repositories/jobInsights.repository";
 import { JobRepository } from "@/repositories/job.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
-import { TypesenseService } from "@/services/typesense.service/typesense.service";
+import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
 import { UserRepository } from "@/repositories/user.repository";
 
 import {

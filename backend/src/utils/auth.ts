@@ -8,7 +8,7 @@ import { z } from "zod";
 import { db } from "@/db/connection";
 import { env, isProduction } from "@/config/env";
 
-import { EmailService } from "@/services/email.service";
+import { EmailService } from "@/infrastructure/email.service";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 import { userOnBoarding } from "@/db/schema";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";

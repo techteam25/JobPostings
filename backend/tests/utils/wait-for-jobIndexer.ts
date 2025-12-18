@@ -1,4 +1,4 @@
-import { TypesenseService } from "@/services/typesense.service/typesense.service";
+import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
 import logger from "@/logger";
 
 const typesenseService = new TypesenseService();

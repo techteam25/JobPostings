@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 
 import { db } from "@/db/connection";
 import { jobsDetails, jobSkills, skills } from "@/db/schema";
-import { TypesenseService } from "@/services/typesense.service/typesense.service";
+import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
 import { request } from "@tests/utils/testHelpers";
 import { seedAdminUser } from "@tests/utils/seed";
 import { jobPostingFixture } from "@tests/utils/fixtures";

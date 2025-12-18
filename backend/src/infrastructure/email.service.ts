@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import nodemailer from "nodemailer";
-import { BaseService } from "./base.service";
+import { BaseService } from "@/services/base.service";
 import { env } from "@/config/env";
 import { AppError } from "@/utils/errors";
 

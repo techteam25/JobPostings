@@ -1,6 +1,6 @@
 import type { SearchResponse } from "typesense/lib/Typesense/Documents";
 
-import { JOBS_COLLECTION } from "@/services/typesense.service/constants";
+import { JOBS_COLLECTION } from "@/infrastructure/typesense.service/constants";
 import { JobWithSkills } from "@/validations/job.validation";
 import { typesenseClient } from "@/config/typesense-client";
 

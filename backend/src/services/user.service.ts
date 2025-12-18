@@ -1,5 +1,5 @@
 import { UserRepository } from "@/repositories/user.repository";
-import { EmailService } from "@/services/email.service";
+import { EmailService } from "@/infrastructure/email.service";
 import { BaseService, fail, ok } from "./base.service";
 import {
   AppError,

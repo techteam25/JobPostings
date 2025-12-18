@@ -8,7 +8,7 @@ import {
 } from "firebase/storage";
 
 import { storage } from "@/config/firebase";
-import { BaseService } from "./base.service";
+import { BaseService } from "@/services/base.service";
 import logger from "@/logger";
 import {
   TempFile,
