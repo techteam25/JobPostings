@@ -65,45 +65,44 @@ const upload = multer(multerConfig);
  * Upload middleware for single file uploads
  * @param fieldName - Form field name for the file
  */
-export const uploadSingle = (fieldName: string) => upload.single(fieldName);
+const uploadSingle = (fieldName: string) => upload.single(fieldName);
 
 /**
  * Upload middleware for multiple files with same field name
  * @param fieldName - Form field name for the files
  * @param maxCount - Maximum number of files (default: 10)
  */
-export const uploadArray = (fieldName: string, maxCount: number = 10) =>
+const uploadArray = (fieldName: string, maxCount: number = 10) =>
   upload.array(fieldName, maxCount);
 
 /**
  * Upload middleware for multiple files with different field names
  * @param fields - Array of field configurations
  */
-export const uploadFields = (fields: multer.Field[]) => upload.fields(fields);
-
-/**
- * Upload middleware for any file field
- */
-export const uploadAny = () => upload.any();
+const uploadFields = (fields: multer.Field[]) => upload.fields(fields);
 
 /**
  * Pre-configured upload middlewares for common use cases
  */
 export const uploadMiddleware = {
   // Profile picture upload (single image)
-  profilePicture: upload.single("profilePicture"),
+  profilePicture: uploadSingle("profilePicture"),
 
   // Resume upload (single PDF/DOC)
-  resume: upload.single("resume"),
+  resume: uploadSingle("resume"),
 
   // Organization logo upload (single image)
-  organizationLogo: upload.single("logo"),
+  organizationLogo: uploadSingle("logo"),
 
   // Job application attachments (multiple files)
-  applicationAttachments: upload.array("attachments", 5),
+  applicationAttachments: uploadArray("attachments", 5),
+
+  // Mixed file upload (different fields)
+  mixedFiles: uploadFields([
+    { name: "coverLetter", maxCount: 1 },
+    { name: "certificates", maxCount: 4 },
+  ]),
 
   // Generic document upload (multiple files)
-  documents: upload.array("documents", 10),
+  documents: uploadArray("documents", 10),
 };
-
-export default upload;
