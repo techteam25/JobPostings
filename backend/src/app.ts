@@ -22,16 +22,27 @@ import { env, isTest } from "@/config/env";
 import { errorHandler } from "@/middleware/error.middleware";
 import { redisClient } from "@/config/redis";
 import { registry } from "@/swagger/registry";
-import { initializeTypesenseSchema } from "@/config/typesense-client";
-
-initializeTypesenseSchema().catch((error) => {
-  logger.error("Failed to initialize Typesense schema:");
-  logger.error(error);
-  process.exit(1);
-});
 
 // Create Express application
 const app: Application = express();
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10000, // 100 requests per 15 minutes per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Too many requests, please try again later.",
+  skip: () => isTest, // Skip rate limiting in test environment
+
+  // Important security settings
+  skipSuccessfulRequests: false, // Count all requests
+  skipFailedRequests: false, // Count failed requests too
+
+  // Redis store configuration
+  store: new RedisStore({
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
+  }),
+});
 
 app.use(
   cors({
@@ -57,29 +68,11 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(pinoHttp({ logger }));
 
 // Rate limiting middleware
-// app.use(globalLimiter); // All routes
+app.use(globalLimiter); // All routes
 
 // Basic middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 10000, // 100 requests per 15 minutes per IP
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: "Too many requests, please try again later.",
-  skip: () => isTest, // Skip rate limiting in test environment
-
-  // Important security settings
-  skipSuccessfulRequests: false, // Count all requests
-  skipFailedRequests: false, // Count failed requests too
-
-  // Redis store configuration
-  store: new RedisStore({
-    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
-  }),
-});
 
 // Generate the OpenAPI document
 const generator = new OpenApiGeneratorV3(registry.definitions);
