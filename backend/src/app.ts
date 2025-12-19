@@ -204,34 +204,39 @@ if (env.NODE_ENV === "development") {
  *                    type: string
  *
  */
-app.get("/health", cors({ origin: "*" }), async (_: Request, res: Response) => {
-  try {
-    const isDatabaseHealthy = await checkDatabaseConnection();
-    const healthStatus = {
-      status: isDatabaseHealthy ? "OK" : "DEGRADED",
-      message: "Server is running",
-      timestamp: new Date().toISOString(),
-      environment: env.NODE_ENV,
-      database: {
-        connected: isDatabaseHealthy,
-        host: env.DB_HOST,
-        port: env.DB_PORT,
-        name: env.DB_NAME,
-      },
-      version: "1.0.0",
-    };
+app.get(
+  "/health",
+  apiLimiter,
+  cors({ origin: "*" }),
+  async (_: Request, res: Response) => {
+    try {
+      const isDatabaseHealthy = await checkDatabaseConnection();
+      const healthStatus = {
+        status: isDatabaseHealthy ? "OK" : "DEGRADED",
+        message: "Server is running",
+        timestamp: new Date().toISOString(),
+        environment: env.NODE_ENV,
+        database: {
+          connected: isDatabaseHealthy,
+          host: env.DB_HOST,
+          port: env.DB_PORT,
+          name: env.DB_NAME,
+        },
+        version: "1.0.0",
+      };
 
-    const statusCode = isDatabaseHealthy ? 200 : 503;
-    res.status(statusCode).json(healthStatus);
-  } catch (error) {
-    res.status(503).json({
-      status: "ERROR",
-      message: "Health check failed",
-      timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
+      const statusCode = isDatabaseHealthy ? 200 : 503;
+      res.status(statusCode).json(healthStatus);
+    } catch (error) {
+      res.status(503).json({
+        status: "ERROR",
+        message: "Health check failed",
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+);
 
 // Rate limiting middleware
 app.use("/api", apiLimiter, apiRoutes); // All routes
