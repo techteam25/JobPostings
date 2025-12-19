@@ -46,17 +46,18 @@ export class JobController extends BaseController {
    */
   getAllJobs = async (
     req: Request<{}, {}, {}, SearchParams["query"]>,
-    res: Response<PaginatedResponse<JobWithEmployer>>,
+    res: Response<PaginatedResponse<JobWithEmployer[]>>,
   ) => {
     const { page, limit } = req.query;
-    const result = await this.jobService.getAllActiveJobs({
+    const userId = req.userId;
+    const result = await this.jobService.getAllActiveJobs(userId, {
       page,
       limit,
     });
 
     if (result.isSuccess) {
       const { items, pagination } = result.value;
-      return this.sendPaginatedResponse(
+      return this.sendPaginatedResponse<JobWithEmployer>(
         res,
         items,
         pagination,
@@ -151,7 +152,7 @@ export class JobController extends BaseController {
     const job = await this.jobService.getJobById(jobId);
 
     if (job.isSuccess) {
-      return this.sendSuccess<JobWithEmployer[number]>(
+      return this.sendSuccess<JobWithEmployer>(
         res,
         job.value,
         "Job retrieved successfully",

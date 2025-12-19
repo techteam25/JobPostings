@@ -56,13 +56,46 @@ export class JobService extends BaseService {
 
   /**
    * Retrieves all active jobs with optional pagination.
+   * @param userId The ID of the user making the request (optional).
    * @param options Pagination options including page and limit.
    * @returns A Result containing the list of active jobs or a DatabaseError.
    */
-  async getAllActiveJobs(options: { page?: number; limit?: number } = {}) {
+  async getAllActiveJobs(
+    userId: number | undefined,
+    options: { page?: number; limit?: number } = {},
+  ) {
     try {
       const activeJobs = await this.jobRepository.findActiveJobs(options);
-      return ok(activeJobs);
+
+      if (!userId || activeJobs.items.length === 0) {
+        const enrichedJobs = activeJobs.items.map((job) => ({
+          ...job,
+          hasApplied: false,
+        }));
+        return ok({ ...activeJobs, items: enrichedJobs });
+      }
+
+      // Check which jobs the user has applied to
+      const jobIds = activeJobs.items.map((job) => job.job.id);
+
+      // Fetch applications by user for these job IDs
+      const applications = await this.jobRepository.findApplicationsByUser(
+        userId,
+        jobIds,
+      );
+
+      const appliedJobIds = new Set(
+        applications.items
+          .map((app) => app.job?.id)
+          .filter((id): id is number => id !== undefined),
+      );
+
+      const enrichedJobs = activeJobs.items.map((job) => ({
+        ...job,
+        hasApplied: appliedJobIds.has(job.job.id),
+      }));
+
+      return ok({ ...activeJobs, items: enrichedJobs });
     } catch {
       return fail(new DatabaseError("Failed to fetch active jobs"));
     }
@@ -559,6 +592,7 @@ export class JobService extends BaseService {
     try {
       const userApplications = await this.jobRepository.findApplicationsByUser(
         userId,
+        [],
         {
           page,
           limit,
