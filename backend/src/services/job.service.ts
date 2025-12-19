@@ -190,11 +190,13 @@ export class JobService extends BaseService {
   /**
    * Retrieves a job by its ID and increments the view count.
    * @param id The ID of the job.
+   * @param userId The ID of the user making the request (optional).
    * @returns A Result containing the job with employer details or an error.
    */
   async getJobById(
     id: number,
-  ): Promise<Result<JobWithEmployer[number], Error>> {
+    userId?: number | undefined,
+  ): Promise<Result<JobWithEmployer, Error>> {
     try {
       const job = await this.jobRepository.findJobById(id);
 
@@ -205,7 +207,16 @@ export class JobService extends BaseService {
       // Increment view count
       await this.incrementJobViews(id);
 
-      return ok(job);
+      if (!userId) {
+        return ok({ ...job, hasApplied: false });
+      }
+
+      const hasApplied = await this.jobRepository.hasUserAppliedToJob(
+        userId,
+        id,
+      );
+
+      return ok({ ...job, hasApplied });
     } catch (error) {
       if (error instanceof AppError) {
         return this.handleError(error);

@@ -148,8 +148,9 @@ export class JobController extends BaseController {
     >,
   ) => {
     const jobId = parseInt(req.params.jobId);
+    const userId = req.userId;
 
-    const job = await this.jobService.getJobById(jobId);
+    const job = await this.jobService.getJobById(jobId, userId);
 
     if (job.isSuccess) {
       return this.sendSuccess<JobWithEmployer>(

@@ -199,6 +199,7 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
         .spyOn(JobService.prototype, "getJobById")
         .mockResolvedValue(
           ok({
+            hasApplied: false,
             job: {
               id: inactiveJobId,
               title: "Inactive Job",
