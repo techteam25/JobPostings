@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 
-import { FirebaseUploadService } from "@/services/firebase-upload.service";
+import { FirebaseUploadService } from "@/infrastructure/firebase-upload.service";
 import { TempFile } from "@/validations/file.validation";
 
 // Mock Firebase Storage

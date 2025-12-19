@@ -5,7 +5,7 @@ import { auth } from "@/utils/auth";
 import { JobService } from "@/services/job.service";
 import { ok } from "@/services/base.service";
 import { JobRepository } from "@/repositories/job.repository";
-import { emailSenderQueue } from "@/utils/bullmq.utils";
+import { queueService } from "@/infrastructure/queue.service";
 
 describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
   let userCookie: string;
@@ -296,7 +296,7 @@ describe("Withdraw Job Application Integration Tests", () => {
     jobRepository = new JobRepository();
 
     // Mock email queue to prevent actual email sending during tests
-    vi.spyOn(emailSenderQueue, "add").mockResolvedValue({} as any);
+    vi.spyOn(queueService, "addJob").mockResolvedValue({} as any);
   });
 
   beforeEach(async () => {
@@ -376,7 +376,7 @@ describe("Withdraw Job Application Integration Tests", () => {
       expect(response.body.message).toBe("Application withdrawn successfully");
 
       // Verify email queue was called
-      expect(emailSenderQueue.add).toHaveBeenCalledWith(
+      expect(queueService.addJob).toHaveBeenCalledWith(
         "sendApplicationWithdrawalConfirmation",
         expect.objectContaining({
           email: expect.any(String),
@@ -461,10 +461,10 @@ describe("Withdraw Job Application Integration Tests", () => {
         .set("Cookie", userCookie)
         .expect(200);
 
-      expect(emailSenderQueue.add).toHaveBeenCalledWith(
+      expect(queueService.addJob).toHaveBeenCalledWith(
         "sendApplicationWithdrawalConfirmation",
         expect.objectContaining({
-          email: expect.stringMatching(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/),
+          email: expect.stringMatching(/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/),
           fullName: expect.any(String),
           jobTitle: expect.any(String),
           applicationId: expect.any(Number),

@@ -1,7 +1,7 @@
 import Typesense from "typesense";
 
 import { env } from "./env";
-import { JOBS_COLLECTION } from "@/services/typesense.service/constants";
+import { JOBS_COLLECTION } from "@/infrastructure/typesense.service/constants";
 import logger from "@/logger";
 
 export const typesenseClient = new Typesense.Client({

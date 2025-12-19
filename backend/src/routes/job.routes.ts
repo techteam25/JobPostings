@@ -32,6 +32,10 @@ import {
   paginatedResponseSchema,
   paginationMetaSchema,
 } from "@/types";
+import {
+  cacheMiddleware,
+  invalidateCacheMiddleware,
+} from "@/middleware/cache.middleware";
 
 const router = Router();
 const jobController = new JobController();
@@ -90,7 +94,22 @@ registry.registerPath({
     },
   },
 });
-router.get("/", validate(searchParams), jobController.getAllJobs);
+
+/**
+ * Retrieves all active job postings with optional pagination and filters.
+ * This public endpoint allows users to fetch a list of active job postings, supporting pagination and various filters to narrow down results.
+ * Includes caching for performance optimization.
+ * @route GET /api/jobs
+ * @param {Object} req.query - Query parameters including page, limit, and filter options.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with a paginated list of job postings including employer details.
+ */
+router.get(
+  "/",
+  validate(searchParams),
+  cacheMiddleware({ ttl: 300 }),
+  jobController.getAllJobs,
+);
 
 registry.registerPath({
   method: "get",
@@ -129,7 +148,22 @@ registry.registerPath({
     },
   },
 });
-router.get("/search", validate(searchParams), jobController.searchJobs);
+
+/**
+ * Searches for job postings using advanced filters and Typesense search engine.
+ * This public endpoint performs a search on job postings, allowing for text search, filtering by job type, location, experience, etc., and sorting options.
+ * Includes caching for performance optimization.
+ * @route GET /api/jobs/search
+ * @param {Object} req.query - Query parameters for search query, filters, pagination, and sorting.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with search results and pagination metadata.
+ */
+router.get(
+  "/search",
+  validate(searchParams),
+  cacheMiddleware({ ttl: 300 }),
+  jobController.searchJobs,
+);
 // router.get("/stats", jobController.getJobStats);
 
 registry.registerPath({
@@ -175,7 +209,31 @@ registry.registerPath({
     },
   },
 });
-router.get("/:jobId", validate(getJobSchema), jobController.getJobById);
+
+/**
+ * Retrieves detailed information about a specific job posting by its ID.
+ * This public endpoint fetches a single job posting, including employer information.
+ * Includes caching for performance optimization.
+ * @route GET /api/jobs/:jobId
+ * @param {Object} req.params - Route parameters including the jobId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the job posting details.
+ */
+router.get(
+  "/:jobId",
+  validate(getJobSchema),
+  cacheMiddleware({ ttl: 300 }),
+  jobController.getJobById,
+);
+
+/**
+ * Retrieves job postings similar to the specified job.
+ * This public endpoint uses job matching algorithms to find similar job postings based on the given job ID.
+ * @route GET /api/jobs/:jobId/similar
+ * @param {Object} req.params - Route parameters including the jobId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with a list of similar job postings.
+ */
 router.get(
   "/:jobId/similar",
   validate(getJobSchema),
@@ -186,15 +244,36 @@ router.get(
 router.use(authMiddleware.authenticate);
 
 // User routes (authenticated users)
+
+/**
+ * Retrieves personalized job recommendations for the authenticated user.
+ * This authenticated endpoint uses user profile and preferences to recommend relevant job postings.
+ * Requires user authentication and job seeker role.
+ * @route GET /api/jobs/me/recommendations
+ * @param {Object} req.query - Query parameters for pagination.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with recommended job postings.
+ */
 router.get(
   "/me/recommendations",
   authMiddleware.requireUserRole,
   jobController.getRecommendedJobs,
 );
 
+/**
+ * Retrieves job applications submitted by the authenticated user.
+ * This authenticated endpoint fetches the user's job applications with pagination and optional status filtering.
+ * Requires user authentication and job seeker role.
+ * Includes caching for performance optimization.
+ * @route GET /api/jobs/me/applications
+ * @param {Object} req.query - Query parameters for pagination and status filter.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the user's job applications.
+ */
 router.get(
   "/me/applications",
   authMiddleware.requireUserRole,
+  cacheMiddleware({ ttl: 300 }),
   jobController.getUserApplications,
 );
 
@@ -269,6 +348,17 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Allows the authenticated user to apply for a job posting.
+ * This authenticated endpoint creates a new job application for the specified job.
+ * Requires user authentication and job seeker role.
+ * @route POST /api/jobs/:jobId/apply
+ * @param {Object} req.params - Route parameters including the jobId.
+ * @param {Object} req.body - Request body with application details (cover letter, resume).
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response confirming the application submission.
+ */
 router.post(
   "/:jobId/apply",
   authMiddleware.requireUserRole,
@@ -339,6 +429,16 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Allows the authenticated user to withdraw their job application.
+ * This authenticated endpoint cancels an existing job application.
+ * Requires user authentication, job seeker role, and ownership of the application.
+ * @route PATCH /api/jobs/applications/:applicationId/withdraw
+ * @param {Object} req.params - Route parameters including the applicationId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response confirming the application withdrawal.
+ */
 router.patch(
   "/applications/:applicationId/withdraw",
   validate(getJobApplicationSchema),
@@ -348,9 +448,21 @@ router.patch(
 );
 
 // Employer routes
+
+/**
+ * Retrieves job postings created by the authenticated user's organization.
+ * This authenticated endpoint fetches jobs posted by the user's organization with pagination.
+ * Requires authentication and job posting role.
+ * Includes caching for performance optimization.
+ * @route GET /api/jobs/my/posted
+ * @param {Object} req.query - Query parameters for pagination.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the organization's job postings.
+ */
 router.get(
   "/my/posted",
   authMiddleware.requireJobPostingRole(),
+  cacheMiddleware({ ttl: 300 }),
   jobController.getMyJobs,
 );
 
@@ -420,10 +532,22 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Creates a new job posting for the authenticated user's organization.
+ * This authenticated endpoint allows employers to post new jobs.
+ * Requires authentication and job posting role.
+ * Invalidates cache for job listings.
+ * @route POST /api/jobs
+ * @param {Object} req.body - Request body with job posting details.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the created job posting.
+ */
 router.post(
   "/",
   authMiddleware.requireJobPostingRole(),
   validate(createJobSchema),
+  invalidateCacheMiddleware((req) => `/api/jobs`),
   jobController.createJob,
 );
 
@@ -485,10 +609,23 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Updates an existing job posting owned by the authenticated user's organization.
+ * This authenticated endpoint allows employers to modify their job postings.
+ * Requires authentication, job posting role, and ownership of the job.
+ * Invalidates cache for job listings.
+ * @route PUT /api/jobs/:jobId
+ * @param {Object} req.params - Route parameters including the jobId.
+ * @param {Object} req.body - Request body with updated job details.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the updated job posting.
+ */
 router.put(
   "/:jobId",
   authMiddleware.requireJobPostingRole(),
   validate(updateJobInputSchema),
+  invalidateCacheMiddleware((req) => `/api/jobs`),
   jobController.updateJob,
 );
 
@@ -547,25 +684,62 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Deletes a job posting owned by the authenticated user's organization.
+ * This authenticated endpoint allows employers to remove their job postings.
+ * Requires authentication, ownership of the job, and delete permissions.
+ * Invalidates cache for job listings and specific job.
+ * @route DELETE /api/jobs/:jobId
+ * @param {Object} req.params - Route parameters including the jobId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response confirming the job deletion.
+ */
 router.delete(
   "/:jobId",
   authMiddleware.ensureJobOwnership,
   authMiddleware.requireDeleteJobPermission(),
   validate(deleteJobSchema),
+  invalidateCacheMiddleware((req) => `/api/jobs`),
+  invalidateCacheMiddleware((req) => `/api/jobs/${req.params.jobId}`),
   jobController.deleteJob,
 );
 
+/**
+ * Retrieves applications for a specific job posting owned by the authenticated user's organization.
+ * This authenticated endpoint fetches applications for a job posted by the user's organization.
+ * Requires authentication and job posting role.
+ * Includes caching for performance optimization.
+ * @route GET /api/jobs/:jobId/applications
+ * @param {Object} req.params - Route parameters including the jobId.
+ * @param {Object} req.query - Query parameters for pagination and status filter.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the job applications.
+ */
 router.get(
   "/:jobId/applications",
   authMiddleware.requireJobPostingRole(),
   validate(getJobSchema),
+  cacheMiddleware({ ttl: 300 }),
   jobController.getJobApplications,
 );
 
+/**
+ * Updates the status of a job application for the authenticated user's organization.
+ * This authenticated endpoint allows employers to change application statuses (e.g., reviewed, shortlisted).
+ * Requires authentication and job posting role.
+ * Invalidates cache for user applications.
+ * @route PATCH /api/jobs/applications/:applicationId/status
+ * @param {Object} req.params - Route parameters including the applicationId.
+ * @param {Object} req.body - Request body with the new status.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the updated application.
+ */
 router.patch(
   "/applications/:applicationId/status",
   authMiddleware.requireJobPostingRole(),
   validate(updateApplicationStatusSchema),
+  invalidateCacheMiddleware((req) => `/api/jobs/me/applications`),
   jobController.updateApplicationStatus,
 );
 
@@ -614,11 +788,24 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Retrieves job postings for a specific organization.
+ * This authenticated endpoint fetches jobs posted by the specified organization with pagination and filters.
+ * Requires authentication, job posting role, and membership in the organization.
+ * Includes caching for performance optimization.
+ * @route GET /api/jobs/employer/:organizationId/jobs
+ * @param {Object} req.params - Route parameters including the organizationId.
+ * @param {Object} req.query - Query parameters for pagination, search, and sorting.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the organization's job postings.
+ */
 router.get(
   "/employer/:organizationId/jobs",
   authMiddleware.requireJobPostingRole(),
   authMiddleware.ensureIsOrganizationMember,
   validate(getOrganizationSchema),
+  cacheMiddleware({ ttl: 300 }),
   jobController.getJobsByEmployer,
 );
 
@@ -675,6 +862,16 @@ registry.registerPath({
     },
   },
 });
+
+/**
+ * Retrieves job posting statistics for a specific organization.
+ * This authenticated endpoint provides stats like total jobs, active jobs, applications, and views for the organization.
+ * Requires authentication, job posting role, and membership in the organization.
+ * @route GET /api/jobs/employer/:organizationId/jobs/stats
+ * @param {Object} req.params - Route parameters including the organizationId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with job statistics.
+ */
 router.get(
   "/employer/:organizationId/jobs/stats",
   authMiddleware.requireJobPostingRole(),

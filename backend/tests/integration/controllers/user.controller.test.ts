@@ -35,7 +35,7 @@ const {
   mockSendAccountDeletionConfirmation: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/services/email.service", () => {
+vi.mock("@/infrastructure/email.service", () => {
   // noinspection JSUnusedGlobalSymbols
   return {
     EmailService: class {
@@ -470,9 +470,8 @@ describe("User Controller Integration Tests", () => {
         "message",
         "Saved jobs retrieved successfully",
       );
-      expect(response.body.data).toHaveProperty("items");
-      expect(response.body.data.items).toBeInstanceOf(Array);
-      expect(response.body.data).toHaveProperty("pagination");
+      expect(response.body.data).toBeInstanceOf(Array);
+      expect(response.body).toHaveProperty("pagination");
     });
 
     it("returns an empty list when the user has no saved jobs returning 200", async () => {
@@ -497,8 +496,8 @@ describe("User Controller Integration Tests", () => {
         "message",
         "Saved jobs retrieved successfully",
       );
-      expect(response.body.data).toHaveProperty("items");
-      expect(response.body.data.items).toHaveLength(0);
+      expect(response.body.data).toBeInstanceOf(Array);
+      expect(response.body.data).toHaveLength(0);
     });
   });
 

@@ -1,5 +1,5 @@
 import { UserRepository } from "@/repositories/user.repository";
-import { EmailService } from "@/services/email.service";
+import { EmailService } from "@/infrastructure/email.service";
 import { BaseService, fail, ok } from "./base.service";
 import {
   AppError,
@@ -16,7 +16,7 @@ import {
   UpdateUserProfile,
 } from "@/validations/userProfile.validation";
 import { OrganizationRepository } from "@/repositories/organization.repository";
-import { emailSenderQueue } from "@/utils/bullmq.utils";
+import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 
 /**
  * Service class for managing user-related operations, including CRUD for users and profiles.
@@ -330,10 +330,14 @@ export class UserService extends BaseService {
       }
 
       // Queue notification email
-      await emailSenderQueue.add("sendAccountDeletionConfirmation", {
-        email: user.email,
-        fullName: user.fullName,
-      });
+      await queueService.addJob(
+        QUEUE_NAMES.EMAIL_QUEUE,
+        "sendAccountDeletionConfirmation",
+        {
+          email: user.email,
+          fullName: user.fullName,
+        },
+      );
 
       return await this.getUserById(id);
     } catch (error) {
@@ -467,10 +471,14 @@ export class UserService extends BaseService {
       }
 
       // Queue notification email
-      await emailSenderQueue.add("sendAccountDeletionConfirmation", {
-        email: user.email,
-        fullName: user.fullName,
-      });
+      await queueService.addJob(
+        QUEUE_NAMES.EMAIL_QUEUE,
+        "sendAccountDeletionConfirmation",
+        {
+          email: user.email,
+          fullName: user.fullName,
+        },
+      );
 
       return ok(null);
     } catch (error) {

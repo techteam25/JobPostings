@@ -2,12 +2,12 @@ import { sql } from "drizzle-orm";
 
 import { db } from "@/db/connection";
 import { jobsDetails, jobSkills, skills } from "@/db/schema";
-import { TypesenseService } from "@/services/typesense.service/typesense.service";
+import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
 import { request } from "@tests/utils/testHelpers";
 import { seedAdminUser } from "@tests/utils/seed";
 import { jobPostingFixture } from "@tests/utils/fixtures";
 import { waitForJobIndexing } from "@tests/utils/wait-for-jobIndexer";
-import { jobIndexerQueue } from "@/utils/bullmq.utils";
+import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 
 const typesenseService = new TypesenseService();
 
@@ -31,7 +31,7 @@ describe("Job Search Integration Tests", () => {
     await db.execute(sql.raw(`ALTER TABLE job_skills AUTO_INCREMENT = 1`));
     await db.execute(sql.raw(`ALTER TABLE skills AUTO_INCREMENT = 1`));
     await db.execute(sql.raw(`ALTER TABLE job_details AUTO_INCREMENT = 1`));
-    await jobIndexerQueue.obliterate({ force: true });
+    await queueService.obliterateQueue(QUEUE_NAMES.TYPESENSE_QUEUE);
 
     const res = await Promise.all([
       request
