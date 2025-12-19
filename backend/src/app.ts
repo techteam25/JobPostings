@@ -16,10 +16,77 @@ import { env } from "@/config/env";
 
 import { checkDatabaseConnection } from "@/db/connection";
 import { registry } from "@/swagger/registry";
+import apiRoutes from "@/routes";
 
 import { errorHandler } from "@/middleware/error.middleware";
 import { apiLimiter } from "@/middleware/rate-limit.middleware";
 import { requestLogger } from "@/middleware/request-logger.middleware";
+
+import { redisCacheService } from "@/infrastructure/redis-cache.service";
+import { redisRateLimiterService } from "@/infrastructure/redis-rate-limiter.service";
+import { queueService } from "@/infrastructure/queue.service";
+import { initializeTypesenseSchema } from "@/config/typesense-client";
+import { initializeEmailWorker } from "@/workers/send-email-worker";
+import { initializeTypesenseWorker } from "@/workers/typesense-job-indexer";
+import { initializeFileUploadWorker } from "@/workers/file-upload-worker";
+import {
+  initializeFileCleanupWorker,
+  scheduleCleanupJob,
+} from "@/workers/temp-file-cleanup-worker";
+
+// Initialize Typesense schema
+try {
+  initializeTypesenseSchema().catch((err) => logger.error(err));
+  logger.info("✅ Typesense schema initialization successful");
+} catch (error) {
+  logger.error("❌ Failed to initialize Typesense schema");
+  process.exit(1);
+}
+
+// Connect to Redis instances (all optional - server will continue if they fail)
+try {
+  redisCacheService.connect().catch((err) => logger.error(err));
+  logger.info("Redis Cache connected");
+} catch (error) {
+  logger.warn("Redis Cache connection failed, continuing without cache", {
+    error: error instanceof Error ? error.message : "Unknown error",
+  });
+}
+
+// Connect to Redis for Rate Limiting
+try {
+  redisRateLimiterService.connect().catch((err) => logger.error(err));
+  logger.info("Redis Rate Limiter connected");
+} catch (error) {
+  logger.warn("Redis Rate Limiter connection failed, using memory store", {
+    error: error instanceof Error ? error.message : "Unknown error",
+  });
+}
+
+// Initialize queue service and workers
+try {
+  queueService.initialize().catch((err) => logger.error(err));
+  initializeTypesenseWorker();
+  initializeFileUploadWorker();
+  initializeEmailWorker();
+  initializeFileCleanupWorker();
+  logger.info("Queue service and workers initialized");
+} catch (error) {
+  logger.warn(
+    "Queue service initialization failed, image uploads will be synchronous",
+    {
+      error: error instanceof Error ? error.message : "Unknown error",
+    },
+  );
+}
+
+try {
+  scheduleCleanupJob().catch((err) => logger.error(err));
+} catch (error) {
+  logger.warn("Failed to schedule temp file cleanup job", {
+    error: error instanceof Error ? error.message : "Unknown error",
+  });
+}
 
 // Create Express application
 const app: Application = express();
@@ -50,9 +117,6 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 
 // Attach pino HTTP logger middleware
 app.use(pinoHttp({ logger }));
-
-// Rate limiting middleware
-app.use(apiLimiter); // All routes
 
 // Basic middleware
 app.use(express.json({ limit: "10mb" }));
@@ -168,6 +232,9 @@ app.get("/health", cors({ origin: "*" }), async (_: Request, res: Response) => {
     });
   }
 });
+
+// Rate limiting middleware
+app.use("/api", apiLimiter, apiRoutes); // All routes
 
 // 404 handler
 app.use((req: Request, res: Response) => {

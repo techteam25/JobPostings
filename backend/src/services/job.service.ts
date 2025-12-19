@@ -4,6 +4,7 @@ import { JobRepository } from "@/repositories/job.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
 import { UserRepository } from "@/repositories/user.repository";
+import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 
 import {
   NewJobApplication,
@@ -26,7 +27,6 @@ import { SecurityUtils } from "@/utils/security";
 import { AppError } from "@/utils/errors";
 
 import { SearchParams } from "@/validations/base.validation";
-import { emailSenderQueue, jobIndexerQueue } from "@/utils/bullmq.utils";
 import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
 
 import { fail, ok } from "./base.service";
@@ -267,7 +267,11 @@ export class JobService extends BaseService {
       }
 
       // Enqueue job for indexing in Typesense
-      await jobIndexerQueue.add("indexJob", jobWithSkills);
+      await queueService.addJob(
+        QUEUE_NAMES.TYPESENSE_QUEUE,
+        "indexJob",
+        jobWithSkills,
+      );
 
       return ok(jobWithSkills);
     } catch {
@@ -341,7 +345,10 @@ export class JobService extends BaseService {
       }
 
       // Update job indexes in Typesense
-      await jobIndexerQueue.add("updateJobIndex", { id, updatedJob });
+      await queueService.addJob(QUEUE_NAMES.TYPESENSE_QUEUE, "updateJobIndex", {
+        id,
+        updatedJob,
+      });
 
       return ok(updatedJob);
     } catch {
@@ -381,17 +388,23 @@ export class JobService extends BaseService {
         return fail(new DatabaseError("Failed to delete job"));
       }
 
-      await jobIndexerQueue.add("deleteJobIndex", { id });
+      await queueService.addJob(QUEUE_NAMES.TYPESENSE_QUEUE, "deleteJobIndex", {
+        id,
+      });
 
       const user = await this.userRepository.findById(requesterId);
       if (user) {
-        await emailSenderQueue.add("sendJobDeletionEmail", {
-          userEmail: user.email,
-          userName: user.fullName,
-          jobTitle: job.value.job.title,
-          jobId: id,
-          organizationId,
-        });
+        await queueService.addJob(
+          QUEUE_NAMES.EMAIL_QUEUE,
+          "sendJobDeletionEmail",
+          {
+            userEmail: user.email,
+            userName: user.fullName,
+            jobTitle: job.value.job.title,
+            jobId: id,
+            organizationId,
+          },
+        );
       }
 
       return ok(null);
@@ -462,12 +475,16 @@ export class JobService extends BaseService {
 
       if (applicant) {
         // Enqueue email notification
-        await emailSenderQueue.add("sendJobApplicationConfirmation", {
-          email: applicant.email,
-          fullName: applicant.fullName,
-          jobTitle: job.value.job.title,
-          jobId: applicationData.jobId,
-        });
+        await queueService.addJob(
+          QUEUE_NAMES.EMAIL_QUEUE,
+          "sendJobApplicationConfirmation",
+          {
+            email: applicant.email,
+            fullName: applicant.fullName,
+            jobTitle: job.value.job.title,
+            jobId: applicationData.jobId,
+          },
+        );
       }
 
       return ok({
@@ -664,12 +681,16 @@ export class JobService extends BaseService {
       const applicant = await this.userRepository.findById(userId);
 
       if (applicant) {
-        await emailSenderQueue.add("sendApplicationWithdrawalConfirmation", {
-          email: applicant.email,
-          fullName: applicant.fullName,
-          jobTitle: application.job.title,
-          applicationId: applicationId,
-        });
+        await queueService.addJob(
+          QUEUE_NAMES.EMAIL_QUEUE,
+          "sendApplicationWithdrawalConfirmation",
+          {
+            email: applicant.email,
+            fullName: applicant.fullName,
+            jobTitle: application.job.title,
+            applicationId: applicationId,
+          },
+        );
       }
 
       return ok({ message: "Application withdrawn successfully" });
