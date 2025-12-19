@@ -60,6 +60,7 @@ class QueueService {
       this.createQueue(QUEUE_NAMES.TYPESENSE_QUEUE);
       this.createQueue(QUEUE_NAMES.EMAIL_QUEUE);
       this.createQueue(QUEUE_NAMES.FILE_UPLOAD_QUEUE);
+      this.createQueue(QUEUE_NAMES.TEMP_FILE_CLEANUP_QUEUE);
 
       this.isInitialized = true;
       logger.info("Queue service initialized successfully", {
