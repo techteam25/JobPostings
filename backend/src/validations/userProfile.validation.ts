@@ -88,6 +88,16 @@ const idParamsSchema = z.object({
   id: z.string().regex(/^\d+$/, "Invalid work experience ID format"),
 });
 
+const updateProfileVisibilitySchema = z.object({
+  body: updateUserProfileSchema.pick({ isProfilePublic: true }),
+  params: idParamsSchema,
+  query: z.object({}).strict(),
+});
+
+export type UpdateProfileVisibilityInput = z.infer<
+  typeof updateProfileVisibilitySchema
+>;
+
 export const idPayloadParamsSchema = z.object({
   params: idParamsSchema,
   body: z.object({}).strict(),

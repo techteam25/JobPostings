@@ -14,6 +14,7 @@ import {
 import { ApiResponse } from "@/types";
 import { auth } from "@/utils/auth";
 import {
+  UpdateProfileVisibilityInput,
   UpdateUser,
   UpdateUserProfile,
   User,
@@ -159,6 +160,33 @@ export class UserController extends BaseController {
       );
     } else {
       return this.handleControllerError(res, user.error);
+    }
+  };
+
+  changeProfileVisibility = async (
+    req: Request<
+      UpdateProfileVisibilityInput["params"],
+      {},
+      UpdateProfileVisibilityInput["body"]
+    >,
+    res: Response,
+  ) => {
+    const id = Number(req.params.id);
+    const { isProfilePublic } = req.body;
+
+    const result = await this.userService.changeUserProfileVisibility(
+      id,
+      isProfilePublic,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<UserProfile>(
+        res,
+        result.value,
+        "Profile visibility updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
     }
   };
 

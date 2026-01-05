@@ -118,6 +118,63 @@ registry.registerPath({
 router.get("/me/status", userController.getUserProfileStatus);
 
 registry.registerPath({
+  method: "patch",
+  path: "/users/me/visibility",
+  tags: ["Users"],
+  summary: "Change Current User Profile Visibility",
+  description:
+    "Update the visibility status (public/private) of the currently logged-in user's profile.",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            isProfilePublic: z.boolean(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "User profile visibility updated successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(selectUserProfileSchema),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+/**
+ * Changes the profile visibility for the authenticated user.
+ * This authenticated endpoint allows users to set their profile as public or private.
+ * Invalidates cache for current user data.
+ * @route PATCH /users/me/visibility
+ * @param {Object} req.body - Request body with visibility status.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the updated profile.
+ */
+router.patch("/me/visibility", userController.changeProfileVisibility);
+
+registry.registerPath({
   method: "get",
   path: "/users/me/intent",
   tags: ["Users"],
