@@ -1,0 +1,1 @@
+CREATE INDEX `idx_user_profile_is_profile_public` ON `user_profile` (`is_profile_public`);
