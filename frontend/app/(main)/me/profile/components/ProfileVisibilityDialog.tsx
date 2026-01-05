@@ -1,7 +1,4 @@
 "use client";
-
-import { useState } from "react";
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,8 +15,16 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 
 import { ChevronRight, Eye } from "lucide-react";
+import { updateProfileVisibility } from "@/lib/api";
 
 const ProfileVisibilityDialog = ({ isVisible }: { isVisible: boolean }) => {
+  const defaultValue = isVisible ? "profile-visible" : "profile-invisible";
+
+  const handleUpdateVisibility = async (value: string) => {
+    const isVisible = value === "profile-visible";
+    await updateProfileVisibility(isVisible);
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild className="w-full">
@@ -42,8 +47,9 @@ const ProfileVisibilityDialog = ({ isVisible }: { isVisible: boolean }) => {
           <Separator className="bg-muted-foreground/50 my-2" />
         </DialogHeader>
         <RadioGroup
-          defaultValue="profile-visible"
+          defaultValue={defaultValue}
           className="flex flex-col gap-6"
+          onValueChange={handleUpdateVisibility}
         >
           <div className="border-border rounded-lg border p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
@@ -92,7 +98,7 @@ const ProfileVisibilityDialog = ({ isVisible }: { isVisible: boolean }) => {
         <DialogFooter className="sm:justify-end">
           <DialogClose asChild>
             <Button type="button" className="cursor-pointer">
-              Save
+              Close
             </Button>
           </DialogClose>
         </DialogFooter>
