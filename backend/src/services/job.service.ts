@@ -56,13 +56,46 @@ export class JobService extends BaseService {
 
   /**
    * Retrieves all active jobs with optional pagination.
+   * @param userId The ID of the user making the request (optional).
    * @param options Pagination options including page and limit.
    * @returns A Result containing the list of active jobs or a DatabaseError.
    */
-  async getAllActiveJobs(options: { page?: number; limit?: number } = {}) {
+  async getAllActiveJobs(
+    userId: number | undefined,
+    options: { page?: number; limit?: number } = {},
+  ) {
     try {
       const activeJobs = await this.jobRepository.findActiveJobs(options);
-      return ok(activeJobs);
+
+      if (!userId || activeJobs.items.length === 0) {
+        const enrichedJobs = activeJobs.items.map((job) => ({
+          ...job,
+          hasApplied: false,
+        }));
+        return ok({ ...activeJobs, items: enrichedJobs });
+      }
+
+      // Check which jobs the user has applied to
+      const jobIds = activeJobs.items.map((job) => job.job.id);
+
+      // Fetch applications by user for these job IDs
+      const applications = await this.jobRepository.findApplicationsByUser(
+        userId,
+        jobIds,
+      );
+
+      const appliedJobIds = new Set(
+        applications.items
+          .map((app) => app.job?.id)
+          .filter((id): id is number => id !== undefined),
+      );
+
+      const enrichedJobs = activeJobs.items.map((job) => ({
+        ...job,
+        hasApplied: appliedJobIds.has(job.job.id),
+      }));
+
+      return ok({ ...activeJobs, items: enrichedJobs });
     } catch {
       return fail(new DatabaseError("Failed to fetch active jobs"));
     }
@@ -157,11 +190,13 @@ export class JobService extends BaseService {
   /**
    * Retrieves a job by its ID and increments the view count.
    * @param id The ID of the job.
+   * @param userId The ID of the user making the request (optional).
    * @returns A Result containing the job with employer details or an error.
    */
   async getJobById(
     id: number,
-  ): Promise<Result<JobWithEmployer[number], Error>> {
+    userId?: number | undefined,
+  ): Promise<Result<JobWithEmployer, Error>> {
     try {
       const job = await this.jobRepository.findJobById(id);
 
@@ -172,7 +207,16 @@ export class JobService extends BaseService {
       // Increment view count
       await this.incrementJobViews(id);
 
-      return ok(job);
+      if (!userId) {
+        return ok({ ...job, hasApplied: false });
+      }
+
+      const hasApplied = await this.jobRepository.hasUserAppliedToJob(
+        userId,
+        id,
+      );
+
+      return ok({ ...job, hasApplied });
     } catch (error) {
       if (error instanceof AppError) {
         return this.handleError(error);
@@ -559,6 +603,7 @@ export class JobService extends BaseService {
     try {
       const userApplications = await this.jobRepository.findApplicationsByUser(
         userId,
+        [],
         {
           page,
           limit,

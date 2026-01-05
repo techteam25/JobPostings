@@ -105,6 +105,10 @@ export const jobApplications = mysqlTable(
     index("applicant_idx").on(table.applicantId),
     index("status_idx").on(table.status),
     index("applied_date_idx").on(table.appliedAt),
+    index("user_applications_idx").on(table.applicantId, table.appliedAt),
+    index("job_applications_idx").on(table.jobId, table.appliedAt),
+    index("user_job_lookup_idx").on(table.jobId, table.applicantId),
+    unique("unique_applicant_job").on(table.jobId, table.applicantId),
     foreignKey({
       columns: [table.jobId],
       foreignColumns: [jobsDetails.id],

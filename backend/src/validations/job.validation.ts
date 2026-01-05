@@ -122,12 +122,13 @@ export type NewJobApplication = z.infer<typeof insertJobApplicationSchema>;
 export type UpdateJobApplication = z.infer<typeof updateJobApplicationSchema>;
 export type UpdateJobInsights = z.infer<typeof updateJobInsightsSchema>;
 export type JobWithEmployer = {
+  hasApplied: boolean;
   job: Job;
   employer: Pick<
     Organization,
     "id" | "name" | "city" | "state" | "logoUrl"
   > | null;
-}[];
+};
 export type JobWithSkills = Job & {
   skills: JobSkills["name"][];
   employer: { name: string };
