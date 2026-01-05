@@ -210,6 +210,42 @@ export class UserService extends BaseService {
   }
 
   /**
+   * Changes the visibility of a user's profile.
+   * @param userId The ID of the user.
+   * @param isPublic The new visibility status.
+   * @returns A Result containing the updated profile or an error.
+   */
+  async changeUserProfileVisibility(
+    userId: number,
+    isPublic: boolean | undefined = false,
+  ) {
+    try {
+      const user = await this.userRepository.findUserById(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      const updatedProfile = await this.userRepository.updateProfileVisibility(
+        userId,
+        isPublic,
+      );
+
+      if (!updatedProfile) {
+        return fail(new DatabaseError("Failed to update profile visibility"));
+      }
+
+      console.log({ updatedProfile });
+
+      return ok(updatedProfile);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update profile visibility"));
+    }
+  }
+
+  /**
    * Changes a user's password.
    * @param userId The ID of the user.
    * @param currentPassword The current password.

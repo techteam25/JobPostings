@@ -713,4 +713,29 @@ export class UserRepository extends BaseRepository<typeof user> {
       });
     });
   }
+
+  /**
+   * Updates the profile visibility for a user.
+   * @param userId The ID of the user.
+   * @param isPublic Boolean indicating if the profile should be public.
+   * @returns The updated user profile.
+   */
+  async updateProfileVisibility(userId: number, isPublic: boolean) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(userProfile)
+        .set({ isProfilePublic: isPublic })
+        .where(eq(userProfile.userId, userId));
+
+      if (!result.affectedRows && result.affectedRows === 0) {
+        throw new DatabaseError(
+          `Failed to update profile visibility for userId: ${userId}`,
+        );
+      }
+
+      return await db.query.userProfile.findFirst({
+        where: eq(userProfile.userId, userId),
+      });
+    });
+  }
 }

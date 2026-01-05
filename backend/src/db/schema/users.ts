@@ -57,29 +57,37 @@ export const user = mysqlTable(
 /**
  * User profile table schema defining the structure for storing detailed user profile information.
  */
-export const userProfile = mysqlTable("user_profile", {
-  id: int("id").primaryKey().autoincrement(),
-  userId: int("user_id")
-    .notNull()
-    .unique()
-    .references(() => user.id, { onDelete: "cascade" }),
-  profilePicture: varchar("profile_picture", { length: 500 }),
-  bio: text("bio"),
-  resumeUrl: varchar("resume_url", { length: 255 }),
-  linkedinUrl: varchar("linkedin_url", { length: 255 }),
-  portfolioUrl: varchar("portfolio_url", { length: 255 }),
-  phoneNumber: varchar("phone_number", { length: 20 }),
-  address: varchar("address", { length: 255 }),
-  city: varchar("city", { length: 100 }),
-  state: varchar("state", { length: 100 }),
-  zipCode: varchar("zip_code", { length: 10 }),
-  country: varchar("country", { length: 100 }).default("US"),
-  isProfilePublic: boolean("is_profile_public").default(true).notNull(),
-  isAvailableForWork: boolean("is_available_for_work").default(true).notNull(),
-  fileMetadata: json("file_metadata").$type<FileMetadata[]>(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
-});
+export const userProfile = mysqlTable(
+  "user_profile",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    userId: int("user_id")
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: "cascade" }),
+    profilePicture: varchar("profile_picture", { length: 500 }),
+    bio: text("bio"),
+    resumeUrl: varchar("resume_url", { length: 255 }),
+    linkedinUrl: varchar("linkedin_url", { length: 255 }),
+    portfolioUrl: varchar("portfolio_url", { length: 255 }),
+    phoneNumber: varchar("phone_number", { length: 20 }),
+    address: varchar("address", { length: 255 }),
+    city: varchar("city", { length: 100 }),
+    state: varchar("state", { length: 100 }),
+    zipCode: varchar("zip_code", { length: 10 }),
+    country: varchar("country", { length: 100 }).default("US"),
+    isProfilePublic: boolean("is_profile_public").default(true).notNull(),
+    isAvailableForWork: boolean("is_available_for_work")
+      .default(true)
+      .notNull(),
+    fileMetadata: json("file_metadata").$type<FileMetadata[]>(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("idx_user_profile_is_profile_public").on(table.isProfilePublic),
+  ],
+);
 
 /**
  * User onboarding table schema defining the structure for storing user onboarding information.

@@ -66,14 +66,14 @@ process.on("SIGINT", async () => {
   logger.info("\n🛑 Shutting down server gracefully...");
   await closeDatabaseConnection();
 
-  // Close queue service first (wait for jobs to complete)
-  await queueShutdown();
-
   // Close Redis connections
   await redisCacheService.disconnect();
 
   // Close Redis Rate Limiter connection
   await redisRateLimiterService.disconnect();
+
+  // Close queue service first (wait for jobs to complete)
+  await queueShutdown();
 
   process.exit(0);
 });
