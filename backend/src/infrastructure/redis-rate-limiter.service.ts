@@ -68,7 +68,7 @@ class RedisRateLimiterService {
   }
 
   async disconnect(): Promise<void> {
-    if (this.client) {
+    if (this.client && this.isConnected && this.client.isOpen) {
       await this.client.quit();
       this.client = null;
       this.isConnected = false;

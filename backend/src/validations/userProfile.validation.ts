@@ -90,7 +90,7 @@ const idParamsSchema = z.object({
 
 const updateProfileVisibilitySchema = z.object({
   body: updateUserProfileSchema.pick({ isProfilePublic: true }),
-  params: idParamsSchema,
+  params: z.object({}).strict(),
   query: z.object({}).strict(),
 });
 

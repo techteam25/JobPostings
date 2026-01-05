@@ -164,18 +164,13 @@ export class UserController extends BaseController {
   };
 
   changeProfileVisibility = async (
-    req: Request<
-      UpdateProfileVisibilityInput["params"],
-      {},
-      UpdateProfileVisibilityInput["body"]
-    >,
+    req: Request<{}, {}, UpdateProfileVisibilityInput["body"]>,
     res: Response,
   ) => {
-    const id = Number(req.params.id);
     const { isProfilePublic } = req.body;
 
     const result = await this.userService.changeUserProfileVisibility(
-      id,
+      req.userId!,
       isProfilePublic,
     );
 
