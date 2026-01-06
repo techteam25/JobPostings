@@ -14,6 +14,7 @@ import {
   OrganizationWithMembers,
   UpdateJobStatusInputSchema,
   UpdateOrganizationSchema,
+  UploadOrganizationLogoSchema,
 } from "@/validations/organization.validation";
 import { ApiResponse, PaginatedResponse } from "@/types";
 import {
@@ -23,6 +24,8 @@ import {
 import { JobApplicationWithNotes } from "@/validations/jobApplications.validation";
 import { GetUserSchema } from "@/validations/user.validation";
 import { SearchParams } from "@/validations/base.validation";
+import { APIError } from "better-auth/api";
+import { AppError, ErrorCode } from "@/utils/errors";
 
 /**
  * Controller class for handling organization-related API endpoints.
@@ -133,6 +136,7 @@ export class OrganizationController extends BaseController {
     const organization = await this.organizationService.createOrganization(
       organizationData,
       userId!,
+      req.correlationId!,
     );
 
     if (organization.isSuccess) {
@@ -144,6 +148,49 @@ export class OrganizationController extends BaseController {
       );
     } else {
       return this.handleControllerError(res, organization.error);
+    }
+  };
+
+  /**
+   * Uploads a logo for an organization.
+   * @param req The Express request object with organization ID parameters and file upload.
+   * @param res The Express response object.
+   */
+  uploadOrganizationLogo = async (
+    req: Request<
+      UploadOrganizationLogoSchema["params"],
+      {},
+      UploadOrganizationLogoSchema["body"]
+    >,
+    res: Response<ApiResponse<Organization>>,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const file = req.file;
+
+    if (!file) {
+      const error = new AppError(
+        "No file uploaded",
+        400,
+        ErrorCode.BAD_REQUEST,
+      );
+      return this.sendError(res, error);
+    }
+
+    const result = await this.organizationService.uploadOrganizationLogo(
+      req.userId!,
+      organizationId,
+      file,
+      req.correlationId!,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<{ message: string }>(
+        res,
+        result.value,
+        "Organization logo uploaded successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
     }
   };
 

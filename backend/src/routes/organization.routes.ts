@@ -14,6 +14,7 @@ import {
   updateJobStatusInputSchema,
   createJobApplicationNoteSchema,
   getOrganizationJobApplicationsSchema,
+  uploadOrganizationLogoSchema,
 } from "@/validations/organization.validation";
 import { registry, z } from "@/swagger/registry";
 import { selectOrganizationSchema } from "@/validations/organization.validation";
@@ -273,10 +274,95 @@ registry.registerPath({
 router.post(
   "/",
   authMiddleware.authenticate,
+  authMiddleware.requireAdminOrOwnerRole(["owner"]),
   uploadMiddleware.organizationLogo,
   validate(createOrganizationSchema),
   invalidateCacheMiddleware(() => "/organizations"),
   organizationController.createOrganization,
+);
+
+registry.registerPath({
+  method: "post",
+  path: "/organizations/{organizationId}/logo",
+  summary: "Upload organization logo",
+  tags: ["Organizations"],
+  security: [{ cookie: [] }],
+  request: {
+    params: uploadOrganizationLogoSchema.shape["params"],
+    body: {
+      content: {
+        "multipart/form-data": {
+          schema: uploadOrganizationLogoSchema.shape["body"],
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: "Organization logo uploaded",
+      content: {
+        "application/json": {
+          schema: organizationResponse,
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Organization not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+/**
+ * Uploads or updates the logo for a specific organization.
+ * This authenticated endpoint allows organization owners or admins to upload a logo image.
+ * Requires authentication and admin/owner role in the organization.
+ * Invalidates cache for the specific organization.
+ * @route POST /organizations/:organizationId/logo
+ * @param {Object} req.params - Route parameters including the organizationId.
+ * @param {Object} req.body - Request body with the logo file.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the updated organization.
+ */
+router.post(
+  "/:organizationId/logo",
+  authMiddleware.authenticate,
+  authMiddleware.requireAdminOrOwnerRole(["owner"]),
+  uploadMiddleware.organizationLogo,
+  validate(uploadOrganizationLogoSchema),
+  invalidateCacheMiddleware(
+    (req) => `/organizations/${req.params.organizationId}`,
+  ),
+  organizationController.uploadOrganizationLogo,
 );
 
 registry.registerPath({

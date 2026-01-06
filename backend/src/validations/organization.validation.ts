@@ -104,6 +104,12 @@ export const createOrganizationSchema = z.object({
   query: z.object({}).strict(),
 });
 
+export const uploadOrganizationLogoSchema = z.object({
+  body: insertOrganizationSchema.pick({ logo: true }),
+  params: organizationIdParamSchema,
+  query: z.object({}).strict(),
+});
+
 export const updateOrganizationSchema = z.object({
   body: updateOrganizationInputSchema,
   params: organizationIdParamSchema,
@@ -268,6 +274,9 @@ export type OrganizationWithMembers = Organization & {
 
 export type GetOrganizationSchema = z.infer<typeof getOrganizationSchema>;
 export type CreateOrganizationSchema = z.infer<typeof createOrganizationSchema>;
+export type UploadOrganizationLogoSchema = z.infer<
+  typeof uploadOrganizationLogoSchema
+>;
 export type UpdateOrganizationSchema = z.infer<typeof updateOrganizationSchema>;
 export type DeleteOrganizationSchema = z.infer<typeof deleteOrganizationSchema>;
 export type JobApplicationManagementSchema = z.infer<

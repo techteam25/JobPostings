@@ -16,6 +16,9 @@ import {
   ForbiddenError,
   NotFoundError,
 } from "@/utils/errors";
+import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import { StorageFolder } from "@/workers/file-upload-worker";
+import { FileUploadJobData } from "@/validations/file.validation";
 
 /**
  * Service class for managing organization-related operations, including CRUD for organizations and their members.
@@ -82,11 +85,13 @@ export class OrganizationService extends BaseService {
    * Creates a new organization.
    * @param organizationData The data for the new organization.
    * @param sessionUserId The ID of the user creating the organization.
+   * @param correlationId A correlation ID for tracking.
    * @returns A Result containing the created organization or an error.
    */
   async createOrganization(
     organizationData: NewOrganization,
     sessionUserId: number,
+    correlationId: string,
   ) {
     try {
       // Check if organization with same name exists
@@ -99,8 +104,6 @@ export class OrganizationService extends BaseService {
         );
       }
 
-      // Todo: upload logo to cloud storage if provided in organizationData.logo
-
       const createdOrganization =
         await this.organizationRepository.createOrganization(
           organizationData,
@@ -111,12 +114,80 @@ export class OrganizationService extends BaseService {
         return fail(new DatabaseError("Failed to create organization"));
       }
 
+      // Upload logo to cloud storage if provided in organizationData
+      if (organizationData.logo) {
+        await queueService.addJob<FileUploadJobData>(
+          QUEUE_NAMES.FILE_UPLOAD_QUEUE,
+          "uploadFile",
+          {
+            entityType: "organization",
+            entityId: createdOrganization.id.toString(),
+            mergeWithExisting: false,
+            tempFiles: [
+              {
+                originalname: organizationData.logo.originalname,
+                tempPath: organizationData.logo.path,
+                size: organizationData.logo.size,
+                mimetype: organizationData.logo.mimetype,
+              },
+            ],
+            userId: sessionUserId.toString(),
+            folder: StorageFolder.ORGANIZATION_LOGOS,
+            correlationId,
+          },
+        );
+      }
+
       return ok(createdOrganization);
     } catch (error) {
       if (error instanceof AppError) {
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to create organization"));
+    }
+  }
+
+  /**   * Uploads a logo for an organization.
+   * @param userId The ID of the user uploading the logo.
+   * @param organizationId The ID of the organization.
+   * @param logoFile The logo file to upload.
+   * @param correlationId A correlation ID for tracking.
+   * @returns A Result indicating success or failure.
+   */
+  async uploadOrganizationLogo(
+    userId: number,
+    organizationId: number,
+    logoFile: Express.Multer.File,
+    correlationId: string,
+  ) {
+    try {
+      await queueService.addJob<FileUploadJobData>(
+        QUEUE_NAMES.FILE_UPLOAD_QUEUE,
+        "uploadFile",
+        {
+          entityType: "organization",
+          entityId: organizationId.toString(),
+          mergeWithExisting: true,
+          tempFiles: [
+            {
+              originalname: logoFile.originalname,
+              tempPath: logoFile.path,
+              size: logoFile.size,
+              mimetype: logoFile.mimetype,
+            },
+          ],
+          userId: userId.toString(),
+          folder: StorageFolder.ORGANIZATION_LOGOS,
+          correlationId,
+        },
+      );
+
+      return ok({ message: "Logo upload initiated" });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to upload organization logo"));
     }
   }
 
