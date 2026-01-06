@@ -13,9 +13,25 @@ import {
 } from "@/validations/file.validation";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 
+export enum StorageFolder {
+  PROFILE_PICTURES = "profile-pictures",
+  ORGANIZATION_LOGOS = "organization-logos",
+  JOB_ATTACHMENTS = "job-attachments",
+  RESUMES = "resumes",
+}
+
+/** * Update file metadata for the specified entity
+ *
+ * @param entityType Can be one of 'job', 'organization', or 'user'
+ * @param entityId The ID of the entity to update. Either job application ID, organization ID, or user ID
+ * @param urls The URLs of the uploaded files
+ * @param metadata The metadata of the uploaded files
+ * @param mergeWithExisting Whether to merge with existing metadata or replace it
+ */
 async function updateEntityFileMetadata(
   entityType: FileUploadJobData["entityType"],
   entityId: string,
+  urls: string[],
   metadata: FileMetadata[],
   mergeWithExisting: boolean,
 ): Promise<void> {
@@ -50,7 +66,7 @@ async function updateEntityFileMetadata(
       }
       await db
         .update(organizations)
-        .set({ fileMetadata: metadata })
+        .set({ fileMetadata: metadata, logoUrl: urls[0] || null })
         .where(eq(organizations.id, id));
       break;
     }
@@ -75,6 +91,10 @@ async function updateEntityFileMetadata(
   }
 }
 
+/** * Process a file upload job
+ * @param job The BullMQ job object
+ * @returns The result of the file upload
+ */
 export async function processFileUploadJob(job: BullMqJob<FileUploadJobData>) {
   const {
     tempFiles,
@@ -113,6 +133,7 @@ export async function processFileUploadJob(job: BullMqJob<FileUploadJobData>) {
       await updateEntityFileMetadata(
         entityType,
         entityId,
+        result.urls,
         result.metadata,
         mergeWithExisting,
       );
@@ -153,7 +174,7 @@ export async function processFileUploadJob(job: BullMqJob<FileUploadJobData>) {
 }
 
 /**
- * Initialize Email Sender worker
+ * Initialize File Upload worker
  */
 export function initializeFileUploadWorker(): void {
   queueService.registerWorker<

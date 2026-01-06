@@ -7,6 +7,7 @@ export enum ErrorCode {
 
   // Validation
   VALIDATION_ERROR = "VALIDATION_ERROR",
+  BAD_REQUEST = "BAD_REQUEST",
 
   // Resource Management
   NOT_FOUND = "NOT_FOUND",
