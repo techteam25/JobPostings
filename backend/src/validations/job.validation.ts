@@ -3,8 +3,8 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { jobApplications, jobInsights, jobsDetails, skills } from "@/db/schema";
 import { Organization } from "@/validations/organization.validation";
 
-// Validation schemas
-export const insertJobSchema = createInsertSchema(jobsDetails, {
+// Base schema WITHOUT refinements (for use with .partial())
+const insertJobBaseSchema = createInsertSchema(jobsDetails, {
   title: z
     .string()
     .min(5, "Title must be at least 5 characters")
@@ -16,7 +16,10 @@ export const insertJobSchema = createInsertSchema(jobsDetails, {
   country: z.string().max(100).trim().optional().default("United States"),
   zipcode: z.coerce.number().positive("Zip Code must be positive").optional(),
   employerId: z.number().int().positive("Employer ID is required"),
-})
+});
+
+// Full insert schema WITH refinements (for creating new jobs)
+export const insertJobSchema = insertJobBaseSchema
   .refine((data) => data.country === "United States" && !data.state, {
     message: "State is required for United States",
     path: ["state"],
@@ -48,7 +51,8 @@ export const selectJobInsightsSchema = createSelectSchema(jobInsights);
 export const selectJobApplicationSchema = createSelectSchema(jobApplications);
 export const selectJobSkillsSchema = createSelectSchema(skills);
 
-export const updateJobInputSchema = insertJobSchema
+// Update schema: use base schema, apply partial FIRST, then add refinements
+export const updateJobInputSchema = insertJobBaseSchema
   .partial()
   .omit({
     id: true,
@@ -57,7 +61,19 @@ export const updateJobInputSchema = insertJobSchema
   })
   .extend({
     skills: z.array(z.string()).optional(),
-  });
+  })
+  .refine(
+    (data) => {
+      // Only validate if country is provided and is "United States"
+      if (data.country === "United States") {
+        return !!data.state && !!data.zipcode;
+      }
+      return true;
+    },
+    {
+      message: "State and Zip Code are required for United States",
+    },
+  );
 
 export const updateJobApplicationSchema = insertJobApplicationSchema
   .partial()
@@ -76,11 +92,21 @@ export const updateJobInsightsSchema = insertJobInsightsSchema
   .partial()
   .omit({ id: true });
 
-const createJobPayloadSchema = insertJobSchema
+// Create job payload schema: use base schema, omit fields, extend, then add refinements
+const createJobPayloadBaseSchema = insertJobBaseSchema
   .omit({ applicationDeadline: true, employerId: true })
   .extend({
     applicationDeadline: z.iso.datetime(),
     skills: z.array(z.string()),
+  });
+
+const createJobPayloadSchema = createJobPayloadBaseSchema
+  .refine((data) => data.country === "United States" && !data.state, {
+    message: "State is required for United States",
+    path: ["state"],
+  })
+  .refine((data) => data.country === "United States" && !data.zipcode, {
+    message: "Zip Code is required for United States",
   });
 
 const jobIdParamSchema = z.object({
@@ -93,8 +119,22 @@ export const createJobSchema = z.object({
   query: z.object({}).strict(),
 });
 
+// Update job schema: use base payload schema, apply partial FIRST, then add refinements
 export const updateJobSchema = z.object({
-  body: createJobPayloadSchema.partial(),
+  body: createJobPayloadBaseSchema
+    .partial()
+    .refine(
+      (data) => {
+        // Only validate if country is provided and is "United States"
+        if (data.country === "United States") {
+          return !!data.state && !!data.zipcode;
+        }
+        return true;
+      },
+      {
+        message: "State and Zip Code are required for United States",
+      },
+    ),
   params: jobIdParamSchema,
   query: z.object({}).strict(),
 });

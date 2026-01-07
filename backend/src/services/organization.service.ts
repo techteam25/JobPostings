@@ -1,5 +1,6 @@
 import { BaseService, fail, ok, Result } from "./base.service";
 import { OrganizationRepository } from "@/repositories/organization.repository";
+import { JobRepository } from "@/repositories/job.repository";
 
 import { statusRegressionGuard } from "@/utils/update-status-guard";
 
@@ -25,6 +26,7 @@ import { FileUploadJobData } from "@/validations/file.validation";
  */
 export class OrganizationService extends BaseService {
   private organizationRepository: OrganizationRepository;
+  private jobRepository: JobRepository;
 
   /**
    * Creates an instance of OrganizationService and initializes the repository.
@@ -32,6 +34,7 @@ export class OrganizationService extends BaseService {
   constructor() {
     super();
     this.organizationRepository = new OrganizationRepository();
+    this.jobRepository = new JobRepository();
   }
 
   /**
@@ -424,12 +427,67 @@ export class OrganizationService extends BaseService {
         );
       }
 
+      // Notify applicant of status change via email queue
+      await this.notifyApplicantOfStatusChangeAI(
+        applicationId,
+        application.value.status,
+        updateStatus,
+        updatedApplication.jobTitle,
+      );
+
       return ok(updatedApplication);
     } catch (error) {
       if (error instanceof AppError) {
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to update job application status"));
+    }
+  }
+
+  /**
+   * Notifies the applicant of a status change via email queue.
+   * @param applicationId The ID of the application.
+   * @param oldStatus The previous status of the application.
+   * @param newStatus The new status of the application.
+   * @param jobTitle The title of the job.
+   */
+  private async notifyApplicantOfStatusChangeAI(
+    applicationId: number,
+    oldStatus: string,
+    newStatus: string,
+    jobTitle: string,
+  ): Promise<void> {
+    try {
+      // Fetch applicant information
+      const applicationWithApplicant =
+        await this.jobRepository.findApplicationById(applicationId);
+
+      if (!applicationWithApplicant?.applicant) {
+        // Log warning but don't fail the status update
+        return;
+      }
+
+      // Only send notification if status actually changed
+      if (oldStatus === newStatus) {
+        return;
+      }
+
+      // Enqueue email notification
+      await queueService.addJob(
+        QUEUE_NAMES.EMAIL_QUEUE,
+        "sendApplicationStatusUpdate",
+        {
+          email: applicationWithApplicant.applicant.email,
+          fullName: applicationWithApplicant.applicant.fullName,
+          jobTitle,
+          oldStatus,
+          newStatus,
+          applicationId,
+        },
+      );
+    } catch (error) {
+      // Log error but don't fail the status update if notification fails
+      // This ensures the status update succeeds even if email notification fails
     }
   }
 
