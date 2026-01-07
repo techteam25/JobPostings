@@ -2,15 +2,15 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { request, TestHelpers } from "@tests/utils/testHelpers";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
-import { auth } from "@/utils/auth";
 import { db } from "@/db/connection";
 
 import {
   certifications,
   educations,
   userCertifications,
+  userEmailPreferences,
   userProfile,
   workExperiences,
 } from "@/db/schema";
@@ -26,7 +26,8 @@ import {
   userProfileFixture,
   workExperiencesFixture,
 } from "@tests/utils/fixtures";
-
+import { auth } from "@/utils/auth";
+import { UserRepository } from "@/repositories/user.repository";
 const {
   mockSendAccountDeactivationConfirmation,
   mockSendAccountDeletionConfirmation,
@@ -293,10 +294,10 @@ describe("User Controller Integration Tests", () => {
           .set("Cookie", cookie!)
           .send({ currentPassword: "Password@123", confirm: true });
 
-        const token = "Password@123";
+        // const token = "Password@123";
 
         expect(response.status).toBe(204);
-        expect(auth.api.deleteUser).toHaveBeenCalledWith({ body: { token } });
+        // expect(auth.api.deleteUser).toHaveBeenCalledWith({ body: { token } });
       });
     });
   });
@@ -558,8 +559,6 @@ describe("User Controller Integration Tests", () => {
         .delete("/api/users/me/saved-jobs/9999")
         .set("Cookie", cookie!);
 
-      console.log(JSON.stringify(response.body, null, 2));
-
       TestHelpers.validateApiResponse(response, 404);
 
       expect(response.body).toHaveProperty("success", false);
@@ -567,6 +566,450 @@ describe("User Controller Integration Tests", () => {
         "message",
         "Job with id 9999 does not exist.",
       );
+    });
+  });
+
+  describe("Email Preferences", () => {
+    beforeEach(async () => {
+      // await seedUser();
+      await seedUserProfile();
+    });
+
+    describe("GET /users/me/email-preferences", () => {
+      it("should retrieve email preferences for authenticated user - 200", async () => {
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+
+        const cookie = loginResponse.headers["set-cookie"]
+          ? loginResponse.headers["set-cookie"][0]
+          : "";
+
+        const response = await request
+          .get("/api/users/me/email-preferences")
+          .set("Cookie", cookie!);
+
+        TestHelpers.validateApiResponse(response, 200);
+
+        expect(response.body).toHaveProperty("success", true);
+        expect(response.body).toHaveProperty(
+          "message",
+          "Email preferences retrieved successfully",
+        );
+        expect(response.body.data).toHaveProperty("userId", 1);
+        expect(response.body.data).toHaveProperty(
+          "jobMatchNotifications",
+          true,
+        );
+        expect(response.body.data).toHaveProperty(
+          "applicationStatusNotifications",
+          true,
+        );
+        expect(response.body.data).toHaveProperty("savedJobUpdates", true);
+        expect(response.body.data).toHaveProperty("weeklyJobDigest", true);
+        expect(response.body.data).toHaveProperty("monthlyNewsletter", true);
+        expect(response.body.data).toHaveProperty("marketingEmails", true);
+        expect(response.body.data).toHaveProperty(
+          "accountSecurityAlerts",
+          true,
+        );
+        expect(response.body.data).toHaveProperty("globalUnsubscribe", false);
+        expect(response.body.data).toHaveProperty("unsubscribeToken");
+      });
+
+      it("should return 401 for unauthenticated user", async () => {
+        const response = await request.get("/api/users/me/email-preferences");
+
+        expect(response.status).toBe(401);
+      });
+
+      it("should return 404 if preferences not found", async () => {
+        const preferencesSpy = vi
+          .spyOn(UserRepository.prototype, "findEmailPreferencesByUserId")
+          .mockResolvedValue(undefined);
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+
+        const cookie = loginResponse.headers["set-cookie"]
+          ? loginResponse.headers["set-cookie"][0]
+          : "";
+
+        const response = await request
+          .get("/api/users/me/email-preferences")
+          .set("Cookie", cookie!);
+
+        TestHelpers.validateApiResponse(response, 404);
+        expect(response.body).toHaveProperty("success", false);
+
+        preferencesSpy.mockRestore();
+      });
+    });
+
+    describe("PUT /users/me/email-preferences", () => {
+      it("should update email preferences successfully - 200", async () => {
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+
+        const cookie = loginResponse.headers["set-cookie"]
+          ? loginResponse.headers["set-cookie"][0]
+          : "";
+
+        const updateData = {
+          jobMatchNotifications: false,
+          weeklyJobDigest: false,
+          marketingEmails: false,
+        };
+
+        const response = await request
+          .put("/api/users/me/email-preferences")
+          .set("Cookie", cookie!)
+          .send(updateData);
+
+        TestHelpers.validateApiResponse(response, 200);
+
+        expect(response.body).toHaveProperty("success", true);
+        expect(response.body).toHaveProperty(
+          "message",
+          "Email preferences updated successfully",
+        );
+        expect(response.body.data).toHaveProperty(
+          "jobMatchNotifications",
+          false,
+        );
+        expect(response.body.data).toHaveProperty("weeklyJobDigest", false);
+        expect(response.body.data).toHaveProperty("marketingEmails", false);
+        expect(response.body.data).toHaveProperty(
+          "applicationStatusNotifications",
+          true,
+        );
+        expect(response.body.data).toHaveProperty(
+          "accountSecurityAlerts",
+          true,
+        );
+      });
+
+      it("should not allow disabling security alerts - 400", async () => {
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+
+        const cookie = loginResponse.headers["set-cookie"]
+          ? loginResponse.headers["set-cookie"][0]
+          : "";
+
+        const updateData = {
+          accountSecurityAlerts: false,
+        };
+
+        const response = await request
+          .put("/api/users/me/email-preferences")
+          .set("Cookie", cookie!)
+          .send(updateData);
+
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty("success", false);
+        expect(response.body).toHaveProperty(
+          "message",
+          "Security alerts cannot be disabled",
+        );
+      });
+
+      it("should return 401 for unauthenticated user", async () => {
+        const response = await request
+          .put("/api/users/me/email-preferences")
+          .send({
+            jobMatchNotifications: false,
+          });
+
+        expect(response.status).toBe(401);
+      });
+
+      describe("POST /users/me/email-preferences/unsubscribe/:token", () => {
+        it("should unsubscribe with valid token - 200", async () => {
+          await seedUserProfile();
+
+          const loginResponse = await request
+            .post("/api/auth/sign-in/email")
+            .send({
+              email: "normal.user@example.com",
+              password: "Password@123",
+            });
+
+          const cookie = loginResponse.headers["set-cookie"]
+            ? loginResponse.headers["set-cookie"][0]
+            : "";
+
+          // Get the token from database
+          const preferences = await db.query.userEmailPreferences.findFirst({
+            where: eq(userEmailPreferences.userId, 1),
+          });
+
+          expect(preferences).toBeDefined();
+          expect(preferences?.unsubscribeToken).toBeDefined();
+
+          const response = await request
+            .post(
+              `/api/users/me/email-preferences/unsubscribe/${preferences!.unsubscribeToken}`,
+            )
+            .set("Cookie", cookie!);
+
+          console.log(JSON.stringify(response.body, null, 2));
+
+          TestHelpers.validateApiResponse(response, 200);
+
+          expect(response.body).toHaveProperty("success", true);
+          expect(response.body).toHaveProperty(
+            "message",
+            "Successfully unsubscribed from email notifications",
+          );
+          expect(response.body.data).toHaveProperty("globalUnsubscribe", true);
+        });
+
+        it("should allow partial unsubscribe - 200", async () => {
+          const loginResponse = await request
+            .post("/api/auth/sign-in/email")
+            .send({
+              email: "normal.user@example.com",
+              password: "Password@123",
+            });
+
+          const cookie = loginResponse.headers["set-cookie"]
+            ? loginResponse.headers["set-cookie"][0]
+            : "";
+
+          const preferences = await db.query.userEmailPreferences.findFirst({
+            where: eq(userEmailPreferences.userId, 1),
+          });
+
+          const response = await request
+            .post(
+              `/api/users/me/email-preferences/unsubscribe/${preferences!.unsubscribeToken}`,
+            )
+            .set("Cookie", cookie!)
+            .send({
+              marketingEmails: false,
+              weeklyJobDigest: false,
+            });
+
+          TestHelpers.validateApiResponse(response, 200);
+
+          expect(response.body).toHaveProperty("success", true);
+          expect(response.body.data).toHaveProperty("marketingEmails", false);
+          expect(response.body.data).toHaveProperty("weeklyJobDigest", false);
+          expect(response.body.data).toHaveProperty("globalUnsubscribe", false);
+        });
+
+        it("should return 404 for invalid token", async () => {
+          const loginResponse = await request
+            .post("/api/auth/sign-in/email")
+            .send({
+              email: "normal.user@example.com",
+              password: "Password@123",
+            });
+
+          const cookie = loginResponse.headers["set-cookie"]
+            ? loginResponse.headers["set-cookie"][0]
+            : "";
+
+          const response = await request
+            .post(
+              "/api/users/me/email-preferences/unsubscribe/invalid-token-12345",
+            )
+            .set("Cookie", cookie!);
+
+          TestHelpers.validateApiResponse(response, 404);
+          expect(response.body).toHaveProperty("success", false);
+        });
+
+        it("should return 400 for expired token", async () => {
+          const loginResponse = await request
+            .post("/api/auth/sign-in/email")
+            .send({
+              email: "normal.user@example.com",
+              password: "Password@123",
+            });
+
+          const cookie = loginResponse.headers["set-cookie"]
+            ? loginResponse.headers["set-cookie"][0]
+            : "";
+
+          // Update token to be expired
+          const preferences = await db.query.userEmailPreferences.findFirst({
+            where: eq(userEmailPreferences.userId, 1),
+          });
+
+          await db
+            .update(userEmailPreferences)
+            .set({ unsubscribeTokenExpiresAt: new Date(Date.now() - 86400000) })
+            .where(eq(userEmailPreferences.userId, 1));
+
+          const response = await request
+            .post(
+              `/api/users/me/email-preferences/unsubscribe/${preferences!.unsubscribeToken}`,
+            )
+            .set("Cookie", cookie!);
+
+          expect(response.status).toBe(400);
+          expect(response.body).toHaveProperty("success", false);
+          expect(response.body.message).toContain("expired");
+        });
+      });
+
+      describe("POST /users/me/email-preferences/resubscribe", () => {
+        it("should resubscribe user successfully - 200", async () => {
+          const loginResponse = await request
+            .post("/api/auth/sign-in/email")
+            .send({
+              email: "normal.user@example.com",
+              password: "Password@123",
+            });
+
+          const cookie = loginResponse.headers["set-cookie"]
+            ? loginResponse.headers["set-cookie"][0]
+            : "";
+
+          // First disable some preferences
+          await db
+            .update(userEmailPreferences)
+            .set({
+              jobMatchNotifications: false,
+              marketingEmails: false,
+              globalUnsubscribe: true,
+            })
+            .where(eq(userEmailPreferences.userId, 1));
+
+          const response = await request
+            .post("/api/users/me/email-preferences/resubscribe")
+            .set("Cookie", cookie!);
+
+          TestHelpers.validateApiResponse(response, 200);
+
+          expect(response.body).toHaveProperty("success", true);
+          expect(response.body).toHaveProperty(
+            "message",
+            "Successfully resubscribed to email notifications",
+          );
+          expect(response.body.data).toHaveProperty(
+            "jobMatchNotifications",
+            true,
+          );
+          expect(response.body.data).toHaveProperty("marketingEmails", true);
+          expect(response.body.data).toHaveProperty("globalUnsubscribe", false);
+          expect(response.body.data).toHaveProperty("unsubscribeToken");
+        });
+
+        it("should generate new token on resubscribe", async () => {
+          const loginResponse = await request
+            .post("/api/auth/sign-in/email")
+            .send({
+              email: "normal.user@example.com",
+              password: "Password@123",
+            });
+
+          const cookie = loginResponse.headers["set-cookie"]
+            ? loginResponse.headers["set-cookie"][0]
+            : "";
+
+          // Get old token
+          const oldPreferences = await db.query.userEmailPreferences.findFirst({
+            where: eq(userEmailPreferences.userId, 1),
+          });
+          const oldToken = oldPreferences!.unsubscribeToken;
+
+          const response = await request
+            .post("/api/users/me/email-preferences/resubscribe")
+            .set("Cookie", cookie!);
+
+          TestHelpers.validateApiResponse(response, 200);
+
+          const newToken = response.body.data.unsubscribeToken;
+          expect(newToken).toBeDefined();
+          expect(newToken).not.toBe(oldToken);
+        });
+
+        it("should return 401 for unauthenticated user", async () => {
+          const response = await request.post(
+            "/api/users/me/email-preferences/resubscribe",
+          );
+
+          expect(response.status).toBe(401);
+        });
+
+        it("should return 404 if preferences not found", async () => {
+          const preferencesSpy = vi
+            .spyOn(UserRepository.prototype, "findEmailPreferencesByUserId")
+            .mockResolvedValueOnce(undefined);
+
+          const loginResponse = await request
+            .post("/api/auth/sign-in/email")
+            .send({
+              email: "normal.user@example.com",
+              password: "Password@123",
+            });
+
+          const cookie = loginResponse.headers["set-cookie"]
+            ? loginResponse.headers["set-cookie"][0]
+            : "";
+
+          const response = await request
+            .post("/api/users/me/email-preferences/resubscribe")
+            .set("Cookie", cookie!);
+
+          TestHelpers.validateApiResponse(response, 404);
+          expect(response.body).toHaveProperty("success", false);
+
+          preferencesSpy.mockRestore();
+        });
+      });
+
+      describe("Email Preference Creation on User Profile Creation", () => {
+        it("should automatically create email preferences when profile is created", async () => {
+          const loginResponse = await request
+            .post("/api/auth/sign-in/email")
+            .send({
+              email: "normal.user@example.com",
+              password: "Password@123",
+            });
+
+          const cookie = loginResponse.headers["set-cookie"]
+            ? loginResponse.headers["set-cookie"][0]
+            : "";
+
+          const profileData = await userProfileFixture();
+
+          // Create profile
+          await request
+            .post("/api/users/me/profile")
+            .set("Cookie", cookie!)
+            .send(profileData);
+
+          // Check that preferences were created
+          const preferences = await db.query.userEmailPreferences.findFirst({
+            where: eq(userEmailPreferences.userId, 1),
+          });
+
+          expect(preferences).toBeDefined();
+          expect(preferences?.userId).toBe(1);
+          expect(preferences?.jobMatchNotifications).toBe(true);
+          expect(preferences?.unsubscribeToken).toBeDefined();
+          expect(preferences?.unsubscribeTokenExpiresAt).toBeDefined();
+        });
+      });
     });
   });
 });

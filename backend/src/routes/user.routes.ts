@@ -10,6 +10,8 @@ import {
   deleteSelfSchema,
   getUserSavedJobsQuerySchema,
   savedJobsSchema,
+  getUserEmailPreferencesSchema,
+  updateUserEmailPreferencesSchema,
 } from "@/validations/user.validation";
 import { registry } from "@/swagger/registry";
 import {
@@ -676,6 +678,250 @@ router.delete(
   validate(getJobSchema),
   invalidateCacheMiddleware(() => "users/me/saved-jobs"),
   userController.unsaveJobForCurrentUser,
+);
+
+// Email preferences routes
+
+registry.registerPath({
+  method: "get",
+  path: "/users/me/email-preferences",
+  tags: ["Users"],
+  summary: "Get User Email Notification Preferences",
+  description:
+    "Retrieve the email notification preferences for the authenticated user.",
+  responses: {
+    200: {
+      description: "Email preferences retrieved successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(getUserEmailPreferencesSchema),
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Email preferences not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+/**
+ * Retrieves email preferences for the authenticated user.
+ * This authenticated endpoint fetches the user's email notification preferences.
+ * Includes caching for performance optimization.
+ * @route GET /users/me/email-preferences
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the email preferences.
+ */
+router.get(
+  "/me/email-preferences",
+  cacheMiddleware({ ttl: 300 }),
+  userController.getEmailPreferences,
+);
+
+registry.registerPath({
+  method: "put",
+  path: "/users/me/email-preferences",
+  tags: ["Users"],
+  summary: "Update User Email Notification Preferences",
+  description:
+    "Update the email notification preferences for the authenticated user.",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: updateUserEmailPreferencesSchema.shape["body"],
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Email preferences updated successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(getUserEmailPreferencesSchema),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Email preferences not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+/**
+ * Updates email preferences for the authenticated user.
+ * This authenticated endpoint allows users to modify their email notification preferences.
+ * Note: Security alerts cannot be disabled.
+ * Invalidates cache for email preferences.
+ * @route PUT /users/me/email-preferences
+ * @param {Object} req.body - Request body with updated preferences.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the updated preferences.
+ */
+router.put(
+  "/me/email-preferences",
+  validate(updateUserEmailPreferencesSchema),
+  invalidateCacheMiddleware(() => "users/me/email-preferences"),
+  userController.updateEmailPreferences,
+);
+
+registry.registerPath({
+  method: "post",
+  path: "/users/me/email-preferences/unsubscribe/{token}",
+  tags: ["Users"],
+  summary: "Unsubscribe from Email Notifications via Token",
+  description:
+    "Unsubscribe from email notifications using an unsubscribe token (from email footer). No authentication required.",
+  parameters: [
+    {
+      name: "token",
+      in: "path",
+      required: true,
+      schema: { type: "string" },
+      description: "Unsubscribe token from email",
+    },
+  ],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            jobMatchNotifications: z.boolean().optional(),
+            applicationStatusNotifications: z.boolean().optional(),
+            savedJobUpdates: z.boolean().optional(),
+            weeklyJobDigest: z.boolean().optional(),
+            monthlyNewsletter: z.boolean().optional(),
+            marketingEmails: z.boolean().optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Successfully unsubscribed from email notifications",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(getUserEmailPreferencesSchema),
+        },
+      },
+    },
+    400: {
+      description: "Invalid or expired token",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Token not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+/**
+ * Unsubscribes a user from email notifications using a token.
+ * This public endpoint allows users to unsubscribe via a link in their email.
+ * No authentication required - token-based access.
+ * @route POST /users/me/email-preferences/unsubscribe/:token
+ * @param {Object} req.params - Route parameters including the token.
+ * @param {Object} req.body - Optional partial preferences to selectively unsubscribe.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response confirming unsubscription.
+ */
+router.post(
+  "/me/email-preferences/unsubscribe/:token",
+  userController.unsubscribeByToken,
+);
+
+registry.registerPath({
+  method: "post",
+  path: "/users/me/email-preferences/resubscribe",
+  tags: ["Users"],
+  summary: "Resubscribe to All Email Notifications",
+  description:
+    "Re-enable all email notification preferences for the authenticated user.",
+  responses: {
+    200: {
+      description: "Successfully resubscribed to email notifications",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(getUserEmailPreferencesSchema),
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Email preferences not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+/**
+ * Re-enables all email notifications for the authenticated user.
+ * This authenticated endpoint resets all preferences to enabled and generates a new token.
+ * Invalidates cache for email preferences.
+ * @route POST /users/me/email-preferences/resubscribe
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the updated preferences.
+ */
+router.post(
+  "/me/email-preferences/resubscribe",
+  invalidateCacheMiddleware(() => "users/me/email-preferences"),
+  userController.resubscribeEmailNotifications,
 );
 
 // Admin only routes for user management

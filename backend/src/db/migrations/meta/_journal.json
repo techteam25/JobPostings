@@ -106,6 +106,20 @@
       "when": 1767574254466,
       "tag": "0014_lucky_masked_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "5",
+      "when": 1767673047540,
+      "tag": "0015_friendly_makkari",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "5",
+      "when": 1767673893711,
+      "tag": "0016_good_nightcrawler",
+      "breakpoints": true
     }
   ]
 }
