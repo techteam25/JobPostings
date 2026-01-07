@@ -74,3 +74,14 @@ export type PaginatedResponse<T> =
 
 export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
 export type AuthTokens = z.infer<typeof authTokens>;
+
+// Email notification types
+export enum EmailType {
+  JOB_MATCH = "jobMatchNotifications",
+  APPLICATION_STATUS = "applicationStatusNotifications",
+  SAVED_JOB_UPDATE = "savedJobUpdates",
+  WEEKLY_DIGEST = "weeklyJobDigest",
+  MONTHLY_NEWSLETTER = "monthlyNewsletter",
+  MARKETING = "marketingEmails",
+  SECURITY_ALERT = "accountSecurityAlerts",
+}
