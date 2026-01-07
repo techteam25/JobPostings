@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import { db } from "@/db/connection";
 import {
   jobApplications,
@@ -12,6 +12,9 @@ import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { expect, vi, describe, it, beforeEach, beforeAll, afterAll } from "vitest";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 import { auth } from "@/utils/auth";
+import { seedUserWithRole } from "@tests/utils/seed";
+import { organizationFixture } from "@tests/utils/fixtures";
+import { checkTestDatabase } from "@tests/utils/testDatabase";
 
 describe("Application Status Change Notification Integration Tests", () => {
   let cookie: string;
@@ -23,53 +26,34 @@ describe("Application Status Change Notification Integration Tests", () => {
   let jobTitle: string;
   let jobRepository: JobRepository;
 
-  // Helper to check if database is available
-  function isDatabaseAvailable(): boolean {
-    return !!(
-      process.env.DB_HOST &&
-      process.env.DB_NAME &&
-      process.env.DB_USER &&
-      process.env.DB_PASSWORD
-    );
-  }
-
   // Helper function to seed test data
   async function seedTestApplicationData() {
     const { faker } = await import("@faker-js/faker");
 
-    // Create organization owner
-    const ownerUser = await auth.api.signUpEmail({
-      body: {
-        email: "org.owner@example.com",
-        password: "Password@123",
-        name: faker.person.firstName() + " " + faker.person.lastName(),
-        image: faker.image.avatar(),
-      },
-    });
+    // Create organization owner using seedUserWithRole
+    await seedUserWithRole("owner", "org.owner@example.com");
 
-    // Create organization
-    const [organization] = await db
-      .insert(organizations)
-      .values({
-        name: faker.company.name(),
-        streetAddress: faker.location.streetAddress(),
-        city: faker.location.city(),
-        state: faker.location.state(),
-        country: faker.location.country(),
-        zipCode: faker.location.zipCode("#####"),
-        phone: faker.phone.number({ style: "international" }),
-        url: faker.internet.url(),
-        mission: faker.lorem.sentence(),
-      })
-      .$returningId();
+    // Get the created organization and owner user
+    const ownerUser = await db
+      .select()
+      .from(user)
+      .where(eq(user.email, "org.owner@example.com"))
+      .limit(1);
 
-    // Add owner to organization
-    await db.insert(organizationMembers).values({
-      userId: Number(ownerUser.user.id),
-      organizationId: organization.id,
-      role: "owner",
-      isActive: true,
-    });
+    if (!ownerUser[0]) {
+      throw new Error("Failed to create owner user");
+    }
+
+    const organizationList = await db
+      .select()
+      .from(organizations)
+      .limit(1);
+
+    if (!organizationList[0]) {
+      throw new Error("Failed to create organization");
+    }
+
+    const organization = organizationList[0];
 
     // Create job
     const [job] = await db
@@ -122,8 +106,8 @@ describe("Application Status Change Notification Integration Tests", () => {
 
     return {
       ownerUser: {
-        id: Number(ownerUser.user.id),
-        email: ownerUser.user.email,
+        id: ownerUser[0].id,
+        email: ownerUser[0].email,
       },
       organization: {
         id: organization.id,
@@ -151,7 +135,8 @@ describe("Application Status Change Notification Integration Tests", () => {
   });
 
   beforeEach(async () => {
-    if (!isDatabaseAvailable()) {
+    const dbAvailable = await checkTestDatabase();
+    if (!dbAvailable) {
       return;
     }
 
@@ -200,7 +185,8 @@ describe("Application Status Change Notification Integration Tests", () => {
 
   describe("Status Update Notification - Happy Path", () => {
     it("should queue email notification when status changes from pending to reviewed", async () => {
-      if (!isDatabaseAvailable()) {
+      const dbAvailable = await checkTestDatabase();
+      if (!dbAvailable) {
         console.warn("⚠️  Skipping test: Database not available");
         return;
       }
@@ -217,7 +203,6 @@ describe("Application Status Change Notification Integration Tests", () => {
       expect(response.body.data.status).toBe(newStatus);
 
       expect(queueService.addJob).toHaveBeenCalledTimes(1);
-      expect(queueService.addJob).toHaveBeenCalledTimes(1);
       const callArgs = vi.mocked(queueService.addJob).mock.calls[0];
       expect(callArgs[0]).toBe(QUEUE_NAMES.EMAIL_QUEUE);
       expect(callArgs[1]).toBe("sendApplicationStatusUpdate");
@@ -232,7 +217,8 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should queue email notification when status changes from reviewed to shortlisted", async () => {
-      if (!isDatabaseAvailable()) {
+      const dbAvailable = await checkTestDatabase();
+      if (!dbAvailable) {
         console.warn("⚠️  Skipping test: Database not available");
         return;
       }
@@ -271,7 +257,8 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should queue email notification when status changes to rejected", async () => {
-      if (!isDatabaseAvailable()) {
+      const dbAvailable = await checkTestDatabase();
+      if (!dbAvailable) {
         console.warn("⚠️  Skipping test: Database not available");
         return;
       }
@@ -309,7 +296,8 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should queue email notification when status changes to hired", async () => {
-      if (!isDatabaseAvailable()) {
+      const dbAvailable = await checkTestDatabase();
+      if (!dbAvailable) {
         console.warn("⚠️  Skipping test: Database not available");
         return;
       }
@@ -361,7 +349,8 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should queue email notification when status changes to interviewing", async () => {
-      if (!isDatabaseAvailable()) {
+      const dbAvailable = await checkTestDatabase();
+      if (!dbAvailable) {
         console.warn("⚠️  Skipping test: Database not available");
         return;
       }
@@ -406,7 +395,8 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should queue email notification for multiple status transitions", async () => {
-      if (!isDatabaseAvailable()) {
+      const dbAvailable = await checkTestDatabase();
+      if (!dbAvailable) {
         console.warn("⚠️  Skipping test: Database not available");
         return;
       }
@@ -453,7 +443,8 @@ describe("Application Status Change Notification Integration Tests", () => {
 
   describe("Status Update Notification - No Notification Cases", () => {
     it("should not queue email notification when status does not change", async () => {
-      if (!isDatabaseAvailable()) {
+      const dbAvailable = await checkTestDatabase();
+      if (!dbAvailable) {
         console.warn("⚠️  Skipping test: Database not available");
         return;
       }
@@ -488,7 +479,8 @@ describe("Application Status Change Notification Integration Tests", () => {
 
   describe("Status Update Notification - Error Handling", () => {
     it("should succeed status update even if queue service fails", async () => {
-      if (!isDatabaseAvailable()) {
+      const dbAvailable = await checkTestDatabase();
+      if (!dbAvailable) {
         console.warn("⚠️  Skipping test: Database not available");
         return;
       }
@@ -518,7 +510,8 @@ describe("Application Status Change Notification Integration Tests", () => {
 
   describe("Status Update Notification - Data Verification", () => {
     it("should pass correct applicant email and full name to queue", async () => {
-      if (!isDatabaseAvailable()) {
+      const dbAvailable = await checkTestDatabase();
+      if (!dbAvailable) {
         console.warn("⚠️  Skipping test: Database not available");
         return;
       }
@@ -562,7 +555,8 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should pass correct job title to queue", async () => {
-      if (!isDatabaseAvailable()) {
+      const dbAvailable = await checkTestDatabase();
+      if (!dbAvailable) {
         console.warn("⚠️  Skipping test: Database not available");
         return;
       }
@@ -604,7 +598,8 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should pass correct application ID to queue", async () => {
-      if (!isDatabaseAvailable()) {
+      const dbAvailable = await checkTestDatabase();
+      if (!dbAvailable) {
         console.warn("⚠️  Skipping test: Database not available");
         return;
       }
@@ -638,7 +633,8 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should pass correct old and new status to queue", async () => {
-      if (!isDatabaseAvailable()) {
+      const dbAvailable = await checkTestDatabase();
+      if (!dbAvailable) {
         console.warn("⚠️  Skipping test: Database not available");
         return;
       }
