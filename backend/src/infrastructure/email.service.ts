@@ -5,15 +5,15 @@ import nodemailer from "nodemailer";
 import { BaseService } from "@/services/base.service";
 import { env } from "@/config/env";
 import { AppError } from "@/utils/errors";
-import { UserService } from "@/services/user.service";
 import { EmailType } from "@/types";
+import { UserRepository } from "@/repositories/user.repository";
 
 /**
  * Service for handling email operations, including sending various types of emails.
  */
 export class EmailService extends BaseService {
   private transporter: nodemailer.Transporter;
-  private userService: UserService;
+  private userRepository: UserRepository;
 
   /**
    * Creates an instance of EmailService and initializes the email transporter.
@@ -29,7 +29,7 @@ export class EmailService extends BaseService {
         pass: env.SMTP_PASS,
       },
     });
-    this.userService = new UserService();
+    this.userRepository = new UserRepository();
   }
 
   /**
@@ -73,18 +73,16 @@ export class EmailService extends BaseService {
     emailType: EmailType,
   ): Promise<boolean> {
     try {
-      const result = await this.userService.canSendEmailType(
-        userId,
-        emailType as
-          | "jobMatchNotifications"
-          | "applicationStatusNotifications"
-          | "savedJobUpdates"
-          | "weeklyJobDigest"
-          | "monthlyNewsletter"
-          | "marketingEmails"
-          | "accountSecurityAlerts",
-      );
-      return result.isSuccess ? result.value : true;
+      const emailTypeKey = emailType as
+        | "jobMatchNotifications"
+        | "applicationStatusNotifications"
+        | "savedJobUpdates"
+        | "weeklyJobDigest"
+        | "monthlyNewsletter"
+        | "marketingEmails"
+        | "accountSecurityAlerts";
+
+      return await this.userRepository.canSendEmailType(userId, emailTypeKey);
     } catch (error) {
       return true;
     }
@@ -100,10 +98,19 @@ export class EmailService extends BaseService {
     userId: number,
     emailType: EmailType,
   ): Promise<string> {
-    const unsubscribeLink =
-      await this.userService.generateUnsubscribeLink(userId);
-    const preferencesLink = `${env.FRONTEND_URL}/settings/email-preferences`;
+    let unsubscribeLink: string | null = null;
 
+    try {
+      const preferences =
+        await this.userRepository.findEmailPreferencesByUserId(userId);
+      if (preferences) {
+        unsubscribeLink = `${env.SERVER_URL}/api/users/me/email-preferences/unsubscribe/${preferences.unsubscribeToken}`;
+      }
+    } catch (error) {
+      // If we can't get preferences, just don't include unsubscribe link
+    }
+
+    const preferencesLink = `${env.FRONTEND_URL}/settings/email-preferences`;
     const isSecurityAlert = emailType === EmailType.SECURITY_ALERT;
 
     return `
