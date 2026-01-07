@@ -18,6 +18,7 @@ import {
   applyForJobSchema,
   updateApplicationStatusSchema,
   getJobApplicationSchema,
+  selectJobApplicationSchema,
 } from "@/validations/jobApplications.validation";
 import {
   getOrganizationSchema,
@@ -276,6 +277,97 @@ router.get(
   cacheMiddleware({ ttl: 300 }),
   jobController.getUserApplications,
 );
+
+registry.registerPath({
+  method: "get",
+  path: "/api/jobs/me/applications",
+  summary: "Get job applications for current user",
+  tags: ["Jobs"],
+  security: [{ cookie: [] }],
+  request: {
+    query: z.object({
+      page: z.coerce
+        .number()
+        .min(1)
+        .optional()
+        .default(1)
+        .describe("Page number for pagination"),
+      limit: z.coerce
+        .number()
+        .min(1)
+        .max(100)
+        .optional()
+        .default(10)
+        .describe("Number of items per page"),
+      status: z
+        .enum([
+          "pending",
+          "reviewed",
+          "shortlisted",
+          "interviewing",
+          "rejected",
+          "hired",
+          "withdrawn",
+        ])
+        .optional()
+        .describe("Filter applications by status"),
+    }),
+  },
+  responses: {
+    200: {
+      description: "User applications retrieved successfully",
+      content: {
+        "application/json": {
+          schema: paginatedResponseSchema.extend({
+            data: z
+              .object({
+                application: selectJobApplicationSchema,
+                job: z.object({
+                  id: z.number(),
+                  title: z.string(),
+                  city: z.string(),
+                  state: z.string().nullable(),
+                  country: z.string().nullable(),
+                  zipcode: z.number().nullable(),
+                  isRemote: z.boolean(),
+                  jobType: z.string(),
+                }),
+                employer: z.object({
+                  id: z.number(),
+                  name: z.string(),
+                }),
+              })
+              .array(),
+          }),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Internal server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
 
 registry.registerPath({
   method: "post",
