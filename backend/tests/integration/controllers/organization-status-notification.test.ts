@@ -13,7 +13,7 @@ import { expect, vi, describe, it, beforeEach, beforeAll, afterAll } from "vites
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 import { auth } from "@/utils/auth";
 
-describe("Application Status Change Notification Integration Tests -AI", () => {
+describe("Application Status Change Notification Integration Tests", () => {
   let cookie: string;
   let organizationId: number;
   let jobId: number;
@@ -34,7 +34,7 @@ describe("Application Status Change Notification Integration Tests -AI", () => {
   }
 
   // Helper function to seed test data
-  async function seedTestApplicationDataAI() {
+  async function seedTestApplicationData() {
     const { faker } = await import("@faker-js/faker");
 
     // Create organization owner
@@ -171,7 +171,7 @@ describe("Application Status Change Notification Integration Tests -AI", () => {
 
     // Seed data
     const { ownerUser, organization, job, applicant, application } =
-      await seedTestApplicationDataAI();
+      await seedTestApplicationData();
 
     // Login to get cookie
     const loginResponse = await request.post("/api/auth/sign-in/email").send({

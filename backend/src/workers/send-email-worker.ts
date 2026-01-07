@@ -58,7 +58,7 @@ export async function processEmailJob(
       );
       break;
     case "sendApplicationStatusUpdate":
-      await emailService.sendApplicationStatusUpdateAI(
+      await emailService.sendApplicationStatusUpdate(
         job.data.email,
         job.data.fullName,
         job.data.jobTitle as string,

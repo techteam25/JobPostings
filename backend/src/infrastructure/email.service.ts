@@ -5,7 +5,7 @@ import nodemailer from "nodemailer";
 import { BaseService } from "@/services/base.service";
 import { env } from "@/config/env";
 import { AppError } from "@/utils/errors";
-import { getApplicationStatusLabelAI } from "@/utils/application-status-AI";
+import { getApplicationStatusLabel } from "@/utils/application-status";
 
 /**
  * Service for handling email operations, including sending various types of emails.
@@ -322,7 +322,7 @@ Tech Team`,
    * @param oldStatus The previous status of the application.
    * @param newStatus The new status of the application.
    */
-  async sendApplicationStatusUpdateAI(
+  async sendApplicationStatusUpdate(
     email: string,
     fullName: string,
     jobTitle: string,
@@ -330,7 +330,7 @@ Tech Team`,
     newStatus: string,
   ): Promise<void> {
     try {
-      const template = await this.loadTemplate("applicationStatusUpdate-AI");
+      const template = await this.loadTemplate("applicationStatusUpdate");
 
       const dashboardLink = `${env.FRONTEND_URL}/applications`;
       const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
@@ -373,8 +373,8 @@ Tech Team`,
       };
 
       // Get human-readable status labels
-      const oldStatusLabel = getApplicationStatusLabelAI(oldStatus);
-      const newStatusLabel = getApplicationStatusLabelAI(newStatus);
+      const oldStatusLabel = getApplicationStatusLabel(oldStatus);
+      const newStatusLabel = getApplicationStatusLabel(newStatus);
 
       const htmlContent = template
         .replace("{{name}}", fullName)

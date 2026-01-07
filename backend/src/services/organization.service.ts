@@ -428,7 +428,7 @@ export class OrganizationService extends BaseService {
       }
 
       // Notify applicant of status change via email queue
-      await this.notifyApplicantOfStatusChangeAI(
+      await this.notifyApplicantOfStatusChange(
         applicationId,
         application.value.status,
         updateStatus,
@@ -451,7 +451,7 @@ export class OrganizationService extends BaseService {
    * @param newStatus The new status of the application.
    * @param jobTitle The title of the job.
    */
-  private async notifyApplicantOfStatusChangeAI(
+  private async notifyApplicantOfStatusChange(
     applicationId: number,
     oldStatus: string,
     newStatus: string,

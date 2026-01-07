@@ -16,7 +16,7 @@ export type ApplicationStatus =
  * Map of application status values to their human-readable labels.
  * Use this for displaying status values to users in the UI, emails, or other user-facing contexts.
  */
-export const APPLICATION_STATUS_LABELS_AI: Record<ApplicationStatus, string> = {
+export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   pending: "Submitted",
   reviewed: "Under Review",
   shortlisted: "Shortlisted",
@@ -31,11 +31,11 @@ export const APPLICATION_STATUS_LABELS_AI: Record<ApplicationStatus, string> = {
  * @param status The application status value.
  * @returns The human-readable label for the status, or the original status if not found.
  */
-export function getApplicationStatusLabelAI(
+export function getApplicationStatusLabel(
   status: string,
 ): string {
   return (
-    APPLICATION_STATUS_LABELS_AI[status as ApplicationStatus] || status
+    APPLICATION_STATUS_LABELS[status as ApplicationStatus] || status
   );
 }
 
@@ -43,7 +43,7 @@ export function getApplicationStatusLabelAI(
  * Array of all valid application status values.
  * Useful for validation, dropdowns, or iteration.
  */
-export const APPLICATION_STATUSES_AI: readonly ApplicationStatus[] = [
+export const APPLICATION_STATUSES: readonly ApplicationStatus[] = [
   "pending",
   "reviewed",
   "shortlisted",
