@@ -28,6 +28,11 @@ export class EmailService extends BaseService {
         user: env.SMTP_USER,
         pass: env.SMTP_PASS,
       },
+      // dkim: {
+      //   domainName: "getinvolved.team", // Your domain
+      //   keySelector: "default, // e.g., 'default' or '2026'
+      //   privateKey: privateKey, // Private key string
+      // },
     });
     this.userRepository = new UserRepository();
   }
