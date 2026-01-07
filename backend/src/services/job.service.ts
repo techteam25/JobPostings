@@ -523,6 +523,7 @@ export class JobService extends BaseService {
           QUEUE_NAMES.EMAIL_QUEUE,
           "sendJobApplicationConfirmation",
           {
+            userId: applicationData.applicantId,
             email: applicant.email,
             fullName: applicant.fullName,
             jobTitle: job.value.job.title,
@@ -730,6 +731,7 @@ export class JobService extends BaseService {
           QUEUE_NAMES.EMAIL_QUEUE,
           "sendApplicationWithdrawalConfirmation",
           {
+            userId,
             email: applicant.email,
             fullName: applicant.fullName,
             jobTitle: application.job.title,

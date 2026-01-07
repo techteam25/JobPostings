@@ -1,11 +1,21 @@
 import { z } from "@/swagger/registry";
 import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-zod";
+import {
   insertUserProfileSchema,
   updateUserProfileSchema,
 } from "@/validations/userProfile.validation";
+import { userEmailPreferences } from "@/db/schema";
 
 const userParamsSchema = z.object({
   id: z.string().regex(/^\d+$/, "Invalid user ID format"),
+});
+
+const unsubscribeTokenParamsSchema = z.object({
+  token: z.string().min(1, "Unsubscribe token is required"),
 });
 
 const userEmailSchema = z.object({
@@ -91,6 +101,28 @@ export const getSavedJobsQuerySchema = z.object({
     ),
 });
 
+// Schemas for Email Preferences
+export const createUserEmailPreferencesSchema = z.object({
+  body: createInsertSchema(userEmailPreferences),
+  params: userParamsSchema,
+  query: z.object({}).strict(),
+});
+
+export const updateUserEmailPreferencesSchema = z.object({
+  body: createUpdateSchema(userEmailPreferences),
+  params: z.object({}).strict(),
+  query: z.object({}).strict(),
+});
+
+export const unsubscribeEmailPreferencesSchema = z.object({
+  body: z.object({}).strict(),
+  params: unsubscribeTokenParamsSchema,
+  query: z.object({}).strict(),
+});
+
+export const getUserEmailPreferencesSchema =
+  createSelectSchema(userEmailPreferences);
+
 export const getUserSchema = z.object({
   body: z.object({}).strict(),
   params: userParamsSchema,
@@ -160,6 +192,18 @@ export const getUserSavedJobsQuerySchema = z.object({
 export type GetUserSchema = z.infer<typeof getUserSchema>;
 export type ChangePasswordSchema = z.infer<typeof changeUserPasswordSchema>;
 export type UserEmailSchema = z.infer<typeof userEmailPayloadSchema>;
+export type UserEmailPreferencesSchema = z.infer<
+  typeof getUserEmailPreferencesSchema
+>;
+export type CreateUserEmailPreferences = z.infer<
+  typeof createUserEmailPreferencesSchema
+>;
+export type UpdateUserEmailPreferences = z.infer<
+  typeof updateUserEmailPreferencesSchema
+>;
+export type UnsubscribeEmailPreferences = z.infer<
+  typeof unsubscribeEmailPreferencesSchema
+>;
 export type UserQuerySchema = z.infer<typeof userQuerySchema>;
 export type CreateUserProfile = z.infer<typeof createUserPayloadSchema>;
 export type DeleteSelfSchema = z.infer<typeof deleteSelfSchema>;

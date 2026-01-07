@@ -6,6 +6,7 @@ import {
   savedJobs,
   user,
   userCertifications,
+  userEmailPreferences,
   userOnBoarding,
   userProfile,
   workExperiences,
@@ -736,6 +737,174 @@ export class UserRepository extends BaseRepository<typeof user> {
       return await db.query.userProfile.findFirst({
         where: eq(userProfile.userId, userId),
       });
+    });
+  }
+
+  /**
+   * Finds email preferences by user ID.
+   * @param userId The ID of the user.
+   * @returns The user's email preferences or undefined if not found.
+   */
+  async findEmailPreferencesByUserId(userId: number) {
+    return await withDbErrorHandling(
+      async () =>
+        await db.query.userEmailPreferences.findFirst({
+          where: eq(userEmailPreferences.userId, userId),
+        }),
+    );
+  }
+
+  /**
+   * Finds email preferences by unsubscribe token.
+   * @param token The unsubscribe token.
+   * @returns The user's email preferences or undefined if not found.
+   */
+  async findEmailPreferencesByToken(token: string) {
+    return await withDbErrorHandling(
+      async () =>
+        await db.query.userEmailPreferences.findFirst({
+          where: eq(userEmailPreferences.unsubscribeToken, token),
+        }),
+    );
+  }
+
+  /**
+   * Creates default email preferences for a user.
+   * @param userId The ID of the user.
+   * @param unsubscribeToken The generated unsubscribe token.
+   * @returns The created email preferences.
+   */
+  async createEmailPreferences(userId: number, unsubscribeToken: string) {
+    return await withDbErrorHandling(async () => {
+      const tokenExpiresAt = new Date();
+
+      // Set token to expire in 30 days
+      tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 30);
+
+      const [result] = await db
+        .insert(userEmailPreferences)
+        .values({
+          userId,
+          unsubscribeToken,
+          unsubscribeTokenExpiresAt: tokenExpiresAt,
+          jobMatchNotifications: true,
+          applicationStatusNotifications: true,
+          savedJobUpdates: true,
+          weeklyJobDigest: true,
+          monthlyNewsletter: true,
+          marketingEmails: true,
+          accountSecurityAlerts: true,
+          globalUnsubscribe: false,
+        })
+        .$returningId();
+
+      if (!result || isNaN(result.id)) {
+        throw new DatabaseError(
+          `Failed to create email preferences for userId: ${userId}`,
+        );
+      }
+
+      return await this.findEmailPreferencesByUserId(userId);
+    });
+  }
+
+  /**
+   * Updates email preferences for a user.
+   * @param userId The ID of the user.
+   * @param preferences Partial email preferences to update.
+   * @returns The updated email preferences.
+   */
+  async updateEmailPreferences(
+    userId: number,
+    preferences: Partial<{
+      jobMatchNotifications: boolean;
+      applicationStatusNotifications: boolean;
+      savedJobUpdates: boolean;
+      weeklyJobDigest: boolean;
+      monthlyNewsletter: boolean;
+      marketingEmails: boolean;
+      globalUnsubscribe: boolean;
+    }>,
+  ) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(userEmailPreferences)
+        .set(preferences)
+        .where(eq(userEmailPreferences.userId, userId));
+
+      if (!result.affectedRows || result.affectedRows === 0) {
+        throw new DatabaseError(
+          `Failed to update email preferences for userId: ${userId}`,
+        );
+      }
+
+      return await this.findEmailPreferencesByUserId(userId);
+    });
+  }
+
+  /**
+   * Generates and updates a new unsubscribe token for a user.
+   * @param userId The ID of the user.
+   * @param newToken The new unsubscribe token.
+   * @returns The updated email preferences.
+   */
+  async refreshUnsubscribeToken(userId: number, newToken: string) {
+    return await withDbErrorHandling(async () => {
+      const tokenExpiresAt = new Date();
+
+      // Set token to expire in 30 days
+      tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 30);
+
+      const [result] = await db
+        .update(userEmailPreferences)
+        .set({
+          unsubscribeToken: newToken,
+          tokenCreatedAt: new Date(),
+          unsubscribeTokenExpiresAt: tokenExpiresAt,
+        })
+        .where(eq(userEmailPreferences.userId, userId));
+
+      if (!result.affectedRows || result.affectedRows === 0) {
+        throw new DatabaseError(
+          `Failed to refresh unsubscribe token for userId: ${userId}`,
+        );
+      }
+
+      return await this.findEmailPreferencesByUserId(userId);
+    });
+  }
+
+  /**
+   * Checks if a user can receive a specific type of email based on preferences.
+   * @param userId The ID of the user.
+   * @param emailType The type of email to check (e.g., 'jobMatchNotifications').
+   * @returns True if the user can receive the email, false otherwise.
+   */
+  async canSendEmailType(
+    userId: number,
+    emailType:
+      | "jobMatchNotifications"
+      | "applicationStatusNotifications"
+      | "savedJobUpdates"
+      | "weeklyJobDigest"
+      | "monthlyNewsletter"
+      | "marketingEmails"
+      | "accountSecurityAlerts",
+  ): Promise<boolean> {
+    return await withDbErrorHandling(async () => {
+      const preferences = await db.query.userEmailPreferences.findFirst({
+        where: eq(userEmailPreferences.userId, userId),
+      });
+
+      if (!preferences) {
+        return true;
+      }
+
+      if (preferences.globalUnsubscribe) {
+        return emailType === "accountSecurityAlerts";
+      }
+
+      return preferences[emailType] === true;
     });
   }
 }
