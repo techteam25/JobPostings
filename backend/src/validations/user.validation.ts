@@ -110,7 +110,7 @@ export const createUserEmailPreferencesSchema = z.object({
 
 export const updateUserEmailPreferencesSchema = z.object({
   body: createUpdateSchema(userEmailPreferences),
-  params: userParamsSchema,
+  params: z.object({}).strict(),
   query: z.object({}).strict(),
 });
 

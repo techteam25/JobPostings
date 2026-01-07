@@ -565,7 +565,7 @@ export class UserController extends BaseController {
 
     const result = await this.userService.unsubscribeByToken(
       token,
-      Object.keys(preferences).length > 0 ? preferences : undefined,
+      preferences,
     );
 
     if (result.isSuccess) {
