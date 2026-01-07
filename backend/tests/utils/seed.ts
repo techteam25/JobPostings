@@ -11,6 +11,7 @@ import {
   jobsDetails,
   user,
   userProfile,
+  userEmailPreferences,
   organizationMembers,
   jobApplications,
 } from "@/db/schema";
@@ -321,6 +322,7 @@ export const seedAdminUser = async () => {
 
 export const seedUserProfile = async () => {
   const { faker } = await import("@faker-js/faker");
+  const crypto = await import("crypto");
 
   const userProfileData = await userProfileFixture();
 
@@ -332,6 +334,7 @@ export const seedUserProfile = async () => {
       await trx.execute(sql`ALTER TABLE educations AUTO_INCREMENT = 1`);
       await trx.execute(sql`ALTER TABLE work_experiences AUTO_INCREMENT = 1`);
       await trx.execute(sql`ALTER TABLE certifications AUTO_INCREMENT = 1`);
+      await trx.execute(sql`ALTER TABLE user_email_preferences AUTO_INCREMENT = 1`);
       await trx.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
 
       const createdUser = await auth.api.signUpEmail({
@@ -350,6 +353,26 @@ export const seedUserProfile = async () => {
       await trx.insert(userProfile).values({
         ...userProfileData,
         userId: Number(createdUser.user.id),
+      });
+
+      // Create email preferences for the user
+      const token = crypto.randomBytes(32).toString("hex");
+      const tokenExpiresAt = new Date();
+      tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 30);
+
+      await trx.insert(userEmailPreferences).values({
+        userId: Number(createdUser.user.id),
+        unsubscribeToken: token,
+        tokenCreatedAt: new Date(),
+        unsubscribeTokenExpiresAt: tokenExpiresAt,
+        jobMatchNotifications: true,
+        applicationStatusNotifications: true,
+        savedJobUpdates: true,
+        weeklyJobDigest: true,
+        monthlyNewsletter: true,
+        marketingEmails: true,
+        accountSecurityAlerts: true,
+        globalUnsubscribe: false,
       });
     });
   } catch (error) {
