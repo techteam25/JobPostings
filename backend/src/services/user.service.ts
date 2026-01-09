@@ -19,6 +19,7 @@ import { OrganizationRepository } from "@/repositories/organization.repository";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 import crypto from "crypto";
 import { env } from "@/config/env";
+import { AuditService } from "./audit.service";
 
 /**
  * Service class for managing user-related operations, including CRUD for users and profiles.
@@ -27,6 +28,7 @@ export class UserService extends BaseService {
   private userRepository: UserRepository;
   private emailService: EmailService;
   private organizationRepository: OrganizationRepository;
+  private auditService: AuditService;
 
   /**
    * Creates an instance of UserService and initializes repositories and services.
@@ -36,6 +38,7 @@ export class UserService extends BaseService {
     this.userRepository = new UserRepository();
     this.emailService = new EmailService();
     this.organizationRepository = new OrganizationRepository();
+    this.auditService = new AuditService();
   }
 
   /**
@@ -317,6 +320,19 @@ export class UserService extends BaseService {
         return fail(new Error("Failed to deactivate account"));
       }
 
+      // Log the deactivation event
+      await this.auditService.log({
+        userId,
+        userEmail: user.email,
+        action: "user.deactivate",
+        severity: "warning",
+        resourceType: "user",
+        resourceId: userId,
+        description: "User deactivated their own account",
+        oldValues: { status: user.status },
+        newValues: { status: "deactivated" },
+      });
+
       // Email notification
       await this.emailService.sendAccountDeactivationConfirmation(
         userId,
@@ -326,6 +342,18 @@ export class UserService extends BaseService {
 
       return ok(deactivatedUser);
     } catch (error) {
+      // Log the error
+      await this.auditService.log({
+        userId,
+        action: "user.deactivate",
+        severity: "error",
+        resourceType: "user",
+        resourceId: userId,
+        success: "false",
+        errorMessage: error instanceof Error ? error.message : "Unknown error",
+        description: "Failed to deactivate account",
+      });
+      
       if (error instanceof AppError) {
         return this.handleError(error);
       }
