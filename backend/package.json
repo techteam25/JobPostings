@@ -10,16 +10,16 @@
     "build:tsc": "tsc",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
-    "test": "DB_NAME=jobpostings_test vitest run",
+    "test": "--no-env-file DB_NAME=jobpostings_test vitest run",
     "test:show-config": "vitest --showConfig",
-    "test:watch": "DB_NAME=jobpostings_test vitest",
+    "test:watch": "--no-env-file DB_NAME=jobpostings_test vitest",
     "test:ui": "DB_NAME=jobpostings_test vitest --ui",
     "test:coverage": "DB_NAME=jobpostings_test vitest run --coverage",
     "test:integration": "DB_NAME=jobpostings_test vitest run tests/integration",
     "test:unit": "DB_NAME=jobpostings_test vitest run tests/unit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:migrate-test": "DB_NAME=jobpostings_test drizzle-kit migrate",
+    "db:migrate-test": "--no-env-file DB_NAME=jobpostings_test drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
@@ -90,6 +90,6 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "typesense": "^2.1.0",
-    "zod": "^4.1.8"
+    "zod": "^4.3.5"
   }
 }

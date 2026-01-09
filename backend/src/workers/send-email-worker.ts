@@ -5,6 +5,7 @@ import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 import logger from "@/logger";
 
 type EmailJobData = {
+  userId: number;
   email: string;
   fullName: string;
   [key: string]: unknown;
@@ -15,6 +16,13 @@ const emailService = new EmailService();
 export async function processEmailJob(
   job: BullMqJob<EmailJobData>,
 ): Promise<void> {
+  const { userId } = job.data;
+
+  if (!userId) {
+    logger.error(`Email job missing userId for job: ${job.name}`);
+    return;
+  }
+
   switch (job.name) {
     case "sendWelcomeEmail":
       // await emailService.sendWelcomeEmail(job.data);
@@ -24,6 +32,7 @@ export async function processEmailJob(
       break;
     case "sendJobApplicationConfirmation":
       await emailService.sendJobApplicationConfirmation(
+        userId,
         job.data.email,
         job.data.fullName,
         job.data.jobTitle as string,
@@ -31,20 +40,22 @@ export async function processEmailJob(
       break;
     case "sendApplicationWithdrawalConfirmation":
       await emailService.sendApplicationWithdrawalConfirmation(
+        userId,
         job.data.email,
         job.data.fullName,
         job.data.jobTitle as string,
       );
       break;
     case "sendAccountDeletionConfirmation":
-      const user = job.data;
       await emailService.sendAccountDeletionConfirmation(
-        user.email,
-        user.fullName,
+        userId,
+        job.data.email,
+        job.data.fullName,
       );
       break;
     case "sendAccountDeactivationConfirmation":
       await emailService.sendAccountDeactivationConfirmation(
+        userId,
         job.data.email,
         job.data.fullName,
       );
@@ -55,6 +66,15 @@ export async function processEmailJob(
         job.data.fullName,
         job.data.jobTitle as string,
         job.data.jobId as number,
+      );
+      break;
+    case "sendApplicationStatusUpdate":
+      await emailService.sendApplicationStatusUpdate(
+        job.data.email,
+        job.data.fullName,
+        job.data.jobTitle as string,
+        job.data.oldStatus as string,
+        job.data.newStatus as string,
       );
       break;
 

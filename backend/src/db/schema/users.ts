@@ -57,29 +57,37 @@ export const user = mysqlTable(
 /**
  * User profile table schema defining the structure for storing detailed user profile information.
  */
-export const userProfile = mysqlTable("user_profile", {
-  id: int("id").primaryKey().autoincrement(),
-  userId: int("user_id")
-    .notNull()
-    .unique()
-    .references(() => user.id, { onDelete: "cascade" }),
-  profilePicture: varchar("profile_picture", { length: 500 }),
-  bio: text("bio"),
-  resumeUrl: varchar("resume_url", { length: 255 }),
-  linkedinUrl: varchar("linkedin_url", { length: 255 }),
-  portfolioUrl: varchar("portfolio_url", { length: 255 }),
-  phoneNumber: varchar("phone_number", { length: 20 }),
-  address: varchar("address", { length: 255 }),
-  city: varchar("city", { length: 100 }),
-  state: varchar("state", { length: 100 }),
-  zipCode: varchar("zip_code", { length: 10 }),
-  country: varchar("country", { length: 100 }).default("US"),
-  isProfilePublic: boolean("is_profile_public").default(true).notNull(),
-  isAvailableForWork: boolean("is_available_for_work").default(true).notNull(),
-  fileMetadata: json("file_metadata").$type<FileMetadata[]>(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
-});
+export const userProfile = mysqlTable(
+  "user_profile",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    userId: int("user_id")
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: "cascade" }),
+    profilePicture: varchar("profile_picture", { length: 500 }),
+    bio: text("bio"),
+    resumeUrl: varchar("resume_url", { length: 255 }),
+    linkedinUrl: varchar("linkedin_url", { length: 255 }),
+    portfolioUrl: varchar("portfolio_url", { length: 255 }),
+    phoneNumber: varchar("phone_number", { length: 20 }),
+    address: varchar("address", { length: 255 }),
+    city: varchar("city", { length: 100 }),
+    state: varchar("state", { length: 100 }),
+    zipCode: varchar("zip_code", { length: 10 }),
+    country: varchar("country", { length: 100 }).default("US"),
+    isProfilePublic: boolean("is_profile_public").default(true).notNull(),
+    isAvailableForWork: boolean("is_available_for_work")
+      .default(true)
+      .notNull(),
+    fileMetadata: json("file_metadata").$type<FileMetadata[]>(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("idx_user_profile_is_profile_public").on(table.isProfilePublic),
+  ],
+);
 
 /**
  * User onboarding table schema defining the structure for storing user onboarding information.
@@ -95,6 +103,46 @@ export const userOnBoarding = mysqlTable("user_onboarding", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
+
+export const userEmailPreferences = mysqlTable(
+  "user_email_preferences",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    userId: int("user_id")
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: "cascade" }),
+
+    // Notification Type Preferences (all default true)
+    jobMatchNotifications: boolean("job_alerts").default(true).notNull(),
+    applicationStatusNotifications: boolean("application_status")
+      .default(true)
+      .notNull(),
+    savedJobUpdates: boolean("saved_job_updates").default(true).notNull(),
+    weeklyJobDigest: boolean("weekly_job_digest").default(true).notNull(),
+    monthlyNewsletter: boolean("monthly_newsletter").default(true).notNull(),
+    marketingEmails: boolean("marketing_emails").default(true).notNull(),
+    accountSecurityAlerts: boolean("account_security_alerts")
+      .default(true)
+      .notNull(),
+
+    // Unsubscribe Token Management
+    unsubscribeToken: varchar("unsubscribe_token", { length: 255 }).notNull(),
+    tokenCreatedAt: timestamp("token_created_at").defaultNow().notNull(),
+    unsubscribeTokenExpiresAt: timestamp("unsubscribe_token_expires_at"),
+    globalUnsubscribe: boolean("global_unsubscribe").default(false).notNull(),
+
+    // Metadata
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("idx_user_email_preferences_user_id").on(table.userId),
+    index("idx_user_email_preferences_unsubscribe_token").on(
+      table.unsubscribeToken,
+    ),
+  ],
+);
 
 // Relations
 /**
@@ -114,6 +162,10 @@ export const userRelations = relations(user, ({ one, many }) => ({
   onboarding: one(userOnBoarding, {
     fields: [user.id],
     references: [userOnBoarding.userId],
+  }),
+  emailPreference: one(userEmailPreferences, {
+    fields: [user.id],
+    references: [userEmailPreferences.userId],
   }),
 }));
 
@@ -139,3 +191,16 @@ export const userOnBoardingRelations = relations(userOnBoarding, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+/**
+ * Relations for the userEmailPreferences table, defining one-to-one relationship with user.
+ */
+export const userEmailPreferencesRelations = relations(
+  userEmailPreferences,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [userEmailPreferences.userId],
+      references: [user.id],
+    }),
+  }),
+);

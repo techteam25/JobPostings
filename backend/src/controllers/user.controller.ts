@@ -10,10 +10,14 @@ import {
   DeleteUserSchema,
   SavedJobs,
   SavedJobsQuerySchema,
+  UserEmailPreferencesSchema,
+  UpdateUserEmailPreferences,
+  UnsubscribeEmailPreferences,
 } from "@/validations/user.validation";
 import { ApiResponse } from "@/types";
 import { auth } from "@/utils/auth";
 import {
+  UpdateProfileVisibilityInput,
   UpdateUser,
   UpdateUserProfile,
   User,
@@ -159,6 +163,28 @@ export class UserController extends BaseController {
       );
     } else {
       return this.handleControllerError(res, user.error);
+    }
+  };
+
+  changeProfileVisibility = async (
+    req: Request<{}, {}, UpdateProfileVisibilityInput["body"]>,
+    res: Response,
+  ) => {
+    const { isProfilePublic } = req.body;
+
+    const result = await this.userService.changeUserProfileVisibility(
+      req.userId!,
+      isProfilePublic,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<UserProfile>(
+        res,
+        result.value,
+        "Profile visibility updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
     }
   };
 
@@ -461,6 +487,116 @@ export class UserController extends BaseController {
       }>(res, intentResult.value, "User intent retrieved successfully");
     } else {
       return this.handleControllerError(res, intentResult.error);
+    }
+  };
+
+  /**
+   * Retrieves email preferences for the authenticated user.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
+  getEmailPreferences = async (
+    req: Request,
+    res: Response<UserEmailPreferencesSchema>,
+  ) => {
+    const result = await this.userService.getEmailPreferences(req.userId!);
+
+    if (result.isSuccess) {
+      return this.sendSuccess<UserEmailPreferencesSchema>(
+        res,
+        result.value,
+        "Email preferences retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Updates email preferences for the authenticated user.
+   * @param req The Express request object with preferences in body.
+   * @param res The Express response object.
+   */
+  updateEmailPreferences = async (
+    req: Request<{}, {}, UpdateUserEmailPreferences["body"]>,
+    res: Response,
+  ) => {
+    const preferences = req.body;
+
+    if (preferences.accountSecurityAlerts === false) {
+      return res.status(400).json({
+        success: false,
+        message: "Security alerts cannot be disabled",
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    const result = await this.userService.updateEmailPreferences(
+      req.userId!,
+      preferences,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<UserEmailPreferencesSchema>(
+        res,
+        result.value,
+        "Email preferences updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Unsubscribes a user from emails using a token.
+   * @param req The Express request object with token in params.
+   * @param res The Express response object.
+   */
+  unsubscribeByToken = async (
+    req: Request<
+      UnsubscribeEmailPreferences["params"],
+      {},
+      UserEmailPreferencesSchema
+    >,
+    res: Response,
+  ) => {
+    const { token } = req.params;
+    const preferences = req.body;
+
+    const result = await this.userService.unsubscribeByToken(
+      token,
+      preferences,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<UserEmailPreferencesSchema>(
+        res,
+        result.value,
+        "Successfully unsubscribed from email notifications",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Re-enables all email notifications for the authenticated user.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
+  resubscribeEmailNotifications = async (req: Request, res: Response) => {
+    const result = await this.userService.resubscribeEmailNotifications(
+      req.userId!,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<UserEmailPreferencesSchema>(
+        res,
+        result.value,
+        "Successfully resubscribed to email notifications",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
     }
   };
 

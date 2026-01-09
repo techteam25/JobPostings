@@ -17,6 +17,8 @@ import {
 } from "@/validations/userProfile.validation";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import crypto from "crypto";
+import { env } from "@/config/env";
 
 /**
  * Service class for managing user-related operations, including CRUD for users and profiles.
@@ -126,7 +128,15 @@ export class UserService extends BaseService {
         return fail(new NotFoundError("User", userId));
       }
 
-      return ok(await this.userRepository.createProfile(userId, profileData));
+      const profile = await this.userRepository.createProfile(
+        userId,
+        profileData,
+      );
+
+      // Create default email preferences for the user
+      await this.createDefaultEmailPreferences(userId);
+
+      return ok(profile);
     } catch (error) {
       if (error instanceof AppError) {
         return this.handleError(error);
@@ -210,6 +220,42 @@ export class UserService extends BaseService {
   }
 
   /**
+   * Changes the visibility of a user's profile.
+   * @param userId The ID of the user.
+   * @param isPublic The new visibility status.
+   * @returns A Result containing the updated profile or an error.
+   */
+  async changeUserProfileVisibility(
+    userId: number,
+    isPublic: boolean | undefined = false,
+  ) {
+    try {
+      const user = await this.userRepository.findUserById(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      const updatedProfile = await this.userRepository.updateProfileVisibility(
+        userId,
+        isPublic,
+      );
+
+      if (!updatedProfile) {
+        return fail(new DatabaseError("Failed to update profile visibility"));
+      }
+
+      console.log({ updatedProfile });
+
+      return ok(updatedProfile);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update profile visibility"));
+    }
+  }
+
+  /**
    * Changes a user's password.
    * @param userId The ID of the user.
    * @param currentPassword The current password.
@@ -273,6 +319,7 @@ export class UserService extends BaseService {
 
       // Email notification
       await this.emailService.sendAccountDeactivationConfirmation(
+        userId,
         deactivatedUser.email,
         deactivatedUser.fullName,
       );
@@ -334,6 +381,7 @@ export class UserService extends BaseService {
         QUEUE_NAMES.EMAIL_QUEUE,
         "sendAccountDeletionConfirmation",
         {
+          userId: id,
           email: user.email,
           fullName: user.fullName,
         },
@@ -475,6 +523,7 @@ export class UserService extends BaseService {
         QUEUE_NAMES.EMAIL_QUEUE,
         "sendAccountDeletionConfirmation",
         {
+          userId,
           email: user.email,
           fullName: user.fullName,
         },
@@ -586,6 +635,264 @@ export class UserService extends BaseService {
       return fail(
         new DatabaseError("Failed to retrieve user onboarding intent"),
       );
+    }
+  }
+
+  /**
+   * Generates a secure unsubscribe token.
+   * @returns A random 32-byte hex string.
+   */
+  private generateUnsubscribeToken(): string {
+    return crypto.randomBytes(32).toString("hex");
+  }
+
+  /**
+   * Retrieves email preferences for a user.
+   * @param userId The ID of the user.
+   * @returns A Result containing the email preferences or an error.
+   */
+  async getEmailPreferences(userId: number) {
+    try {
+      const preferences =
+        await this.userRepository.findEmailPreferencesByUserId(userId);
+
+      if (!preferences) {
+        return fail(
+          new NotFoundError("Email preferences not found for user", userId),
+        );
+      }
+
+      return ok(preferences);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to retrieve email preferences"));
+    }
+  }
+
+  /**
+   * Creates default email preferences for a user.
+   * @param userId The ID of the user.
+   * @returns A Result containing the created email preferences or an error.
+   */
+  async createDefaultEmailPreferences(userId: number) {
+    try {
+      const existingPreferences =
+        await this.userRepository.findEmailPreferencesByUserId(userId);
+
+      if (existingPreferences) {
+        return ok(existingPreferences);
+      }
+
+      const unsubscribeToken = this.generateUnsubscribeToken();
+      const preferences = await this.userRepository.createEmailPreferences(
+        userId,
+        unsubscribeToken,
+      );
+
+      if (!preferences) {
+        return fail(new DatabaseError("Failed to create email preferences"));
+      }
+
+      return ok(preferences);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to create email preferences"));
+    }
+  }
+
+  /**
+   * Updates email preferences for a user.
+   * @param userId The ID of the user.
+   * @param preferences Partial email preferences to update.
+   * @returns A Result containing the updated email preferences or an error.
+   */
+  async updateEmailPreferences(
+    userId: number,
+    preferences: Partial<{
+      jobMatchNotifications: boolean;
+      applicationStatusNotifications: boolean;
+      savedJobUpdates: boolean;
+      weeklyJobDigest: boolean;
+      monthlyNewsletter: boolean;
+      marketingEmails: boolean;
+      globalUnsubscribe: boolean;
+    }>,
+  ) {
+    try {
+      const existingPreferences =
+        await this.userRepository.findEmailPreferencesByUserId(userId);
+
+      if (!existingPreferences) {
+        return fail(
+          new NotFoundError("Email preferences not found for user", userId),
+        );
+      }
+
+      const updatedPreferences =
+        await this.userRepository.updateEmailPreferences(userId, preferences);
+
+      if (!updatedPreferences) {
+        return fail(new DatabaseError("Failed to update email preferences"));
+      }
+
+      return ok(updatedPreferences);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update email preferences"));
+    }
+  }
+
+  /**
+   * Unsubscribes a user from emails using an unsubscribe token.
+   * @param token The unsubscribe token.
+   * @param preferences Optional partial preferences to update.
+   * @returns A Result containing the updated email preferences or an error.
+   */
+  async unsubscribeByToken(
+    token: string,
+    preferences?: Partial<{
+      jobMatchNotifications: boolean;
+      applicationStatusNotifications: boolean;
+      savedJobUpdates: boolean;
+      weeklyJobDigest: boolean;
+      monthlyNewsletter: boolean;
+      marketingEmails: boolean;
+    }>,
+  ) {
+    try {
+      const emailPreferences =
+        await this.userRepository.findEmailPreferencesByToken(token);
+
+      if (!emailPreferences) {
+        return fail(new NotFoundError("Invalid or expired unsubscribe token"));
+      }
+
+      if (
+        emailPreferences.unsubscribeTokenExpiresAt &&
+        new Date() > new Date(emailPreferences.unsubscribeTokenExpiresAt)
+      ) {
+        return fail(new ValidationError("Unsubscribe token has expired"));
+      }
+
+      const updateData = preferences || { globalUnsubscribe: true };
+
+      const updatedPreferences =
+        await this.userRepository.updateEmailPreferences(
+          emailPreferences.userId,
+          updateData,
+        );
+
+      if (!updatedPreferences) {
+        return fail(new DatabaseError("Failed to unsubscribe"));
+      }
+
+      return ok(updatedPreferences);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to unsubscribe"));
+    }
+  }
+
+  /**
+   * Re-enables all email notifications for a user (resubscribe).
+   * @param userId The ID of the user.
+   * @returns A Result containing the updated email preferences or an error.
+   */
+  async resubscribeEmailNotifications(userId: number) {
+    try {
+      const existingPreferences =
+        await this.userRepository.findEmailPreferencesByUserId(userId);
+
+      if (!existingPreferences) {
+        return fail(
+          new NotFoundError("Email preferences not found for user", userId),
+        );
+      }
+
+      const newToken = this.generateUnsubscribeToken();
+
+      await this.userRepository.refreshUnsubscribeToken(userId, newToken);
+
+      const updatedPreferences =
+        await this.userRepository.updateEmailPreferences(userId, {
+          jobMatchNotifications: true,
+          applicationStatusNotifications: true,
+          savedJobUpdates: true,
+          weeklyJobDigest: true,
+          monthlyNewsletter: true,
+          marketingEmails: true,
+          globalUnsubscribe: false,
+        });
+
+      if (!updatedPreferences) {
+        return fail(new DatabaseError("Failed to resubscribe"));
+      }
+
+      return ok(updatedPreferences);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to resubscribe"));
+    }
+  }
+
+  /**
+   * Checks if a user can receive a specific type of email.
+   * @param userId The ID of the user.
+   * @param emailType The type of email to check.
+   * @returns A Result containing a boolean or an error.
+   */
+  async canSendEmailType(
+    userId: number,
+    emailType:
+      | "jobMatchNotifications"
+      | "applicationStatusNotifications"
+      | "savedJobUpdates"
+      | "weeklyJobDigest"
+      | "monthlyNewsletter"
+      | "marketingEmails"
+      | "accountSecurityAlerts",
+  ) {
+    try {
+      const canSend = await this.userRepository.canSendEmailType(
+        userId,
+        emailType,
+      );
+      return ok(canSend);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to check email preference"));
+    }
+  }
+
+  /**
+   * Generates an unsubscribe link for a user.
+   * @param userId The ID of the user.
+   * @returns A Result containing the unsubscribe link or an error.
+   */
+  async generateUnsubscribeLink(userId: number): Promise<string | null> {
+    try {
+      const preferences =
+        await this.userRepository.findEmailPreferencesByUserId(userId);
+
+      if (!preferences) {
+        return null;
+      }
+
+      return `${env.SERVER_URL}/api/users/me/email-preferences/unsubscribe/${preferences.unsubscribeToken}`;
+    } catch (error) {
+      return null;
     }
   }
 }

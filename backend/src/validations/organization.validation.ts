@@ -16,7 +16,8 @@ export const selectOrganizationMembersSchema =
   createSelectSchema(organizationMembers);
 export const insertJobApplicationNoteSchema =
   createInsertSchema(applicationNotes);
-export const insertOrganizationSchema = createInsertSchema(organizations, {
+// Base schema WITHOUT logo refinements (for use with .partial())
+const insertOrganizationBaseSchema = createInsertSchema(organizations, {
   name: z.string().min(1, "Name must be at least 1 characters").max(100),
   url: z.url("Invalid organization website URL"),
   phone: z
@@ -36,14 +37,6 @@ export const insertOrganizationSchema = createInsertSchema(organizations, {
         message: "Expected a valid Multer file",
       },
     )
-    .refine((file) => file.mimetype.startsWith("image/"), {
-      message: "File must be an image",
-      path: ["mimetype"],
-    })
-    .refine((file) => file.size <= 5 * 1024 * 1024, {
-      message: "File size must be under 5MB",
-      path: ["size"],
-    })
     .optional()
     .openapi({
       type: "string",
@@ -51,9 +44,66 @@ export const insertOrganizationSchema = createInsertSchema(organizations, {
       description: "Logo image file (max size 5MB)",
     }),
 });
-export const updateOrganizationInputSchema = insertOrganizationSchema
+
+// Full insert schema WITH refinements (for creating new organizations)
+export const insertOrganizationSchema = insertOrganizationBaseSchema
+  .refine(
+    (data) => {
+      // Only validate logo if it's provided
+      if (data.logo) {
+        return data.logo.mimetype.startsWith("image/");
+      }
+      return true;
+    },
+    {
+      message: "File must be an image",
+      path: ["logo", "mimetype"],
+    },
+  )
+  .refine(
+    (data) => {
+      // Only validate logo size if it's provided
+      if (data.logo) {
+        return data.logo.size <= 5 * 1024 * 1024;
+      }
+      return true;
+    },
+    {
+      message: "File size must be under 5MB",
+      path: ["logo", "size"],
+    },
+  );
+
+// Update schema: use base schema, apply partial FIRST, then add refinements
+export const updateOrganizationInputSchema = insertOrganizationBaseSchema
   .partial()
-  .omit({ id: true, createdAt: true });
+  .omit({ id: true, createdAt: true })
+  .refine(
+    (data) => {
+      // Only validate logo if it's provided
+      if (data.logo) {
+        return data.logo.mimetype.startsWith("image/");
+      }
+      return true;
+    },
+    {
+      message: "File must be an image",
+      path: ["logo", "mimetype"],
+    },
+  )
+  .refine(
+    (data) => {
+      // Only validate logo size if it's provided
+      if (data.logo) {
+        return data.logo.size <= 5 * 1024 * 1024;
+      }
+      return true;
+    },
+    {
+      message: "File size must be under 5MB",
+      path: ["logo", "size"],
+    },
+  );
 
 const organizationIdParamSchema = z.object({
   organizationId: z.string().regex(/^\d+$/, "organizationId is required"),
@@ -101,6 +151,38 @@ const createJobApplicationNoteInput = z.object({
 export const createOrganizationSchema = z.object({
   body: insertOrganizationSchema,
   params: z.object({}).strict(),
+  query: z.object({}).strict(),
+});
+
+export const uploadOrganizationLogoSchema = z.object({
+  body: insertOrganizationBaseSchema.pick({ logo: true })
+    .refine(
+      (data) => {
+        // Only validate logo if it's provided
+        if (data.logo) {
+          return data.logo.mimetype.startsWith("image/");
+        }
+        return true;
+      },
+      {
+        message: "File must be an image",
+        path: ["logo", "mimetype"],
+      },
+    )
+    .refine(
+      (data) => {
+        // Only validate logo size if it's provided
+        if (data.logo) {
+          return data.logo.size <= 5 * 1024 * 1024;
+        }
+        return true;
+      },
+      {
+        message: "File size must be under 5MB",
+        path: ["logo", "size"],
+      },
+    ),
+  params: organizationIdParamSchema,
   query: z.object({}).strict(),
 });
 
@@ -268,6 +350,9 @@ export type OrganizationWithMembers = Organization & {
 
 export type GetOrganizationSchema = z.infer<typeof getOrganizationSchema>;
 export type CreateOrganizationSchema = z.infer<typeof createOrganizationSchema>;
+export type UploadOrganizationLogoSchema = z.infer<
+  typeof uploadOrganizationLogoSchema
+>;
 export type UpdateOrganizationSchema = z.infer<typeof updateOrganizationSchema>;
 export type DeleteOrganizationSchema = z.infer<typeof deleteOrganizationSchema>;
 export type JobApplicationManagementSchema = z.infer<

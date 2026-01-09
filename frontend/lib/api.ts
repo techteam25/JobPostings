@@ -1,6 +1,5 @@
 "use server";
 
-import { cache } from "react";
 import { cookies } from "next/headers";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { env } from "@/env";
@@ -17,64 +16,64 @@ import {
   UserProfile,
 } from "@/lib/types";
 
-export const getJobs = cache(
-  async (): Promise<PaginatedApiResponse<JobWithEmployer>> => {
-    const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs`, {
-      next: { revalidate: 60, tags: ["jobs"] },
-    });
+export const getJobs = async (): Promise<
+  PaginatedApiResponse<JobWithEmployer>
+> => {
+  const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs`, {
+    next: { revalidate: 60, tags: ["jobs"] },
+  });
 
-    if (!res.ok) {
-      return await res.json();
-    }
+  if (!res.ok) {
+    return await res.json();
+  }
 
-    return res.json();
-  },
-);
+  return res.json();
+};
 
-export const getJobById = cache(
-  async (jobId: number): Promise<ApiResponse<JobResponse>> => {
-    const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}`, {
-      next: { revalidate: 300, tags: [`job-${jobId}`] },
-    });
+export const getJobById = async (
+  jobId: number,
+): Promise<ApiResponse<JobResponse>> => {
+  const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}`, {
+    next: { revalidate: 300, tags: [`job-${jobId}`] },
+  });
 
-    if (!res.ok) {
-      throw new Error("Failed to fetch job");
-    }
+  if (!res.ok) {
+    throw new Error("Failed to fetch job");
+  }
 
-    return res.json();
-  },
-);
+  return res.json();
+};
 
-export const getOrganization = cache(
-  async (id: number): Promise<OrganizationWithMembers | null> => {
-    try {
-      const response = await fetch(
-        `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${id}`,
-        {
-          credentials: "include",
-          next: { revalidate: 300, tags: [`organization-${id}`] },
-        },
-      );
+export const getOrganization = async (
+  id: number,
+): Promise<OrganizationWithMembers | null> => {
+  try {
+    const response = await fetch(
+      `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${id}`,
+      {
+        credentials: "include",
+        next: { revalidate: 300, tags: [`organization-${id}`] },
+      },
+    );
 
-      if (!response.ok) {
-        console.error("Failed to fetch organization:", response.statusText);
-        return null;
-      }
-
-      const data = await response.json();
-
-      if (!data.success || !data.data) {
-        console.error("Organization not found:", data.message);
-        return null;
-      }
-
-      return data.data;
-    } catch (error) {
-      console.error("Error fetching organization:", error);
+    if (!response.ok) {
+      console.error("Failed to fetch organization:", response.statusText);
       return null;
     }
-  },
-);
+
+    const data = await response.json();
+
+    if (!data.success || !data.data) {
+      console.error("Organization not found:", data.message);
+      return null;
+    }
+
+    return data.data;
+  } catch (error) {
+    console.error("Error fetching organization:", error);
+    return null;
+  }
+};
 
 export const updateOrganization = async (
   organizationData: Organization | null,
@@ -107,104 +106,102 @@ export const updateOrganization = async (
   return data.data;
 };
 
-export const getOrganizationJobsList = cache(
-  async (organizationId: number): Promise<PaginatedApiResponse<Job>> => {
-    const cookieStore = await cookies();
-    const res = await fetch(
-      `${env.NEXT_PUBLIC_SERVER_URL}/jobs/employer/${organizationId}/jobs`,
-      {
-        credentials: "include",
-        headers: {
-          Cookie: cookieStore.toString(),
-        },
-        next: { revalidate: 60, tags: [`organization-${organizationId}-jobs`] },
+export const getOrganizationJobsList = async (
+  organizationId: number,
+): Promise<PaginatedApiResponse<Job>> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/jobs/employer/${organizationId}/jobs`,
+    {
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
       },
-    );
+      next: { revalidate: 60, tags: [`organization-${organizationId}-jobs`] },
+    },
+  );
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || "Failed to fetch organization's jobs");
-    }
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "Failed to fetch organization's jobs");
+  }
 
-    return res.json();
-  },
-);
+  return res.json();
+};
 
-export const getAllJobsApplicationsForOrganization = cache(
-  async (
-    organizationId: string,
-  ): Promise<PaginatedApiResponse<OrganizationJobApplications>> => {
-    const cookieStore = await cookies();
-    const res = await fetch(
-      `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${organizationId}/applications`,
-      {
-        credentials: "include",
-        headers: {
-          Cookie: cookieStore.toString(),
-        },
-        next: {
-          revalidate: 60,
-          tags: [`organization-${organizationId}-applications`],
-        },
+export const getAllJobsApplicationsForOrganization = async (
+  organizationId: string,
+): Promise<PaginatedApiResponse<OrganizationJobApplications>> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${organizationId}/applications`,
+    {
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
       },
-    );
-
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(
-        err.message || "Failed to fetch organization's job applications",
-      );
-    }
-
-    return res.json();
-  },
-);
-
-export const getAllApplicationsByUser = cache(
-  async (): Promise<PaginatedApiResponse<UserJobApplications>> => {
-    const cookieStore = await cookies();
-    const res = await fetch(
-      `${env.NEXT_PUBLIC_SERVER_URL}/jobs/me/applications/`,
-      {
-        credentials: "include",
-        headers: {
-          Cookie: cookieStore.toString(),
-        },
-        next: { revalidate: 60, tags: [`user-applications`] },
+      next: {
+        revalidate: 60,
+        tags: [`organization-${organizationId}-applications`],
       },
+    },
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(
+      err.message || "Failed to fetch organization's job applications",
     );
+  }
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || "Failed to fetch user's applications");
-    }
+  return res.json();
+};
 
-    return res.json();
-  },
-);
-
-export const getUserSavedJobs = cache(
-  async (): Promise<PaginatedApiResponse<SavedJob>> => {
-    const cookieStore = await cookies();
-    const res = await fetch(
-      `${env.NEXT_PUBLIC_SERVER_URL}/users/me/saved-jobs/`,
-      {
-        credentials: "include",
-        headers: {
-          Cookie: cookieStore.toString(),
-        },
-        next: { revalidate: 60, tags: [`user-saved-jobs`] },
+export const getAllApplicationsByUser = async (): Promise<
+  PaginatedApiResponse<UserJobApplications>
+> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/jobs/me/applications/`,
+    {
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
       },
-    );
+      next: { revalidate: 60, tags: [`user-applications`] },
+    },
+  );
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || "Failed to fetch user's saved jobs");
-    }
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "Failed to fetch user's applications");
+  }
 
-    return res.json();
-  },
-);
+  return res.json();
+};
+
+export const getUserSavedJobs = async (): Promise<
+  PaginatedApiResponse<SavedJob>
+> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/users/me/saved-jobs/`,
+    {
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+      next: { revalidate: 60, tags: [`user-saved-jobs`] },
+    },
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "Failed to fetch user's saved jobs");
+  }
+
+  return res.json();
+};
 
 export const saveJobForUser = async (jobId: number): Promise<boolean> => {
   const cookieStore = await cookies();
@@ -256,45 +253,71 @@ export const removeSavedJobForUser = async (
   return true;
 };
 
-export const isJobSavedByUser = cache(
-  async (jobId: number): Promise<ApiResponse<SavedState>> => {
-    const cookieStore = await cookies();
-    const res = await fetch(
-      `${env.NEXT_PUBLIC_SERVER_URL}/users/me/saved-jobs/${jobId}/check`,
-      {
-        credentials: "include",
-        headers: {
-          Cookie: cookieStore.toString(),
-        },
-        next: { revalidate: 300, tags: [`user-saved-job-${jobId}-exists`] },
-      },
-    );
-
-    if (!res.ok) {
-      console.error("Failed to check if job is saved by user");
-      return await res.json();
-    }
-
-    return await res.json();
-  },
-);
-
-export const getUserInformation = cache(
-  async (): Promise<ApiResponse<UserProfile>> => {
-    const cookieStore = await cookies();
-    const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/users/me`, {
+export const isJobSavedByUser = async (
+  jobId: number,
+): Promise<ApiResponse<SavedState>> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/users/me/saved-jobs/${jobId}/check`,
+    {
       credentials: "include",
       headers: {
         Cookie: cookieStore.toString(),
       },
-      next: { revalidate: 300, tags: [`user-bio-info`] },
-    });
+      next: { revalidate: 300, tags: [`user-saved-job-${jobId}-exists`] },
+    },
+  );
 
-    if (!res.ok) {
-      console.error("Failed to fetch user bio info");
-      return await res.json();
-    }
-
+  if (!res.ok) {
+    console.error("Failed to check if job is saved by user");
     return await res.json();
-  },
-);
+  }
+
+  return await res.json();
+};
+
+export const getUserInformation = async (): Promise<
+  ApiResponse<UserProfile>
+> => {
+  const cookieStore = await cookies();
+  const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/users/me`, {
+    credentials: "include",
+    headers: {
+      Cookie: cookieStore.toString(),
+    },
+    next: { revalidate: 300, tags: [`user-bio-info`] },
+  });
+
+  if (!res.ok) {
+    console.error("Failed to fetch user bio info");
+    return await res.json();
+  }
+
+  return await res.json();
+};
+
+type UpdateProfileVisibilityResponse = ApiResponse<UserProfile>;
+
+export const updateProfileVisibility = async (
+  isProfilePublic: boolean,
+): Promise<UpdateProfileVisibilityResponse> => {
+  const cookieStore = await cookies();
+  const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/users/me/visibility`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: cookieStore.toString(),
+    },
+    body: JSON.stringify({ isProfilePublic }),
+  });
+
+  if (!res.ok) {
+    console.error("Failed to update profile visibility");
+    return await res.json();
+  }
+
+  revalidateTag("user-bio-info");
+
+  return await res.json();
+};

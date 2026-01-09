@@ -116,3 +116,69 @@ export const jobPostingFixture = async () => {
     skills: ["JavaScript", "TypeScript", "Node.js"],
   };
 };
+
+export const emailPreferencesFixture = (userId: number) => {
+  const crypto = require("crypto");
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenExpiresAt = new Date();
+  tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 30);
+
+  return {
+    userId,
+    jobMatchNotifications: true,
+    applicationStatusNotifications: true,
+    savedJobUpdates: true,
+    weeklyJobDigest: true,
+    monthlyNewsletter: true,
+    marketingEmails: true,
+    accountSecurityAlerts: true,
+    globalUnsubscribe: false,
+    unsubscribeToken: token,
+    tokenCreatedAt: new Date(),
+    unsubscribeTokenExpiresAt: tokenExpiresAt,
+  };
+};
+
+export const emailPreferencesDisabledFixture = (userId: number) => {
+  const crypto = require("crypto");
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenExpiresAt = new Date();
+  tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 30);
+
+  return {
+    userId,
+    jobMatchNotifications: false,
+    applicationStatusNotifications: false,
+    savedJobUpdates: false,
+    weeklyJobDigest: false,
+    monthlyNewsletter: false,
+    marketingEmails: false,
+    accountSecurityAlerts: true, // Always true
+    globalUnsubscribe: false,
+    unsubscribeToken: token,
+    tokenCreatedAt: new Date(),
+    unsubscribeTokenExpiresAt: tokenExpiresAt,
+  };
+};
+
+export const emailPreferencesGlobalUnsubscribeFixture = (userId: number) => {
+  const crypto = require("crypto");
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenExpiresAt = new Date();
+  tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 30);
+
+  return {
+    userId,
+    jobMatchNotifications: false,
+    applicationStatusNotifications: false,
+    savedJobUpdates: false,
+    weeklyJobDigest: false,
+    monthlyNewsletter: false,
+    marketingEmails: false,
+    accountSecurityAlerts: true, // Always true
+    globalUnsubscribe: true,
+    unsubscribeToken: token,
+    tokenCreatedAt: new Date(),
+    unsubscribeTokenExpiresAt: tokenExpiresAt,
+  };
+};

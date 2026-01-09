@@ -37,13 +37,20 @@ export async function checkDatabaseConnection(): Promise<boolean> {
   }
 }
 
+let isDbClosed = false;
+
 /**
  * Closes the database connection gracefully.
  * @returns A promise that resolves when the connection is closed.
  */
 export async function closeDatabaseConnection(): Promise<void> {
+  if (isDbClosed) {
+    logger.info("📊 Database connection already closed");
+    return;
+  }
   try {
     await connection.end();
+    isDbClosed = true;
     logger.info("📊 Database connection closed");
   } catch (error) {
     logger.error(error, "Error closing database connection");

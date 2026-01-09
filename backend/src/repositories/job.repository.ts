@@ -473,11 +473,13 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
   /**
    * Finds applications submitted by a specific user with pagination and optional status filter.
    * @param userId The ID of the user.
+   * @param appliedJobIds Optional list of job IDs the user has applied to.
    * @param options Pagination and status options.
    * @returns An object containing the applications and pagination metadata.
    */
   async findApplicationsByUser(
     userId: number,
+    appliedJobIds?: number[],
     options: {
       page?: number;
       limit?: number;
@@ -511,6 +513,10 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
             | "withdrawn",
         ),
       );
+    }
+
+    if (appliedJobIds && appliedJobIds.length > 0) {
+      whereConditions.push(inArray(jobApplications.jobId, appliedJobIds));
     }
 
     const where = and(
