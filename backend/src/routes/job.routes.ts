@@ -37,6 +37,7 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import { auditMiddleware } from "@/middleware/audit.middleware";
 
 const router = Router();
 const jobController = new JobController();
@@ -640,6 +641,7 @@ router.post(
   authMiddleware.requireJobPostingRole(),
   validate(createJobSchema),
   invalidateCacheMiddleware((req) => `/api/jobs`),
+  auditMiddleware.logJobAction("job.create"),
   jobController.createJob,
 );
 

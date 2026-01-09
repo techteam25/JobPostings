@@ -28,6 +28,7 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import { auditMiddleware } from "@/middleware/audit.middleware";
 
 const router = Router();
 const userController = new UserController();
@@ -289,6 +290,7 @@ router.put(
   "/me/profile",
   validate(updateUserPayloadSchema),
   invalidateCacheMiddleware(() => "users/me"),
+  auditMiddleware.logUserManagement("user.profile_update"),
   userController.updateProfile,
 );
 
