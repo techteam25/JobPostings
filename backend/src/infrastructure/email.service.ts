@@ -29,7 +29,7 @@ export class EmailService extends BaseService {
         pass: env.SMTP_PASS,
       },
       // dkim: {
-      //   domainName: "getinvolved.team", // Your domain
+      //   domainName: "getinvolved.team", // domain
       //   keySelector: "default, // e.g., 'default' or '2026'
       //   privateKey: privateKey, // Private key string
       // },
