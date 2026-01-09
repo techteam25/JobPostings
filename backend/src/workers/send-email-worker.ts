@@ -68,6 +68,24 @@ export async function processEmailJob(
         job.data.jobId as number,
       );
       break;
+    case "sendOrganizationInvitation":
+      await emailService.sendOrganizationInvitationAI(
+        job.data.email as string,
+        job.data.organizationName as string,
+        job.data.inviterName as string,
+        job.data.role as string,
+        job.data.token as string,
+        job.data.expirationDate as string,
+      );
+      break;
+    case "sendOrganizationWelcome":
+      await emailService.sendOrganizationWelcomeAI(
+        job.data.email as string,
+        job.data.name as string,
+        job.data.organizationName as string,
+        job.data.role as string,
+      );
+      break;
 
     default:
       logger.error(`Unknown email job type: ${job.name}`);

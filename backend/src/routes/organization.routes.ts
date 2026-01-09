@@ -15,6 +15,8 @@ import {
   createJobApplicationNoteSchema,
   getOrganizationJobApplicationsSchema,
   uploadOrganizationLogoSchema,
+  createOrganizationInvitationSchema_AI,
+  cancelOrganizationInvitationSchema_AI,
 } from "@/validations/organization.validation";
 import { registry, z } from "@/swagger/registry";
 import { selectOrganizationSchema } from "@/validations/organization.validation";
@@ -1034,6 +1036,167 @@ router.get(
   authMiddleware.ensureIsOrganizationMember,
   validate(getOrganizationSchema),
   organizationController.getApplicationsForOrganization,
+);
+
+// Organization Invitation Routes (AI-generated)
+
+registry.registerPath({
+  method: "post",
+  path: "/organizations/{organizationId}/invitations",
+  summary: "Send invitation to join organization",
+  tags: ["Organizations"],
+  request: {
+    params: createOrganizationInvitationSchema_AI.shape["params"],
+    body: {
+      content: {
+        "application/json": {
+          schema: createOrganizationInvitationSchema_AI.shape["body"],
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Invitation sent successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.object({
+              invitationId: z.number(),
+              message: z.string(),
+            }),
+          ),
+        },
+      },
+    },
+    400: {
+      description: "Invalid request",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    403: {
+      description: "Forbidden - insufficient permissions",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    409: {
+      description: "Conflict - email already member",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+/**
+ * Sends an invitation to join an organization.
+ * This authenticated endpoint allows organization owners and admins to invite new members.
+ * Requires authentication, owner/admin role, and membership in the organization.
+ * @route POST /organizations/:organizationId/invitations
+ * @param {Object} req.params - Route parameters including the organizationId.
+ * @param {Object} req.body - Request body with invitation details (email, role).
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the invitation ID and message.
+ */
+router.post(
+  "/:organizationId/invitations",
+  authMiddleware.authenticate,
+  authMiddleware.requireAdminOrOwnerRole(["owner", "admin"]),
+  authMiddleware.ensureIsOrganizationMember,
+  validate(createOrganizationInvitationSchema_AI),
+  organizationController.sendInvitationAI,
+);
+
+// Cancel invitation route (AI-generated)
+registry.registerPath({
+  method: "delete",
+  path: "/api/organizations/{organizationId}/invitations/{invitationId}",
+  summary: "Cancel organization invitation",
+  tags: ["Organizations"],
+  request: {
+    params: cancelOrganizationInvitationSchema_AI.shape["params"],
+  },
+  responses: {
+    200: {
+      description: "Invitation cancelled successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.object({
+              message: z.string(),
+            }),
+          ),
+        },
+      },
+    },
+    400: {
+      description: "Invalid request or invitation already accepted/cancelled",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    403: {
+      description: "Forbidden - insufficient permissions",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Invitation not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+/**
+ * Cancels an organization invitation (authenticated endpoint, admin/owner only).
+ * This endpoint allows organization owners and admins to cancel pending invitations.
+ * Performs soft delete by updating status to 'cancelled' and preserving audit trail.
+ * Requires authentication, owner/admin role, and membership in the organization.
+ * @route DELETE /organizations/:organizationId/invitations/:invitationId
+ * @param {Object} req.params - Route parameters including organizationId and invitationId.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with success message.
+ */
+router.delete(
+  "/:organizationId/invitations/:invitationId",
+  authMiddleware.authenticate,
+  authMiddleware.requireAdminOrOwnerRole(["owner", "admin"]),
+  authMiddleware.ensureIsOrganizationMember,
+  validate(cancelOrganizationInvitationSchema_AI),
+  organizationController.cancelInvitationAI,
 );
 
 export default router;

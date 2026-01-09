@@ -444,4 +444,95 @@ ${footer}`,
       console.error(error);
     }
   }
+
+  /**
+   * Sends an organization invitation email to the invitee.
+   * @param email The recipient's email address.
+   * @param organizationName The name of the organization.
+   * @param inviterName The name of the person sending the invitation.
+   * @param role The role being assigned.
+   * @param token The invitation token.
+   * @param expirationDate The expiration date of the invitation.
+   */
+  async sendOrganizationInvitationAI(
+    email: string,
+    organizationName: string,
+    inviterName: string,
+    role: string,
+    token: string,
+    expirationDate: string,
+  ): Promise<void> {
+    const template = await this.loadTemplate("organizationInvitation-AI");
+
+    const acceptanceLink = `${env.FRONTEND_URL}/invitations/accept?token=${token}`;
+    const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+    // Format role for display (capitalize first letter)
+    const roleDisplay =
+      role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+
+    const htmlContent = template
+      .replace(/{{logoPath}}/g, logoPath)
+      .replace(/{{organizationName}}/g, organizationName)
+      .replace(/{{inviterName}}/g, inviterName)
+      .replace(/{{role}}/g, roleDisplay)
+      .replace(/{{acceptanceLink}}/g, acceptanceLink)
+      .replace(/{{expirationDate}}/g, expirationDate);
+
+    try {
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: `Invitation to join ${organizationName} on getInvolved`,
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  /**
+   * Sends a welcome email to a new organization member.
+   * @param email The recipient's email address.
+   * @param name The recipient's name.
+   * @param organizationName The name of the organization.
+   * @param role The role assigned to the member.
+   */
+  async sendOrganizationWelcomeAI(
+    email: string,
+    name: string,
+    organizationName: string,
+    role: string,
+  ): Promise<void> {
+    const template = await this.loadTemplate("organizationWelcome-AI");
+
+    const dashboardLink = `${env.FRONTEND_URL}/dashboard`;
+    const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+    // Format role for display (capitalize first letter)
+    const roleDisplay =
+      role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+
+    const htmlContent = template
+      .replace(/{{logoPath}}/g, logoPath)
+      .replace(/{{name}}/g, name)
+      .replace(/{{organizationName}}/g, organizationName)
+      .replace(/{{role}}/g, roleDisplay)
+      .replace(/{{dashboardLink}}/g, dashboardLink);
+
+    try {
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: `Welcome to ${organizationName} on getInvolved!`,
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 }

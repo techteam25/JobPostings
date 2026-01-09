@@ -4,7 +4,8 @@ import { jobApplications, jobInsights, jobsDetails, skills } from "@/db/schema";
 import { Organization } from "@/validations/organization.validation";
 
 // Validation schemas
-export const insertJobSchema = createInsertSchema(jobsDetails, {
+// Base schema without refinements (for partial operations)
+const baseInsertJobSchema = createInsertSchema(jobsDetails, {
   title: z
     .string()
     .min(5, "Title must be at least 5 characters")
@@ -16,7 +17,10 @@ export const insertJobSchema = createInsertSchema(jobsDetails, {
   country: z.string().max(100).trim().optional().default("United States"),
   zipcode: z.coerce.number().positive("Zip Code must be positive").optional(),
   employerId: z.number().int().positive("Employer ID is required"),
-})
+});
+
+// Insert schema with refinements
+export const insertJobSchema = baseInsertJobSchema
   .refine((data) => data.country === "United States" && !data.state, {
     message: "State is required for United States",
     path: ["state"],
@@ -48,7 +52,7 @@ export const selectJobInsightsSchema = createSelectSchema(jobInsights);
 export const selectJobApplicationSchema = createSelectSchema(jobApplications);
 export const selectJobSkillsSchema = createSelectSchema(skills);
 
-export const updateJobInputSchema = insertJobSchema
+export const updateJobInputSchema = baseInsertJobSchema
   .partial()
   .omit({
     id: true,
@@ -69,18 +73,28 @@ export const updateJobApplicationSchema = insertJobApplicationSchema
     createdAt: true,
     updatedAt: true,
     reviewedAt: true,
-    reviewedBy: true,
   });
 
 export const updateJobInsightsSchema = insertJobInsightsSchema
   .partial()
   .omit({ id: true });
 
-const createJobPayloadSchema = insertJobSchema
+// Base payload schema without refinements (for partial operations)
+const baseCreateJobPayloadSchema = baseInsertJobSchema
   .omit({ applicationDeadline: true, employerId: true })
   .extend({
     applicationDeadline: z.iso.datetime(),
     skills: z.array(z.string()),
+  });
+
+// Create payload schema with refinements
+const createJobPayloadSchema = baseCreateJobPayloadSchema
+  .refine((data) => data.country === "United States" && !data.state, {
+    message: "State is required for United States",
+    path: ["state"],
+  })
+  .refine((data) => data.country === "United States" && !data.zipcode, {
+    message: "Zip Code is required for United States",
   });
 
 const jobIdParamSchema = z.object({
@@ -94,7 +108,7 @@ export const createJobSchema = z.object({
 });
 
 export const updateJobSchema = z.object({
-  body: createJobPayloadSchema.partial(),
+  body: baseCreateJobPayloadSchema.partial(),
   params: jobIdParamSchema,
   query: z.object({}).strict(),
 });

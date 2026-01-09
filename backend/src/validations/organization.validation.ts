@@ -5,6 +5,7 @@ import {
   applicationNotes,
   organizationMembers,
   organizations,
+  organizationInvitations,
 } from "@/db/schema";
 import { getJobSchema } from "@/validations/job.validation";
 import { getJobApplicationSchema } from "@/validations/jobApplications.validation";
@@ -302,4 +303,78 @@ export type CreateJobApplicationNoteInputSchema = z.infer<
 >;
 export type NewJobApplicationNote = z.infer<
   typeof insertJobApplicationNoteSchema
+>;
+
+// Organization Invitation Schemas (AI-generated)
+export const selectOrganizationInvitationSchema_AI =
+  createSelectSchema(organizationInvitations);
+export const insertOrganizationInvitationSchema_AI = createInsertSchema(
+  organizationInvitations,
+  {
+    email: z.string().email("Invalid email address"),
+    role: z.enum(["owner", "admin", "recruiter", "member"]),
+  },
+).omit({
+  id: true,
+  token: true,
+  status: true,
+  acceptedAt: true,
+  cancelledAt: true,
+  cancelledBy: true,
+  expiredAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const createOrganizationInvitationSchema_AI = z.object({
+  body: z.object({
+    email: z.string().email("Invalid email address"),
+    role: z.enum(["owner", "admin", "recruiter", "member"]).default("member"),
+  }),
+  params: organizationIdParamSchema,
+  query: z.object({}).strict(),
+});
+
+export const acceptOrganizationInvitationSchema_AI = z.object({
+  body: z.object({}).strict(),
+  params: z.object({
+    token: z.string().min(1, "Token is required"),
+  }),
+  query: z.object({}).strict(),
+});
+
+export const getOrganizationInvitationDetailsSchema_AI = z.object({
+  body: z.object({}).strict(),
+  params: z.object({
+    token: z.string().min(1, "Token is required"),
+  }),
+  query: z.object({}).strict(),
+});
+
+export const cancelOrganizationInvitationSchema_AI = z.object({
+  body: z.object({}).strict(),
+  params: z
+    .object({
+      organizationId:
+        getOrganizationSchema.shape["params"].shape["organizationId"],
+      invitationId: z.string().regex(/^\d+$/, "invitationId must be a number"),
+    })
+    .strict(),
+  query: z.object({}).strict(),
+});
+
+export type OrganizationInvitation_AI = z.infer<
+  typeof selectOrganizationInvitationSchema_AI
+>;
+export type CreateOrganizationInvitationInput_AI = z.infer<
+  typeof createOrganizationInvitationSchema_AI
+>;
+export type AcceptOrganizationInvitationInput_AI = z.infer<
+  typeof acceptOrganizationInvitationSchema_AI
+>;
+export type GetOrganizationInvitationDetailsInput_AI = z.infer<
+  typeof getOrganizationInvitationDetailsSchema_AI
+>;
+export type CancelOrganizationInvitationInput_AI = z.infer<
+  typeof cancelOrganizationInvitationSchema_AI
 >;

@@ -4,6 +4,7 @@ import { BaseController } from "./base.controller";
 import {
   CreateJobApplicationNoteInputSchema,
   CreateOrganizationSchema,
+  CreateOrganizationInvitationInput_AI,
   DeleteOrganizationSchema,
   GetOrganizationSchema,
   JobApplicationManagementSchema,
@@ -15,6 +16,9 @@ import {
   UpdateJobStatusInputSchema,
   UpdateOrganizationSchema,
   UploadOrganizationLogoSchema,
+  GetOrganizationInvitationDetailsInput_AI,
+  AcceptOrganizationInvitationInput_AI,
+  CancelOrganizationInvitationInput_AI,
 } from "@/validations/organization.validation";
 import { ApiResponse, PaginatedResponse } from "@/types";
 import {
@@ -25,7 +29,7 @@ import { JobApplicationWithNotes } from "@/validations/jobApplications.validatio
 import { GetUserSchema } from "@/validations/user.validation";
 import { SearchParams } from "@/validations/base.validation";
 import { APIError } from "better-auth/api";
-import { AppError, ErrorCode } from "@/utils/errors";
+import { AppError, ErrorCode, UnauthorizedError } from "@/utils/errors";
 
 /**
  * Controller class for handling organization-related API endpoints.
@@ -441,6 +445,148 @@ export class OrganizationController extends BaseController {
       );
     } else {
       return this.handleControllerError(res, applications.error);
+    }
+  };
+
+  /**
+   * Sends an invitation to join an organization.
+   * @param req The Express request object with organization ID and invitation data.
+   * @param res The Express response object.
+   */
+  sendInvitationAI = async (
+    req: Request<CreateOrganizationInvitationInput_AI["params"]>,
+    res: Response<ApiResponse<{ invitationId: number; message: string }>>,
+  ) => {
+    if (!req.userId) {
+      return this.sendError(
+        res,
+        new UnauthorizedError("Authentication required"),
+      );
+    }
+
+    const organizationId = parseInt(req.params.organizationId);
+    const { email, role } = req.body;
+
+    const result = await this.organizationService.sendInvitationAI(
+      organizationId,
+      email,
+      role,
+      req.userId,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        result.value.message,
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Gets invitation details by token (public endpoint).
+   * @param req The Express request object with invitation token.
+   * @param res The Express response object.
+   */
+  getInvitationDetailsAI = async (
+    req: Request<GetOrganizationInvitationDetailsInput_AI["params"]>,
+    res: Response<
+      ApiResponse<{
+        organizationName: string;
+        role: string;
+        inviterName: string;
+        expiresAt: Date;
+      }>
+    >,
+  ) => {
+    const { token } = req.params;
+
+    const result =
+      await this.organizationService.getInvitationDetailsAI(token);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Invitation details retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Accepts an organization invitation (authenticated endpoint).
+   * @param req The Express request object with invitation token.
+   * @param res The Express response object.
+   */
+  acceptInvitationAI = async (
+    req: Request<AcceptOrganizationInvitationInput_AI["params"]>,
+    res: Response<ApiResponse<{ message: string }>>,
+  ) => {
+    if (!req.userId) {
+      return this.sendError(
+        res,
+        new UnauthorizedError("Authentication required"),
+      );
+    }
+
+    const { token } = req.params;
+
+    const result = await this.organizationService.acceptInvitationAI(
+      token,
+      req.userId,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        result.value.message,
+        200,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Cancels an organization invitation (authenticated endpoint, admin/owner only).
+   * @param req The Express request object with organization ID and invitation ID.
+   * @param res The Express response object.
+   */
+  cancelInvitationAI = async (
+    req: Request<CancelOrganizationInvitationInput_AI["params"]>,
+    res: Response<ApiResponse<{ message: string }>>,
+  ) => {
+    if (!req.userId) {
+      return this.sendError(
+        res,
+        new UnauthorizedError("Authentication required"),
+      );
+    }
+
+    const organizationId = parseInt(req.params.organizationId);
+    const invitationId = parseInt(req.params.invitationId);
+
+    const result = await this.organizationService.cancelInvitationAI(
+      organizationId,
+      invitationId,
+      req.userId,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        result.value.message,
+        200,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
     }
   };
 }
