@@ -4,3 +4,6 @@
 
 # User-specific stuff
 .idea
+
+# macOS
+.DS_Store

@@ -1,0 +1,57 @@
+# Cursor AI Workflow Rules
+
+## Engage Keyword Convention
+
+**IMPORTANT:** The "Engage" keyword controls when code changes can be made.
+
+### Before "Engage":
+- ✅ Discuss and explore the problem space
+- ✅ Answer questions and clarify requirements
+- ✅ Update documentation and plans
+- ✅ Provide explanations and recommendations
+- ❌ **DO NOT make code changes**
+
+### After "Engage":
+- ✅ Start implementing code
+- ✅ Create/modify files
+- ✅ Make database changes
+- ✅ Write tests
+
+### Workflow:
+1. **User indicates readiness** (e.g., "I think we're ready for Phase 2", "Let's move on", "Ready for next phase")
+   - **AI Response:** Confirm readiness and explicitly ask for "Engage" keyword
+   - **Example:** "Ready to proceed with Phase 2. Please confirm with 'Engage Phase 2' to begin implementation."
+   - **Wait for explicit "Engage" keyword before proceeding**
+
+2. **User provides "Engage" keyword** (e.g., "Engage Phase 2", "Engage database schema")
+   - **AI Response:** Begin implementation immediately
+   - No additional confirmation needed
+
+### Usage Examples:
+- "What happens if..." → Discussion only
+- "How would we handle..." → Discussion only
+- "I think we're ready for Phase 2" → **AI asks:** "Ready to proceed. Please confirm with 'Engage Phase 2'"
+- "Engage Phase 1" → Start implementing Phase 1 immediately
+- "Engage database schema" → Start creating database schema immediately
+- "Engage" → Start implementing current task immediately
+
+### Critical Rule:
+**NEVER start implementing code when user says "ready" or "let's proceed" without the explicit "Engage" keyword. Always ask for confirmation first.**
+
+## AI Suffix Convention
+
+When making AI-generated code changes, use the following suffixes for tracking:
+
+### Use AI Suffix:
+- **Files:** `feature-name-AI.ts`, `component-AI.tsx`
+- **Functions/Methods:** `functionNameAI()`, `methodNameAI()`
+- **Constants/Variables:** `CONSTANT_NAME_AI`, `variableName_AI`
+- **Email Templates:** `template-name-AI.html`
+
+### Do NOT Use AI Suffix (Special Case):
+- **Database table names:** Use `organizationInvitations` NOT `organizationInvitations_AI`
+- **Database schema definitions**
+- **Migration files**
+- **Column names**
+
+**Reason:** Database changes are harder to revert. Renaming tables later requires migrations and is disruptive. Once in production, table names are effectively permanent.
