@@ -33,6 +33,7 @@ import {
   initializeFileCleanupWorker,
   scheduleCleanupJob,
 } from "@/workers/temp-file-cleanup-worker";
+import { initializeAuditCleanupWorker } from "@/workers/audit-cleanup-worker";
 
 // Initialize Typesense schema
 try {
@@ -150,6 +151,9 @@ if (env.NODE_ENV === "development") {
     next();
   });
 }
+
+// Initialize audit log cleanup worker
+initializeAuditCleanupWorker();
 
 // Health check route
 /*

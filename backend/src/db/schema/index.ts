@@ -6,3 +6,4 @@ export * from "./workExperiences";
 export * from "./certifications";
 export * from "./sessions";
 export * from "./subscriptions";
+export * from "./auditLogs";
