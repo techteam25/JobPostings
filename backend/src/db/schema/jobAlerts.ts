@@ -9,8 +9,9 @@ import {
   index,
   json,
   float,
+  check,
 } from "drizzle-orm/mysql-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { user } from "./users";
 import { jobsDetails } from "@/db/schema/jobsDetails";
 
@@ -47,6 +48,17 @@ export const jobAlerts = mysqlTable(
     index("job_alerts_is_paused_idx").on(table.isPaused),
     index("job_alerts_frequency_idx").on(table.frequency),
     index("job_alerts_user_id_is_active_idx").on(table.userId, table.isActive),
+    check(
+      "job_alerts_check_search_query_or_filters",
+      sql`(
+            ${sql.raw("JSON_LENGTH")}(${table.jobType}) > 0 OR
+            ${sql.raw("JSON_LENGTH")}(${table.skills}) > 0 OR
+            ${sql.raw("JSON_LENGTH")}(${table.experienceLevel}) > 0 OR
+            ${table.city} IS NOT NULL OR
+            ${table.state} IS NOT NULL OR
+            (${table.searchQuery} IS NOT NULL AND CHAR_LENGTH(TRIM(${table.searchQuery})) > 0)
+          )`,
+    ),
   ],
 );
 
