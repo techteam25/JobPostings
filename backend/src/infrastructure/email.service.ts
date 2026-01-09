@@ -5,6 +5,7 @@ import nodemailer from "nodemailer";
 import { BaseService } from "@/services/base.service";
 import { env } from "@/config/env";
 import { AppError } from "@/utils/errors";
+import { getApplicationStatusLabel } from "@/utils/application-status";
 import { EmailType } from "@/types";
 import { UserRepository } from "@/repositories/user.repository";
 
@@ -436,6 +437,92 @@ ${footer}`,
         from: env.EMAIL_FROM,
         to: userEmail,
         subject: "Job Posting Deleted Successfully",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  /**
+   * Sends an application status update notification email to the applicant.
+   * @param email The recipient's email address.
+   * @param fullName The recipient's full name.
+   * @param jobTitle The title of the job.
+   * @param oldStatus The previous status of the application.
+   * @param newStatus The new status of the application.
+   */
+  async sendApplicationStatusUpdate(
+    email: string,
+    fullName: string,
+    jobTitle: string,
+    oldStatus: string,
+    newStatus: string,
+  ): Promise<void> {
+    try {
+      const template = await this.loadTemplate("applicationStatusUpdate");
+
+      const dashboardLink = `${env.FRONTEND_URL}/applications`;
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      // Generate status-specific messages
+      const statusMessages: Record<string, { message: string; nextSteps: string }> = {
+        reviewed: {
+          message: "Your application has been reviewed by the employer. They are currently evaluating your qualifications.",
+          nextSteps: "The employer will continue to review your application and may contact you for next steps. Please check your email regularly for updates.",
+        },
+        shortlisted: {
+          message: "Great news! Your application has been shortlisted. The employer is interested in learning more about you.",
+          nextSteps: "The employer may contact you soon for an interview or additional information. Make sure to check your email and be prepared to discuss your qualifications.",
+        },
+        interviewing: {
+          message: "Congratulations! You've been selected for an interview. The employer will contact you with details about the interview process.",
+          nextSteps: "Please check your email for interview details and be prepared to discuss your experience and qualifications. Good luck!",
+        },
+        rejected: {
+          message: "We regret to inform you that your application was not selected for this position at this time.",
+          nextSteps: "Don't be discouraged! Continue to apply for other positions that match your skills and experience. We wish you the best in your job search.",
+        },
+        hired: {
+          message: "Congratulations! You've been selected for this position. The employer will contact you with next steps.",
+          nextSteps: "The employer will reach out to you with details about onboarding and your start date. Congratulations on your new opportunity!",
+        },
+        pending: {
+          message: "Your application status has been updated to pending.",
+          nextSteps: "The employer is reviewing your application. We will notify you when there are any updates.",
+        },
+        withdrawn: {
+          message: "Your application has been withdrawn.",
+          nextSteps: "If you have any questions about this action, please contact the employer or our support team.",
+        },
+      };
+
+      const statusInfo = statusMessages[newStatus.toLowerCase()] || {
+        message: `Your application status has been updated from ${oldStatus} to ${newStatus}.`,
+        nextSteps: "Please check your dashboard for more details about your application.",
+      };
+
+      // Get human-readable status labels
+      const oldStatusLabel = getApplicationStatusLabel(oldStatus);
+      const newStatusLabel = getApplicationStatusLabel(newStatus);
+
+      const htmlContent = template
+        .replace("{{name}}", fullName)
+        .replace("{{jobTitle}}", jobTitle)
+        .replace("{{oldStatus}}", oldStatusLabel)
+        .replace("{{newStatusRaw}}", newStatus.toLowerCase()) // Raw status for CSS classes
+        .replace("{{newStatusLabel}}", newStatusLabel) // Human-readable label for display
+        .replace("{{statusMessage}}", statusInfo.message)
+        .replace("{{nextStepsMessage}}", statusInfo.nextSteps)
+        .replace("{{dashboardLink}}", dashboardLink)
+        .replace("{{logoPath}}", logoPath);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: `Application Status Update: ${jobTitle}`,
         html: htmlContent,
       };
 

@@ -68,6 +68,15 @@ export async function processEmailJob(
         job.data.jobId as number,
       );
       break;
+    case "sendApplicationStatusUpdate":
+      await emailService.sendApplicationStatusUpdate(
+        job.data.email,
+        job.data.fullName,
+        job.data.jobTitle as string,
+        job.data.oldStatus as string,
+        job.data.newStatus as string,
+      );
+      break;
 
     default:
       logger.error(`Unknown email job type: ${job.name}`);
