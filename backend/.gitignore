@@ -40,6 +40,8 @@ mysql-data/
 
 # Image uploads
 uploads/
+uploads/documentation/
+documentation/
 
 # Temporary scripts
 tempScripts/
