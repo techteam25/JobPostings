@@ -454,7 +454,7 @@ ${footer}`,
    * @param token The invitation token.
    * @param expirationDate The expiration date of the invitation.
    */
-  async sendOrganizationInvitationAI(
+  async sendOrganizationInvitation(
     email: string,
     organizationName: string,
     inviterName: string,
@@ -462,7 +462,7 @@ ${footer}`,
     token: string,
     expirationDate: string,
   ): Promise<void> {
-    const template = await this.loadTemplate("organizationInvitation-AI");
+    const template = await this.loadTemplate("organizationInvitation");
 
     const acceptanceLink = `${env.FRONTEND_URL}/invitations/accept?token=${token}`;
     const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
@@ -500,13 +500,13 @@ ${footer}`,
    * @param organizationName The name of the organization.
    * @param role The role assigned to the member.
    */
-  async sendOrganizationWelcomeAI(
+  async sendOrganizationWelcome(
     email: string,
     name: string,
     organizationName: string,
     role: string,
   ): Promise<void> {
-    const template = await this.loadTemplate("organizationWelcome-AI");
+    const template = await this.loadTemplate("organizationWelcome");
 
     const dashboardLink = `${env.FRONTEND_URL}/dashboard`;
     const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");

@@ -15,8 +15,8 @@ import {
   createJobApplicationNoteSchema,
   getOrganizationJobApplicationsSchema,
   uploadOrganizationLogoSchema,
-  createOrganizationInvitationSchema_AI,
-  cancelOrganizationInvitationSchema_AI,
+  createOrganizationInvitationSchema,
+  cancelOrganizationInvitationSchema,
 } from "@/validations/organization.validation";
 import { registry, z } from "@/swagger/registry";
 import { selectOrganizationSchema } from "@/validations/organization.validation";
@@ -1046,11 +1046,11 @@ registry.registerPath({
   summary: "Send invitation to join organization",
   tags: ["Organizations"],
   request: {
-    params: createOrganizationInvitationSchema_AI.shape["params"],
+    params: createOrganizationInvitationSchema.shape["params"],
     body: {
       content: {
         "application/json": {
-          schema: createOrganizationInvitationSchema_AI.shape["body"],
+          schema: createOrganizationInvitationSchema.shape["body"],
         },
       },
     },
@@ -1119,8 +1119,8 @@ router.post(
   authMiddleware.authenticate,
   authMiddleware.requireAdminOrOwnerRole(["owner", "admin"]),
   authMiddleware.ensureIsOrganizationMember,
-  validate(createOrganizationInvitationSchema_AI),
-  organizationController.sendInvitationAI,
+  validate(createOrganizationInvitationSchema),
+  organizationController.sendInvitation,
 );
 
 // Cancel invitation route (AI-generated)
@@ -1130,7 +1130,7 @@ registry.registerPath({
   summary: "Cancel organization invitation",
   tags: ["Organizations"],
   request: {
-    params: cancelOrganizationInvitationSchema_AI.shape["params"],
+    params: cancelOrganizationInvitationSchema.shape["params"],
   },
   responses: {
     200: {
@@ -1195,8 +1195,8 @@ router.delete(
   authMiddleware.authenticate,
   authMiddleware.requireAdminOrOwnerRole(["owner", "admin"]),
   authMiddleware.ensureIsOrganizationMember,
-  validate(cancelOrganizationInvitationSchema_AI),
-  organizationController.cancelInvitationAI,
+  validate(cancelOrganizationInvitationSchema),
+  organizationController.cancelInvitation,
 );
 
 export default router;

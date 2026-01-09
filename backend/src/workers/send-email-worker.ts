@@ -69,7 +69,7 @@ export async function processEmailJob(
       );
       break;
     case "sendOrganizationInvitation":
-      await emailService.sendOrganizationInvitationAI(
+      await emailService.sendOrganizationInvitation(
         job.data.email as string,
         job.data.organizationName as string,
         job.data.inviterName as string,
@@ -79,7 +79,7 @@ export async function processEmailJob(
       );
       break;
     case "sendOrganizationWelcome":
-      await emailService.sendOrganizationWelcomeAI(
+      await emailService.sendOrganizationWelcome(
         job.data.email as string,
         job.data.name as string,
         job.data.organizationName as string,

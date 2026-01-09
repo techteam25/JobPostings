@@ -305,10 +305,10 @@ export type NewJobApplicationNote = z.infer<
   typeof insertJobApplicationNoteSchema
 >;
 
-// Organization Invitation Schemas (AI-generated)
-export const selectOrganizationInvitationSchema_AI =
+// Organization Invitation Schemas
+export const selectOrganizationInvitationSchema =
   createSelectSchema(organizationInvitations);
-export const insertOrganizationInvitationSchema_AI = createInsertSchema(
+export const insertOrganizationInvitationSchema = createInsertSchema(
   organizationInvitations,
   {
     email: z.string().email("Invalid email address"),
@@ -326,7 +326,7 @@ export const insertOrganizationInvitationSchema_AI = createInsertSchema(
   updatedAt: true,
 });
 
-export const createOrganizationInvitationSchema_AI = z.object({
+export const createOrganizationInvitationSchema = z.object({
   body: z.object({
     email: z.string().email("Invalid email address"),
     role: z.enum(["owner", "admin", "recruiter", "member"]).default("member"),
@@ -335,7 +335,7 @@ export const createOrganizationInvitationSchema_AI = z.object({
   query: z.object({}).strict(),
 });
 
-export const acceptOrganizationInvitationSchema_AI = z.object({
+export const acceptOrganizationInvitationSchema = z.object({
   body: z.object({}).strict(),
   params: z.object({
     token: z.string().min(1, "Token is required"),
@@ -343,7 +343,7 @@ export const acceptOrganizationInvitationSchema_AI = z.object({
   query: z.object({}).strict(),
 });
 
-export const getOrganizationInvitationDetailsSchema_AI = z.object({
+export const getOrganizationInvitationDetailsSchema = z.object({
   body: z.object({}).strict(),
   params: z.object({
     token: z.string().min(1, "Token is required"),
@@ -351,7 +351,7 @@ export const getOrganizationInvitationDetailsSchema_AI = z.object({
   query: z.object({}).strict(),
 });
 
-export const cancelOrganizationInvitationSchema_AI = z.object({
+export const cancelOrganizationInvitationSchema = z.object({
   body: z.object({}).strict(),
   params: z
     .object({
@@ -363,18 +363,21 @@ export const cancelOrganizationInvitationSchema_AI = z.object({
   query: z.object({}).strict(),
 });
 
-export type OrganizationInvitation_AI = z.infer<
-  typeof selectOrganizationInvitationSchema_AI
+export type OrganizationInvitation = z.infer<
+  typeof selectOrganizationInvitationSchema
 >;
-export type CreateOrganizationInvitationInput_AI = z.infer<
-  typeof createOrganizationInvitationSchema_AI
+export type NewOrganizationInvitation = z.infer<
+  typeof insertOrganizationInvitationSchema
 >;
-export type AcceptOrganizationInvitationInput_AI = z.infer<
-  typeof acceptOrganizationInvitationSchema_AI
+export type CreateOrganizationInvitationInput = z.infer<
+  typeof createOrganizationInvitationSchema
 >;
-export type GetOrganizationInvitationDetailsInput_AI = z.infer<
-  typeof getOrganizationInvitationDetailsSchema_AI
+export type AcceptOrganizationInvitationInput = z.infer<
+  typeof acceptOrganizationInvitationSchema
 >;
-export type CancelOrganizationInvitationInput_AI = z.infer<
-  typeof cancelOrganizationInvitationSchema_AI
+export type GetOrganizationInvitationDetailsInput = z.infer<
+  typeof getOrganizationInvitationDetailsSchema
+>;
+export type CancelOrganizationInvitationInput = z.infer<
+  typeof cancelOrganizationInvitationSchema
 >;

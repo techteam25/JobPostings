@@ -4,7 +4,7 @@ import { BaseController } from "./base.controller";
 import {
   CreateJobApplicationNoteInputSchema,
   CreateOrganizationSchema,
-  CreateOrganizationInvitationInput_AI,
+  CreateOrganizationInvitationInput,
   DeleteOrganizationSchema,
   GetOrganizationSchema,
   JobApplicationManagementSchema,
@@ -16,9 +16,9 @@ import {
   UpdateJobStatusInputSchema,
   UpdateOrganizationSchema,
   UploadOrganizationLogoSchema,
-  GetOrganizationInvitationDetailsInput_AI,
-  AcceptOrganizationInvitationInput_AI,
-  CancelOrganizationInvitationInput_AI,
+  GetOrganizationInvitationDetailsInput,
+  AcceptOrganizationInvitationInput,
+  CancelOrganizationInvitationInput,
 } from "@/validations/organization.validation";
 import { ApiResponse, PaginatedResponse } from "@/types";
 import {
@@ -453,8 +453,8 @@ export class OrganizationController extends BaseController {
    * @param req The Express request object with organization ID and invitation data.
    * @param res The Express response object.
    */
-  sendInvitationAI = async (
-    req: Request<CreateOrganizationInvitationInput_AI["params"]>,
+  sendInvitation = async (
+    req: Request<CreateOrganizationInvitationInput["params"]>,
     res: Response<ApiResponse<{ invitationId: number; message: string }>>,
   ) => {
     if (!req.userId) {
@@ -467,7 +467,7 @@ export class OrganizationController extends BaseController {
     const organizationId = parseInt(req.params.organizationId);
     const { email, role } = req.body;
 
-    const result = await this.organizationService.sendInvitationAI(
+    const result = await this.organizationService.sendInvitation(
       organizationId,
       email,
       role,
@@ -491,8 +491,8 @@ export class OrganizationController extends BaseController {
    * @param req The Express request object with invitation token.
    * @param res The Express response object.
    */
-  getInvitationDetailsAI = async (
-    req: Request<GetOrganizationInvitationDetailsInput_AI["params"]>,
+  getInvitationDetails = async (
+    req: Request<GetOrganizationInvitationDetailsInput["params"]>,
     res: Response<
       ApiResponse<{
         organizationName: string;
@@ -505,7 +505,7 @@ export class OrganizationController extends BaseController {
     const { token } = req.params;
 
     const result =
-      await this.organizationService.getInvitationDetailsAI(token);
+      await this.organizationService.getInvitationDetails(token);
 
     if (result.isSuccess) {
       return this.sendSuccess(
@@ -523,8 +523,8 @@ export class OrganizationController extends BaseController {
    * @param req The Express request object with invitation token.
    * @param res The Express response object.
    */
-  acceptInvitationAI = async (
-    req: Request<AcceptOrganizationInvitationInput_AI["params"]>,
+  acceptInvitation = async (
+    req: Request<AcceptOrganizationInvitationInput["params"]>,
     res: Response<ApiResponse<{ message: string }>>,
   ) => {
     if (!req.userId) {
@@ -536,7 +536,7 @@ export class OrganizationController extends BaseController {
 
     const { token } = req.params;
 
-    const result = await this.organizationService.acceptInvitationAI(
+    const result = await this.organizationService.acceptInvitation(
       token,
       req.userId,
     );
@@ -558,8 +558,8 @@ export class OrganizationController extends BaseController {
    * @param req The Express request object with organization ID and invitation ID.
    * @param res The Express response object.
    */
-  cancelInvitationAI = async (
-    req: Request<CancelOrganizationInvitationInput_AI["params"]>,
+  cancelInvitation = async (
+    req: Request<CancelOrganizationInvitationInput["params"]>,
     res: Response<ApiResponse<{ message: string }>>,
   ) => {
     if (!req.userId) {
@@ -572,7 +572,7 @@ export class OrganizationController extends BaseController {
     const organizationId = parseInt(req.params.organizationId);
     const invitationId = parseInt(req.params.invitationId);
 
-    const result = await this.organizationService.cancelInvitationAI(
+    const result = await this.organizationService.cancelInvitation(
       organizationId,
       invitationId,
       req.userId,

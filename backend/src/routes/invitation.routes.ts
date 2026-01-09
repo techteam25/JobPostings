@@ -4,8 +4,8 @@ import { OrganizationController } from "@/controllers/organization.controller";
 import { AuthMiddleware } from "@/middleware/auth.middleware";
 import validate from "../middleware/validation.middleware";
 import {
-  getOrganizationInvitationDetailsSchema_AI,
-  acceptOrganizationInvitationSchema_AI,
+  getOrganizationInvitationDetailsSchema,
+  acceptOrganizationInvitationSchema,
 } from "@/validations/organization.validation";
 import { registry, z } from "@/swagger/registry";
 import {
@@ -24,7 +24,7 @@ registry.registerPath({
   summary: "Get invitation details by token",
   tags: ["Invitations"],
   request: {
-    params: getOrganizationInvitationDetailsSchema_AI.shape["params"],
+    params: getOrganizationInvitationDetailsSchema.shape["params"],
   },
   responses: {
     200: {
@@ -81,8 +81,8 @@ registry.registerPath({
  */
 router.get(
   "/:token/details",
-  validate(getOrganizationInvitationDetailsSchema_AI),
-  organizationController.getInvitationDetailsAI,
+  validate(getOrganizationInvitationDetailsSchema),
+  organizationController.getInvitationDetails,
 );
 
 // Authenticated route - Accept invitation
@@ -92,7 +92,7 @@ registry.registerPath({
   summary: "Accept organization invitation",
   tags: ["Invitations"],
   request: {
-    params: acceptOrganizationInvitationSchema_AI.shape["params"],
+    params: acceptOrganizationInvitationSchema.shape["params"],
   },
   responses: {
     200: {
@@ -166,8 +166,8 @@ registry.registerPath({
 router.post(
   "/:token/accept",
   authMiddleware.authenticate,
-  validate(acceptOrganizationInvitationSchema_AI),
-  organizationController.acceptInvitationAI,
+  validate(acceptOrganizationInvitationSchema),
+  organizationController.acceptInvitation,
 );
 
 export default router;

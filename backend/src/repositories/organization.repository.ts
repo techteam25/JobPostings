@@ -832,7 +832,7 @@ export class OrganizationRepository extends BaseRepository<
    * @param token The invitation token.
    * @returns The invitation with organization and inviter details.
    */
-  async findInvitationByTokenAI(token: string) {
+  async findInvitationByToken(token: string) {
     return await withDbErrorHandling(async () => {
       return await db.query.organizationInvitations.findFirst({
         where: eq(organizationInvitations.token, token),
@@ -861,7 +861,7 @@ export class OrganizationRepository extends BaseRepository<
    * @param organizationId The organization ID.
    * @returns The invitation if found.
    */
-  async findInvitationByEmailAndOrgAI(
+  async findInvitationByEmailAndOrg(
     email: string,
     organizationId: number,
   ) {
@@ -880,7 +880,7 @@ export class OrganizationRepository extends BaseRepository<
    * @param data The invitation data.
    * @returns The created invitation.
    */
-  async createInvitationAI(data: {
+  async createInvitation(data: {
     organizationId: number;
     email: string;
     role: "owner" | "admin" | "recruiter" | "member";
@@ -918,7 +918,7 @@ export class OrganizationRepository extends BaseRepository<
    * @param data The update data.
    * @returns The updated invitation.
    */
-  async updateInvitationAI(
+  async updateInvitation(
     invitationId: number,
     data: {
       token: string;
@@ -949,7 +949,7 @@ export class OrganizationRepository extends BaseRepository<
    * @param data The status update data.
    * @returns The updated invitation.
    */
-  async updateInvitationStatusAI(
+  async updateInvitationStatus(
     invitationId: number,
     data: {
       status: "accepted" | "cancelled" | "expired";
@@ -983,7 +983,7 @@ export class OrganizationRepository extends BaseRepository<
    * @param invitationId The invitation ID.
    * @returns The invitation if found.
    */
-  async findInvitationByIdAI(invitationId: number) {
+  async findInvitationById(invitationId: number) {
     return await withDbErrorHandling(async () => {
       return await db.query.organizationInvitations.findFirst({
         where: eq(organizationInvitations.id, invitationId),
@@ -997,7 +997,7 @@ export class OrganizationRepository extends BaseRepository<
    * @param organizationId The organization ID.
    * @returns True if email is an active member, false otherwise.
    */
-  async isEmailActiveMemberAI(email: string, organizationId: number) {
+  async isEmailActiveMember(email: string, organizationId: number) {
     return await withDbErrorHandling(async () => {
       const members = await db.query.organizationMembers.findMany({
         where: and(
@@ -1024,7 +1024,7 @@ export class OrganizationRepository extends BaseRepository<
    * @param data The member data.
    * @returns The created member.
    */
-  async createMemberAI(data: {
+  async createMember(data: {
     userId: number;
     organizationId: number;
     role: "owner" | "admin" | "recruiter" | "member";

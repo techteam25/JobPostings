@@ -24,7 +24,7 @@ import { StorageFolder } from "@/workers/file-upload-worker";
 import { FileUploadJobData } from "@/validations/file.validation";
 
 // Type for invitation details response
-type OrganizationInvitationDetails_AI = {
+type OrganizationInvitationDetails = {
   organizationName: string;
   role: "owner" | "admin" | "recruiter" | "member";
   inviterName: string;
@@ -602,10 +602,10 @@ export class OrganizationService extends BaseService {
    * @param role The role to get the level for.
    * @returns The numeric level (higher = more permissions).
    */
-  private getRoleLevelAI(
+  private getRoleLevel(
     role: "owner" | "admin" | "recruiter" | "member",
   ): number {
-    const roleLevels_AI: Record<
+    const roleLevels: Record<
       "owner" | "admin" | "recruiter" | "member",
       number
     > = {
@@ -614,7 +614,7 @@ export class OrganizationService extends BaseService {
       recruiter: 2,
       member: 1,
     };
-    return roleLevels_AI[role];
+    return roleLevels[role];
   }
 
   /**
@@ -623,12 +623,12 @@ export class OrganizationService extends BaseService {
    * @param requestedRole The role being assigned.
    * @returns True if assignment is allowed, false otherwise.
    */
-  private canAssignRoleAI(
+  private canAssignRole(
     inviterRole: "owner" | "admin" | "recruiter" | "member",
     requestedRole: "owner" | "admin" | "recruiter" | "member",
   ): boolean {
-    const inviterLevel = this.getRoleLevelAI(inviterRole);
-    const requestedLevel = this.getRoleLevelAI(requestedRole);
+    const inviterLevel = this.getRoleLevel(inviterRole);
+    const requestedLevel = this.getRoleLevel(requestedRole);
 
     // Can only assign roles lower than your own
     return requestedLevel < inviterLevel;
@@ -642,7 +642,7 @@ export class OrganizationService extends BaseService {
    * @param requesterId The ID of the user sending the invitation.
    * @returns A Result containing the invitation or an error.
    */
-  async sendInvitationAI(
+  async sendInvitation(
     organizationId: number,
     email: string,
     role: "owner" | "admin" | "recruiter" | "member",
@@ -677,7 +677,7 @@ export class OrganizationService extends BaseService {
 
       // 2. Validate email is not already an active member
       const isActiveMember =
-        await this.organizationRepository.isEmailActiveMemberAI(
+        await this.organizationRepository.isEmailActiveMember(
           email,
           organizationId,
         );
@@ -691,7 +691,7 @@ export class OrganizationService extends BaseService {
       }
 
       // 3. Validate role assignment permissions
-      if (!this.canAssignRoleAI(requesterMember.role, role)) {
+      if (!this.canAssignRole(requesterMember.role, role)) {
         return fail(
           new ForbiddenError(
             `You cannot assign the ${role} role. You can only assign roles lower than your own.`,
@@ -701,7 +701,7 @@ export class OrganizationService extends BaseService {
 
       // 4. Check for existing invitation
       const existingInvitation =
-        await this.organizationRepository.findInvitationByEmailAndOrgAI(
+        await this.organizationRepository.findInvitationByEmailAndOrg(
           email,
           organizationId,
         );
@@ -713,7 +713,7 @@ export class OrganizationService extends BaseService {
 
       if (existingInvitation) {
         // Reactivate existing invitation (pending, cancelled, or expired)
-        invitation = await this.organizationRepository.updateInvitationAI(
+        invitation = await this.organizationRepository.updateInvitation(
           existingInvitation.id,
           {
             token,
@@ -723,7 +723,7 @@ export class OrganizationService extends BaseService {
         );
       } else {
         // Create new invitation
-        invitation = await this.organizationRepository.createInvitationAI({
+        invitation = await this.organizationRepository.createInvitation({
           organizationId,
           email: email.toLowerCase(),
           role,
@@ -790,12 +790,12 @@ export class OrganizationService extends BaseService {
    * @param token The invitation token.
    * @returns The invitation details with organization and inviter info.
    */
-  async getInvitationDetailsAI(
+  async getInvitationDetails(
     token: string,
-  ): Promise<Result<OrganizationInvitationDetails_AI, Error>> {
+  ): Promise<Result<OrganizationInvitationDetails, Error>> {
     try {
       const invitation =
-        await this.organizationRepository.findInvitationByTokenAI(token);
+        await this.organizationRepository.findInvitationByToken(token);
 
       if (!invitation) {
         return fail(new NotFoundError("Invitation not found"));
@@ -837,14 +837,14 @@ export class OrganizationService extends BaseService {
    * @param userId The ID of the user accepting the invitation.
    * @returns Success message.
    */
-  async acceptInvitationAI(
+  async acceptInvitation(
     token: string,
     userId: number,
   ): Promise<Result<{ message: string }, Error>> {
     try {
       // 1. Find invitation by token
       const invitation =
-        await this.organizationRepository.findInvitationByTokenAI(token);
+        await this.organizationRepository.findInvitationByToken(token);
 
       if (!invitation) {
         return fail(new NotFoundError("Invitation not found"));
@@ -903,14 +903,14 @@ export class OrganizationService extends BaseService {
       }
 
       // 7. Create organization member record
-      await this.organizationRepository.createMemberAI({
+      await this.organizationRepository.createMember({
         userId,
         organizationId: invitation.organizationId,
         role: invitation.role,
       });
 
       // 8. Update invitation status to accepted
-      await this.organizationRepository.updateInvitationStatusAI(
+      await this.organizationRepository.updateInvitationStatus(
         invitation.id,
         {
           status: "accepted",
@@ -959,7 +959,7 @@ export class OrganizationService extends BaseService {
    * @param requesterId The ID of the user canceling the invitation.
    * @returns Success message.
    */
-  async cancelInvitationAI(
+  async cancelInvitation(
     organizationId: number,
     invitationId: number,
     requesterId: number,
@@ -993,7 +993,7 @@ export class OrganizationService extends BaseService {
 
       // 2. Find invitation
       const invitation =
-        await this.organizationRepository.findInvitationByIdAI(invitationId);
+        await this.organizationRepository.findInvitationById(invitationId);
 
       if (!invitation) {
         return fail(new NotFoundError("Invitation not found"));
@@ -1020,7 +1020,7 @@ export class OrganizationService extends BaseService {
       }
 
       // 5. Update invitation status to cancelled
-      await this.organizationRepository.updateInvitationStatusAI(
+      await this.organizationRepository.updateInvitationStatus(
         invitationId,
         {
           status: "cancelled",
