@@ -1,1 +1,0 @@
-ALTER TABLE `organizations` MODIFY COLUMN `zip_code` varchar(20) NOT NULL;

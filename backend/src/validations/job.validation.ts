@@ -4,7 +4,7 @@ import { jobApplications, jobInsights, jobsDetails, skills } from "@/db/schema";
 import { Organization } from "@/validations/organization.validation";
 
 // Validation schemas
-export const insertJobSchema = createInsertSchema(jobsDetails, {
+export const baseInsertJobSchema = createInsertSchema(jobsDetails, {
   title: z
     .string()
     .min(5, "Title must be at least 5 characters")
@@ -16,7 +16,9 @@ export const insertJobSchema = createInsertSchema(jobsDetails, {
   country: z.string().max(100).trim().optional().default("United States"),
   zipcode: z.coerce.number().positive("Zip Code must be positive").optional(),
   employerId: z.number().int().positive("Employer ID is required"),
-})
+});
+
+export const insertJobSchema = baseInsertJobSchema
   .refine((data) => data.country === "United States" && !data.state, {
     message: "State is required for United States",
     path: ["state"],
@@ -48,7 +50,7 @@ export const selectJobInsightsSchema = createSelectSchema(jobInsights);
 export const selectJobApplicationSchema = createSelectSchema(jobApplications);
 export const selectJobSkillsSchema = createSelectSchema(skills);
 
-export const updateJobInputSchema = insertJobSchema
+export const updateJobInputSchema = baseInsertJobSchema
   .partial()
   .omit({
     id: true,
@@ -76,7 +78,7 @@ export const updateJobInsightsSchema = insertJobInsightsSchema
   .partial()
   .omit({ id: true });
 
-const createJobPayloadSchema = insertJobSchema
+const createJobPayloadSchema = baseInsertJobSchema
   .omit({ applicationDeadline: true, employerId: true })
   .extend({
     applicationDeadline: z.iso.datetime(),
