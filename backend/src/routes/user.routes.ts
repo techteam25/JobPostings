@@ -28,6 +28,12 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import {
+  createJobAlertSchema,
+  getUserJobAlertsQuerySchema,
+  getJobAlertSchema,
+  selectJobAlertSchema,
+} from "@/validations/jobAlerts.validation";
 
 const router = Router();
 const userController = new UserController();
@@ -922,6 +928,172 @@ router.post(
   "/me/email-preferences/resubscribe",
   invalidateCacheMiddleware(() => "users/me/email-preferences"),
   userController.resubscribeEmailNotifications,
+);
+
+// Job Alerts routes
+
+registry.registerPath({
+  method: "post",
+  path: "/users/me/job-alerts",
+  tags: ["Users"],
+  summary: "Create Job Alert",
+  description:
+    "Create a new job alert for the authenticated user. Maximum 10 active alerts allowed.",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: createJobAlertSchema.shape["body"],
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Job alert created successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(selectJobAlertSchema),
+        },
+      },
+    },
+    400: {
+      description: "Validation error or limit reached",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    401: {
+      description: "Authentication required",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+/**
+ * Creates a new job alert for the authenticated user.
+ * This authenticated endpoint allows users to create job alerts based on search criteria.
+ * Validates that user has fewer than 10 active alerts.
+ * Requires user authentication and job seeker role.
+ * Invalidates cache for job alerts list.
+ * @route POST /users/me/job-alerts
+ * @param {Object} req.body - Request body with job alert details.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the created job alert.
+ */
+router.post(
+  "/me/job-alerts",
+  authMiddleware.requireUserRole,
+  validate(createJobAlertSchema),
+  invalidateCacheMiddleware(() => "users/me/job-alerts"),
+  userController.createJobAlert,
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/users/me/job-alerts",
+  tags: ["Users"],
+  summary: "Get User Job Alerts",
+  description:
+    "Retrieve all job alerts for the authenticated user with pagination.",
+  parameters: [
+    {
+      name: "page",
+      in: "query",
+      schema: { type: "integer", default: 1 },
+      description: "Page number for pagination",
+    },
+    {
+      name: "limit",
+      in: "query",
+      schema: { type: "integer", default: 10 },
+      description: "Number of items per page (max 50)",
+    },
+  ],
+  responses: {
+    200: {
+      description: "Job alerts retrieved successfully",
+      content: {
+        "application/json": {
+          schema: apiPaginatedResponseSchema(selectJobAlertSchema),
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+/**
+ * Retrieves all job alerts for the authenticated user with pagination.
+ * This authenticated endpoint fetches the user's job alerts list.
+ * Requires user authentication and job seeker role.
+ * Includes caching for performance optimization.
+ * @route GET /users/me/job-alerts
+ * @param {Object} req.query - Query parameters for pagination.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the paginated list of job alerts.
+ */
+router.get(
+  "/me/job-alerts",
+  authMiddleware.requireUserRole,
+  validate(getUserJobAlertsQuerySchema),
+  cacheMiddleware({ ttl: 300 }),
+  userController.getUserJobAlerts,
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/users/me/job-alerts/{id}",
+  tags: ["Users"],
+  summary: "Get Job Alert by ID",
+  description:
+    "Retrieve a specific job alert by ID for the authenticated user.",
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "integer" },
+      description: "Job alert ID",
+    },
+  ],
+  responses: {
+    200: {
+      description: "Job alert retrieved successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(selectJobAlertSchema),
+        },
+      },
+    },
+    404: {
+      description: "Job alert not found",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    401: {
+      description: "Authentication required",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+/**
+ * Retrieves a specific job alert by ID for the authenticated user.
+ * This authenticated endpoint fetches details of a single job alert.
+ * Requires user authentication and job seeker role.
+ * Includes caching for performance optimization.
+ * @route GET /users/me/job-alerts/:id
+ * @param {Object} req.params - Route parameters including the alert ID.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<ApiResponse<JobAlert>>} - Sends a JSON response with the job alert details.
+ */
+router.get(
+  "/me/job-alerts/:id",
+  authMiddleware.requireUserRole,
+  validate(getJobAlertSchema),
+  cacheMiddleware({ ttl: 300 }),
+  userController.getJobAlertById,
 );
 
 // Admin only routes for user management

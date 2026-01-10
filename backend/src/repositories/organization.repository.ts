@@ -594,8 +594,6 @@ export class OrganizationRepository extends BaseRepository<
           },
         });
 
-        console.log(JSON.stringify(applicationWithNotes, null, 2));
-
         if (!applicationWithNotes) {
           throw new NotFoundError("No notes found for job application");
         }

@@ -2,6 +2,7 @@ import { and, count, desc, eq, like, ne, or, sql } from "drizzle-orm";
 import {
   certifications,
   educations,
+  jobAlerts,
   jobsDetails,
   savedJobs,
   user,
@@ -20,6 +21,7 @@ import {
   UpdateUserProfile,
   User,
 } from "@/validations/userProfile.validation";
+import { InsertJobAlert, JobAlert } from "@/validations/jobAlerts.validation";
 
 /**
  * Repository class for managing user-related database operations, including profiles and saved jobs.
@@ -905,6 +907,134 @@ export class UserRepository extends BaseRepository<typeof user> {
       }
 
       return preferences[emailType] === true;
+    });
+  }
+
+  /**
+   * Checks if a user can create more job alerts.
+   * @param userId The ID of the user.
+   * @returns Object with canCreate flag, current count, and max allowed.
+   */
+  async canCreateJobAlert(userId: number): Promise<{
+    canCreate: boolean;
+    currentCount: number;
+    maxAllowed: number;
+  }> {
+    return await withDbErrorHandling(async () => {
+      const result = await db
+        .select({ count: count() })
+        .from(jobAlerts)
+        .where(and(eq(jobAlerts.userId, userId), eq(jobAlerts.isActive, true)));
+
+      const currentCount = result[0]?.count ?? 0;
+      const MAX_ALERTS_PER_USER = 10;
+
+      return {
+        canCreate: currentCount < MAX_ALERTS_PER_USER,
+        currentCount,
+        maxAllowed: MAX_ALERTS_PER_USER,
+      };
+    });
+  }
+
+  /**
+   * Creates a new job alert for a user.
+   * @param userId The ID of the user.
+   * @param alertData The job alert data.
+   * @returns The created job alert.
+   */
+  async createJobAlert(
+    userId: number,
+    alertData: InsertJobAlert,
+  ): Promise<JobAlert> {
+    return await withDbErrorHandling(async () => {
+      const [alert] = await db
+        .insert(jobAlerts)
+        .values({
+          ...alertData,
+          userId,
+        })
+        .$returningId();
+
+      if (!alert || isNaN(alert.id)) {
+        throw new DatabaseError(`Invalid insertId returned: ${alert?.id}`);
+      }
+
+      // Fetch the created alert with all fields
+      const createdAlert = await db.query.jobAlerts.findFirst({
+        where: eq(jobAlerts.id, alert.id),
+      });
+
+      if (!createdAlert) {
+        throw new DatabaseError("Failed to retrieve created job alert");
+      }
+
+      return createdAlert;
+    });
+  }
+
+  /**
+   * Retrieves all job alerts for a user with pagination.
+   * @param userId The ID of the user.
+   * @param pagination Pagination parameters.
+   * @returns Paginated job alerts with metadata.
+   */
+  async getUserJobAlerts(
+    userId: number,
+    pagination: { page: number; limit: number },
+  ) {
+    return await withDbErrorHandling(async () => {
+      const { page, limit } = pagination;
+      const offset = (page - 1) * limit;
+
+      // Get total count
+      const countResult = await db
+        .select({ total: count() })
+        .from(jobAlerts)
+        .where(eq(jobAlerts.userId, userId));
+
+      const total = countResult[0]?.total ?? 0;
+
+      // Get paginated alerts
+      const alerts = await db.query.jobAlerts.findMany({
+        where: eq(jobAlerts.userId, userId),
+        limit,
+        offset,
+        orderBy: [desc(jobAlerts.createdAt)],
+      });
+
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        items: alerts,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages,
+          hasNext: page < totalPages,
+          hasPrevious: page > 1,
+          nextPage: page < totalPages ? page + 1 : null,
+          previousPage: page > 1 ? page - 1 : null,
+        },
+      };
+    });
+  }
+
+  /**
+   * Retrieves a specific job alert by ID for a user.
+   * @param userId The ID of the user.
+   * @param alertId The ID of the alert.
+   * @returns The job alert or undefined if not found.
+   */
+  async getJobAlertById(
+    userId: number,
+    alertId: number,
+  ): Promise<JobAlert | undefined> {
+    return await withDbErrorHandling(async () => {
+      return await db.query.jobAlerts.findFirst({
+        where: and(eq(jobAlerts.id, alertId), eq(jobAlerts.userId, userId)),
+      });
     });
   }
 }
