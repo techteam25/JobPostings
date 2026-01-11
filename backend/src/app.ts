@@ -38,6 +38,10 @@ import {
   scheduleDailyAlertProcessing,
   scheduleWeeklyAlertProcessing,
 } from "@/workers/job-alert-processor";
+import {
+  initializeInactiveUserAlertWorker,
+  scheduleInactiveUserAlertPausing,
+} from "@/workers/inactive-user-alert-pauser";
 
 // Initialize Typesense schema
 try {
@@ -76,6 +80,7 @@ try {
   initializeEmailWorker();
   initializeFileCleanupWorker();
   initializeJobAlertWorker();
+  initializeInactiveUserAlertWorker();
   logger.info("Queue service and workers initialized");
 } catch (error) {
   logger.warn(
@@ -90,6 +95,7 @@ try {
   scheduleCleanupJob().catch((err) => logger.error(err));
   scheduleDailyAlertProcessing().catch((err) => logger.error(err));
   scheduleWeeklyAlertProcessing().catch((err) => logger.error(err));
+  scheduleInactiveUserAlertPausing().catch((err) => logger.error(err));
 } catch (error) {
   logger.warn("Failed to schedule background jobs", {
     error: error instanceof Error ? error.message : "Unknown error",

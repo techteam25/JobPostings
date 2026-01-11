@@ -1189,4 +1189,74 @@ export class UserRepository extends BaseRepository<typeof user> {
       return result[0]?.count ?? 0;
     });
   }
+
+  /**
+   * Pauses job alerts for inactive users (users with status "deactivated").
+   * @returns Object containing counts of affected alerts and users.
+   */
+  async pauseAlertsForInactiveUsers(): Promise<{ 
+    alertsPaused: number; 
+    usersAffected: number;
+  }> {
+    return await withDbErrorHandling(async () => {
+      // Find deactivated users with active, unpaused alerts
+      const inactiveUsersWithAlerts = await db
+        .select({
+          userId: user.id,
+          userEmail: user.email,
+          status: user.status,
+        })
+        .from(user)
+        .innerJoin(jobAlerts, eq(user.id, jobAlerts.userId))
+        .where(
+          and(
+            // User status is deactivated (inactive)
+            eq(user.status, "deactivated"),
+            // Alert is active and not already paused
+            eq(jobAlerts.isActive, true),
+            eq(jobAlerts.isPaused, false),
+          ),
+        )
+        .groupBy(user.id, user.email, user.status);
+
+      if (inactiveUsersWithAlerts.length === 0) {
+        return { alertsPaused: 0, usersAffected: 0 };
+      }
+
+      const inactiveUserIds = inactiveUsersWithAlerts.map((u) => u.userId);
+
+      // Pause all active alerts for these inactive users
+      await db
+        .update(jobAlerts)
+        .set({ 
+          isPaused: true,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            inArray(jobAlerts.userId, inactiveUserIds),
+            eq(jobAlerts.isActive, true),
+            eq(jobAlerts.isPaused, false),
+          ),
+        );
+
+      // Count how many alerts were actually paused
+      const alertsPausedResult = await db
+        .select({ count: count() })
+        .from(jobAlerts)
+        .where(
+          and(
+            inArray(jobAlerts.userId, inactiveUserIds),
+            eq(jobAlerts.isPaused, true),
+          ),
+        );
+
+      const alertsPaused = alertsPausedResult[0]?.count ?? 0;
+
+      return {
+        alertsPaused,
+        usersAffected: inactiveUsersWithAlerts.length,
+      };
+    });
+  }
 }
