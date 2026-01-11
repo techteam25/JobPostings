@@ -105,9 +105,9 @@ export const jobPostingFixture = async () => {
     city: faker.location.city(),
     state: faker.location.state(),
     country: faker.location.country(),
-    jobType: "full-time",
-    compensationType: "paid",
-    experience: "mid",
+    jobType: "full-time" as const,
+    compensationType: "paid" as const,
+    experience: "mid" as const,
     currency: "USD",
     isRemote: false,
     applicationDeadline: new Date(

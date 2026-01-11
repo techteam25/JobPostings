@@ -227,39 +227,10 @@ router.get(
   jobController.getJobById,
 );
 
-/**
- * Retrieves job postings similar to the specified job.
- * This public endpoint uses job matching algorithms to find similar job postings based on the given job ID.
- * @route GET /api/jobs/:jobId/similar
- * @param {Object} req.params - Route parameters including the jobId.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with a list of similar job postings.
- */
-router.get(
-  "/:jobId/similar",
-  validate(getJobSchema),
-  jobController.getSimilarJobs,
-);
-
 // Protected routes - authentication required
 router.use(authMiddleware.authenticate);
 
 // User routes (authenticated users)
-
-/**
- * Retrieves personalized job recommendations for the authenticated user.
- * This authenticated endpoint uses user profile and preferences to recommend relevant job postings.
- * Requires user authentication and job seeker role.
- * @route GET /api/jobs/me/recommendations
- * @param {Object} req.query - Query parameters for pagination.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with recommended job postings.
- */
-router.get(
-  "/me/recommendations",
-  authMiddleware.requireUserRole,
-  jobController.getRecommendedJobs,
-);
 
 /**
  * Retrieves job applications submitted by the authenticated user.
@@ -639,7 +610,7 @@ router.post(
   "/",
   authMiddleware.requireJobPostingRole(),
   validate(createJobSchema),
-  invalidateCacheMiddleware((req) => `/api/jobs`),
+  invalidateCacheMiddleware((_req) => `/api/jobs`),
   jobController.createJob,
 );
 
@@ -717,7 +688,7 @@ router.put(
   "/:jobId",
   authMiddleware.requireJobPostingRole(),
   validate(updateJobInputSchema),
-  invalidateCacheMiddleware((req) => `/api/jobs`),
+  invalidateCacheMiddleware((_req) => `/api/jobs`),
   jobController.updateJob,
 );
 
@@ -792,7 +763,7 @@ router.delete(
   authMiddleware.ensureJobOwnership,
   authMiddleware.requireDeleteJobPermission(),
   validate(deleteJobSchema),
-  invalidateCacheMiddleware((req) => `/api/jobs`),
+  invalidateCacheMiddleware((_req) => `/api/jobs`),
   invalidateCacheMiddleware((req) => `/api/jobs/${req.params.jobId}`),
   jobController.deleteJob,
 );
@@ -831,7 +802,7 @@ router.patch(
   "/applications/:applicationId/status",
   authMiddleware.requireJobPostingRole(),
   validate(updateApplicationStatusSchema),
-  invalidateCacheMiddleware((req) => `/api/jobs/me/applications`),
+  invalidateCacheMiddleware((_req) => `/api/jobs/me/applications`),
   jobController.updateApplicationStatus,
 );
 

@@ -19,7 +19,7 @@ async function testInsert() {
   const db = drizzle(connection, { schema, mode: "default" });
 
   logger.info("Testing database insert...");
-  
+
   try {
     // Insert a temporary test user
     const testUser = {
@@ -30,33 +30,38 @@ async function testInsert() {
     };
 
     logger.info(`Inserting test user: ${testUser.email}`);
-    
+
     const result = await db.insert(user).values(testUser);
-    
+
     // Get the inserted user to verify
-    const insertedUsers = await db.select().from(user).where(eq(user.email, testUser.email));
-    
+    const insertedUsers = await db
+      .select()
+      .from(user)
+      .where(eq(user.email, testUser.email));
+
     if (insertedUsers.length > 0) {
       const insertedUser = insertedUsers[0];
       logger.info("✓ User inserted successfully!");
-      logger.info(`  - ID: ${insertedUser.id}`);
-      logger.info(`  - Name: ${insertedUser.fullName}`);
-      logger.info(`  - Email: ${insertedUser.email}`);
-      logger.info(`  - Status: ${insertedUser.status}`);
-      logger.info(`  - Created At: ${insertedUser.createdAt}`);
-      
+      logger.info(`  - ID: ${insertedUser?.id}`);
+      logger.info(`  - Name: ${insertedUser?.fullName}`);
+      logger.info(`  - Email: ${insertedUser?.email}`);
+      logger.info(`  - Status: ${insertedUser?.status}`);
+      logger.info(`  - Created At: ${insertedUser?.createdAt}`);
+
       // Clean up - delete the test user
       logger.info("Cleaning up test user...");
-      await db.delete(user).where(eq(user.id, insertedUser.id));
+      await db.delete(user).where(eq(user.id, insertedUser!.id));
       logger.info("✓ Test user deleted");
-      
+
       return true;
     } else {
       logger.error("✗ User was not found after insertion");
       return false;
     }
   } catch (error) {
-    logger.error(`✗ Insert failed: ${error instanceof Error ? error.message : String(error)}`);
+    logger.error(
+      `✗ Insert failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
     if (error instanceof Error && error.stack) {
       logger.error(`Stack trace: ${error.stack}`);
     }
@@ -78,4 +83,3 @@ testInsert()
     logger.error(`Database insert test failed: ${error}`);
     process.exit(1);
   });
-

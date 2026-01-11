@@ -120,6 +120,20 @@
       "when": 1767673893711,
       "tag": "0016_good_nightcrawler",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1767928930845,
+      "tag": "0017_steep_hobgoblin",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1767931037078,
+      "tag": "0018_bright_penance",
+      "breakpoints": true
     }
   ]
 }

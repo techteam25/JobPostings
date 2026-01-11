@@ -29,6 +29,11 @@ export class EmailService extends BaseService {
         user: env.SMTP_USER,
         pass: env.SMTP_PASS,
       },
+      // dkim: {
+      //   domainName: "getinvolved.team", // domain
+      //   keySelector: "default, // e.g., 'default' or '2026'
+      //   privateKey: privateKey, // Private key string
+      // },
     });
     this.userRepository = new UserRepository();
   }
@@ -529,6 +534,125 @@ ${footer}`,
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
       console.error(error);
+    }
+  }
+
+  /**
+   * Sends a job alert notification email with matched jobs.
+   * @param userId The ID of the user.
+   * @param email The user's email address.
+   * @param fullName The user's full name.
+   * @param alertName The name of the job alert.
+   * @param matches Array of matched jobs with details.
+   * @param totalMatches Total number of matches found.
+   */
+  async sendJobAlertNotification(
+    userId: number,
+    email: string,
+    fullName: string,
+    alertName: string,
+    matches: Array<{
+      job: {
+        id: number;
+        title: string;
+        company: string;
+        location?: string;
+        jobType?: string;
+        experienceLevel?: string;
+        description?: string;
+      };
+      matchScore: number;
+    }>,
+    totalMatches: number,
+  ): Promise<void> {
+    try {
+      // Check if user has email preferences enabled for job matches
+      const canSend = await this.canSendEmail(userId, EmailType.JOB_MATCH);
+      if (!canSend) {
+        console.log(
+          `User ${userId} has disabled job match notifications, skipping email`,
+        );
+        return;
+      }
+
+      const template = await this.loadTemplate("jobAlertNotification");
+      const logoPath = await this.getImageAsBase64("logo.png");
+      const footer = await this.generateEmailFooter(userId, EmailType.JOB_MATCH);
+
+      // Build job matches HTML
+      const jobsHtml = matches
+        .map(
+          (match) => `
+        <div style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px;">
+          <h3 style="margin: 0 0 10px 0; color: #333;">
+            <a href="${env.FRONTEND_URL}/jobs/${match.job.id}" style="color: #0066cc; text-decoration: none;">
+              ${match.job.title}
+            </a>
+          </h3>
+          <p style="margin: 5px 0; color: #666;">
+            <strong>${match.job.company}</strong>
+            ${match.job.location ? ` • ${match.job.location}` : ""}
+          </p>
+          ${
+            match.job.jobType || match.job.experienceLevel
+              ? `
+          <p style="margin: 5px 0; color: #666; font-size: 14px;">
+            ${match.job.jobType ? `${match.job.jobType}` : ""}
+            ${match.job.jobType && match.job.experienceLevel ? " • " : ""}
+            ${match.job.experienceLevel ? `${match.job.experienceLevel}` : ""}
+          </p>
+          `
+              : ""
+          }
+          ${
+            match.job.description
+              ? `
+          <p style="margin: 10px 0; color: #555; font-size: 14px;">
+            ${match.job.description.substring(0, 200)}${match.job.description.length > 200 ? "..." : ""}
+          </p>
+          `
+              : ""
+          }
+          <a href="${env.FRONTEND_URL}/jobs/${match.job.id}" 
+             style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px;">
+            View Job
+          </a>
+        </div>
+      `,
+        )
+        .join("");
+
+      const moreMatchesText =
+        totalMatches > matches.length
+          ? `<p style="margin: 20px 0; color: #666; font-size: 14px;">
+               And ${totalMatches - matches.length} more match${totalMatches - matches.length > 1 ? "es" : ""}!
+             </p>`
+          : "";
+
+      const htmlContent = template
+        .replace("{{name}}", fullName)
+        .replace("{{alertName}}", alertName)
+        .replace("{{matchCount}}", totalMatches.toString())
+        .replace(
+          "{{matchWord}}",
+          totalMatches === 1 ? "match" : "matches",
+        )
+        .replace("{{jobsHtml}}", jobsHtml)
+        .replace("{{moreMatchesText}}", moreMatchesText)
+        .replace("{{alertsLink}}", `${env.FRONTEND_URL}/job-alerts`)
+        .replace("{{logoPath}}", logoPath)
+        .replace("{{footer}}", footer);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: `${totalMatches} New Job ${totalMatches === 1 ? "Match" : "Matches"} for "${alertName}"`,
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error("Failed to send job alert notification", error);
     }
   }
 }

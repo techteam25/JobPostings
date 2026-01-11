@@ -22,6 +22,7 @@ export const QUEUE_NAMES = {
   EMAIL_QUEUE: "emailQueue",
   FILE_UPLOAD_QUEUE: "fileUploadQueue",
   TEMP_FILE_CLEANUP_QUEUE: "tempFileCleanupQueue",
+  JOB_ALERT_QUEUE: "jobAlertQueue",
 } as const;
 
 // Job options
@@ -61,6 +62,7 @@ class QueueService {
       this.createQueue(QUEUE_NAMES.EMAIL_QUEUE);
       this.createQueue(QUEUE_NAMES.FILE_UPLOAD_QUEUE);
       this.createQueue(QUEUE_NAMES.TEMP_FILE_CLEANUP_QUEUE);
+      this.createQueue(QUEUE_NAMES.JOB_ALERT_QUEUE);
 
       this.isInitialized = true;
       logger.info("Queue service initialized successfully", {
