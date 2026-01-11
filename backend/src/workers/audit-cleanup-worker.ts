@@ -1,103 +1,120 @@
-import cron from "node-cron";
-import { AuditService } from "@/services/audit.service";
 import logger from "@/logger";
+import { Job as BullMqJob } from "bullmq";
+import { AuditService } from "@/services/audit.service";
+import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 
 /**
- * Worker for cleaning up old audit logs based on retention policy
+ * Audit log cleanup worker job payload
  */
-export class AuditCleanupWorker {
-  private auditService: AuditService;
-  private retentionDays: number;
-  private cronSchedule: string;
+interface AuditCleanupJobPayload {
+  retentionDays?: number;
+  correlationId?: string;
+}
 
-  /**
-   * @param retentionDays Number of days to retain audit logs (default: 90)
-   * @param cronSchedule Cron schedule for cleanup job (default: daily at 2 AM)
-   */
-  constructor(retentionDays: number = 90, cronSchedule: string = "0 2 * * *") {
-    this.auditService = new AuditService();
-    this.retentionDays = retentionDays;
-    this.cronSchedule = cronSchedule;
-  }
+/**
+ * Audit log cleanup worker job result
+ */
+interface AuditCleanupJobResult {
+  deleted: number;
+  success: boolean;
+}
 
-  /**
-   * Starts the cleanup worker
-   */
-  start() {
-    logger.info(
-      `Starting audit log cleanup worker (retention: ${this.retentionDays} days, schedule: ${this.cronSchedule})`
-    );
+/**
+ * Worker function for cleaning up old audit logs
+ * @param job BullMQ job containing cleanup parameters
+ */
+export async function auditCleanupWorker(
+  job: BullMqJob<AuditCleanupJobPayload>
+): Promise<AuditCleanupJobResult> {
+  const { retentionDays = 90 } = job.data;
 
-    cron.schedule(this.cronSchedule, async () => {
-      try {
-        logger.info("Running audit log cleanup job...");
+  logger.info(
+    { retentionDays, jobId: job.id },
+    "Starting audit log cleanup job"
+  );
 
-        const result = await this.auditService.cleanupOldLogs(
-          this.retentionDays
-        );
+  try {
+    const auditService = new AuditService();
+    const result = await auditService.cleanupOldLogs(retentionDays);
 
-        if (result.isSuccess) {
-          logger.info(
-            `Audit log cleanup completed successfully. Logs older than ${this.retentionDays} days removed.`
-          );
-        } else {
-          logger.error(
-            `Audit log cleanup failed: ${result.error.message}`
-          );
-        }
-      } catch (error) {
-        logger.error("Audit log cleanup job encountered an error:", error);
-      }
-    });
-  }
-
-  /**
-   * Runs the cleanup job immediately (useful for testing)
-   */
-  async runNow() {
-    logger.info("Running audit log cleanup job immediately...");
-
-    try {
-      const result = await this.auditService.cleanupOldLogs(
-        this.retentionDays
+    if (result.isSuccess) {
+      logger.info(
+        { retentionDays, jobId: job.id },
+        `Audit log cleanup completed successfully. Logs older than ${retentionDays} days removed.`
       );
 
-      if (result.isSuccess) {
-        logger.info(
-          `Audit log cleanup completed successfully. Logs older than ${this.retentionDays} days removed.`
-        );
-        return true;
-      } else {
-        logger.error(
-          `Audit log cleanup failed: ${result.error.message}`
-        );
-        return false;
-      }
-    } catch (error) {
-      logger.error("Audit log cleanup job encountered an error:", error);
-      return false;
+      return {
+        deleted: 0, 
+        success: true,
+      };
+    } else {
+      logger.error(
+        { retentionDays, error: result.error.message, jobId: job.id },
+        "Audit log cleanup failed"
+      );
+
+      return {
+        deleted: 0,
+        success: false,
+      };
     }
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    logger.error(
+      { error: errorMessage, retentionDays, jobId: job.id },
+      "Audit log cleanup encountered an error"
+    );
+    throw error;
   }
 }
 
 /**
- * Initialize the audit cleanup worker
- * Call this in your app.ts or server startup file
+ * Initialize audit cleanup worker
+ * Registers the worker with the queue service
  */
-export function initializeAuditCleanupWorker() {
-  const retentionDays = parseInt(process.env.AUDIT_RETENTION_DAYS || "90");
-  const cronSchedule = process.env.AUDIT_CLEANUP_SCHEDULE || "0 2 * * *";
+export function initializeAuditCleanupWorker(): void {
+  queueService.registerWorker<AuditCleanupJobPayload, AuditCleanupJobResult>(
+    QUEUE_NAMES.AUDIT_CLEANUP_QUEUE,
+    auditCleanupWorker,
+    {
+      concurrency: 1, 
+      limiter: {
+        max: 10, 
+        duration: 60000, 
+      },
+    }
+  );
 
-  const worker = new AuditCleanupWorker(retentionDays, cronSchedule);
-  worker.start();
-
-  return worker;
+  logger.info("Audit cleanup worker initialized");
 }
 
 /**
- * Example: Schedule cleanup job for immediate execution
+ * Schedule repeatable cleanup job
+ * Default: Daily at 2 AM
  */
 export async function scheduleAuditCleanupJob() {
-  const worker = new AuditCleanupWorker();
-  return await worker.runNow();
+  try {
+    const retentionDays = parseInt(process.env.AUDIT_RETENTION_DAYS || "90");
+    const cronSchedule = process.env.AUDIT_CLEANUP_SCHEDULE || "0 2 * * *";
+
+    await queueService.addJob(
+      QUEUE_NAMES.AUDIT_CLEANUP_QUEUE,
+      "cleanupAuditLogs",
+      { retentionDays },
+      {
+        repeat: {
+          pattern: cronSchedule, 
+        },
+        jobId: "audit-log-cleanup", 
+      }
+    );
+
+    logger.info(
+      { retentionDays, schedule: cronSchedule },
+      "📅 Scheduled audit log cleanup job"
+    );
+  } catch (error) {
+    logger.error({ error }, "Failed to schedule audit log cleanup job");
+  }
 }

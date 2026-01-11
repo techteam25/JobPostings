@@ -33,7 +33,7 @@ import {
   initializeFileCleanupWorker,
   scheduleCleanupJob,
 } from "@/workers/temp-file-cleanup-worker";
-import { initializeAuditCleanupWorker } from "@/workers/audit-cleanup-worker";
+import { initializeAuditCleanupWorker, scheduleAuditCleanupJob } from "@/workers/audit-cleanup-worker";
 
 // Initialize Typesense schema
 try {
@@ -71,6 +71,7 @@ try {
   initializeFileUploadWorker();
   initializeEmailWorker();
   initializeFileCleanupWorker();
+  initializeAuditCleanupWorker();
   logger.info("Queue service and workers initialized");
 } catch (error) {
   logger.warn(
@@ -83,6 +84,7 @@ try {
 
 try {
   scheduleCleanupJob().catch((err) => logger.error(err));
+  scheduleAuditCleanupJob().catch((err) => logger.error(err));
 } catch (error) {
   logger.warn("Failed to schedule temp file cleanup job", {
     error: error instanceof Error ? error.message : "Unknown error",

@@ -16,6 +16,7 @@ import {
  * Query schema for retrieving audit logs with filters and pagination
  */
 export const auditLogQuerySchema = z.object({
+  body: z.object({}),
   query: z.object({
     page: z.string().optional(),
     limit: z.string().optional(),
@@ -45,6 +46,7 @@ export const auditLogQuerySchema = z.object({
  * Schema for audit statistics query parameters
  */
 export const auditStatsQuerySchema = z.object({
+  body: z.object({}),
   query: z.object({
     userId: z.string().optional(),
     startDate: z.string().optional(),
@@ -56,6 +58,7 @@ export const auditStatsQuerySchema = z.object({
  * Schema for my logs query parameters
  */
 export const myLogsQuerySchema = z.object({
+  body: z.object({}),
   query: z.object({
     page: z.string().optional(),
     limit: z.string().optional(),
@@ -70,6 +73,7 @@ export const myLogsQuerySchema = z.object({
  * Schema for audit log by ID
  */
 export const auditLogByIdSchema = z.object({
+  body: z.object({}),
   params: z.object({
     id: z.string(),
   }),
@@ -79,6 +83,7 @@ export const auditLogByIdSchema = z.object({
  * Schema for user audit logs
  */
 export const userAuditLogsSchema = z.object({
+  body: z.object({}),
   params: z.object({
     userId: z.string(),
   }),
@@ -92,6 +97,7 @@ export const userAuditLogsSchema = z.object({
  * Schema for resource audit logs
  */
 export const resourceAuditLogsSchema = z.object({
+  body: z.object({}),
   params: z.object({
     resourceType: z.enum(auditResourceTypes),
     resourceId: z.string(),
@@ -106,6 +112,7 @@ export const resourceAuditLogsSchema = z.object({
  * Schema for IP address audit logs
  */
 export const ipAuditLogsSchema = z.object({
+  body: z.object({}),
   params: z.object({
     ipAddress: z.string(),
   }),

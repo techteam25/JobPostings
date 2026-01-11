@@ -22,6 +22,7 @@ export const QUEUE_NAMES = {
   EMAIL_QUEUE: "emailQueue",
   FILE_UPLOAD_QUEUE: "fileUploadQueue",
   TEMP_FILE_CLEANUP_QUEUE: "tempFileCleanupQueue",
+  AUDIT_CLEANUP_QUEUE: "audit-cleanup-queue",
 } as const;
 
 // Job options

@@ -21,6 +21,7 @@ export class AuditMiddleware {
       // Store original end function
       const originalEnd = res.end;
       const startTime = Date.now();
+      const auditService = this.auditService; // ✅ Capture reference before scope change
 
       // Override end function to capture response
       res.end = function (this: Response, ...args: any[]) {
@@ -28,7 +29,6 @@ export class AuditMiddleware {
         const success = res.statusCode < 400 ? "true" : "false";
 
         // Log the request asynchronously (don't await to not block response)
-        const auditService = new AuditService();
         auditService
           .logFromRequest(req, action, {
             description: description || `${req.method} ${req.path}`,
@@ -151,11 +151,7 @@ export class AuditMiddleware {
    * Error logging middleware
    * Should be used in error handlers
    */
-  logError = async (
-    req: Request,
-    error: Error,
-    statusCode: number = 500
-  ) => {
+  logError = async (req: Request, error: Error, statusCode: number = 500) => {
     try {
       await this.auditService.logFromRequest(req, "system.error", {
         severity: statusCode >= 500 ? "error" : "warning",
