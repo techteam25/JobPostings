@@ -31,6 +31,9 @@ async function startServer() {
       logger.info(`🚀 Server is running on ${env.SERVER_URL}`);
       logger.info(`📊 Health check available at ${env.SERVER_URL}/health`);
       logger.info(`🔗 API available at ${env.SERVER_URL}/api`);
+      logger.info(
+        `🔗 Auth routes available at ${env.SERVER_URL}/api/auth/reference`,
+      );
       logger.info(`📚 API Documentation available at ${env.SERVER_URL}/docs`);
 
       if (isDevelopment) {
