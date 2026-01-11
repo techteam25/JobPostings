@@ -1,7 +1,7 @@
 import mysql from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
 import { reset, seed } from "drizzle-seed";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import * as schema from "./schema";
 import { userProfile } from "@/db/schema";
@@ -10,6 +10,7 @@ import { jobsDetails } from "@/db/schema";
 import { env } from "@/config/env";
 import { auth } from "@/utils/auth";
 import logger from "@/logger";
+import { userOnBoarding } from "./schema";
 
 const connection = mysql.createPool({
   host: env.DB_HOST,
@@ -187,6 +188,13 @@ async function runSeed() {
       role: "owner",
       isActive: true,
     });
+
+    await db
+      .update(userOnBoarding)
+      .set({
+        intent: "employer",
+      })
+      .where(eq(userOnBoarding.userId, i));
   }
 
   // Seed additional members manually to avoid unique constraint violations
