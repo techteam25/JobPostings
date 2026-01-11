@@ -44,6 +44,7 @@ export class TypesenseQueryBuilder {
   addArrayFilter(
     key: string,
     values:
+      | string[]
       | ("full-time" | "part-time" | "contract" | "volunteer" | "internship")[]
       | undefined,
     useOrLogic = true,

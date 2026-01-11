@@ -77,6 +77,28 @@ export async function processEmailJob(
         job.data.newStatus as string,
       );
       break;
+    case "sendJobAlertNotification":
+    case "job-alert-notification":
+      await emailService.sendJobAlertNotification(
+        userId,
+        job.data.email,
+        job.data.fullName,
+        job.data.alertName as string,
+        job.data.matches as Array<{
+          job: {
+            id: number;
+            title: string;
+            company: string;
+            location?: string;
+            jobType?: string;
+            experienceLevel?: string;
+            description?: string;
+          };
+          matchScore: number;
+        }>,
+        job.data.totalMatches as number,
+      );
+      break;
 
     default:
       logger.error(`Unknown email job type: ${job.name}`);

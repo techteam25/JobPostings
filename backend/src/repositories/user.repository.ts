@@ -1,7 +1,8 @@
-import { and, count, desc, eq, like, ne, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, like, lte, ne, or, sql } from "drizzle-orm";
 import {
   certifications,
   educations,
+  jobAlertMatches,
   jobAlerts,
   jobsDetails,
   savedJobs,
@@ -945,7 +946,7 @@ export class UserRepository extends BaseRepository<typeof user> {
    */
   async createJobAlert(
     userId: number,
-    alertData: InsertJobAlert,
+    alertData: Omit<InsertJobAlert, "userId">,
   ): Promise<JobAlert> {
     return await withDbErrorHandling(async () => {
       const [alert] = await db
@@ -1035,6 +1036,157 @@ export class UserRepository extends BaseRepository<typeof user> {
       return await db.query.jobAlerts.findFirst({
         where: and(eq(jobAlerts.id, alertId), eq(jobAlerts.userId, userId)),
       });
+    });
+  }
+
+  /**
+   * Retrieves active job alerts that are due for processing based on frequency.
+   * @param frequency The frequency type ('daily' or 'weekly').
+   * @param cutoffTime The cutoff timestamp - alerts with lastSentAt before this time will be processed.
+   * @returns Array of job alerts ready for processing.
+   */
+  async getAlertsForProcessing(
+    frequency: "daily" | "weekly",
+    cutoffTime: Date,
+  ): Promise<JobAlert[]> {
+    return await withDbErrorHandling(async () => {
+      return await db.query.jobAlerts.findMany({
+        where: and(
+          eq(jobAlerts.isActive, true),
+          eq(jobAlerts.isPaused, false),
+          eq(jobAlerts.frequency, frequency),
+          or(
+            isNull(jobAlerts.lastSentAt),
+            lte(jobAlerts.lastSentAt, cutoffTime),
+          ),
+        ),
+        with: {
+          user: {
+            columns: {
+              id: true,
+              email: true,
+              fullName: true,
+            },
+          },
+        },
+        orderBy: [asc(jobAlerts.lastSentAt)],
+      });
+    });
+  }
+
+  /**
+   * Updates the lastSentAt timestamp for a job alert.
+   * @param alertId The ID of the alert to update.
+   * @param timestamp The timestamp to set.
+   */
+  async updateAlertLastSentAt(
+    alertId: number,
+    timestamp: Date,
+  ): Promise<void> {
+    await withDbErrorHandling(async () => {
+      await db
+        .update(jobAlerts)
+        .set({ lastSentAt: timestamp })
+        .where(eq(jobAlerts.id, alertId));
+    });
+  }
+
+  /**
+   * Saves job matches for a job alert.
+   * @param matches Array of match records to insert.
+   */
+  async saveAlertMatches(
+    matches: Array<{
+      jobAlertId: number;
+      jobId: number;
+      matchScore: number;
+    }>,
+  ): Promise<void> {
+    if (matches.length === 0) return;
+
+    await withDbErrorHandling(async () => {
+      await db.insert(jobAlertMatches).values(
+        matches.map((match) => ({
+          ...match,
+          wasSent: false,
+        })),
+      );
+    });
+  }
+
+  /**
+   * Retrieves unsent matches for a job alert.
+   * @param alertId The ID of the job alert.
+   * @param limit Maximum number of matches to retrieve.
+   * @returns Array of job alert matches with job details.
+   */
+  async getUnsentMatches(alertId: number, limit: number = 10) {
+    return await withDbErrorHandling(async () => {
+      return await db.query.jobAlertMatches.findMany({
+        where: and(
+          eq(jobAlertMatches.jobAlertId, alertId),
+          eq(jobAlertMatches.wasSent, false),
+        ),
+        with: {
+          job: {
+            columns: {
+              id: true,
+              title: true,
+              city: true,
+              state: true,
+              country: true,
+              jobType: true,
+              experience: true,
+              description: true,
+              createdAt: true,
+            },
+            with: {
+              employer: {
+                columns: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [desc(jobAlertMatches.matchScore), desc(jobAlertMatches.createdAt)],
+        limit,
+      });
+    });
+  }
+
+  /**
+   * Marks job alert matches as sent.
+   * @param matchIds Array of match IDs to mark as sent.
+   */
+  async markMatchesAsSent(matchIds: number[]): Promise<void> {
+    if (matchIds.length === 0) return;
+
+    await withDbErrorHandling(async () => {
+      await db
+        .update(jobAlertMatches)
+        .set({ wasSent: true })
+        .where(inArray(jobAlertMatches.id, matchIds));
+    });
+  }
+
+  /**
+   * Gets the count of unsent matches for a job alert.
+   * @param alertId The ID of the job alert.
+   * @returns The count of unsent matches.
+   */
+  async getUnsentMatchCount(alertId: number): Promise<number> {
+    return await withDbErrorHandling(async () => {
+      const result = await db
+        .select({ count: count() })
+        .from(jobAlertMatches)
+        .where(
+          and(
+            eq(jobAlertMatches.jobAlertId, alertId),
+            eq(jobAlertMatches.wasSent, false),
+          ),
+        );
+      return result[0]?.count ?? 0;
     });
   }
 }
