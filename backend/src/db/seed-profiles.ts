@@ -1,6 +1,5 @@
 import mysql from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
-import { faker } from "@faker-js/faker";
 
 import * as schema from "./schema";
 import { userProfile } from "@/db/schema";
@@ -17,10 +16,11 @@ const connection = mysql.createPool({
 });
 
 async function seedUserProfiles() {
+  const { faker } = await import("@faker-js/faker");
   const db = drizzle(connection, { schema, mode: "default" });
 
   logger.info("Fetching existing users...");
-  
+
   // Get all existing users
   const users = await db.select().from(user);
   logger.info(`Found ${users.length} users`);
@@ -35,15 +35,17 @@ async function seedUserProfiles() {
   let existingProfilesCount = 0;
   try {
     const existingProfiles = await db.select().from(userProfile);
-    existingUserIds = new Set(existingProfiles.map(p => p.userId));
+    existingUserIds = new Set(existingProfiles.map((p) => p.userId));
     existingProfilesCount = existingProfiles.length;
   } catch (error) {
-    logger.info("No existing profiles found or table is empty, proceeding to seed all users");
+    logger.info(
+      "No existing profiles found or table is empty, proceeding to seed all users",
+    );
   }
-  
+
   // Filter out users that already have profiles
-  const usersNeedingProfiles = users.filter(u => !existingUserIds.has(u.id));
-  
+  const usersNeedingProfiles = users.filter((u) => !existingUserIds.has(u.id));
+
   logger.info(`${existingProfilesCount} profiles already exist`);
   logger.info(`Seeding profiles for ${usersNeedingProfiles.length} users...`);
 
@@ -67,11 +69,15 @@ async function seedUserProfiles() {
       });
       successCount++;
     } catch (error) {
-      logger.error(`Failed to seed profile for user ${userRecord.id}: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `Failed to seed profile for user ${userRecord.id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
-  logger.info(`✓ Successfully seeded ${successCount} out of ${usersNeedingProfiles.length} user profiles`);
+  logger.info(
+    `✓ Successfully seeded ${successCount} out of ${usersNeedingProfiles.length} user profiles`,
+  );
 }
 
 seedUserProfiles()
@@ -83,4 +89,3 @@ seedUserProfiles()
     logger.error(`Profile seeding failed: ${error}`);
     process.exit(1);
   });
-
