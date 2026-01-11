@@ -9,11 +9,18 @@ import {
 } from "@/db/schema";
 import { JobRepository } from "@/repositories/job.repository";
 import { request, TestHelpers } from "@tests/utils/testHelpers";
-import { expect, vi, describe, it, beforeEach, beforeAll, afterAll } from "vitest";
+import {
+  expect,
+  vi,
+  describe,
+  it,
+  beforeEach,
+  beforeAll,
+  afterAll,
+} from "vitest";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 import { auth } from "@/utils/auth";
 import { seedUserWithRole } from "@tests/utils/seed";
-import { organizationFixture } from "@tests/utils/fixtures";
 import { checkTestDatabase } from "@tests/utils/testDatabase";
 
 describe("Application Status Change Notification Integration Tests", () => {
@@ -44,10 +51,7 @@ describe("Application Status Change Notification Integration Tests", () => {
       throw new Error("Failed to create owner user");
     }
 
-    const organizationList = await db
-      .select()
-      .from(organizations)
-      .limit(1);
+    const organizationList = await db.select().from(organizations).limit(1);
 
     if (!organizationList[0]) {
       throw new Error("Failed to create organization");
@@ -56,10 +60,11 @@ describe("Application Status Change Notification Integration Tests", () => {
     const organization = organizationList[0];
 
     // Create job
-    const [job] = await db
+    const jobTitle = faker.person.jobTitle();
+    const [jobResult] = await db
       .insert(jobsDetails)
       .values({
-        title: faker.person.jobTitle(),
+        title: jobTitle,
         description: faker.lorem.paragraphs(3),
         city: faker.location.city(),
         state: faker.location.state(),
@@ -68,12 +73,19 @@ describe("Application Status Change Notification Integration Tests", () => {
         employerId: organization.id,
         jobType: "full-time",
         compensationType: "paid",
-        minSalary: faker.number.int({ min: 50000, max: 100000 }),
-        maxSalary: faker.number.int({ min: 100000, max: 150000 }),
         isRemote: false,
-        status: "active",
+        isActive: true,
       })
       .$returningId();
+
+    if (!jobResult) {
+      throw new Error("Failed to create job");
+    }
+
+    const job = {
+      id: jobResult.id,
+      title: jobTitle,
+    };
 
     // Create applicant
     const applicant = await auth.api.signUpEmail({
@@ -96,6 +108,10 @@ describe("Application Status Change Notification Integration Tests", () => {
         resumeUrl: faker.internet.url(),
       })
       .$returningId();
+
+    if (!application) {
+      throw new Error("Failed to create application");
+    }
 
     // Fetch applicant details
     const applicantRecord = await db
@@ -203,10 +219,11 @@ describe("Application Status Change Notification Integration Tests", () => {
       expect(response.body.data.status).toBe(newStatus);
 
       expect(queueService.addJob).toHaveBeenCalledTimes(1);
-      const callArgs = vi.mocked(queueService.addJob).mock.calls[0];
-      expect(callArgs[0]).toBe(QUEUE_NAMES.EMAIL_QUEUE);
-      expect(callArgs[1]).toBe("sendApplicationStatusUpdate");
-      expect(callArgs[2]).toMatchObject({
+      const callArgs = (queueService.addJob as any).mock.calls[0];
+      expect(callArgs).toBeDefined();
+      expect(callArgs![0]).toBe(QUEUE_NAMES.EMAIL_QUEUE);
+      expect(callArgs![1]).toBe("sendApplicationStatusUpdate");
+      expect(callArgs![2]).toMatchObject({
         email: applicantEmail,
         fullName: applicantFullName,
         jobTitle: expect.any(String),
@@ -503,7 +520,8 @@ describe("Application Status Change Notification Integration Tests", () => {
       expect(response.body.data).toHaveProperty("status", "reviewed");
 
       // Verify status was actually updated in database
-      const application = await jobRepository.findApplicationById(applicationId);
+      const application =
+        await jobRepository.findApplicationById(applicationId);
       expect(application?.application.status).toBe("reviewed");
     });
   });
@@ -519,9 +537,8 @@ describe("Application Status Change Notification Integration Tests", () => {
       vi.clearAllMocks();
 
       // Fetch current application data before the test
-      const currentApplication = await jobRepository.findApplicationById(
-        applicationId,
-      );
+      const currentApplication =
+        await jobRepository.findApplicationById(applicationId);
       if (!currentApplication) {
         throw new Error("Test application not found");
       }
@@ -546,7 +563,7 @@ describe("Application Status Change Notification Integration Tests", () => {
       );
 
       // Verify it matches the actual applicant data from database
-      const callArgs = vi.mocked(queueService.addJob).mock.calls[0];
+      const callArgs = (queueService.addJob as any).mock.calls[0];
       if (callArgs && callArgs[2]) {
         const jobData = callArgs[2] as any;
         expect(jobData.email).toBe(currentApplication.applicant.email);
@@ -564,9 +581,8 @@ describe("Application Status Change Notification Integration Tests", () => {
       vi.clearAllMocks();
 
       // Fetch current application data before the test
-      const currentApplication = await jobRepository.findApplicationById(
-        applicationId,
-      );
+      const currentApplication =
+        await jobRepository.findApplicationById(applicationId);
       if (!currentApplication) {
         throw new Error("Test application not found");
       }
@@ -590,7 +606,7 @@ describe("Application Status Change Notification Integration Tests", () => {
       );
 
       // Verify it matches the actual job title from database
-      const callArgs = vi.mocked(queueService.addJob).mock.calls[0];
+      const callArgs = (queueService.addJob as any).mock.calls[0];
       if (callArgs && callArgs[2]) {
         const jobData = callArgs[2] as any;
         expect(jobData.jobTitle).toBe(currentApplication.job.title);
@@ -625,7 +641,7 @@ describe("Application Status Change Notification Integration Tests", () => {
       );
 
       // Verify it matches the actual application ID
-      const callArgs = vi.mocked(queueService.addJob).mock.calls[0];
+      const callArgs = (queueService.addJob as any).mock.calls[0];
       if (callArgs && callArgs[2]) {
         const jobData = callArgs[2] as any;
         expect(jobData.applicationId).toBe(applicationId);
@@ -652,7 +668,7 @@ describe("Application Status Change Notification Integration Tests", () => {
       TestHelpers.validateApiResponse(response, 200);
 
       // Verify status values are passed correctly
-      const callArgs = vi.mocked(queueService.addJob).mock.calls[0];
+      const callArgs = (queueService.addJob as any).mock.calls[0];
       if (callArgs && callArgs[2]) {
         const jobData = callArgs[2] as any;
         expect(jobData.oldStatus).toBe("pending");
@@ -661,4 +677,3 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
   });
 });
-

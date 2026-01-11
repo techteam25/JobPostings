@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import { JobService } from "@/services/job.service";
 import { JobMatchingService } from "@/services/job-matching.service";
 import { BaseController } from "./base.controller";
-import { AppError, ErrorCode, ForbiddenError } from "@/utils/errors";
+import { ForbiddenError } from "@/utils/errors";
 import {
   CreateJobSchema,
   DeleteJobSchema,
@@ -28,7 +28,6 @@ import { buildPaginationMeta } from "@/utils/build-search-pagination";
  */
 export class JobController extends BaseController {
   private jobService: JobService;
-  private jobMatchingService: JobMatchingService;
 
   /**
    * Creates an instance of JobController and initializes the required services.
@@ -36,7 +35,6 @@ export class JobController extends BaseController {
   constructor() {
     super();
     this.jobService = new JobService();
-    this.jobMatchingService = new JobMatchingService();
   }
 
   /**
@@ -160,73 +158,6 @@ export class JobController extends BaseController {
       );
     } else {
       return this.handleControllerError(res, job.error);
-    }
-  };
-
-  /**
-   * Retrieves recommended jobs for the authenticated user.
-   * @param req The Express request object.
-   * @param res The Express response object.
-   */
-  getRecommendedJobs = async (req: Request, res: Response) => {
-    const userId = req.userId;
-    const { page, limit } = this.extractPaginationParams(req);
-
-    if (!userId) {
-      return this.handleControllerError(
-        res,
-        new AppError("User not authenticated", 401, ErrorCode.UNAUTHORIZED),
-        "Failed to retrieve recommended jobs",
-      );
-    }
-
-    const result = await this.jobMatchingService.getRecommendedJobs(userId, {
-      page,
-      limit,
-    });
-
-    if (result.isSuccess) {
-      return this.sendPaginatedResponse(
-        res,
-        result.value.items,
-        result.value.pagination,
-        "Recommended jobs retrieved successfully",
-      );
-    } else {
-      return this.handleControllerError(
-        res,
-        result.error,
-        "Failed to retrieve recommended jobs",
-      );
-    }
-  };
-
-  /**
-   * Retrieves jobs similar to a given job.
-   * @param req The Express request object with job ID parameters.
-   * @param res The Express response object.
-   */
-  getSimilarJobs = async (
-    req: Request<GetJobSchema["params"]>,
-    res: Response,
-  ) => {
-    try {
-      const jobId = Number(req.params.jobId);
-
-      // const { limit = 5 } = req.query;
-      const result = await this.jobMatchingService.getSimilarJobs(jobId, 5);
-
-      return this.sendSuccess(
-        res,
-        result,
-        "Similar jobs retrieved successfully",
-      );
-    } catch (error) {
-      return this.handleControllerError(
-        res,
-        error,
-        "Failed to retrieve similar jobs",
-      );
     }
   };
 
