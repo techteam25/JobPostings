@@ -4,7 +4,6 @@ import { db } from "@/db/connection";
 import { jobAlerts, user } from "@/db/schema";
 import { seedUser } from "@tests/utils/seed";
 import { eq } from "drizzle-orm";
-import { auth } from "@/utils/auth";
 
 describe("Job Alerts API Integration Tests", () => {
   let authCookie: string[];
@@ -254,15 +253,6 @@ describe("Job Alerts API Integration Tests", () => {
     });
 
     it("should not return alerts from other users", async () => {
-      // Create another user using auth API
-      const otherUserResponse = await auth.api.signUpEmail({
-        body: {
-          email: "other.user@example.com",
-          password: "Password@123",
-          name: "Other User",
-        },
-      });
-
       // Login as other user
       const loginRes = await request.post("/api/auth/sign-in/email").send({
         email: "other.user@example.com",
@@ -300,6 +290,215 @@ describe("Job Alerts API Integration Tests", () => {
         .get("/api/users/me/job-alerts/invalid")
         .set("Cookie", authCookie)
         .expect(400);
+    });
+  });
+
+  describe("POST /api/users/me/job-alerts - Validation Tests", () => {
+    it("should reject alert with no search criteria", async () => {
+      const response = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "Invalid Alert",
+          description: "No criteria",
+          frequency: "weekly",
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it("should reject alert with empty searchQuery", async () => {
+      const response = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "Invalid Alert",
+          description: "Empty search",
+          searchQuery: "   ",
+          frequency: "weekly",
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it("should reject alert with name too short", async () => {
+      const response = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "AB",
+          description: "Short name",
+          searchQuery: "test",
+          frequency: "weekly",
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it("should reject alert with name containing special characters", async () => {
+      const response = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "Test Alert @#$%",
+          description: "Special chars",
+          searchQuery: "test",
+          frequency: "weekly",
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it("should reject alert with invalid frequency", async () => {
+      const response = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "Test Alert",
+          description: "Invalid frequency",
+          searchQuery: "test",
+          frequency: "hourly",
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it("should accept alert with only city", async () => {
+      const response = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "City Alert",
+          description: "City only",
+          city: "Seattle",
+          frequency: "weekly",
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.city).toBe("Seattle");
+    });
+
+    it("should accept alert with only state", async () => {
+      const response = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "State Alert",
+          description: "State only",
+          state: "California",
+          frequency: "weekly",
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.state).toBe("California");
+    });
+
+    it("should accept alert with only skills", async () => {
+      const response = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "Skills Alert",
+          description: "Skills only",
+          skills: ["JavaScript", "React"],
+          frequency: "weekly",
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.skills).toEqual(["JavaScript", "React"]);
+    });
+
+    it("should accept alert with only jobType", async () => {
+      const response = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "JobType Alert",
+          description: "JobType only",
+          jobType: ["full-time"],
+          frequency: "weekly",
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+    });
+
+    it("should accept alert with only experienceLevel", async () => {
+      const response = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "Experience Alert",
+          description: "Experience only",
+          experienceLevel: ["mid"],
+          frequency: "weekly",
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+    });
+
+    it("should accept alert with multiple criteria", async () => {
+      const response = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "Complex Alert",
+          description: "Multiple criteria",
+          searchQuery: "software engineer",
+          city: "Seattle",
+          state: "Washington",
+          skills: ["JavaScript", "TypeScript"],
+          jobType: ["full-time", "contract"],
+          experienceLevel: ["mid", "senior"],
+          includeRemote: true,
+          frequency: "daily",
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.searchQuery).toBe("software engineer");
+      expect(response.body.data.city).toBe("Seattle");
+      expect(response.body.data.skills).toEqual(["JavaScript", "TypeScript"]);
+    });
+
+    it("should default frequency to weekly", async () => {
+      const response = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "Default Frequency",
+          description: "No frequency specified",
+          searchQuery: "test",
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.frequency).toBe("weekly");
+    });
+
+    it("should default includeRemote to true", async () => {
+      const response = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "Default Remote",
+          description: "No remote specified",
+          searchQuery: "test",
+          frequency: "weekly",
+        })
+        .expect(201);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.includeRemote).toBe(true);
     });
   });
 });
