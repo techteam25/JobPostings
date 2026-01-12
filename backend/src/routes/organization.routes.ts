@@ -1120,6 +1120,7 @@ router.post(
   authMiddleware.requireAdminOrOwnerRole(["owner", "admin"]),
   authMiddleware.ensureIsOrganizationMember,
   validate(createOrganizationInvitationSchema),
+  authMiddleware.validateRoleAssignment,
   organizationController.sendInvitation,
 );
 
@@ -1196,6 +1197,7 @@ router.delete(
   authMiddleware.requireAdminOrOwnerRole(["owner", "admin"]),
   authMiddleware.ensureIsOrganizationMember,
   validate(cancelOrganizationInvitationSchema),
+  authMiddleware.ensureInvitationBelongsToOrganization,
   organizationController.cancelInvitation,
 );
 

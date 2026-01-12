@@ -656,43 +656,6 @@ export class OrganizationService extends BaseService {
   // Organization Invitation Methods (AI-generated)
 
   /**
-   * Gets the numeric level of a role for hierarchy comparison.
-   * @param role The role to get the level for.
-   * @returns The numeric level (higher = more permissions).
-   */
-  private getRoleLevel(
-    role: "owner" | "admin" | "recruiter" | "member",
-  ): number {
-    const roleLevels: Record<
-      "owner" | "admin" | "recruiter" | "member",
-      number
-    > = {
-      owner: 4,
-      admin: 3,
-      recruiter: 2,
-      member: 1,
-    };
-    return roleLevels[role];
-  }
-
-  /**
-   * Validates if the inviter can assign the requested role based on role hierarchy.
-   * @param inviterRole The role of the person sending the invitation.
-   * @param requestedRole The role being assigned.
-   * @returns True if assignment is allowed, false otherwise.
-   */
-  private canAssignRole(
-    inviterRole: "owner" | "admin" | "recruiter" | "member",
-    requestedRole: "owner" | "admin" | "recruiter" | "member",
-  ): boolean {
-    const inviterLevel = this.getRoleLevel(inviterRole);
-    const requestedLevel = this.getRoleLevel(requestedRole);
-
-    // Can only assign roles lower than your own
-    return requestedLevel < inviterLevel;
-  }
-
-  /**
    * Sends an invitation to join an organization.
    * @param organizationId The ID of the organization.
    * @param email The email address of the invitee.
@@ -707,33 +670,10 @@ export class OrganizationService extends BaseService {
     requesterId: number,
   ): Promise<Result<{ invitationId: number; message: string }, Error>> {
     try {
-      // 1. Validate requester is owner/admin
-      const requesterMember =
-        await this.organizationRepository.findByContact(requesterId);
+      // Note: Authentication, authorization (owner/admin), organization membership,
+      // and role assignment permissions are validated by middleware before this method is called.
 
-      if (!requesterMember) {
-        return fail(
-          new ForbiddenError("You do not belong to any organization"),
-        );
-      }
-
-      if (requesterMember.organizationId !== organizationId) {
-        return fail(
-          new ForbiddenError(
-            "You can only send invitations for your own organization",
-          ),
-        );
-      }
-
-      if (!["owner", "admin"].includes(requesterMember.role)) {
-        return fail(
-          new ForbiddenError(
-            "Only organization owners and admins can send invitations",
-          ),
-        );
-      }
-
-      // 2. Validate email is not already an active member
+      // 1. Validate email is not already an active member
       const isActiveMember =
         await this.organizationRepository.isEmailActiveMember(
           email,
@@ -748,16 +688,7 @@ export class OrganizationService extends BaseService {
         );
       }
 
-      // 3. Validate role assignment permissions
-      if (!this.canAssignRole(requesterMember.role, role)) {
-        return fail(
-          new ForbiddenError(
-            `You cannot assign the ${role} role. You can only assign roles lower than your own.`,
-          ),
-        );
-      }
-
-      // 4. Check for existing invitation
+      // 2. Check for existing invitation
       const existingInvitation =
         await this.organizationRepository.findInvitationByEmailAndOrg(
           email,
@@ -783,7 +714,7 @@ export class OrganizationService extends BaseService {
         // Create new invitation
         invitation = await this.organizationRepository.createInvitation({
           organizationId,
-          email: email.toLowerCase(),
+          email: email, // Email is already normalized to lowercase by Zod validation
           role,
           token,
           invitedBy: requesterId,
@@ -821,7 +752,7 @@ export class OrganizationService extends BaseService {
           "sendOrganizationInvitation",
           {
             userId: requesterId,
-            email: email.toLowerCase(),
+            email: email, // Email is already normalized to lowercase by Zod validation
             organizationName: organization.name,
             inviterName: inviter.fullName,
             role: roleDisplay,
@@ -929,6 +860,10 @@ export class OrganizationService extends BaseService {
       }
 
       // 5. Verify user's email matches invitation email
+      // TODO: Review if toLowerCase() is still needed here. If all emails are normalized
+      // on database writes (via Zod validation), this comparison could be simplified to
+      // direct string comparison. Currently kept for safety with potentially non-normalized
+      // existing user data.
       if (user.email.toLowerCase() !== invitation.email.toLowerCase()) {
         return fail(
           new ValidationError(
@@ -1023,33 +958,10 @@ export class OrganizationService extends BaseService {
     requesterId: number,
   ): Promise<Result<{ message: string }, Error>> {
     try {
-      // 1. Validate requester is owner/admin
-      const requesterMember =
-        await this.organizationRepository.findByContact(requesterId);
+      // Note: Authentication, authorization (owner/admin), organization membership,
+      // and invitation ownership are validated by middleware before this method is called.
 
-      if (!requesterMember) {
-        return fail(
-          new ForbiddenError("You do not belong to any organization"),
-        );
-      }
-
-      if (requesterMember.organizationId !== organizationId) {
-        return fail(
-          new ForbiddenError(
-            "You can only cancel invitations for your own organization",
-          ),
-        );
-      }
-
-      if (!["owner", "admin"].includes(requesterMember.role)) {
-        return fail(
-          new ForbiddenError(
-            "Only organization owners and admins can cancel invitations",
-          ),
-        );
-      }
-
-      // 2. Find invitation
+      // 1. Find invitation
       const invitation =
         await this.organizationRepository.findInvitationById(invitationId);
 
@@ -1057,16 +969,7 @@ export class OrganizationService extends BaseService {
         return fail(new NotFoundError("Invitation not found"));
       }
 
-      // 3. Validate invitation belongs to organization
-      if (invitation.organizationId !== organizationId) {
-        return fail(
-          new ForbiddenError(
-            "This invitation does not belong to your organization",
-          ),
-        );
-      }
-
-      // 4. Check if invitation can be cancelled
+      // 2. Check if invitation can be cancelled
       if (invitation.status === "accepted") {
         return fail(
           new ValidationError("Cannot cancel an already accepted invitation"),
@@ -1077,7 +980,7 @@ export class OrganizationService extends BaseService {
         return fail(new ValidationError("Invitation is already cancelled"));
       }
 
-      // 5. Update invitation status to cancelled
+      // 3. Update invitation status to cancelled
       await this.organizationRepository.updateInvitationStatus(
         invitationId,
         {

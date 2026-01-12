@@ -387,7 +387,7 @@ export const selectOrganizationInvitationSchema =
 export const insertOrganizationInvitationSchema = createInsertSchema(
   organizationInvitations,
   {
-    email: z.string().email("Invalid email address"),
+    email: z.string().email("Invalid email address").toLowerCase(),
     role: z.enum(["owner", "admin", "recruiter", "member"]),
   },
 ).omit({
@@ -404,7 +404,7 @@ export const insertOrganizationInvitationSchema = createInsertSchema(
 
 export const createOrganizationInvitationSchema = z.object({
   body: z.object({
-    email: z.string().email("Invalid email address"),
+    email: z.string().email("Invalid email address").toLowerCase(),
     role: z.enum(["owner", "admin", "recruiter", "member"]).default("member"),
   }),
   params: organizationIdParamSchema,

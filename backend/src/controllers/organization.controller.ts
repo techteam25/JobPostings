@@ -457,13 +457,7 @@ export class OrganizationController extends BaseController {
     req: Request<CreateOrganizationInvitationInput["params"]>,
     res: Response<ApiResponse<{ invitationId: number; message: string }>>,
   ) => {
-    if (!req.userId) {
-      return this.sendError(
-        res,
-        new UnauthorizedError("Authentication required"),
-      );
-    }
-
+    // Note: Authentication is validated by middleware before this method is called.
     const organizationId = parseInt(req.params.organizationId);
     const { email, role } = req.body;
 
@@ -527,13 +521,7 @@ export class OrganizationController extends BaseController {
     req: Request<AcceptOrganizationInvitationInput["params"]>,
     res: Response<ApiResponse<{ message: string }>>,
   ) => {
-    if (!req.userId) {
-      return this.sendError(
-        res,
-        new UnauthorizedError("Authentication required"),
-      );
-    }
-
+    // Note: Authentication is validated by middleware before this method is called.
     const { token } = req.params;
 
     const result = await this.organizationService.acceptInvitation(
@@ -562,13 +550,7 @@ export class OrganizationController extends BaseController {
     req: Request<CancelOrganizationInvitationInput["params"]>,
     res: Response<ApiResponse<{ message: string }>>,
   ) => {
-    if (!req.userId) {
-      return this.sendError(
-        res,
-        new UnauthorizedError("Authentication required"),
-      );
-    }
-
+    // Note: Authentication is validated by middleware before this method is called.
     const organizationId = parseInt(req.params.organizationId);
     const invitationId = parseInt(req.params.invitationId);
 

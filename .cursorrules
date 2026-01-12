@@ -36,7 +36,23 @@
 - "Engage" → Start implementing current task immediately
 
 ### Critical Rule:
-**NEVER start implementing code when user says "ready" or "let's proceed" without the explicit "Engage" keyword. Always ask for confirmation first.**
+**NEVER start implementing code changes without the explicit "Engage" keyword, even if the user requests implementation.**
+
+**When to ask for "Engage":**
+- User asks to "move", "implement", "create", "add", "remove", "change", or "update" code
+- User says "ready", "let's proceed", "go ahead", or similar
+- User requests a specific implementation task
+
+**When NOT to ask for "Engage" (discussion only):**
+- User asks "what would happen if...", "how would we...", "can you explain..."
+- User asks "should we...", "would it be better to..."
+- User is exploring options or asking for recommendations
+
+**Examples:**
+- "Can you move X to middleware?" → **Ask:** "Ready to move X to middleware. Please confirm with 'Engage' to proceed."
+- "What would happen if we moved X?" → Discussion only, no Engage needed
+- "Let's implement feature Y" → **Ask:** "Ready to implement feature Y. Please confirm with 'Engage' to proceed."
+- "Engage move X to middleware" → Start implementing immediately
 
 ## AI Suffix Convention
 
@@ -55,3 +71,43 @@ When making AI-generated code changes, use the following suffixes for tracking:
 - **Column names**
 
 **Reason:** Database changes are harder to revert. Renaming tables later requires migrations and is disruptive. Once in production, table names are effectively permanent.
+
+## Use Existing Middleware and Test Utilities
+
+**CRITICAL:** Always leverage existing middleware and test utilities instead of duplicating validation/authorization logic.
+
+### Middleware Usage:
+- **Before writing custom authorization/authentication checks** in service or controller methods, check if middleware already handles it:
+  - `authMiddleware.authenticate` - Ensures user is authenticated and sets `req.userId`
+  - `authMiddleware.requireAdminOrOwnerRole()` - Validates user has owner/admin role
+  - `authMiddleware.ensureIsOrganizationMember` - Validates user belongs to the organization
+  - `authMiddleware.requireJobPostingRole()` - Validates user can post jobs
+  - Other middleware in `backend/src/middleware/`
+
+- **DO NOT duplicate** middleware validation logic in:
+  - Service methods (authentication/authorization checks)
+  - Controller methods (authentication checks)
+  - Route handlers
+
+- **If middleware handles it**, add a comment noting that validation is done by middleware:
+  ```typescript
+  // Note: Authentication, authorization (owner/admin), and organization membership
+  // are validated by middleware before this method is called.
+  ```
+
+### Test Utilities Usage:
+- **Before writing custom test setup/helpers**, check existing utilities in:
+  - `backend/tests/utils/` - Test helpers and fixtures
+  - `backend/tests/setup/` - Test setup and configuration
+
+- **Reuse existing test utilities** for:
+  - Creating test users/organizations
+  - Setting up test data
+  - Mocking services/repositories
+  - Authentication helpers
+
+### Benefits:
+- Reduces code duplication
+- Ensures consistent validation logic
+- Makes code easier to maintain
+- Prevents security gaps from inconsistent validation
