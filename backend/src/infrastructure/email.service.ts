@@ -615,7 +615,6 @@ ${footer}`,
         from: env.EMAIL_FROM,
         to: email,
         subject: `Application Status Update: ${jobTitle}`,
->>>>>>> origin/main
         html: htmlContent,
       };
 
