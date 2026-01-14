@@ -15,6 +15,7 @@ import { withDbErrorHandling } from "@/db/dbErrorHandler";
 import logger from "@/logger";
 import { eq } from "drizzle-orm";
 import { OrganizationService } from "@/services/organization.service";
+import { authHooks } from "./audit-auth-hooks";
 
 const emailService = new EmailService();
 const organizationService = new OrganizationService();
@@ -105,6 +106,7 @@ export const auth = betterAuth({
     },
   },
   hooks: {
+    ...authHooks,
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path === "/sign-up/email") {
         return;

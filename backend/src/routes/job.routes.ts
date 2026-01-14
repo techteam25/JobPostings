@@ -37,6 +37,7 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import { auditMiddleware } from "@/middleware/audit.middleware";
 
 const router = Router();
 const jobController = new JobController();

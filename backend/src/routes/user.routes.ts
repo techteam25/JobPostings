@@ -24,6 +24,7 @@ import {
   selectUserSchema,
 } from "@/validations/userProfile.validation";
 import { getJobSchema } from "@/validations/job.validation";
+import { auditMiddleware } from "@/middleware/audit.middleware";
 import {
   cacheMiddleware,
   invalidateCacheMiddleware,
@@ -295,6 +296,7 @@ router.put(
   "/me/profile",
   validate(updateUserPayloadSchema),
   invalidateCacheMiddleware(() => "users/me"),
+  auditMiddleware.logUserManagement("user.profile_update"),
   userController.updateProfile,
 );
 
