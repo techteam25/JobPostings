@@ -85,7 +85,6 @@ export const updateJobApplicationSchema = insertJobApplicationSchema
     createdAt: true,
     updatedAt: true,
     reviewedAt: true,
-    reviewedBy: true,
   });
 
 export const updateJobInsightsSchema = insertJobInsightsSchema

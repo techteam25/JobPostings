@@ -4,6 +4,7 @@ import { BaseController } from "./base.controller";
 import {
   CreateJobApplicationNoteInputSchema,
   CreateOrganizationSchema,
+  CreateOrganizationInvitationInput,
   DeleteOrganizationSchema,
   GetOrganizationSchema,
   JobApplicationManagementSchema,
@@ -15,6 +16,9 @@ import {
   UpdateJobStatusInputSchema,
   UpdateOrganizationSchema,
   UploadOrganizationLogoSchema,
+  GetOrganizationInvitationDetailsInput,
+  AcceptOrganizationInvitationInput,
+  CancelOrganizationInvitationInput,
 } from "@/validations/organization.validation";
 import { ApiResponse, PaginatedResponse } from "@/types";
 import {
@@ -25,7 +29,7 @@ import { JobApplicationWithNotes } from "@/validations/jobApplications.validatio
 import { GetUserSchema } from "@/validations/user.validation";
 import { SearchParams } from "@/validations/base.validation";
 import { APIError } from "better-auth/api";
-import { AppError, ErrorCode } from "@/utils/errors";
+import { AppError, ErrorCode, UnauthorizedError } from "@/utils/errors";
 
 /**
  * Controller class for handling organization-related API endpoints.
@@ -441,6 +445,130 @@ export class OrganizationController extends BaseController {
       );
     } else {
       return this.handleControllerError(res, applications.error);
+    }
+  };
+
+  /**
+   * Sends an invitation to join an organization.
+   * @param req The Express request object with organization ID and invitation data.
+   * @param res The Express response object.
+   */
+  sendInvitation = async (
+    req: Request<CreateOrganizationInvitationInput["params"]>,
+    res: Response<ApiResponse<{ invitationId: number; message: string }>>,
+  ) => {
+    // Note: Authentication is validated by middleware before this method is called.
+    const organizationId = parseInt(req.params.organizationId);
+    const { email, role } = req.body;
+
+    const result = await this.organizationService.sendInvitation(
+      organizationId,
+      email,
+      role,
+      req.userId,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        result.value.message,
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Gets invitation details by token (public endpoint).
+   * @param req The Express request object with invitation token.
+   * @param res The Express response object.
+   */
+  getInvitationDetails = async (
+    req: Request<GetOrganizationInvitationDetailsInput["params"]>,
+    res: Response<
+      ApiResponse<{
+        organizationName: string;
+        role: string;
+        inviterName: string;
+        expiresAt: Date;
+      }>
+    >,
+  ) => {
+    const { token } = req.params;
+
+    const result =
+      await this.organizationService.getInvitationDetails(token);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Invitation details retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Accepts an organization invitation (authenticated endpoint).
+   * @param req The Express request object with invitation token.
+   * @param res The Express response object.
+   */
+  acceptInvitation = async (
+    req: Request<AcceptOrganizationInvitationInput["params"]>,
+    res: Response<ApiResponse<{ message: string }>>,
+  ) => {
+    // Note: Authentication is validated by middleware before this method is called.
+    const { token } = req.params;
+
+    const result = await this.organizationService.acceptInvitation(
+      token,
+      req.userId,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        result.value.message,
+        200,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Cancels an organization invitation (authenticated endpoint, admin/owner only).
+   * @param req The Express request object with organization ID and invitation ID.
+   * @param res The Express response object.
+   */
+  cancelInvitation = async (
+    req: Request<CancelOrganizationInvitationInput["params"]>,
+    res: Response<ApiResponse<{ message: string }>>,
+  ) => {
+    // Note: Authentication is validated by middleware before this method is called.
+    const organizationId = parseInt(req.params.organizationId);
+    const invitationId = parseInt(req.params.invitationId);
+
+    const result = await this.organizationService.cancelInvitation(
+      organizationId,
+      invitationId,
+      req.userId,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        result.value.message,
+        200,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
     }
   };
 }
