@@ -31,6 +31,14 @@ export const auth = betterAuth({
     provider: "mysql",
   }),
   trustedOrigins: [env.FRONTEND_URL],
+  baseURL: isProduction ? env.SERVER_URL : undefined,
+  basePath: "/api/auth",
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60, // 5 minutes
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: isProduction,
@@ -87,6 +95,13 @@ export const auth = betterAuth({
   advanced: {
     database: {
       useNumberId: true,
+    },
+    defaultCookieAttributes: {
+      domain: isProduction ? ".getinvolved.team" : undefined,
+      sameSite: "lax",
+      path: "/",
+      httpOnly: true,
+      secure: isProduction,
     },
   },
   hooks: {
