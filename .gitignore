@@ -4,3 +4,12 @@
 
 # User-specific stuff
 .idea
+
+# macOS
+.DS_Store
+
+# Cursor AI rules (local only)
+.cursorrules
+
+# Documentation (local only)
+backend/documentation/
