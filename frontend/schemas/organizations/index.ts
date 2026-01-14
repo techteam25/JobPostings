@@ -1,23 +1,26 @@
 import { z } from "zod";
 
-export const createOrganizationSchema = z
-  .object({
-    name: z
-      .string()
-      .min(1, "Name is required")
-      .max(100, "Name can't be longer than 100 characters"),
-    streetAddress: z.string().min(1, "Street Address is required"),
-    city: z.string().min(1, "City is required"),
-    state: z.string(),
-    country: z.string().min(1, "Country is required"),
-    zipCode: z.string(),
-    industry: z.string(),
-    size: z.string(),
-    url: z.url("Invalid URL format").nonempty("Website URL is required"),
-    mission: z.string().min(1, "Mission is required"),
-    phone: z.string().min(10, "Phone number is required"),
-    logo: z.union([z.undefined(), z.file()]),
-  })
+// Base schema without refinements
+const baseOrganizationSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(100, "Name can't be longer than 100 characters"),
+  streetAddress: z.string().min(1, "Street Address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string(),
+  country: z.string().min(1, "Country is required"),
+  zipCode: z.string(),
+  industry: z.string(),
+  size: z.string(),
+  url: z.url("Invalid URL format").nonempty("Website URL is required"),
+  mission: z.string().min(1, "Mission is required"),
+  phone: z.string().min(10, "Phone number is required"),
+  logo: z.union([z.undefined(), z.file()]),
+});
+
+// Full schema with refinements (for complete validation)
+export const createOrganizationSchema = baseOrganizationSchema
   .refine((data) => data.country === "United States" && data.state.length > 0, {
     message: "State is required when country is United States",
   })
@@ -38,14 +41,15 @@ export const createOrganizationSchema = z
     path: ["logo"],
   });
 
-export const generalCompanyInfoSchema = createOrganizationSchema.pick({
+// Pick from base schema (before refinements)
+export const generalCompanyInfoSchema = baseOrganizationSchema.pick({
   name: true,
   industry: true,
   size: true,
   mission: true,
 });
 
-export const locationCompanyInfoSchema = createOrganizationSchema.pick({
+export const locationCompanyInfoSchema = baseOrganizationSchema.pick({
   streetAddress: true,
   city: true,
   state: true,
@@ -53,7 +57,7 @@ export const locationCompanyInfoSchema = createOrganizationSchema.pick({
   zipCode: true,
 });
 
-export const contactCompanyInfoSchema = createOrganizationSchema.pick({
+export const contactCompanyInfoSchema = baseOrganizationSchema.pick({
   phone: true,
   url: true,
   logo: true,
