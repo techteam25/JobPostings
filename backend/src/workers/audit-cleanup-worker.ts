@@ -95,8 +95,7 @@ export function initializeAuditCleanupWorker(): void {
  */
 export async function scheduleAuditCleanupJob() {
   try {
-    const retentionDays = parseInt(process.env.AUDIT_RETENTION_DAYS || "90");
-    const cronSchedule = process.env.AUDIT_CLEANUP_SCHEDULE || "0 2 * * *";
+    const retentionDays = 90; // Audit logs older than 90 days will be deleted
 
     await queueService.addJob(
       QUEUE_NAMES.AUDIT_CLEANUP_QUEUE,
@@ -104,14 +103,14 @@ export async function scheduleAuditCleanupJob() {
       { retentionDays },
       {
         repeat: {
-          pattern: cronSchedule, 
+          pattern: "0 2 * * *", // Daily at 2 AM
         },
         jobId: "audit-log-cleanup", 
       }
     );
 
     logger.info(
-      { retentionDays, schedule: cronSchedule },
+      { retentionDays, schedule: "0 2 * * *" },
       "📅 Scheduled audit log cleanup job"
     );
   } catch (error) {

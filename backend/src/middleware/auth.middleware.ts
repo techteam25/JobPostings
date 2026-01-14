@@ -11,6 +11,7 @@ import { OrganizationService } from "@/services/organization.service";
 import { GetOrganizationSchema } from "@/validations/organization.validation";
 import { GetUserSchema } from "@/validations/user.validation";
 import { JobRepository } from "@/repositories/job.repository";
+import { OrganizationRepository } from "@/repositories/organization.repository";
 import { GetJobApplicationSchema } from "@/validations/jobApplications.validation";
 import { GetJobSchema } from "@/validations/job.validation";
 import { NotFoundError } from "@/utils/errors";
@@ -23,6 +24,7 @@ export class AuthMiddleware {
   private readonly organizationService: OrganizationService;
   private readonly userService: UserService;
   private readonly jobRepository: JobRepository;
+  private readonly organizationRepository: OrganizationRepository;
   private readonly jobService: JobService;
   private readonly auditService: AuditService;
 
@@ -33,6 +35,7 @@ export class AuthMiddleware {
     this.organizationService = new OrganizationService();
     this.userService = new UserService();
     this.jobRepository = new JobRepository();
+    this.organizationRepository = new OrganizationRepository();
     this.jobService = new JobService();
     this.auditService = new AuditService();
   }
@@ -872,5 +875,193 @@ export class AuthMiddleware {
         });
       }
     };
+  };
+
+  /**
+   * Gets the numeric level for a role (higher = more permissions).
+   * @param role The role to get the level for.
+   * @returns The numeric level.
+   */
+  private getRoleLevel(
+    role: "owner" | "admin" | "recruiter" | "member",
+  ): number {
+    const roleLevels: Record<
+      "owner" | "admin" | "recruiter" | "member",
+      number
+    > = {
+      owner: 4,
+      admin: 3,
+      recruiter: 2,
+      member: 1,
+    };
+    return roleLevels[role];
+  }
+
+  /**
+   * Validates if the inviter can assign the requested role based on role hierarchy.
+   * @param inviterRole The role of the person sending the invitation.
+   * @param requestedRole The role being assigned.
+   * @returns True if assignment is allowed, false otherwise.
+   */
+  private canAssignRole(
+    inviterRole: "owner" | "admin" | "recruiter" | "member",
+    requestedRole: "owner" | "admin" | "recruiter" | "member",
+  ): boolean {
+    const inviterLevel = this.getRoleLevel(inviterRole);
+    const requestedLevel = this.getRoleLevel(requestedRole);
+
+    // Can only assign roles lower than your own
+    return requestedLevel < inviterLevel;
+  }
+
+  /**
+   * Middleware to validate that the requester can assign the requested role.
+   * Validates role assignment permissions based on role hierarchy.
+   * Must be used after ensureIsOrganizationMember middleware.
+   * @param req The Express request object with organization member and role in body.
+   * @param res The Express response object.
+   * @param next The next middleware function.
+   */
+  validateRoleAssignment = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      if (!req.userId) {
+        return res.status(401).json({
+          success: false,
+          status: "error",
+          error: "UNAUTHORIZED",
+          message: "Authentication required",
+        });
+      }
+
+      // Get the role from request body
+      const requestedRole = (req.body as { role?: string })?.role;
+      if (!requestedRole) {
+        return res.status(400).json({
+          success: false,
+          status: "error",
+          error: "BAD_REQUEST",
+          message: "Role is required",
+        });
+      }
+
+      // Get requester's organization member
+      const requesterMember =
+        await this.organizationService.getOrganizationMember(req.userId);
+
+      if (!requesterMember.isSuccess) {
+        return res.status(403).json({
+          success: false,
+          status: "error",
+          error: "FORBIDDEN",
+          message: "Insufficient permissions",
+        });
+      }
+
+      // Validate role assignment permissions
+      const canAssign = this.canAssignRole(
+        requesterMember.value.role as
+          | "owner"
+          | "admin"
+          | "recruiter"
+          | "member",
+        requestedRole as "owner" | "admin" | "recruiter" | "member",
+      );
+
+      if (!canAssign) {
+        return res.status(403).json({
+          success: false,
+          status: "error",
+          error: "FORBIDDEN",
+          message: `You cannot assign the ${requestedRole} role. You can only assign roles lower than your own.`,
+        });
+      }
+
+      return next();
+    } catch (error) {
+      logger.error(error);
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        error: "INTERNAL_SERVER_ERROR",
+        message: "Error validating role assignment",
+      });
+    }
+  };
+
+  /**
+   * Middleware to ensure the invitation belongs to the specified organization.
+   * Validates resource ownership before allowing operations on invitations.
+   * Must be used after ensureIsOrganizationMember middleware.
+   * @param req The Express request object with organizationId and invitationId in params.
+   * @param res The Express response object.
+   * @param next The next middleware function.
+   */
+  ensureInvitationBelongsToOrganization = async (
+    req: Request<{ organizationId: string; invitationId: string }>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      if (!req.params.organizationId || !req.params.invitationId) {
+        return res.status(400).json({
+          success: false,
+          status: "error",
+          error: "BAD_REQUEST",
+          message: "Organization ID and invitation ID are required",
+        });
+      }
+
+      const organizationId = parseInt(req.params.organizationId);
+      const invitationId = parseInt(req.params.invitationId);
+
+      if (isNaN(organizationId) || isNaN(invitationId)) {
+        return res.status(400).json({
+          success: false,
+          status: "error",
+          error: "BAD_REQUEST",
+          message: "Invalid organization ID or invitation ID",
+        });
+      }
+
+      // Find invitation
+      const invitation =
+        await this.organizationRepository.findInvitationById(invitationId);
+
+      if (!invitation) {
+        return res.status(404).json({
+          success: false,
+          status: "error",
+          error: "NOT_FOUND",
+          message: "Invitation not found",
+        });
+      }
+
+      // Validate invitation belongs to organization
+      if (invitation.organizationId !== organizationId) {
+        return res.status(403).json({
+          success: false,
+          status: "error",
+          error: "FORBIDDEN",
+          message: "This invitation does not belong to your organization",
+        });
+      }
+
+      // Attach invitation to request for use in controller/service
+      (req as any).invitation = invitation;
+
+      return next();
+    } catch (error) {
+      logger.error(error);
+      return res.status(500).json({
+        success: false,
+        status: "error",
+        error: "INTERNAL_SERVER_ERROR",
+        message: "Error validating invitation ownership",
+      });
+    }
   };
 }

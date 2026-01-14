@@ -21,7 +21,7 @@ export class AuditMiddleware {
       // Store original end function
       const originalEnd = res.end;
       const startTime = Date.now();
-      const auditService = this.auditService; // ✅ Capture reference before scope change
+      const auditService = this.auditService;
 
       // Override end function to capture response
       res.end = function (this: Response, ...args: any[]) {
@@ -33,15 +33,14 @@ export class AuditMiddleware {
           .logFromRequest(req, action, {
             description: description || `${req.method} ${req.path}`,
             success: success as "true" | "false",
-            metadata: {
-              statusCode: res.statusCode,
-              duration,
-            },
+            metadata: { statusCode: res.statusCode, duration },
+          })
+          .then(() => {
+            console.log(`✅ Audit log created for ${action}`);
           })
           .catch((error) => {
-            console.error("Failed to log audit trail:", error);
+            console.error("❌ Failed to log audit trail:", error);
           });
-
         // Call original end function
         return originalEnd.apply(this, args as Parameters<typeof originalEnd>);
       };

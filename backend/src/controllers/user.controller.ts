@@ -27,6 +27,12 @@ import {
 import { GetJobSchema } from "@/validations/job.validation";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 import { AuditService } from "@/services/audit.service";
+import {
+  CreateJobAlert,
+  GetJobAlert,
+  GetUserJobAlertsQuery,
+  JobAlert,
+} from "@/validations/jobAlerts.validation";
 
 /**
  * Controller class for handling user-related API endpoints.
@@ -638,6 +644,85 @@ export class UserController extends BaseController {
         res,
         result.value,
         "Successfully resubscribed to email notifications",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Creates a new job alert for the authenticated user.
+   * Validates that user has fewer than 10 active alerts.
+   * @param req The Express request object with alert data.
+   * @param res The Express response object.
+   */
+  createJobAlert = async (
+    req: Request<{}, {}, CreateJobAlert["body"]>,
+    res: Response<ApiResponse<JobAlert>>,
+  ) => {
+    const alertData = req.body;
+    const userId = req.userId!;
+
+    const result = await this.userService.createJobAlert(userId, alertData);
+
+    if (result.isSuccess) {
+      return this.sendSuccess<JobAlert>(
+        res,
+        result.value,
+        "Job alert created successfully",
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Retrieves all job alerts for the authenticated user with pagination.
+   * @param req The Express request object with query parameters.
+   * @param res The Express response object.
+   */
+  getUserJobAlerts = async (
+    req: Request<{}, {}, GetUserJobAlertsQuery["query"]>,
+    res: Response<ApiResponse<JobAlert>>,
+  ) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const userId = req.userId!;
+
+    const result = await this.userService.getUserJobAlerts(userId, page, limit);
+
+    if (result.isSuccess) {
+      return this.sendPaginatedResponse<JobAlert>(
+        res,
+        result.value.items,
+        result.value.pagination,
+        "Job alerts retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Retrieves a specific job alert by ID for the authenticated user.
+   * @param req The Express request object with alert ID parameter.
+   * @param res The Express response object.
+   */
+  getJobAlertById = async (
+    req: Request<GetJobAlert["params"]>,
+    res: Response<ApiResponse<JobAlert>>,
+  ) => {
+    const alertId = Number(req.params.id);
+    const userId = req.userId!;
+
+    const result = await this.userService.getJobAlertById(userId, alertId);
+
+    if (result.isSuccess) {
+      return this.sendSuccess<JobAlert>(
+        res,
+        result.value,
+        "Job alert retrieved successfully",
       );
     } else {
       return this.handleControllerError(res, result.error);

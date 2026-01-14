@@ -29,6 +29,11 @@ export class EmailService extends BaseService {
         user: env.SMTP_USER,
         pass: env.SMTP_PASS,
       },
+      // dkim: {
+      //   domainName: "getinvolved.team", // domain
+      //   keySelector: "default, // e.g., 'default' or '2026'
+      //   privateKey: privateKey, // Private key string
+      // },
     });
     this.userRepository = new UserRepository();
   }
@@ -447,6 +452,98 @@ ${footer}`,
   }
 
   /**
+<<<<<<< HEAD
+   * Sends an organization invitation email to the invitee.
+   * @param email The recipient's email address.
+   * @param organizationName The name of the organization.
+   * @param inviterName The name of the person sending the invitation.
+   * @param role The role being assigned.
+   * @param token The invitation token.
+   * @param expirationDate The expiration date of the invitation.
+   */
+  async sendOrganizationInvitation(
+    email: string,
+    organizationName: string,
+    inviterName: string,
+    role: string,
+    token: string,
+    expirationDate: string,
+  ): Promise<void> {
+    const template = await this.loadTemplate("organizationInvitation");
+
+    const acceptanceLink = `${env.FRONTEND_URL}/invitations/accept?token=${token}`;
+    const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+    // Format role for display (capitalize first letter)
+    const roleDisplay =
+      role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+
+    const htmlContent = template
+      .replace(/{{logoPath}}/g, logoPath)
+      .replace(/{{organizationName}}/g, organizationName)
+      .replace(/{{inviterName}}/g, inviterName)
+      .replace(/{{role}}/g, roleDisplay)
+      .replace(/{{acceptanceLink}}/g, acceptanceLink)
+      .replace(/{{expirationDate}}/g, expirationDate);
+
+    try {
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: `Invitation to join ${organizationName} on getInvolved`,
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  /**
+   * Sends a welcome email to a new organization member.
+   * @param email The recipient's email address.
+   * @param name The recipient's name.
+   * @param organizationName The name of the organization.
+   * @param role The role assigned to the member.
+   */
+  async sendOrganizationWelcome(
+    email: string,
+    name: string,
+    organizationName: string,
+    role: string,
+  ): Promise<void> {
+    const template = await this.loadTemplate("organizationWelcome");
+
+    const dashboardLink = `${env.FRONTEND_URL}/dashboard`;
+    const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+    // Format role for display (capitalize first letter)
+    const roleDisplay =
+      role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+
+    const htmlContent = template
+      .replace(/{{logoPath}}/g, logoPath)
+      .replace(/{{name}}/g, name)
+      .replace(/{{organizationName}}/g, organizationName)
+      .replace(/{{role}}/g, roleDisplay)
+      .replace(/{{dashboardLink}}/g, dashboardLink);
+
+    try {
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: `Welcome to ${organizationName} on getInvolved!`,
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  /**
    * Sends an application status update notification email to the applicant.
    * @param email The recipient's email address.
    * @param fullName The recipient's full name.
@@ -529,6 +626,125 @@ ${footer}`,
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
       console.error(error);
+    }
+  }
+
+  /**
+   * Sends a job alert notification email with matched jobs.
+   * @param userId The ID of the user.
+   * @param email The user's email address.
+   * @param fullName The user's full name.
+   * @param alertName The name of the job alert.
+   * @param matches Array of matched jobs with details.
+   * @param totalMatches Total number of matches found.
+   */
+  async sendJobAlertNotification(
+    userId: number,
+    email: string,
+    fullName: string,
+    alertName: string,
+    matches: Array<{
+      job: {
+        id: number;
+        title: string;
+        company: string;
+        location?: string;
+        jobType?: string;
+        experienceLevel?: string;
+        description?: string;
+      };
+      matchScore: number;
+    }>,
+    totalMatches: number,
+  ): Promise<void> {
+    try {
+      // Check if user has email preferences enabled for job matches
+      const canSend = await this.canSendEmail(userId, EmailType.JOB_MATCH);
+      if (!canSend) {
+        console.log(
+          `User ${userId} has disabled job match notifications, skipping email`,
+        );
+        return;
+      }
+
+      const template = await this.loadTemplate("jobAlertNotification");
+      const logoPath = await this.getImageAsBase64("logo.png");
+      const footer = await this.generateEmailFooter(userId, EmailType.JOB_MATCH);
+
+      // Build job matches HTML
+      const jobsHtml = matches
+        .map(
+          (match) => `
+        <div style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px;">
+          <h3 style="margin: 0 0 10px 0; color: #333;">
+            <a href="${env.FRONTEND_URL}/jobs/${match.job.id}" style="color: #0066cc; text-decoration: none;">
+              ${match.job.title}
+            </a>
+          </h3>
+          <p style="margin: 5px 0; color: #666;">
+            <strong>${match.job.company}</strong>
+            ${match.job.location ? ` • ${match.job.location}` : ""}
+          </p>
+          ${
+            match.job.jobType || match.job.experienceLevel
+              ? `
+          <p style="margin: 5px 0; color: #666; font-size: 14px;">
+            ${match.job.jobType ? `${match.job.jobType}` : ""}
+            ${match.job.jobType && match.job.experienceLevel ? " • " : ""}
+            ${match.job.experienceLevel ? `${match.job.experienceLevel}` : ""}
+          </p>
+          `
+              : ""
+          }
+          ${
+            match.job.description
+              ? `
+          <p style="margin: 10px 0; color: #555; font-size: 14px;">
+            ${match.job.description.substring(0, 200)}${match.job.description.length > 200 ? "..." : ""}
+          </p>
+          `
+              : ""
+          }
+          <a href="${env.FRONTEND_URL}/jobs/${match.job.id}" 
+             style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px;">
+            View Job
+          </a>
+        </div>
+      `,
+        )
+        .join("");
+
+      const moreMatchesText =
+        totalMatches > matches.length
+          ? `<p style="margin: 20px 0; color: #666; font-size: 14px;">
+               And ${totalMatches - matches.length} more match${totalMatches - matches.length > 1 ? "es" : ""}!
+             </p>`
+          : "";
+
+      const htmlContent = template
+        .replace("{{name}}", fullName)
+        .replace("{{alertName}}", alertName)
+        .replace("{{matchCount}}", totalMatches.toString())
+        .replace(
+          "{{matchWord}}",
+          totalMatches === 1 ? "match" : "matches",
+        )
+        .replace("{{jobsHtml}}", jobsHtml)
+        .replace("{{moreMatchesText}}", moreMatchesText)
+        .replace("{{alertsLink}}", `${env.FRONTEND_URL}/job-alerts`)
+        .replace("{{logoPath}}", logoPath)
+        .replace("{{footer}}", footer);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: `${totalMatches} New Job ${totalMatches === 1 ? "Match" : "Matches"} for "${alertName}"`,
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error("Failed to send job alert notification", error);
     }
   }
 }

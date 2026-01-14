@@ -18,6 +18,7 @@ import { workExperiences } from "./workExperiences";
 import { userCertifications } from "./certifications";
 import { organizationMembers } from "./organizations";
 import { FileMetadata } from "@/validations/file.validation";
+import { jobAlerts } from "@/db/schema/jobAlerts";
 
 /**
  * Users table schema defining the structure for storing user account information.
@@ -167,6 +168,7 @@ export const userRelations = relations(user, ({ one, many }) => ({
     fields: [user.id],
     references: [userEmailPreferences.userId],
   }),
+  jobAlerts: many(jobAlerts),
 }));
 
 /**

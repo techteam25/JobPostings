@@ -68,6 +68,24 @@ export async function processEmailJob(
         job.data.jobId as number,
       );
       break;
+    case "sendOrganizationInvitation":
+      await emailService.sendOrganizationInvitation(
+        job.data.email as string,
+        job.data.organizationName as string,
+        job.data.inviterName as string,
+        job.data.role as string,
+        job.data.token as string,
+        job.data.expirationDate as string,
+      );
+      break;
+    case "sendOrganizationWelcome":
+      await emailService.sendOrganizationWelcome(
+        job.data.email as string,
+        job.data.name as string,
+        job.data.organizationName as string,
+        job.data.role as string,
+      );
+      break;
     case "sendApplicationStatusUpdate":
       await emailService.sendApplicationStatusUpdate(
         job.data.email,
@@ -75,6 +93,28 @@ export async function processEmailJob(
         job.data.jobTitle as string,
         job.data.oldStatus as string,
         job.data.newStatus as string,
+      );
+      break;
+    case "sendJobAlertNotification":
+    case "job-alert-notification":
+      await emailService.sendJobAlertNotification(
+        userId,
+        job.data.email,
+        job.data.fullName,
+        job.data.alertName as string,
+        job.data.matches as Array<{
+          job: {
+            id: number;
+            title: string;
+            company: string;
+            location?: string;
+            jobType?: string;
+            experienceLevel?: string;
+            description?: string;
+          };
+          matchScore: number;
+        }>,
+        job.data.totalMatches as number,
       );
       break;
 

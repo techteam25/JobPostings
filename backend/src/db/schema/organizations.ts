@@ -106,6 +106,45 @@ export const organizationRelations = relations(organizations, ({ many }) => ({
 }));
 
 /**
+ * Organization invitations table schema defining the structure for storing organization member invitations.
+ */
+export const organizationInvitations = mysqlTable(
+  "organization_invitations",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    organizationId: int("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    email: varchar("email", { length: 255 }).notNull(),
+    role: mysqlEnum("role", ["owner", "admin", "recruiter", "member"])
+      .default("member")
+      .notNull(),
+    token: varchar("token", { length: 255 }).notNull().unique(),
+    invitedBy: int("invited_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: mysqlEnum("status", ["pending", "accepted", "expired", "cancelled"])
+      .default("pending")
+      .notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    acceptedAt: timestamp("accepted_at"),
+    cancelledAt: timestamp("cancelled_at"),
+    cancelledBy: int("cancelled_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    expiredAt: timestamp("expired_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    index("idx_org_invitations_org").on(table.organizationId),
+    index("idx_org_invitations_email").on(table.email),
+    index("idx_org_invitations_token").on(table.token),
+    index("idx_org_invitations_status").on(table.status),
+  ],
+);
+
+/**
  * Relations for the organizationMembers table, defining relationships with user and organization.
  */
 export const organizationMemberRelations = relations(
@@ -118,6 +157,27 @@ export const organizationMemberRelations = relations(
     organization: one(organizations, {
       fields: [organizationMembers.organizationId],
       references: [organizations.id],
+    }),
+  }),
+);
+
+/**
+ * Relations for the organizationInvitations table, defining relationships with user and organization.
+ */
+export const organizationInvitationRelations = relations(
+  organizationInvitations,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [organizationInvitations.organizationId],
+      references: [organizations.id],
+    }),
+    inviter: one(user, {
+      fields: [organizationInvitations.invitedBy],
+      references: [user.id],
+    }),
+    cancelledByUser: one(user, {
+      fields: [organizationInvitations.cancelledBy],
+      references: [user.id],
     }),
   }),
 );

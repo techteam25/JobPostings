@@ -15,6 +15,10 @@ import {
   UpdateUser,
   UpdateUserProfile,
 } from "@/validations/userProfile.validation";
+import {
+  CreateJobAlertInput,
+  JobAlert,
+} from "@/validations/jobAlerts.validation";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 import crypto from "crypto";
@@ -921,6 +925,91 @@ export class UserService extends BaseService {
       return `${env.SERVER_URL}/api/users/me/email-preferences/unsubscribe/${preferences.unsubscribeToken}`;
     } catch (error) {
       return null;
+    }
+  }
+
+  /**
+   * Creates a new job alert for a user.
+   * Validates that user has fewer than 10 active alerts.
+   * @param userId The ID of the user.
+   * @param alertData The job alert data.
+   * @returns A Result containing the created job alert or an error.
+   */
+  async createJobAlert(userId: number, alertData: CreateJobAlertInput) {
+    try {
+      // Check if user can create more alerts
+      const canCreate = await this.userRepository.canCreateJobAlert(userId);
+
+      if (!canCreate.canCreate) {
+        return fail(
+          new ValidationError(
+            `Maximum active job alerts reached. You have ${canCreate.currentCount} active alerts (limit: ${canCreate.maxAllowed}).`,
+          ),
+        );
+      }
+
+      // Create the alert
+      const alert = await this.userRepository.createJobAlert(userId, alertData);
+
+      if (!alert) {
+        return fail(new DatabaseError("Failed to create job alert"));
+      }
+
+      return ok(alert);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to create job alert"));
+    }
+  }
+
+  /**
+   * Retrieves all job alerts for a user with pagination.
+   * @param userId The ID of the user.
+   * @param page The page number for pagination.
+   * @param limit The number of alerts per page.
+   * @returns A Result containing the alerts and pagination meta or an error.
+   */
+  async getUserJobAlerts(userId: number, page: number, limit: number) {
+    try {
+      const result = await this.userRepository.getUserJobAlerts(userId, {
+        page,
+        limit,
+      });
+
+      return ok({
+        items: result.items,
+        pagination: result.pagination as PaginationMeta,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to retrieve job alerts"));
+    }
+  }
+
+  /**
+   * Retrieves a specific job alert by ID for a user.
+   * @param userId The ID of the user.
+   * @param alertId The ID of the alert.
+   * @returns A Result containing the job alert or an error.
+   */
+  async getJobAlertById(userId: number, alertId: number) {
+    try {
+      const alert = await this.userRepository.getJobAlertById(userId, alertId);
+
+      if (!alert) {
+        return fail(new NotFoundError("Job alert", alertId));
+      }
+
+      return ok(alert);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to retrieve job alert"));
     }
   }
 }

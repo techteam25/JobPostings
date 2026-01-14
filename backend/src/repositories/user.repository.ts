@@ -1,7 +1,9 @@
-import { and, count, desc, eq, like, ne, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, like, lte, ne, or, sql } from "drizzle-orm";
 import {
   certifications,
   educations,
+  jobAlertMatches,
+  jobAlerts,
   jobsDetails,
   savedJobs,
   user,
@@ -20,6 +22,7 @@ import {
   UpdateUserProfile,
   User,
 } from "@/validations/userProfile.validation";
+import { InsertJobAlert, JobAlert } from "@/validations/jobAlerts.validation";
 
 /**
  * Repository class for managing user-related database operations, including profiles and saved jobs.
@@ -905,6 +908,355 @@ export class UserRepository extends BaseRepository<typeof user> {
       }
 
       return preferences[emailType] === true;
+    });
+  }
+
+  /**
+   * Checks if a user can create more job alerts.
+   * @param userId The ID of the user.
+   * @returns Object with canCreate flag, current count, and max allowed.
+   */
+  async canCreateJobAlert(userId: number): Promise<{
+    canCreate: boolean;
+    currentCount: number;
+    maxAllowed: number;
+  }> {
+    return await withDbErrorHandling(async () => {
+      const result = await db
+        .select({ count: count() })
+        .from(jobAlerts)
+        .where(and(eq(jobAlerts.userId, userId), eq(jobAlerts.isActive, true)));
+
+      const currentCount = result[0]?.count ?? 0;
+      const MAX_ALERTS_PER_USER = 10;
+
+      return {
+        canCreate: currentCount < MAX_ALERTS_PER_USER,
+        currentCount,
+        maxAllowed: MAX_ALERTS_PER_USER,
+      };
+    });
+  }
+
+  /**
+   * Creates a new job alert for a user.
+   * @param userId The ID of the user.
+   * @param alertData The job alert data.
+   * @returns The created job alert.
+   */
+  async createJobAlert(
+    userId: number,
+    alertData: Omit<InsertJobAlert, "userId">,
+  ): Promise<JobAlert> {
+    return await withDbErrorHandling(async () => {
+      const [alert] = await db
+        .insert(jobAlerts)
+        .values({
+          ...alertData,
+          userId,
+        })
+        .$returningId();
+
+      if (!alert || isNaN(alert.id)) {
+        throw new DatabaseError(`Invalid insertId returned: ${alert?.id}`);
+      }
+
+      // Fetch the created alert with all fields
+      const createdAlert = await db.query.jobAlerts.findFirst({
+        where: eq(jobAlerts.id, alert.id),
+      });
+
+      if (!createdAlert) {
+        throw new DatabaseError("Failed to retrieve created job alert");
+      }
+
+      return createdAlert;
+    });
+  }
+
+  /**
+   * Retrieves all job alerts for a user with pagination.
+   * @param userId The ID of the user.
+   * @param pagination Pagination parameters.
+   * @returns Paginated job alerts with metadata.
+   */
+  async getUserJobAlerts(
+    userId: number,
+    pagination: { page: number; limit: number },
+  ) {
+    return await withDbErrorHandling(async () => {
+      const { page, limit } = pagination;
+      const offset = (page - 1) * limit;
+
+      // Get total count
+      const countResult = await db
+        .select({ total: count() })
+        .from(jobAlerts)
+        .where(eq(jobAlerts.userId, userId));
+
+      const total = countResult[0]?.total ?? 0;
+
+      // Get paginated alerts
+      const alerts = await db.query.jobAlerts.findMany({
+        where: eq(jobAlerts.userId, userId),
+        limit,
+        offset,
+        orderBy: [desc(jobAlerts.createdAt)],
+      });
+
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        items: alerts,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages,
+          hasNext: page < totalPages,
+          hasPrevious: page > 1,
+          nextPage: page < totalPages ? page + 1 : null,
+          previousPage: page > 1 ? page - 1 : null,
+        },
+      };
+    });
+  }
+
+  /**
+   * Retrieves a specific job alert by ID for a user.
+   * @param userId The ID of the user.
+   * @param alertId The ID of the alert.
+   * @returns The job alert or undefined if not found.
+   */
+  async getJobAlertById(
+    userId: number,
+    alertId: number,
+  ): Promise<JobAlert | undefined> {
+    return await withDbErrorHandling(async () => {
+      return await db.query.jobAlerts.findFirst({
+        where: and(eq(jobAlerts.id, alertId), eq(jobAlerts.userId, userId)),
+      });
+    });
+  }
+
+  /**
+   * Retrieves active job alerts that are due for processing based on frequency.
+   * @param frequency The frequency type ('daily' or 'weekly').
+   * @param cutoffTime The cutoff timestamp - alerts with lastSentAt before this time will be processed.
+   * @returns Array of job alerts ready for processing.
+   */
+  async getAlertsForProcessing(
+    frequency: "daily" | "weekly",
+    cutoffTime: Date,
+  ): Promise<JobAlert[]> {
+    return await withDbErrorHandling(async () => {
+      return await db.query.jobAlerts.findMany({
+        where: and(
+          eq(jobAlerts.isActive, true),
+          eq(jobAlerts.isPaused, false),
+          eq(jobAlerts.frequency, frequency),
+          or(
+            isNull(jobAlerts.lastSentAt),
+            lte(jobAlerts.lastSentAt, cutoffTime),
+          ),
+        ),
+        with: {
+          user: {
+            columns: {
+              id: true,
+              email: true,
+              fullName: true,
+            },
+          },
+        },
+        orderBy: [asc(jobAlerts.lastSentAt)],
+      });
+    });
+  }
+
+  /**
+   * Updates the lastSentAt timestamp for a job alert.
+   * @param alertId The ID of the alert to update.
+   * @param timestamp The timestamp to set.
+   */
+  async updateAlertLastSentAt(
+    alertId: number,
+    timestamp: Date,
+  ): Promise<void> {
+    await withDbErrorHandling(async () => {
+      await db
+        .update(jobAlerts)
+        .set({ lastSentAt: timestamp })
+        .where(eq(jobAlerts.id, alertId));
+    });
+  }
+
+  /**
+   * Saves job matches for a job alert.
+   * @param matches Array of match records to insert.
+   */
+  async saveAlertMatches(
+    matches: Array<{
+      jobAlertId: number;
+      jobId: number;
+      matchScore: number;
+    }>,
+  ): Promise<void> {
+    if (matches.length === 0) return;
+
+    await withDbErrorHandling(async () => {
+      await db.insert(jobAlertMatches).values(
+        matches.map((match) => ({
+          ...match,
+          wasSent: false,
+        })),
+      );
+    });
+  }
+
+  /**
+   * Retrieves unsent matches for a job alert.
+   * @param alertId The ID of the job alert.
+   * @param limit Maximum number of matches to retrieve.
+   * @returns Array of job alert matches with job details.
+   */
+  async getUnsentMatches(alertId: number, limit: number = 10) {
+    return await withDbErrorHandling(async () => {
+      return await db.query.jobAlertMatches.findMany({
+        where: and(
+          eq(jobAlertMatches.jobAlertId, alertId),
+          eq(jobAlertMatches.wasSent, false),
+        ),
+        with: {
+          job: {
+            columns: {
+              id: true,
+              title: true,
+              city: true,
+              state: true,
+              country: true,
+              jobType: true,
+              experience: true,
+              description: true,
+              createdAt: true,
+            },
+            with: {
+              employer: {
+                columns: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [desc(jobAlertMatches.matchScore), desc(jobAlertMatches.createdAt)],
+        limit,
+      });
+    });
+  }
+
+  /**
+   * Marks job alert matches as sent.
+   * @param matchIds Array of match IDs to mark as sent.
+   */
+  async markMatchesAsSent(matchIds: number[]): Promise<void> {
+    if (matchIds.length === 0) return;
+
+    await withDbErrorHandling(async () => {
+      await db
+        .update(jobAlertMatches)
+        .set({ wasSent: true })
+        .where(inArray(jobAlertMatches.id, matchIds));
+    });
+  }
+
+  /**
+   * Gets the count of unsent matches for a job alert.
+   * @param alertId The ID of the job alert.
+   * @returns The count of unsent matches.
+   */
+  async getUnsentMatchCount(alertId: number): Promise<number> {
+    return await withDbErrorHandling(async () => {
+      const result = await db
+        .select({ count: count() })
+        .from(jobAlertMatches)
+        .where(
+          and(
+            eq(jobAlertMatches.jobAlertId, alertId),
+            eq(jobAlertMatches.wasSent, false),
+          ),
+        );
+      return result[0]?.count ?? 0;
+    });
+  }
+
+  /**
+   * Pauses job alerts for inactive users (users with status "deactivated").
+   * @returns Object containing counts of affected alerts and users.
+   */
+  async pauseAlertsForInactiveUsers(): Promise<{ 
+    alertsPaused: number; 
+    usersAffected: number;
+  }> {
+    return await withDbErrorHandling(async () => {
+      // Find deactivated users with active, unpaused alerts
+      const inactiveUsersWithAlerts = await db
+        .select({
+          userId: user.id,
+          userEmail: user.email,
+          status: user.status,
+        })
+        .from(user)
+        .innerJoin(jobAlerts, eq(user.id, jobAlerts.userId))
+        .where(
+          and(
+            // User status is deactivated (inactive)
+            eq(user.status, "deactivated"),
+            // Alert is active and not already paused
+            eq(jobAlerts.isActive, true),
+            eq(jobAlerts.isPaused, false),
+          ),
+        )
+        .groupBy(user.id, user.email, user.status);
+
+      if (inactiveUsersWithAlerts.length === 0) {
+        return { alertsPaused: 0, usersAffected: 0 };
+      }
+
+      const inactiveUserIds = inactiveUsersWithAlerts.map((u) => u.userId);
+
+      // Pause all active alerts for these inactive users
+      await db
+        .update(jobAlerts)
+        .set({ 
+          isPaused: true,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            inArray(jobAlerts.userId, inactiveUserIds),
+            eq(jobAlerts.isActive, true),
+            eq(jobAlerts.isPaused, false),
+          ),
+        );
+
+      // Count how many alerts were actually paused
+      const alertsPausedResult = await db
+        .select({ count: count() })
+        .from(jobAlerts)
+        .where(
+          and(
+            inArray(jobAlerts.userId, inactiveUserIds),
+            eq(jobAlerts.isPaused, true),
+          ),
+        );
+
+      const alertsPaused = alertsPausedResult[0]?.count ?? 0;
+
+      return {
+        alertsPaused,
+        usersAffected: inactiveUsersWithAlerts.length,
+      };
     });
   }
 }

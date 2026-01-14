@@ -16,6 +16,7 @@ import { relations, sql } from "drizzle-orm";
 import { user } from "./users";
 import { organizations } from "./organizations";
 import type { FileMetadata } from "@/validations/file.validation";
+import { jobAlertMatches } from "@/db/schema/jobAlerts";
 
 /**
  * Jobs details table schema defining the structure for storing job postings.
@@ -252,6 +253,7 @@ export const jobsRelations = relations(jobsDetails, ({ one, many }) => ({
     references: [jobInsights.job],
   }),
   skills: many(jobSkills),
+  jobMatches: many(jobAlertMatches),
 }));
 
 /**

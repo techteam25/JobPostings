@@ -142,4 +142,52 @@ export class TypesenseService {
         query_by: "title, skills, jobType, description, city, state, country",
       });
   }
+
+  /**
+   * Searches jobs for a job alert using alert criteria.
+   * @param searchQuery The search query from the alert.
+   * @param filters Filter string built from alert criteria.
+   * @param lastSentAt Timestamp to filter jobs created after this time.
+   * @param limit Maximum number of results to return.
+   * @returns The search response containing matching job documents.
+   */
+  async searchJobsForAlert(
+    searchQuery: string | null,
+    filters: string,
+    lastSentAt: Date | null,
+    limit: number = 50,
+  ): Promise<SearchResponse<JobDocumentType>> {
+    const q = searchQuery || "*";
+    
+    // Add timestamp filter to only get jobs created after lastSentAt
+    let filterBy = filters;
+    if (lastSentAt) {
+      const timestamp = Math.floor(lastSentAt.getTime() / 1000);
+      filterBy = filterBy 
+        ? `${filterBy} && createdAt:>=${timestamp}`
+        : `createdAt:>=${timestamp}`;
+    }
+
+    // Always filter to only active jobs
+    filterBy = filterBy
+      ? `${filterBy} && isActive:true`
+      : "isActive:true";
+
+    logger.info("Searching jobs for alert", { q, filterBy, limit });
+
+    return await typesenseClient
+      .collections<JobDocumentType>(JOBS_COLLECTION)
+      .documents()
+      .search({
+        q,
+        filter_by: filterBy,
+        query_by: "title, description, company, skills",
+        query_by_weights: "3,2,1,2",
+        sort_by: "createdAt:desc",
+        per_page: limit,
+        page: 1,
+        num_typos: 1,
+        prefix: true,
+      });
+  }
 }
