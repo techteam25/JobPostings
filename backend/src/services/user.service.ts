@@ -29,6 +29,32 @@ import { AuditService } from "./audit.service";
  * Service class for managing user-related operations, including CRUD for users and profiles.
  */
 export class UserService extends BaseService {
+  async searchCandidates(
+    filters: { q: string; city: string; page?: number; limit?: number },
+    requestingUserId: number,
+  ) {
+    try {
+      const canPost =
+        await this.organizationRepository.canPostJobs(requestingUserId);
+      if (!canPost) {
+        return fail(
+          new ValidationError("Only organization members can search for candidates"),
+        );
+      }
+
+      const result = await this.userRepository.searchCandidates({
+        ...filters,
+        page: filters.page || 1,
+        limit: filters.limit || 10,
+      });
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to search candidates"));
+    }
+  }
   private userRepository: UserRepository;
   private emailService: EmailService;
   private organizationRepository: OrganizationRepository;

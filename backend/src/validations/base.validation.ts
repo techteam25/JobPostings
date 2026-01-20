@@ -41,7 +41,7 @@ export const searchParams = z.object({
       skills: z.string().array().optional().or(z.string().optional()),
       includeRemote: z.coerce.boolean().optional(),
       isActive: z.coerce.boolean().optional(),
-      sortBy: z.string().optional(),
+      sortBy: z.enum(['relevance', 'date_posted_desc', 'date_posted_asc', 'title_asc', 'title_desc']).optional(),
       status: z
         .enum([
           "pending",

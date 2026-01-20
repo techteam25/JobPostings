@@ -33,6 +33,7 @@ import {
   GetUserJobAlertsQuery,
   JobAlert,
 } from "@/validations/jobAlerts.validation";
+import { CandidateSearchParams } from "@/validations/candidateSearch.validation";
 
 /**
  * Controller class for handling user-related API endpoints.
@@ -723,6 +724,39 @@ export class UserController extends BaseController {
         res,
         result.value,
         "Job alert retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Searches for candidates (job seekers) based on various criteria.
+   * @param req The Express request object with query parameters.
+   * @param res The Express response object.
+   */
+  searchCandidates = async (
+    req: Request<{}, {}, {}, CandidateSearchParams>,
+    res: Response,
+  ) => {
+    const { q = "", city = "" } = req.query;
+    const userId = req.userId!;
+
+    const result = await this.userService.searchCandidates({ q, city }, userId);
+
+    if (result.isSuccess) {
+      const pagination = {
+        ...result.value.pagination,
+        hasNext: result.value.pagination.page < result.value.pagination.totalPages,
+        hasPrevious: result.value.pagination.page > 1,
+        nextPage: result.value.pagination.page < result.value.pagination.totalPages ? result.value.pagination.page + 1 : null,
+        previousPage: result.value.pagination.page > 1 ? result.value.pagination.page - 1 : null,
+      };
+      return this.sendPaginatedResponse(
+        res,
+        result.value.items,
+        pagination,
+        "Candidates retrieved successfully",
       );
     } else {
       return this.handleControllerError(res, result.error);

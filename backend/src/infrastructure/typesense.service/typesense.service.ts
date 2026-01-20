@@ -1,4 +1,5 @@
 import type { SearchResponse } from "typesense/lib/Typesense/Documents";
+import type { CollectionCreateSchema } from "typesense/lib/Typesense/Collections";
 
 import { JOBS_COLLECTION } from "@/infrastructure/typesense.service/constants";
 import { JobWithSkills } from "@/validations/job.validation";
@@ -8,8 +9,9 @@ import { JobDocumentType } from "@/validations/base.validation";
 import logger from "@/logger";
 
 type SortDirection = "asc" | "desc";
+export type SortByOption = "relevance" | "date" | "title";
 type MetaSearchParams = {
-  sortBy?: string;
+  sortBy?: SortByOption;
   sortDirection?: SortDirection;
   page?: number;
   offset?: number;
@@ -20,6 +22,33 @@ type MetaSearchParams = {
  * Service class for interacting with Typesense search engine for job documents.
  */
 export class TypesenseService {
+  /**
+   * Returns the collection schema for jobs with sortable fields.
+   * @returns The Typesense collection schema for jobs.
+   */
+  getJobCollectionSchema(): CollectionCreateSchema {
+    return {
+      name: JOBS_COLLECTION,
+      fields: [
+        { name: "id", type: "string" },
+        { name: "title", type: "string", sort: true },
+        { name: "company", type: "string" },
+        { name: "description", type: "string" },
+        { name: "city", type: "string", facet: true },
+        { name: "state", type: "string", facet: true, optional: true },
+        { name: "country", type: "string", facet: true },
+        { name: "zipcode", type: "string", optional: true },
+        { name: "isRemote", type: "bool", facet: true },
+        { name: "isActive", type: "bool", facet: true },
+        { name: "experience", type: "string", optional: true, facet: true },
+        { name: "jobType", type: "string", facet: true },
+        { name: "skills", type: "string[]", facet: true },
+        { name: "createdAt", type: "int64", sort: true },
+      ],
+      default_sorting_field: "createdAt",
+    };
+  }
+
   /**
    * Indexes a single job document in Typesense.
    * @param doc The job document to index.
@@ -112,6 +141,29 @@ export class TypesenseService {
   }
 
   /**
+   * Maps sortBy option to Typesense sort_by syntax.
+   * @param sortBy The sort option (relevance, date, title).
+   * @param sortDirection The sort direction (asc, desc).
+   * @returns The Typesense sort_by string or undefined for relevance sorting.
+   */
+  private mapSortByToTypesense(
+    sortBy: SortByOption,
+    sortDirection: SortDirection,
+  ): string | undefined {
+    switch (sortBy) {
+      case "relevance":
+        // Return undefined to use Typesense's default text match score sorting
+        return undefined;
+      case "date":
+        return `createdAt:${sortDirection}`;
+      case "title":
+        return `title:${sortDirection}`;
+      default:
+        return `createdAt:${sortDirection}`;
+    }
+  }
+
+  /**
    * Searches the jobs collection in Typesense.
    * @param q The search query string.
    * @param filters Optional filter string.
@@ -122,20 +174,22 @@ export class TypesenseService {
     q: string = "*",
     filters?: string,
     {
-      sortBy = "title",
+      sortBy = "date",
       sortDirection = "desc",
       page = 1,
       limit = 10,
       offset = 0,
     }: MetaSearchParams = {},
   ): Promise<SearchResponse<JobDocumentType>> {
+    const sort_by = this.mapSortByToTypesense(sortBy, sortDirection);
+
     return await typesenseClient
       .collections<JobDocumentType>(JOBS_COLLECTION)
       .documents()
       .search({
         q,
         filter_by: filters ? filters : undefined,
-        sort_by: `${sortBy}:${sortDirection}`,
+        sort_by,
         page,
         limit,
         offset,
