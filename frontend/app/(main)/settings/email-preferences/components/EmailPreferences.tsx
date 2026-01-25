@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import PreferenceSection from "./PreferenceSection";
-import UnsubscribeDialog from "./UnsubscribeDialog";
 import {
   useResubscribePreferences,
   useUnsubscribePreferences,
@@ -12,6 +10,8 @@ import {
 } from "@/app/(main)/settings/email-preferences/hooks/manage-preferences";
 import { type EmailPreferences } from "@/lib/types";
 import { UserIntentResponse } from "@/schemas/responses/users";
+import PreferenceSection from "@/app/(main)/settings/email-preferences/components/PreferenceSection";
+import UnsubscribeDialog from "@/app/(main)/settings/email-preferences/components/UnsubscribeDialog";
 
 export function EmailPreferences({
   preferences,
