@@ -8,6 +8,7 @@ import {
   organizationInvitations,
   user,
   userOnBoarding,
+  userEmailPreferences,
 } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
@@ -174,6 +175,12 @@ export class OrganizationRepository extends BaseRepository<
                 userId: sessionUserId,
               },
             });
+
+          // Set employer email preferences for the user
+          await tx
+            .update(userEmailPreferences)
+            .set({ matchedCandidates: true })
+            .where(eq(userEmailPreferences.userId, sessionUserId));
 
           const organization = await tx.query.organizations.findFirst({
             where: eq(organizations.id, orgId.id),
@@ -859,10 +866,7 @@ export class OrganizationRepository extends BaseRepository<
    * @param organizationId The organization ID.
    * @returns The invitation if found.
    */
-  async findInvitationByEmailAndOrg(
-    email: string,
-    organizationId: number,
-  ) {
+  async findInvitationByEmailAndOrg(email: string, organizationId: number) {
     return await withDbErrorHandling(async () => {
       return await db.query.organizationInvitations.findFirst({
         where: and(
@@ -1027,32 +1031,41 @@ export class OrganizationRepository extends BaseRepository<
     organizationId: number;
     role: "owner" | "admin" | "recruiter" | "member";
   }) {
-    return await withDbErrorHandling(async () => {
-      const [insertResult] = await db
-        .insert(organizationMembers)
-        .values({
-          userId: data.userId,
-          organizationId: data.organizationId,
-          role: data.role,
-          isActive: true,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            role: data.role,
-            isActive: true,
-            organizationId: data.organizationId,
-            userId: data.userId,
-          },
-        })
-        .$returningId();
+    return await withDbErrorHandling(
+      async () =>
+        await db.transaction(async (tx) => {
+          const [insertResult] = await tx
+            .insert(organizationMembers)
+            .values({
+              userId: data.userId,
+              organizationId: data.organizationId,
+              role: data.role,
+              isActive: true,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                role: data.role,
+                isActive: true,
+                organizationId: data.organizationId,
+                userId: data.userId,
+              },
+            })
+            .$returningId();
 
-      if (!insertResult) {
-        throw new DatabaseError("Failed to create organization member");
-      }
+          if (!insertResult) {
+            throw new DatabaseError("Failed to create organization member");
+          }
 
-      return await db.query.organizationMembers.findFirst({
-        where: eq(organizationMembers.id, insertResult.id),
-      });
-    });
+          // Set employer email preferences for the new member
+          await tx
+            .update(userEmailPreferences)
+            .set({ matchedCandidates: true })
+            .where(eq(userEmailPreferences.userId, data.userId));
+
+          return await tx.query.organizationMembers.findFirst({
+            where: eq(organizationMembers.id, insertResult.id),
+          });
+        }),
+    );
   }
 }
