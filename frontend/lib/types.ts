@@ -196,6 +196,48 @@ export type UserProfile = {
   };
 };
 
+export type EmailPreferences = {
+  jobMatchNotifications: boolean;
+  applicationStatusNotifications: boolean;
+  savedJobUpdates: boolean;
+  weeklyJobDigest: boolean;
+  matchedCandidates: boolean;
+  monthlyNewsletter: boolean;
+  marketingEmails: boolean;
+  accountSecurityAlerts: boolean;
+  jobSeekerUnsubscribed: boolean;
+  employerUnsubscribed: boolean;
+  globalUnsubscribe: boolean;
+};
+
+export type UnsubscribeInfo = {
+  user: {
+    name: string;
+    email: string;
+  };
+  preferences: {
+    id: number;
+    createdAt: Date;
+    updatedAt: Date;
+    userId: number;
+    jobMatchNotifications: boolean;
+    applicationStatusNotifications: boolean;
+    savedJobUpdates: boolean;
+    weeklyJobDigest: boolean;
+    matchedCandidates: boolean;
+    monthlyNewsletter: boolean;
+    marketingEmails: boolean;
+    accountSecurityAlerts: boolean;
+    jobSeekerUnsubscribed: boolean;
+    employerUnsubscribed: boolean;
+    unsubscribeToken: string;
+    tokenCreatedAt: Date;
+    unsubscribeTokenExpiresAt: Date | null;
+    globalUnsubscribe: boolean;
+  };
+  token: string;
+};
+
 export type SavedState = {
   isSaved: boolean;
 };
