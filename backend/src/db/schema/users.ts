@@ -114,17 +114,30 @@ export const userEmailPreferences = mysqlTable(
       .unique()
       .references(() => user.id, { onDelete: "cascade" }),
 
-    // Notification Type Preferences (all default true)
+    // Job Seeker Notification Preferences
     jobMatchNotifications: boolean("job_alerts").default(true).notNull(),
     applicationStatusNotifications: boolean("application_status")
       .default(true)
       .notNull(),
     savedJobUpdates: boolean("saved_job_updates").default(true).notNull(),
     weeklyJobDigest: boolean("weekly_job_digest").default(true).notNull(),
+
+    // Employer Notification Preferences
+    matchedCandidates: boolean("matched_candidates").default(true).notNull(),
+
+    // General Notification Preferences
     monthlyNewsletter: boolean("monthly_newsletter").default(true).notNull(),
     marketingEmails: boolean("marketing_emails").default(true).notNull(),
     accountSecurityAlerts: boolean("account_security_alerts")
       .default(true)
+      .notNull(),
+
+    // Context-based Unsubscribe Flags
+    jobSeekerUnsubscribed: boolean("job_seeker_unsubscribed")
+      .default(false)
+      .notNull(),
+    employerUnsubscribed: boolean("employer_unsubscribed")
+      .default(false)
       .notNull(),
 
     // Unsubscribe Token Management
@@ -142,6 +155,37 @@ export const userEmailPreferences = mysqlTable(
     index("idx_user_email_preferences_unsubscribe_token").on(
       table.unsubscribeToken,
     ),
+  ],
+);
+
+/**
+ * Email preference audit log table for tracking consent changes.
+ */
+export const emailPreferenceAuditLog = mysqlTable(
+  "email_preference_audit_log",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    userId: int("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    preferenceType: varchar("preference_type", { length: 100 }).notNull(),
+    context: mysqlEnum("context", ["job_seeker", "employer", "global"])
+      .notNull(),
+    previousValue: boolean("previous_value"),
+    newValue: boolean("new_value").notNull(),
+    changeSource: mysqlEnum("change_source", [
+      "account_settings",
+      "email_link",
+    ]).notNull(),
+    ipAddress: varchar("ip_address", { length: 45 }),
+    userAgent: text("user_agent"),
+    changedAt: timestamp("changed_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_audit_user_id").on(table.userId),
+    index("idx_audit_preference_type").on(table.preferenceType),
+    index("idx_audit_context").on(table.context),
+    index("idx_audit_changed_at").on(table.changedAt),
   ],
 );
 

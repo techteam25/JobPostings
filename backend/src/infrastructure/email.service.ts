@@ -747,4 +747,78 @@ ${footer}`,
       console.error("Failed to send job alert notification", error);
     }
   }
+
+  /**
+   * Sends an unsubscribe confirmation email to the user.
+   * @param userId The ID of the user.
+   * @param email The recipient's email address.
+   * @param name The recipient's name.
+   * @param context The context of unsubscription (job_seeker, employer, or global).
+   */
+  async sendUnsubscribeConfirmation(
+    userId: number,
+    email: string,
+    name: string,
+    context: "job_seeker" | "employer" | "global",
+  ): Promise<void> {
+    try {
+      const template = await this.loadTemplate("unsubscribeConfirmation");
+
+      const settingsLink = `${env.FRONTEND_URL}/settings/email-preferences`;
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      // Generate footer (without unsubscribe link since they just unsubscribed)
+      const footer = `
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; font-size: 12px;">
+          <p style="margin: 10px 0;">
+            This email was sent to you by GetInvolved.
+          </p>
+          <p style="margin: 10px 0;">
+            © ${new Date().getFullYear()} GetInvolved. All rights reserved.
+          </p>
+        </div>
+      `;
+
+      const contextName =
+        context === "global"
+          ? "all emails"
+          : context === "job_seeker"
+            ? "job seeker emails"
+            : "employer emails";
+
+      const description =
+        context === "global"
+          ? "You will no longer receive any promotional or notification emails from us, except for critical account security alerts."
+          : context === "job_seeker"
+            ? "You will no longer receive job match notifications, application updates, or saved job alerts."
+            : "You will no longer receive notifications about matched candidates for your job postings.";
+
+      const htmlContent = template
+        .replace("{{name}}", name)
+        .replace("{{contextName}}", contextName)
+        .replace("{{description}}", description)
+        .replace("{{settingsLink}}", settingsLink)
+        .replace("{{logoPath}}", logoPath)
+        .replace("</body>", `${footer}</body>`);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: "Unsubscribe Confirmation - GetInvolved",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.handleError(error);
+      } else {
+        this.handleError(
+          new AppError(
+            "Unknown error occurred while sending unsubscribe confirmation",
+          ),
+        );
+      }
+    }
+  }
 }
