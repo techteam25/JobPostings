@@ -1,3 +1,5 @@
+"use client";
+
 import { useApplicationForm } from "@/app/(main)/applications/new/hooks/use-application-form";
 import { Step1Upload } from "@/app/(main)/applications/new/components/Step1Upload";
 import { Step2Details } from "@/app/(main)/applications/new/components/Step2Details";
