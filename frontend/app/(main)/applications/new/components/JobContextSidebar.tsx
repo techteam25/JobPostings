@@ -1,30 +1,40 @@
 import { Clock, DollarSign, MapPin } from "lucide-react";
+import { Job, Organization } from "@/schemas/responses/jobs";
 
-export const JobContextSidebar = () => {
+interface JobContextSidebarProps {
+  job: Job;
+  employer: Organization | null;
+}
+
+export const JobContextSidebar = ({
+  job,
+  employer,
+}: JobContextSidebarProps) => {
   return (
     <div className="hidden lg:col-span-4 lg:block">
       <div className="sticky top-8 space-y-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600 text-xl font-bold text-white">
-            T
+            {employer?.name.charAt(0).toUpperCase() || "C"}
           </div>
           <h1 className="mb-2 text-2xl font-bold text-slate-900">
-            Senior Product Designer
+            {job.title}
           </h1>
-          <p className="mb-6 font-medium text-slate-500">TechCorp Inc.</p>
+          <p className="mb-6 font-medium text-slate-500">{employer?.name}</p>
 
           <div className="mb-6 space-y-3">
             <div className="flex items-center gap-3 text-sm text-slate-600">
               <MapPin size={18} className="text-slate-400" />
-              San Francisco, CA (Hybrid)
+              {job.city}, {job.state || job.country}
             </div>
-            <div className="flex items-center gap-3 text-sm text-slate-600">
+            {/* Salary is not in Job schema currently shown, so I'll omit or put placeholder if not available */}
+            {/* <div className="flex items-center gap-3 text-sm text-slate-600">
               <DollarSign size={18} className="text-slate-400" />
               $140k - $180k / year
-            </div>
+            </div> */}
             <div className="flex items-center gap-3 text-sm text-slate-600">
               <Clock size={18} className="text-slate-400" />
-              Full-time
+              {job.jobType.replace("-", " ")}
             </div>
           </div>
 

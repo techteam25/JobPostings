@@ -2,10 +2,11 @@
 
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useApplicationForm } from "../hooks/use-application-form";
+import Link from "next/link";
+import { useApplicationStore } from "@/context/store";
 
 export const Step4Success = () => {
-  const { formData } = useApplicationForm();
+  const { formData } = useApplicationStore();
 
   return (
     <div className="animate-in zoom-in py-12 text-center duration-500">
@@ -21,10 +22,12 @@ export const Step4Success = () => {
         <span className="font-medium text-slate-900">{formData.email}</span>.
       </p>
       <div className="flex justify-center gap-3">
-        <Button variant="outline" onClick={() => window.location.reload()}>
-          View similar jobs
+        <Button variant="outline" asChild>
+          <Link href="/">View similar jobs</Link>
         </Button>
-        <Button>Return to Dashboard</Button>
+        <Button asChild>
+          <Link href="/applications">View Applications</Link>
+        </Button>
       </div>
     </div>
   );

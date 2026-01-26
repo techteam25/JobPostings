@@ -3,11 +3,47 @@
 import { FileText, Sparkles, UploadCloud } from "lucide-react";
 import { BsLinkedin as Linkedin } from "react-icons/bs";
 import { Input } from "@/components/ui/input";
-import { useApplicationForm } from "../hooks/use-application-form";
+import React, { useState } from "react";
+import { toast } from "sonner";
+import { useForm } from "@tanstack/react-form";
+import { useApplicationStore } from "@/context/store";
 
 export const Step1Upload = () => {
-  const { isDragging, setIsDragging, isParsing, handleFileUpload } =
-    useApplicationForm();
+  const [isDragging, setIsDragging] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const { setStep, formData, setFormData } = useApplicationStore();
+
+  const form = useForm({
+    defaultValues: {
+      resume: formData.resume,
+    },
+    onSubmit: async ({ value }) => {
+      if (value.resume) {
+        setFormData({ resume: value.resume });
+      }
+      setStep(2);
+    },
+  });
+
+  const handleFileUpload = async (file: File) => {
+    if (file.type !== "application/pdf") {
+      toast.error("Please upload a PDF file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB");
+      return;
+    }
+
+    setIsParsing(true);
+    // Simulate parsing
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    setFormData({ resume: file });
+    setIsParsing(false);
+    setStep(2);
+  };
 
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -15,6 +51,16 @@ export const Step1Upload = () => {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFileUpload(e.dataTransfer.files[0]);
     }
+  };
+
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,57 +96,51 @@ export const Step1Upload = () => {
           <span className="w-full border-t border-slate-200" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 font-medium text-slate-400">
-            Or upload resume
-          </span>
+          <span className="bg-white px-2 text-slate-500">Or upload resume</span>
         </div>
       </div>
 
       <div
-        className={`relative cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all ${
-          isDragging
-            ? "scale-[1.02] border-blue-500 bg-blue-50"
-            : "border-slate-300 hover:border-slate-400 hover:bg-slate-50"
-        }`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setIsDragging(true);
-        }}
-        onDragLeave={() => setIsDragging(false)}
         onDrop={onDrop}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 transition-all ${
+          isDragging
+            ? "border-blue-500 bg-blue-50"
+            : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+        }`}
       >
-        <div className="flex flex-col items-center gap-3">
-          <div className="rounded-full bg-blue-100 p-4 text-blue-600">
-            <UploadCloud size={32} />
-          </div>
-          <div>
-            <p className="text-lg font-semibold text-slate-900">
-              Click to upload or drag and drop
-            </p>
-            <p className="mt-1 text-sm text-slate-500">PDF, DOCX up to 10MB</p>
-          </div>
-          <Input
-            type="file"
-            className="hidden"
-            id="resume-upload"
-            onChange={handleFileChange}
-            accept=".pdf,.docx"
-          />
-          <label
-            htmlFor="resume-upload"
-            className="absolute inset-0 cursor-pointer"
-          />
+        <Input
+          type="file"
+          accept=".pdf"
+          className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+          onChange={handleFileChange}
+        />
+
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 text-blue-600 transition-transform group-hover:scale-110">
+          {isParsing ? (
+            <Sparkles className="animate-pulse" size={40} />
+          ) : (
+            <UploadCloud size={40} />
+          )}
+        </div>
+
+        <div className="mt-4 space-y-1 text-center">
+          <p className="text-lg font-semibold text-slate-900">
+            {isParsing ? "Parsing resume..." : "Click or drag to upload resume"}
+          </p>
+          <p className="text-sm text-slate-500">PDF only (max. 5MB)</p>
         </div>
       </div>
 
-      {isParsing && (
-        <div className="flex animate-pulse items-center justify-center gap-2 rounded-lg bg-blue-50 p-3 text-blue-600">
-          <Sparkles size={16} />
-          <span className="text-sm font-medium">
-            Analyzing resume & autofilling details...
-          </span>
-        </div>
-      )}
+      <div className="text-center">
+        <button
+          onClick={() => setStep(2)}
+          className="text-sm font-medium text-slate-500 hover:text-slate-900"
+        >
+          Skip for now
+        </button>
+      </div>
     </div>
   );
 };

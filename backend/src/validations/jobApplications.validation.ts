@@ -26,21 +26,8 @@ const jobIdParamSchema = z.object({
 });
 
 export const applyForJobSchema = z.object({
-  body: z.object({
-    coverLetter: z
-      .string()
-      .min(50, "Cover letter must be at least 50 characters")
-      .max(2000, "Cover letter must not exceed 2000 characters")
-      .optional(),
-    resumeUrl: z.string().url("Invalid resume URL").optional(),
-  }).strict(),
-  params: jobIdParamSchema,
-  query: z.object({}).strict(),
-});
-
-export const jobApplicationSchema = z.object({
   body: jobApplicationPayload,
-  params: z.object({}).strict(),
+  params: jobIdParamSchema,
   query: z.object({}).strict(),
 });
 

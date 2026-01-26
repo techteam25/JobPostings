@@ -14,6 +14,7 @@ import {
   SavedState,
   UserJobApplications,
   UserProfile,
+  UserWithProfile,
 } from "@/lib/types";
 
 export const getJobs = async (): Promise<
@@ -77,7 +78,6 @@ export const getOrganization = async (
 
 export const updateOrganization = async (
   organizationData: Organization | null,
-  formData: FormData,
 ): Promise<Organization | null> => {
   const res = await fetch(
     `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${organizationData?.id}`,
@@ -277,7 +277,7 @@ export const isJobSavedByUser = async (
 };
 
 export const getUserInformation = async (): Promise<
-  ApiResponse<UserProfile>
+  ApiResponse<UserWithProfile>
 > => {
   const cookieStore = await cookies();
   const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/users/me`, {
@@ -318,6 +318,30 @@ export const updateProfileVisibility = async (
   }
 
   revalidateTag("user-bio-info");
+
+  return await res.json();
+};
+
+export const applyForJob = async (
+  jobId: number,
+  formData: FormData,
+): Promise<{ success: boolean; message: string; applicationId?: number }> => {
+  const cookieStore = await cookies();
+  const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}/apply`, {
+    method: "POST",
+    headers: {
+      Cookie: cookieStore.toString(),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    return {
+      success: false,
+      message: errorData.message || "Failed to submit application",
+    };
+  }
 
   return await res.json();
 };

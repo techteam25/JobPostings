@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 
 import { JobService } from "@/services/job.service";
-import { JobMatchingService } from "@/services/job-matching.service";
 import { BaseController } from "./base.controller";
 import { ForbiddenError } from "@/utils/errors";
 import {

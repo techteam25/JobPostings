@@ -44,7 +44,7 @@ export default async function ProfilePage() {
           <div className="mb-6 flex items-start justify-between">
             <div className="flex items-start gap-6">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={profile.data.image} />
+                {profile.data.image && <AvatarImage src={profile.data.image} />}
                 <AvatarFallback className="bg-secondary text-primary-foreground text-xl">
                   {avatarInitials}
                 </AvatarFallback>
@@ -61,15 +61,15 @@ export default async function ProfilePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="size-5" />
-                    <span>{profile.data.profile.phoneNumber}</span>
+                    <span>{profile.data.profile?.phoneNumber}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="size-5" />
                     <span>
-                      {profile.data.profile.city},{" "}
+                      {profile.data.profile?.city},{" "}
                       <span>
-                        {profile.data.profile.state},{" "}
-                        <span>{profile.data.profile.country}</span>
+                        {profile.data.profile?.state},{" "}
+                        <span>{profile.data.profile?.country}</span>
                       </span>
                     </span>
                   </div>
@@ -90,7 +90,7 @@ export default async function ProfilePage() {
 
           {/* Visibility Status */}
           <ProfileVisibilityDialog
-            isVisible={profile.data.profile.isProfilePublic}
+            isVisible={profile.data.profile?.isProfilePublic || false}
           />
         </div>
 
