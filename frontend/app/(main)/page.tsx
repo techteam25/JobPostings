@@ -26,9 +26,9 @@ async function Page() {
   return (
     <>
       <section className="border-b">
-        <div className="flex items-center justify-center gap-1 p-2">
-          <UserProfileStatusBanner />
-        </div>
+        {/*<div className="flex items-center justify-center gap-1 p-2">*/}
+        {/*  <UserProfileStatusBanner />*/}
+        {/*</div>*/}
         <div className="mx-auto max-w-4xl px-4 py-6">
           <div className="bg-input flex h-12 items-center justify-start rounded-full shadow-none lg:hidden">
             <SearchInputMobile />

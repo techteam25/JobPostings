@@ -1038,4 +1038,204 @@ export class UserService extends BaseService {
       return fail(new DatabaseError("Failed to retrieve job alert"));
     }
   }
+
+  /**
+   * Unsubscribes user from specific context with audit logging.
+   * @param userId The ID of the user.
+   * @param context The context to unsubscribe from.
+   * @param changeSource Source of the change.
+   * @param metadata Optional metadata (IP, user agent).
+   * @returns A Result containing the updated preferences or an error.
+   */
+  async unsubscribeByContext(
+    userId: number,
+    context: "job_seeker" | "employer" | "global",
+    changeSource: "account_settings" | "email_link",
+    metadata?: { ipAddress?: string; userAgent?: string },
+  ) {
+    try {
+      // Get current preferences
+      const currentPrefs =
+        await this.userRepository.findEmailPreferencesByUserId(userId);
+
+      if (!currentPrefs) {
+        return fail(new NotFoundError("User preferences not found"));
+      }
+
+      // Update preferences
+      const updated = await this.userRepository.unsubscribeByContext(
+        userId,
+        context,
+      );
+
+      if (!updated) {
+        return fail(new DatabaseError("Failed to unsubscribe"));
+      }
+
+      // Log to audit trail
+      await this.userRepository.logPreferenceChange({
+        userId,
+        preferenceType: `${context}_unsubscribe`,
+        context,
+        previousValue: false,
+        newValue: true,
+        changeSource,
+        ipAddress: metadata?.ipAddress,
+        userAgent: metadata?.userAgent,
+      });
+
+      // Send confirmation email
+      const userResult = await this.getUserById(userId);
+      if (userResult.isSuccess && userResult.value) {
+        await this.emailService.sendUnsubscribeConfirmation(
+          userId,
+          userResult.value.email,
+          userResult.value.fullName,
+          context,
+        );
+      }
+
+      return ok(updated);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to unsubscribe"));
+    }
+  }
+
+  /**
+   * Finds email preferences using an unsubscribe token.
+   * @param token The unsubscribe token.
+   * @returns A Result containing the email preferences or an error.
+   */
+  async findEmailPreferencesByToken(token: string) {
+    try {
+      const preferences =
+        await this.userRepository.findEmailPreferencesByToken(token);
+
+      if (!preferences) {
+        return fail(new NotFoundError("Email preferences not found for token"));
+      }
+
+      return ok(preferences);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to retrieve email preferences"));
+    }
+  }
+
+  /**
+   * Re-subscribes user to specific context with audit logging.
+   * @param userId The ID of the user.
+   * @param context The context to re-subscribe to.
+   * @param metadata Optional metadata (IP, user agent).
+   * @returns A Result containing the updated preferences or an error.
+   */
+  async resubscribeByContext(
+    userId: number,
+    context: "job_seeker" | "employer" | "global",
+    metadata?: { ipAddress?: string; userAgent?: string },
+  ) {
+    try {
+      const currentPrefs =
+        await this.userRepository.findEmailPreferencesByUserId(userId);
+
+      if (!currentPrefs) {
+        return fail(new NotFoundError("User preferences not found"));
+      }
+
+      const updated = await this.userRepository.resubscribeByContext(
+        userId,
+        context,
+      );
+
+      if (!updated) {
+        return fail(new DatabaseError("Failed to resubscribe"));
+      }
+
+      // Log to audit trail
+      await this.userRepository.logPreferenceChange({
+        userId,
+        preferenceType: `${context}_resubscribe`,
+        context,
+        previousValue: true,
+        newValue: false,
+        changeSource: "account_settings",
+        ipAddress: metadata?.ipAddress,
+        userAgent: metadata?.userAgent,
+      });
+
+      return ok(updated);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to resubscribe"));
+    }
+  }
+
+  /**
+   * Updates a granular email preference with audit logging.
+   * @param userId The ID of the user.
+   * @param preferenceType The preference field to update.
+   * @param newValue The new value for the preference.
+   * @param context The context of the preference.
+   * @param changeSource Source of the change.
+   * @param metadata Optional metadata (IP, user agent).
+   * @returns A Result containing the updated preferences or an error.
+   */
+  async updateEmailPreferenceWithAudit(
+    userId: number,
+    preferenceType: string,
+    newValue: boolean,
+    context: "job_seeker" | "employer" | "global",
+    changeSource: "account_settings" | "email_link",
+    metadata?: { ipAddress?: string; userAgent?: string },
+  ) {
+    try {
+      const currentPrefs =
+        await this.userRepository.findEmailPreferencesByUserId(userId);
+
+      if (!currentPrefs) {
+        return fail(new NotFoundError("User preferences not found"));
+      }
+
+      const previousValue = currentPrefs[
+        preferenceType as keyof typeof currentPrefs
+      ] as boolean;
+
+      // Update preference
+      const updateData = { [preferenceType]: newValue };
+      const updated = await this.userRepository.updateEmailPreferences(
+        userId,
+        updateData,
+      );
+
+      if (!updated) {
+        return fail(new DatabaseError("Failed to update preference"));
+      }
+
+      // Log to audit trail
+      await this.userRepository.logPreferenceChange({
+        userId,
+        preferenceType,
+        context,
+        previousValue,
+        newValue,
+        changeSource,
+        ipAddress: metadata?.ipAddress,
+        userAgent: metadata?.userAgent,
+      });
+
+      return ok(updated);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update preference"));
+    }
+  }
 }

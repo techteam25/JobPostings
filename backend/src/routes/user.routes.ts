@@ -1262,4 +1262,59 @@ router.delete(
   userController.deleteUser,
 );
 
+/**
+ * Get unsubscribe landing page data by token (public endpoint).
+ * No authentication required - token-based access.
+ * @route GET /users/me/email-preferences/unsubscribe/:token/info
+ * @param {Object} req.params - Route parameters including the token.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends user and preference data for unsubscribe page.
+ */
+router.get(
+  "/me/email-preferences/unsubscribe/:token/info",
+  userController.getUnsubscribeLandingPageData,
+);
+
+/**
+ * Unsubscribes user from specific context (job_seeker/employer/global).
+ * Authenticated endpoint.
+ * @route POST /users/me/email-preferences/unsubscribe-context
+ * @param {Object} req.body - Request body with context.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends updated email preferences.
+ */
+router.post(
+  "/me/email-preferences/unsubscribe-context",
+  authMiddleware.authenticate,
+  userController.unsubscribeByContext,
+);
+
+/**
+ * Re-subscribes user to specific context.
+ * Authenticated endpoint.
+ * @route POST /users/me/email-preferences/resubscribe-context
+ * @param {Object} req.body - Request body with context.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends updated email preferences.
+ */
+router.post(
+  "/me/email-preferences/resubscribe-context",
+  authMiddleware.authenticate,
+  userController.resubscribeByContext,
+);
+
+/**
+ * Updates a granular email preference.
+ * Authenticated endpoint.
+ * @route PATCH /users/me/email-preferences/granular
+ * @param {Object} req.body - Request body with preferenceType, enabled, and context.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends updated email preferences.
+ */
+router.patch(
+  "/me/email-preferences/granular",
+  authMiddleware.authenticate,
+  userController.updateGranularEmailPreference,
+);
+
 export default router;

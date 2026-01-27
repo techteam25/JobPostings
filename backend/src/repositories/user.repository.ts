@@ -1,7 +1,22 @@
-import { SQL, and, asc, count, desc, eq, inArray, isNull, like, lte, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  like,
+  lte,
+  ne,
+  or,
+  sql,
+  SQL
+} from "drizzle-orm";
 import {
   certifications,
   educations,
+  emailPreferenceAuditLog,
   jobAlertMatches,
   jobAlerts,
   jobsDetails,
@@ -1086,10 +1101,7 @@ export class UserRepository extends BaseRepository<typeof user> {
    * @param alertId The ID of the alert to update.
    * @param timestamp The timestamp to set.
    */
-  async updateAlertLastSentAt(
-    alertId: number,
-    timestamp: Date,
-  ): Promise<void> {
+  async updateAlertLastSentAt(alertId: number, timestamp: Date): Promise<void> {
     await withDbErrorHandling(async () => {
       await db
         .update(jobAlerts)
@@ -1156,7 +1168,10 @@ export class UserRepository extends BaseRepository<typeof user> {
             },
           },
         },
-        orderBy: [desc(jobAlertMatches.matchScore), desc(jobAlertMatches.createdAt)],
+        orderBy: [
+          desc(jobAlertMatches.matchScore),
+          desc(jobAlertMatches.createdAt),
+        ],
         limit,
       });
     });
@@ -1201,8 +1216,8 @@ export class UserRepository extends BaseRepository<typeof user> {
    * Pauses job alerts for inactive users (users with status "deactivated").
    * @returns Object containing counts of affected alerts and users.
    */
-  async pauseAlertsForInactiveUsers(): Promise<{ 
-    alertsPaused: number; 
+  async pauseAlertsForInactiveUsers(): Promise<{
+    alertsPaused: number;
     usersAffected: number;
   }> {
     return await withDbErrorHandling(async () => {
@@ -1235,7 +1250,7 @@ export class UserRepository extends BaseRepository<typeof user> {
       // Pause all active alerts for these inactive users
       await db
         .update(jobAlerts)
-        .set({ 
+        .set({
           isPaused: true,
           updatedAt: new Date(),
         })
@@ -1386,6 +1401,151 @@ export class UserRepository extends BaseRepository<typeof user> {
           },
         };
       }
+    });
+  }
+    
+    /*
+   * Logs an email preference change to the audit log.
+   * @param data The audit log data.
+   * @returns The created audit log ID.
+   */
+  async logPreferenceChange(data: {
+    userId: number;
+    preferenceType: string;
+    context: "job_seeker" | "employer" | "global";
+    previousValue: boolean | null;
+    newValue: boolean;
+    changeSource: "account_settings" | "email_link";
+    ipAddress?: string;
+    userAgent?: string;
+  }) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .insert(emailPreferenceAuditLog)
+        .values(data)
+        .$returningId();
+
+      if (!result || isNaN(result.id)) {
+        throw new DatabaseError("Failed to log preference change");
+      }
+
+      return result.id;
+    });
+  }
+
+  /**
+   * Gets audit history for a user's email preferences.
+   * @param userId The ID of the user.
+   * @param limit Maximum number of records to return.
+   * @returns Array of audit log entries.
+   */
+  async getUserAuditHistory(userId: number, limit = 50) {
+    return await withDbErrorHandling(async () => {
+      return await db.query.emailPreferenceAuditLog.findMany({
+        where: eq(emailPreferenceAuditLog.userId, userId),
+        orderBy: desc(emailPreferenceAuditLog.changedAt),
+        limit,
+      });
+    });
+  }
+
+  /**
+   * Set default employer email preferences when user joins organization.
+   * @param userId The ID of the user.
+   * @returns The updated email preferences.
+   */
+  async setEmployerEmailPreferences(userId: number) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(userEmailPreferences)
+        .set({ matchedCandidates: true })
+        .where(eq(userEmailPreferences.userId, userId));
+
+      if (!result.affectedRows) {
+        throw new DatabaseError(
+          `Failed to set employer preferences for userId: ${userId}`,
+        );
+      }
+
+      return await this.findEmailPreferencesByUserId(userId);
+    });
+  }
+
+  /**
+   * Unsubscribe from specific context (job_seeker/employer/global).
+   * @param userId The ID of the user.
+   * @param context The context to unsubscribe from.
+   * @returns The updated email preferences.
+   */
+  async unsubscribeByContext(
+    userId: number,
+    context: "job_seeker" | "employer" | "global",
+  ) {
+    return await withDbErrorHandling(async () => {
+      const updateData: any = {};
+
+      if (context === "global") {
+        updateData.globalUnsubscribe = true;
+      } else if (context === "job_seeker") {
+        updateData.jobSeekerUnsubscribed = true;
+        updateData.jobMatchNotifications = false;
+        updateData.applicationStatusNotifications = false;
+        updateData.savedJobUpdates = false;
+        updateData.weeklyJobDigest = false;
+      } else if (context === "employer") {
+        updateData.employerUnsubscribed = true;
+        updateData.matchedCandidates = false;
+      }
+
+      const [result] = await db
+        .update(userEmailPreferences)
+        .set(updateData)
+        .where(eq(userEmailPreferences.userId, userId));
+
+      if (!result.affectedRows) {
+        throw new DatabaseError(`Failed to unsubscribe for userId: ${userId}`);
+      }
+
+      return await this.findEmailPreferencesByUserId(userId);
+    });
+  }
+
+  /**
+   * Re-subscribe to specific context (job_seeker/employer/global).
+   * @param userId The ID of the user.
+   * @param context The context to re-subscribe to.
+   * @returns The updated email preferences.
+   */
+  async resubscribeByContext(
+    userId: number,
+    context: "job_seeker" | "employer" | "global",
+  ) {
+    return await withDbErrorHandling(async () => {
+      const updateData: any = {};
+
+      if (context === "global") {
+        updateData.globalUnsubscribe = false;
+      } else if (context === "job_seeker") {
+        updateData.jobSeekerUnsubscribed = false;
+        updateData.jobMatchNotifications = true;
+        updateData.applicationStatusNotifications = true;
+        updateData.savedJobUpdates = true;
+        updateData.weeklyJobDigest = true;
+      } else if (context === "employer") {
+        updateData.employerUnsubscribed = false;
+        updateData.matchedCandidates = true;
+      }
+
+      const [result] = await db
+        .update(userEmailPreferences)
+        .set(updateData)
+        .where(eq(userEmailPreferences.userId, userId));
+
+      if (!result.affectedRows) {
+        throw new DatabaseError(`Failed to resubscribe for userId: ${userId}`);
+      }
+
+      return await this.findEmailPreferencesByUserId(userId);
     });
   }
 }

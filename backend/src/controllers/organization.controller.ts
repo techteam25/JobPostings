@@ -28,8 +28,7 @@ import {
 import { JobApplicationWithNotes } from "@/validations/jobApplications.validation";
 import { GetUserSchema } from "@/validations/user.validation";
 import { SearchParams } from "@/validations/base.validation";
-import { APIError } from "better-auth/api";
-import { AppError, ErrorCode, UnauthorizedError } from "@/utils/errors";
+import { AppError, ErrorCode } from "@/utils/errors";
 
 /**
  * Controller class for handling organization-related API endpoints.
@@ -465,16 +464,11 @@ export class OrganizationController extends BaseController {
       organizationId,
       email,
       role,
-      req.userId,
+      req.userId!,
     );
 
     if (result.isSuccess) {
-      return this.sendSuccess(
-        res,
-        result.value,
-        result.value.message,
-        201,
-      );
+      return this.sendSuccess(res, result.value, result.value.message, 201);
     } else {
       return this.handleControllerError(res, result.error);
     }
@@ -498,8 +492,7 @@ export class OrganizationController extends BaseController {
   ) => {
     const { token } = req.params;
 
-    const result =
-      await this.organizationService.getInvitationDetails(token);
+    const result = await this.organizationService.getInvitationDetails(token);
 
     if (result.isSuccess) {
       return this.sendSuccess(
@@ -526,16 +519,11 @@ export class OrganizationController extends BaseController {
 
     const result = await this.organizationService.acceptInvitation(
       token,
-      req.userId,
+      req.userId!,
     );
 
     if (result.isSuccess) {
-      return this.sendSuccess(
-        res,
-        result.value,
-        result.value.message,
-        200,
-      );
+      return this.sendSuccess(res, result.value, result.value.message, 200);
     } else {
       return this.handleControllerError(res, result.error);
     }
@@ -557,16 +545,11 @@ export class OrganizationController extends BaseController {
     const result = await this.organizationService.cancelInvitation(
       organizationId,
       invitationId,
-      req.userId,
+      req.userId!,
     );
 
     if (result.isSuccess) {
-      return this.sendSuccess(
-        res,
-        result.value,
-        result.value.message,
-        200,
-      );
+      return this.sendSuccess(res, result.value, result.value.message, 200);
     } else {
       return this.handleControllerError(res, result.error);
     }

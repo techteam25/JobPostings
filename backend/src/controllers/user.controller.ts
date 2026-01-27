@@ -13,6 +13,9 @@ import {
   UserEmailPreferencesSchema,
   UpdateUserEmailPreferences,
   UnsubscribeEmailPreferences,
+  UnsubscribeByContext,
+  UpdateGranularPreference,
+  GetUnsubscribeLandingPage,
 } from "@/validations/user.validation";
 import { ApiResponse } from "@/types";
 import { auth } from "@/utils/auth";
@@ -758,9 +761,151 @@ export class UserController extends BaseController {
         pagination,
         "Candidates retrieved successfully",
       );
+    }
+    return this.handleControllerError(res, result.error);
+  };
+
+  /**
+   * Unsubscribes user from specific context (job_seeker/employer/global).
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
+  unsubscribeByContext = async (
+    req: Request<{}, {}, UnsubscribeByContext["body"]>,
+    res: Response,
+  ) => {
+    const userId = req.userId!;
+    const { context } = req.body;
+
+    const metadata = {
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+    };
+
+    const result = await this.userService.unsubscribeByContext(
+      userId,
+      context,
+      "account_settings",
+      metadata,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        `Successfully unsubscribed from ${context.replace("_", " ")} emails`,
+      );
     } else {
       return this.handleControllerError(res, result.error);
     }
+  };
+
+  /**
+   * Re-subscribes user to specific context.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
+  resubscribeByContext = async (
+    req: Request<{}, {}, UnsubscribeByContext["body"]>,
+    res: Response,
+  ) => {
+    const userId = req.userId!;
+    const { context } = req.body;
+
+    const metadata = {
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+    };
+
+    const result = await this.userService.resubscribeByContext(
+      userId,
+      context,
+      metadata,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        `Successfully re-subscribed to ${context.replace("_", " ")} emails`,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Updates a granular email preference.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
+  updateGranularEmailPreference = async (
+    req: Request<{}, {}, UpdateGranularPreference["body"]>,
+    res: Response,
+  ) => {
+    const userId = req.userId!;
+    const { preferenceType, enabled, context } = req.body;
+
+    const metadata = {
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent"),
+    };
+
+    const result = await this.userService.updateEmailPreferenceWithAudit(
+      userId,
+      preferenceType,
+      enabled,
+      context,
+      "account_settings",
+      metadata,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Email preference updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Gets unsubscribe landing page data by token (public endpoint).
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
+  getUnsubscribeLandingPageData = async (
+    req: Request<GetUnsubscribeLandingPage["params"]>,
+    res: Response,
+  ) => {
+    const { token } = req.params;
+
+    const prefsResult =
+      await this.userService.findEmailPreferencesByToken(token);
+
+    if (prefsResult.isSuccess && prefsResult.value) {
+      const userResult = await this.userService.getUserById(
+        prefsResult.value.userId,
+      );
+
+      if (userResult.isSuccess && userResult.value) {
+        return this.sendSuccess(res, {
+          user: {
+            name: userResult.value.fullName,
+            email: userResult.value.email,
+          },
+          preferences: prefsResult.value,
+          token,
+        });
+      }
+    }
+
+    return this.handleControllerError(
+      res,
+      new Error("Invalid or expired unsubscribe token"),
+    );
   };
 
   // getUserStats = async (_: Request, res: Response) => {
