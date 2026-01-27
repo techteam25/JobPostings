@@ -1,7 +1,7 @@
 import type { SearchResponse } from "typesense/lib/Typesense/Documents";
 import type { CollectionCreateSchema } from "typesense/lib/Typesense/Collections";
 
-import { JOBS_COLLECTION } from "@/infrastructure/typesense.service/constants";
+import { JOBS_COLLECTION, CANDIDATES_COLLECTION } from "@/infrastructure/typesense.service/constants";
 import { JobWithSkills } from "@/validations/job.validation";
 import { typesenseClient } from "@/config/typesense-client";
 
@@ -244,4 +244,137 @@ export class TypesenseService {
         prefix: true,
       });
   }
+
+  /**
+   * Returns the collection schema for candidates with searchable fields.
+   * @returns The Typesense collection schema for candidates.
+   */
+  getCandidateCollectionSchema(): CollectionCreateSchema {
+    return {
+      name: CANDIDATES_COLLECTION,
+      fields: [
+        { name: "id", type: "string" },
+        { name: "fullName", type: "string", sort: true },
+        { name: "email", type: "string" },
+        { name: "bio", type: "string", optional: true },
+        { name: "city", type: "string", facet: true, optional: true },
+        { name: "state", type: "string", facet: true, optional: true },
+        { name: "country", type: "string", facet: true, optional: true },
+        { name: "skills", type: "string[]", facet: true, optional: true },
+        { name: "experience", type: "string", optional: true, facet: true },
+        { name: "status", type: "string", facet: true },
+        { name: "createdAt", type: "int64", sort: true },
+      ],
+      default_sorting_field: "createdAt",
+    };
+  }
+
+  /**
+   * Indexes a single candidate document in Typesense.
+   * @param doc The candidate document to index.
+   * @returns The result of the indexing operation.
+   */
+  async indexCandidateDocument(doc: any) {
+    return await typesenseClient
+      .collections(CANDIDATES_COLLECTION)
+      .documents()
+      .create({
+        id: doc.id.toString(),
+        fullName: doc.fullName,
+        email: doc.email,
+        bio: doc.profile?.bio || "",
+        city: doc.profile?.city || "",
+        state: doc.profile?.state || "",
+        country: doc.profile?.country || "",
+        skills: doc.profile?.skills || [],
+        experience: doc.profile?.experience || "",
+        status: doc.status,
+        createdAt: Math.floor(new Date(doc.createdAt).getTime() / 1000),
+      });
+  }
+
+  /**
+   * Indexes multiple candidate documents in Typesense.
+   * @param docs The array of candidate documents to index.
+   * @returns The result of the bulk indexing operation.
+   */
+  async indexManyCandidateDocuments(docs: any[]) {
+    const formatted = docs.map((doc) => ({
+      id: doc.id.toString(),
+      fullName: doc.fullName,
+      email: doc.email,
+      bio: doc.profile?.bio || "",
+      city: doc.profile?.city || "",
+      state: doc.profile?.state || "",
+      country: doc.profile?.country || "",
+      skills: doc.profile?.skills || [],
+      experience: doc.profile?.experience || "",
+      status: doc.status,
+      createdAt: Math.floor(new Date(doc.createdAt).getTime() / 1000),
+    }));
+
+    return await typesenseClient
+      .collections(CANDIDATES_COLLECTION)
+      .documents()
+      .import(formatted);
+  }
+
+  /**
+   * Searches the candidates collection in Typesense.
+   * @param q The search query string.
+   * @param filters Optional filter string.
+   * @param options Search parameters including pagination.
+   * @returns The search response containing matching candidate documents.
+   */
+  async searchCandidatesCollection(
+    q: string = "*",
+    filters?: string,
+    {
+      page = 1,
+      limit = 10,
+    }: {
+      page?: number;
+      limit?: number;
+    } = {},
+  ): Promise<SearchResponse<any>> {
+    return await typesenseClient
+      .collections(CANDIDATES_COLLECTION)
+      .documents()
+      .search({
+        q,
+        filter_by: filters ? filters : undefined,
+        query_by: "fullName, email, bio, skills, city, state, country",
+        sort_by: "createdAt:desc",
+        page,
+        per_page: limit,
+        num_typos: 1,
+        prefix: true,
+      });
+  }
+
+  /**
+   * Deletes a candidate document by its ID from Typesense.
+   * @param candidateId The ID of the candidate document to delete.
+   * @returns The result of the delete operation.
+   */
+  async deleteCandidateDocumentById(candidateId: string) {
+    return await typesenseClient
+      .collections(CANDIDATES_COLLECTION)
+      .documents(candidateId)
+      .delete();
+  }
+
+  /**
+   * Updates a candidate document by its ID in Typesense.
+   * @param candidateId The ID of the candidate document to update.
+   * @param updatedFields The fields to update.
+   * @returns The result of the update operation.
+   */
+  async updateCandidateDocumentById(candidateId: string, updatedFields: any) {
+    return await typesenseClient
+      .collections(CANDIDATES_COLLECTION)
+      .documents(candidateId)
+      .update(updatedFields);
+  }
 }
+
