@@ -11,6 +11,7 @@ import {
   ne,
   or,
   sql,
+  SQL
 } from "drizzle-orm";
 import {
   certifications,
@@ -37,16 +38,23 @@ import {
   User,
 } from "@/validations/userProfile.validation";
 import { InsertJobAlert, JobAlert } from "@/validations/jobAlerts.validation";
+import { CandidateSearchParams } from "@/validations/candidateSearch.validation";
+import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
+import logger from "@/logger";
+
 
 /**
  * Repository class for managing user-related database operations, including profiles and saved jobs.
  */
 export class UserRepository extends BaseRepository<typeof user> {
+  private typesenseService: TypesenseService;
+
   /**
    * Creates an instance of UserRepository.
    */
   constructor() {
     super(user);
+    this.typesenseService = new TypesenseService();
   }
 
   /**
@@ -1275,6 +1283,128 @@ export class UserRepository extends BaseRepository<typeof user> {
   }
 
   /**
+   * Searches for candidates (users) based on filters.
+   * @param filters The search filters (query, city, etc.).
+   * @returns Paginated list of candidates.
+   */
+  async searchCandidates(filters: CandidateSearchParams) {
+    return await withDbErrorHandling(async () => {
+      const { q, city, page = 1, limit = 10 } = filters;
+
+      try {
+        // Build filter string for Typesense
+        let filterBy = "status:active";
+        
+        if (city) {
+          filterBy += ` && city:${city}`;
+        }
+
+        // Search using Typesense
+        const searchResponse = await this.typesenseService.searchCandidatesCollection(
+          q || "*",
+          filterBy,
+          {
+            page,
+            limit,
+          },
+        );
+
+        if (!searchResponse.hits) {
+          return {
+            items: [],
+            pagination: {
+              total: 0,
+              page,
+              limit,
+              totalPages: 0,
+            },
+          };
+        }
+
+        // Map Typesense results back to user objects with profiles
+        const candidateIds = searchResponse.hits.map((hit) =>
+          parseInt(hit.document.id),
+        );
+
+        if (candidateIds.length === 0) {
+          return {
+            items: [],
+            pagination: {
+              total: searchResponse.found || 0,
+              page,
+              limit,
+              totalPages: Math.ceil((searchResponse.found || 0) / limit),
+            },
+          };
+        }
+
+        // Fetch full user data with profiles from database
+        const items = await db.query.user.findMany({
+          where: and(
+            inArray(user.id, candidateIds),
+            eq(user.status, "active"),
+          ),
+          with: {
+            profile: true,
+          },
+        });
+
+        return {
+          items,
+          pagination: {
+            total: searchResponse.found || 0,
+            page,
+            limit,
+            totalPages: Math.ceil((searchResponse.found || 0) / limit),
+          },
+        };
+      } catch (error) {
+        logger.error("Error searching candidates in Typesense", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          filters,
+        });
+
+        // Fallback to database search if Typesense fails
+        const conditions = [eq(user.status, "active")];
+
+        if (q) {
+          const searchCondition = or(
+            like(user.fullName, `%${q}%`),
+            like(user.email, `%${q}%`),
+          );
+          if (searchCondition) {
+            conditions.push(searchCondition);
+          }
+        }
+
+        const whereCondition = and(...conditions) as SQL<unknown>;
+        const offset = (page - 1) * limit;
+
+        const items = await db.query.user.findMany({
+          where: whereCondition,
+          limit,
+          offset,
+          with: {
+            profile: true,
+          },
+        });
+
+        const total = await db.$count(user, whereCondition);
+
+        return {
+          items,
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+          },
+        };
+      }
+    });
+  }
+    
+    /*
    * Logs an email preference change to the audit log.
    * @param data The audit log data.
    * @returns The created audit log ID.

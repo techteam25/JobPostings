@@ -141,9 +141,50 @@ export class JobService extends BaseService {
         zipcode,
         skills,
         jobType,
+        sortBy: filterSortBy,
         ...rest
       } = filters;
       const offset = (page - 1) * limit;
+
+      // Determine default sort based on query presence
+      let effectiveSortBy = filterSortBy;
+      if (!effectiveSortBy) {
+        effectiveSortBy = q?.trim() ? "relevance" : "date_posted_desc";
+      }
+
+      // Map sort values to Typesense format
+      type SortByOption = "relevance" | "date" | "title";
+      type SortDirection = "asc" | "desc";
+      
+      let sortBy: SortByOption = "date";
+      let sortDirection: SortDirection = "desc";
+
+      switch (effectiveSortBy) {
+        case "date_posted_desc":
+          sortBy = "date";
+          sortDirection = "desc";
+          break;
+        case "date_posted_asc":
+          sortBy = "date";
+          sortDirection = "asc";
+          break;
+        case "title_asc":
+          sortBy = "title";
+          sortDirection = "asc";
+          break;
+        case "title_desc":
+          sortBy = "title";
+          sortDirection = "desc";
+          break;
+        case "relevance":
+          sortBy = "relevance";
+          sortDirection = "desc"; // Not used for relevance, but required
+          break;
+        default:
+          // Default to date desc for unknown values
+          sortBy = "date";
+          sortDirection = "desc";
+      }
 
       const skillsArray = Array.isArray(skills)
         ? skills
@@ -178,6 +219,8 @@ export class JobService extends BaseService {
           limit,
           offset,
           page,
+          sortBy,
+          sortDirection,
         },
       );
       return ok(results);

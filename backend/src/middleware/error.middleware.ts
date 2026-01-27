@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { AppError, createErrorResponse, ValidationError } from "@/utils/errors";
 import { env } from "@/config/env";
 import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
+import { auditMiddleware } from "@/middleware/audit.middleware";
 
 /**
  * Express error handling middleware that processes various types of errors and sends appropriate responses.
@@ -16,6 +17,10 @@ export const errorHandler = (
   res: Response,
   __: NextFunction,
 ) => {
+
+  // Log error to audit trail
+  auditMiddleware.logError(_, err, 500).catch(console.error);
+
   // Handle known AppError instances
   if (err instanceof AppError) {
     const errorResponse = createErrorResponse(

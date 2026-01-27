@@ -37,6 +37,7 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import { auditMiddleware } from "@/middleware/audit.middleware";
 
 const router = Router();
 const jobController = new JobController();
@@ -116,9 +117,33 @@ registry.registerPath({
   method: "get",
   path: "/api/jobs/search",
   summary: "Search job postings",
+  description:
+    "Search for job postings with optional filters and sorting. When a search query (q) is provided and no sortBy is specified, results are sorted by relevance. When no search query is provided, results default to sorting by date posted (newest first).",
   tags: ["Jobs"],
   request: {
-    query: searchParams.shape["query"],
+    query: searchParams.shape["query"].extend({
+      sortBy: z
+        .enum([
+          "relevance",
+          "date_posted_desc",
+          "date_posted_asc",
+          "title_asc",
+          "title_desc",
+        ])
+        .optional()
+        .describe(
+          "Sort order for results. Defaults to 'relevance' when search query (q) is provided, otherwise defaults to 'date_posted_desc'. Options: relevance (text match score), date_posted_desc (newest first), date_posted_asc (oldest first), title_asc (A-Z), title_desc (Z-A)",
+        )
+        .openapi({
+          examples: [
+            "relevance",
+            "date_posted_desc",
+            "date_posted_asc",
+            "title_asc",
+            "title_desc",
+          ],
+        }),
+    }),
   },
   responses: {
     200: {

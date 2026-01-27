@@ -1,2 +1,0 @@
-ALTER TABLE `user_email_preferences` RENAME COLUMN `token_expires_at` TO `unsubscribe_token_expires_at`;--> statement-breakpoint
-ALTER TABLE `user_email_preferences` ADD `global_unsubscribe` boolean DEFAULT false NOT NULL;
