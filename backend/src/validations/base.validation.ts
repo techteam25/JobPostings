@@ -81,5 +81,20 @@ export const searchJobResult = z.object({
   createdAt: z.number(),
 });
 
+export const candidateDocument = z.object({
+  id: z.string(),
+  fullName: z.string(),
+  email: z.string(),
+  bio: z.string(),
+  city: z.string(),
+  state: z.string(),
+  country: z.string(),
+  skills: z.string().array(),
+  experience: z.string(),
+  status: z.string(),
+  createdAt: z.number(),
+});
+
 export type SearchParams = z.infer<typeof searchParams>;
 export type JobDocumentType = z.infer<typeof searchJobResult>;
+export type CandidateDocumentType = z.infer<typeof candidateDocument>;

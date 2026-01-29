@@ -44,17 +44,26 @@ describe("GET /api/users/candidates/search", () => {
       .post("/api/auth/sign-in/email")
       .send({ email: "org.recruiter@example.com", password: "Password@123" });
     
-    orgCookie = orgSignIn.headers["set-cookie"]![0];
+    orgCookie = orgSignIn.headers["set-cookie"]?.[0] ?? "";
 
     // Create Organization and Membership
-    const [org] = await db.insert(organizations).values({
+    const orgInsert = await db.insert(organizations).values({
       name: "Tech Corp",
-      slug: "tech-corp",
+      streetAddress: "123 Tech St",
+      url: "https://techcorp.com",
+      city: "Austin",
+      state: "TX",
+      country: "US",
+      zipCode: "78701",
+      phone: "512-555-0100",
+      mission: "Build amazing tech",
     }).$returningId();
+
+    const org = orgInsert[0]!;
     
     await db.insert(organizationMembers).values({
         userId: Number(orgUser.user.id),
-        organizationId: org.id!, // ! assertions if we are sure
+        organizationId: org.id,
         role: "recruiter",
         isActive: true
     });
@@ -71,7 +80,7 @@ describe("GET /api/users/candidates/search", () => {
     const regularSignIn = await request
         .post("/api/auth/sign-in/email")
         .send({ email: "regular.joe@example.com", password: "Password@123" });
-    nonOrgCookie = regularSignIn.headers["set-cookie"]![0];
+    nonOrgCookie = regularSignIn.headers["set-cookie"]?.[0] ?? "";
 
 
     // 4. Seed Candidates
@@ -86,7 +95,7 @@ describe("GET /api/users/candidates/search", () => {
         work: any[] = []
     ) => {
         const u = await auth.api.signUpEmail({
-             body: { email, password: "Password@123", name, image: null }
+             body: { email, password: "Password@123", name, image: undefined }
         });
         const uid = Number(u.user.id);
         
@@ -95,10 +104,10 @@ describe("GET /api/users/candidates/search", () => {
         const [prof] = await db.insert(userProfile).values({ ...profile, userId: uid }).$returningId();
         
         if (edu.length) {
-            await db.insert(educations).values(edu.map(e => ({ ...e, userProfileId: prof.id })));
+            await db.insert(educations).values(edu.map(e => ({ ...e, userProfileId: prof!.id })));
         }
         if (work.length) {
-            await db.insert(workExperiences).values(work.map(w => ({ ...w, userProfileId: prof.id })));
+            await db.insert(workExperiences).values(work.map(w => ({ ...w, userProfileId: prof!.id })));
         }
     };
 

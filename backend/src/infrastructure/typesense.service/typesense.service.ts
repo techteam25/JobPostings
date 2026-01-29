@@ -5,8 +5,27 @@ import { JOBS_COLLECTION, CANDIDATES_COLLECTION } from "@/infrastructure/typesen
 import { JobWithSkills } from "@/validations/job.validation";
 import { typesenseClient } from "@/config/typesense-client";
 
-import { JobDocumentType } from "@/validations/base.validation";
+import { JobDocumentType, CandidateDocumentType } from "@/validations/base.validation";
 import logger from "@/logger";
+
+/**
+ * Candidate input type for indexing in Typesense
+ */
+interface CandidateIndexInput {
+  id: number;
+  fullName: string;
+  email: string;
+  status: string;
+  createdAt: Date;
+  profile?: {
+    bio?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    skills?: string[];
+    experience?: string;
+  };
+}
 
 type SortDirection = "asc" | "desc";
 export type SortByOption = "relevance" | "date" | "title";
@@ -274,7 +293,7 @@ export class TypesenseService {
    * @param doc The candidate document to index.
    * @returns The result of the indexing operation.
    */
-  async indexCandidateDocument(doc: any) {
+  async indexCandidateDocument(doc: CandidateIndexInput) {
     return await typesenseClient
       .collections(CANDIDATES_COLLECTION)
       .documents()
@@ -298,7 +317,7 @@ export class TypesenseService {
    * @param docs The array of candidate documents to index.
    * @returns The result of the bulk indexing operation.
    */
-  async indexManyCandidateDocuments(docs: any[]) {
+  async indexManyCandidateDocuments(docs: CandidateIndexInput[]) {
     const formatted = docs.map((doc) => ({
       id: doc.id.toString(),
       fullName: doc.fullName,
@@ -336,9 +355,9 @@ export class TypesenseService {
       page?: number;
       limit?: number;
     } = {},
-  ): Promise<SearchResponse<any>> {
+  ): Promise<SearchResponse<CandidateDocumentType>> {
     return await typesenseClient
-      .collections(CANDIDATES_COLLECTION)
+      .collections<CandidateDocumentType>(CANDIDATES_COLLECTION)
       .documents()
       .search({
         q,
@@ -370,7 +389,10 @@ export class TypesenseService {
    * @param updatedFields The fields to update.
    * @returns The result of the update operation.
    */
-  async updateCandidateDocumentById(candidateId: string, updatedFields: any) {
+  async updateCandidateDocumentById(
+    candidateId: string,
+    updatedFields: Partial<CandidateDocumentType>,
+  ) {
     return await typesenseClient
       .collections(CANDIDATES_COLLECTION)
       .documents(candidateId)

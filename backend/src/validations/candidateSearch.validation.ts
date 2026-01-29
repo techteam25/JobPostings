@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { selectUserSchema, selectUserProfileSchema } from "@/validations/userProfile.validation";
 
 export const candidateSearchQuerySchema = z.object({
   q: z.string().optional(),
@@ -22,5 +23,7 @@ export const candidateSearchResult = z.object({
   status: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
-  profile: z.any().optional(), // Allow profile object through
+  profile: selectUserProfileSchema.optional(),
 });
+
+export type CandidateSearchResult = z.infer<typeof candidateSearchResult>;
