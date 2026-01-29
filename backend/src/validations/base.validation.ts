@@ -41,7 +41,7 @@ export const searchParams = z.object({
       skills: z.string().array().optional().or(z.string().optional()),
       includeRemote: z.coerce.boolean().optional(),
       isActive: z.coerce.boolean().optional(),
-      sortBy: z.string().optional(),
+      sortBy: z.enum(['relevance', 'date_posted_desc', 'date_posted_asc', 'title_asc', 'title_desc']).optional(),
       status: z
         .enum([
           "pending",
@@ -81,5 +81,20 @@ export const searchJobResult = z.object({
   createdAt: z.number(),
 });
 
+export const candidateDocument = z.object({
+  id: z.string(),
+  fullName: z.string(),
+  email: z.string(),
+  bio: z.string(),
+  city: z.string(),
+  state: z.string(),
+  country: z.string(),
+  skills: z.string().array(),
+  experience: z.string(),
+  status: z.string(),
+  createdAt: z.number(),
+});
+
 export type SearchParams = z.infer<typeof searchParams>;
 export type JobDocumentType = z.infer<typeof searchJobResult>;
+export type CandidateDocumentType = z.infer<typeof candidateDocument>;

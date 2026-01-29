@@ -29,18 +29,21 @@ import {
 } from "@/validations/userProfile.validation";
 import { GetJobSchema } from "@/validations/job.validation";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
+import { AuditService } from "@/services/audit.service";
 import {
   CreateJobAlert,
   GetJobAlert,
   GetUserJobAlertsQuery,
   JobAlert,
 } from "@/validations/jobAlerts.validation";
+import { CandidateSearchParams } from "@/validations/candidateSearch.validation";
 
 /**
  * Controller class for handling user-related API endpoints.
  */
 export class UserController extends BaseController {
   private userService: UserService;
+  private auditService: AuditService;
 
   /**
    * Creates an instance of UserController and initializes the required services.
@@ -48,6 +51,7 @@ export class UserController extends BaseController {
   constructor() {
     super();
     this.userService = new UserService();
+    this.auditService = new AuditService();
   }
 
   /**
@@ -113,15 +117,40 @@ export class UserController extends BaseController {
     const id = Number(req.params.id);
 
     const updateData = req.body;
+
+    // Get old values before update
+    const oldUser = await this.userService.getUserById(id);
     const user = await this.userService.updateUser(id, updateData);
 
     if (user.isSuccess) {
+      // Log the audit event
+      await this.auditService.logFromRequest(req, "user.update", {
+        resourceType: "user",
+        resourceId: id,
+        oldValues: oldUser.isSuccess ? {
+          fullName: oldUser.value.fullName,
+          email: oldUser.value.email,
+        } : undefined,
+        newValues: {
+          fullName: updateData.fullName,
+          email: updateData.email,
+        },
+        description: `User profile updated for user ID ${id}`,
+      });
       return this.sendSuccess<User>(
         res,
         user.value,
         "User updated successfully",
       );
     } else {
+      // Log failed attempt
+      await this.auditService.logFromRequest(req, "user.update", {
+        resourceType: "user",
+        resourceId: id,
+        success: "false",
+        errorMessage: user.error.message,
+        description: `Failed to update user ID ${id}`,
+      });
       return this.handleControllerError(res, user.error);
     }
   };
@@ -349,8 +378,24 @@ export class UserController extends BaseController {
     ); // Todo: replace currentPassword with actual confirmation token
 
     if (result.isSuccess) {
+      // Log the deletion
+      await this.auditService.logFromRequest(req, "user.delete", {
+        resourceType: "user",
+        resourceId: req.userId!,
+        severity: "warning",
+        description: `User self-deleted account`,
+      });
       return this.sendSuccess(res, null, "Account deleted successfully", 204);
     } else {
+      // Log failed deletion attempt
+      await this.auditService.logFromRequest(req, "user.delete", {
+        resourceType: "user",
+        resourceId: req.userId!,
+        severity: "warning",
+        success: "false",
+        errorMessage: result.error.message,
+        description: `Failed to delete account`,
+      });
       return this.handleControllerError(res, result.error);
     }
   };
@@ -686,6 +731,38 @@ export class UserController extends BaseController {
     } else {
       return this.handleControllerError(res, result.error);
     }
+  };
+
+  /**
+   * Searches for candidates (job seekers) based on various criteria.
+   * @param req The Express request object with query parameters.
+   * @param res The Express response object.
+   */
+  searchCandidates = async (
+    req: Request<{}, {}, {}, CandidateSearchParams>,
+    res: Response,
+  ) => {
+    const { q = "", city = "" } = req.query;
+    const userId = req.userId!;
+
+    const result = await this.userService.searchCandidates({ q, city }, userId);
+
+    if (result.isSuccess) {
+      const pagination = {
+        ...result.value.pagination,
+        hasNext: result.value.pagination.page < result.value.pagination.totalPages,
+        hasPrevious: result.value.pagination.page > 1,
+        nextPage: result.value.pagination.page < result.value.pagination.totalPages ? result.value.pagination.page + 1 : null,
+        previousPage: result.value.pagination.page > 1 ? result.value.pagination.page - 1 : null,
+      };
+      return this.sendPaginatedResponse(
+        res,
+        result.value.items,
+        pagination,
+        "Candidates retrieved successfully",
+      );
+    }
+    return this.handleControllerError(res, result.error);
   };
 
   /**

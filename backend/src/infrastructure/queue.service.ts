@@ -24,6 +24,7 @@ export const QUEUE_NAMES = {
   TEMP_FILE_CLEANUP_QUEUE: "tempFileCleanupQueue",
   JOB_ALERT_QUEUE: "jobAlertQueue",
   INVITATION_EXPIRATION_QUEUE: "invitationExpirationQueue",
+  AUDIT_CLEANUP_QUEUE: "auditCleanupQueue",
 } as const;
 
 // Job options
@@ -65,6 +66,7 @@ class QueueService {
       this.createQueue(QUEUE_NAMES.TEMP_FILE_CLEANUP_QUEUE);
       this.createQueue(QUEUE_NAMES.JOB_ALERT_QUEUE);
       this.createQueue(QUEUE_NAMES.INVITATION_EXPIRATION_QUEUE);
+      this.createQueue(QUEUE_NAMES.AUDIT_CLEANUP_QUEUE);
 
       this.isInitialized = true;
       logger.info("Queue service initialized successfully", {

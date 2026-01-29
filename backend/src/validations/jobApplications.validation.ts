@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createSelectSchema } from "drizzle-zod";
+import { createSelectSchema, createUpdateSchema } from "drizzle-zod";
 import { jobApplications } from "@/db/schema";
 
 const jobApplicationPayload = z.object({
@@ -47,7 +47,7 @@ export const jobApplicationSchema = z.object({
 export const updateApplicationStatusSchema = z.object({
   body: jobApplicationPayload
     .partial()
-    .omit({ jobId: true, applicantId: true }),
+    .omit({ applicantId: true } as const),
   params: applicationIdParamSchema,
   query: z.object({}).strict(),
 });
