@@ -233,23 +233,6 @@ router.use(authMiddleware.authenticate);
 
 // User routes (authenticated users)
 
-/**
- * Retrieves job applications submitted by the authenticated user.
- * This authenticated endpoint fetches the user's job applications with pagination and optional status filtering.
- * Requires user authentication and job seeker role.
- * Includes caching for performance optimization.
- * @route GET /api/jobs/me/applications
- * @param {Object} req.query - Query parameters for pagination and status filter.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the user's job applications.
- */
-router.get(
-  "/me/applications",
-  authMiddleware.requireUserRole,
-  cacheMiddleware({ ttl: 300 }),
-  jobController.getUserApplications,
-);
-
 registry.registerPath({
   method: "get",
   path: "/api/jobs/me/applications",
@@ -340,6 +323,22 @@ registry.registerPath({
     },
   },
 });
+/**
+ * Retrieves job applications submitted by the authenticated user.
+ * This authenticated endpoint fetches the user's job applications with pagination and optional status filtering.
+ * Requires user authentication and job seeker role.
+ * Includes caching for performance optimization.
+ * @route GET /api/jobs/me/applications
+ * @param {Object} req.query - Query parameters for pagination and status filter.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the user's job applications.
+ */
+router.get(
+  "/me/applications",
+  authMiddleware.requireUserRole,
+  cacheMiddleware({ ttl: 300 }),
+  jobController.getUserApplications,
+);
 
 registry.registerPath({
   method: "post",
