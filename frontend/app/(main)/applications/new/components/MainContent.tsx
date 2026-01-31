@@ -16,16 +16,21 @@ interface MainContentProps {
 }
 
 export const MainContent = ({ jobId, userProfile }: MainContentProps) => {
-  const { step, formData, initializeForm } = useApplicationStore();
+  const { step, formData, initializeForm, resetForm } = useApplicationStore();
 
-  // Initialize form with user data on mount
+  // Initialize form with user data on mount and cleanup on unmount
   useEffect(() => {
     initializeForm({
       firstName: userProfile.fullName.split(" ")[0],
       lastName: userProfile.fullName.split(" ")[1],
       email: userProfile.email,
     });
-  }, [userProfile, initializeForm]);
+
+    // Cleanup: reset the store when component unmounts
+    return () => {
+      resetForm();
+    };
+  }, [userProfile, initializeForm, resetForm]);
 
   const handleSubmitApplication = async () => {
     const formDataToSend = new FormData();
