@@ -31,9 +31,7 @@ export const getJobs = async (): Promise<
   return res.json();
 };
 
-export const getJobById = async (
-  jobId: number,
-): Promise<ApiResponse<JobResponse>> => {
+export const getJobById = async (jobId: number): Promise<JobResponse> => {
   const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}`, {
     next: { revalidate: 300, tags: [`job-${jobId}`] },
   });

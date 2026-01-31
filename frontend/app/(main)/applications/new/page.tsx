@@ -6,7 +6,7 @@ import {
   JobContextSidebar,
 } from "./components";
 import { MainContent } from "@/app/(main)/applications/new/components/MainContent";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
 
 type Props = {
@@ -62,7 +62,11 @@ export default async function ApplyForJob({ searchParams }: Props) {
           <div className="lg:col-span-8">
             <div className="flex min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl shadow-slate-200/50">
               {/* Main Content Area */}
-              <MainContent jobId={jobId} userProfile={userProfileRes.data} />
+              <MainContent
+                key={jobId}
+                jobId={jobId}
+                userProfile={userProfileRes.data}
+              />
               <ApplicationFooter />
             </div>
           </div>
