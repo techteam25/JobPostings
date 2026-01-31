@@ -166,7 +166,7 @@ export const getAllApplicationsByUser = async (): Promise<
       headers: {
         Cookie: cookieStore.toString(),
       },
-      next: { revalidate: 60, tags: [`user-applications`] },
+      next: { revalidate: 60, tags: ["user-applications"] },
     },
   );
 
@@ -341,6 +341,34 @@ export const applyForJob = async (
       message: errorData.message || "Failed to submit application",
     };
   }
+
+  return await res.json();
+};
+
+export const withdrawJobApplication = async (
+  applicationId: number,
+): Promise<{ success: boolean; message: string }> => {
+  const cookieStore = await cookies();
+
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/jobs/applications/${applicationId}/withdraw`,
+    {
+      method: "PATCH",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+    },
+  );
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    return {
+      success: false,
+      message: errorData.message || "Failed to withdraw application",
+    };
+  }
+
+  revalidateTag("user-applications");
 
   return await res.json();
 };
