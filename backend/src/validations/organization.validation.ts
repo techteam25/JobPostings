@@ -155,7 +155,8 @@ export const createOrganizationSchema = z.object({
 });
 
 export const uploadOrganizationLogoSchema = z.object({
-  body: insertOrganizationBaseSchema.pick({ logo: true })
+  body: insertOrganizationBaseSchema
+    .pick({ logo: true })
     .refine(
       (data) => {
         // Only validate logo if it's provided
