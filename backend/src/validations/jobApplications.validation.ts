@@ -1,19 +1,51 @@
-import { z } from "zod";
+import { z } from "@/swagger/registry";
 import { createSelectSchema } from "drizzle-zod";
 import { jobApplications } from "@/db/schema";
 
-const jobApplicationPayload = z.object({
-  applicationId: z.coerce.number(),
-  applicantId: z.coerce.number(),
-  coverLetter: z
-    .string()
-    .min(50, "Cover letter must be at least 50 characters")
-    .max(2000, "Cover letter must not exceed 2000 characters")
-    .optional(),
-  resumeUrl: z.url("Invalid resume URL").optional(),
-  customAnswers: z.string().max(5000).optional(),
-  notes: z.string().max(5000).optional(),
-});
+const ALLOWED_RESUME_MIMETYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+const MAX_RESUME_SIZE = 5 * 1024 * 1024; // 5MB
+
+const jobApplicationPayload = z
+  .object({
+    coverLetter: z
+      .string()
+      .min(0, "Cover letter must be at least 50 characters")
+      .max(2000, "Cover letter must not exceed 2000 characters")
+      .optional(),
+    resume: z
+      .custom<Express.Multer.File>(
+        (val) =>
+          val != null &&
+          typeof val === "object" &&
+          "mimetype" in val &&
+          "size" in val,
+        { message: "Expected a valid Multer file" },
+      )
+      .optional()
+      .openapi({
+        type: "string",
+        format: "binary",
+        description: "Resume file (max size 5MB)",
+      }),
+    customAnswers: z.string().max(5000).optional(),
+    notes: z.string().max(5000).optional(),
+  })
+  .refine(
+    (data) =>
+      !data.resume || ALLOWED_RESUME_MIMETYPES.includes(data.resume.mimetype),
+    {
+      message: "Resume must be a PDF, DOC, or DOCX file",
+      path: ["resume"],
+    },
+  )
+  .refine((data) => !data.resume || data.resume.size <= MAX_RESUME_SIZE, {
+    message: "Resume must not exceed 5MB",
+    path: ["resume"],
+  });
 
 const applicationIdParamSchema = z.object({
   applicationId: z
@@ -32,9 +64,15 @@ export const applyForJobSchema = z.object({
 });
 
 export const updateApplicationStatusSchema = z.object({
-  body: jobApplicationPayload
-    .partial()
-    .omit({ jobId: true, applicantId: true }),
+  body: z.object({
+    coverLetter: z
+      .string()
+      .min(50, "Cover letter must be at least 50 characters")
+      .max(2000, "Cover letter must not exceed 2000 characters")
+      .optional(),
+    customAnswers: z.string().max(5000).optional(),
+    notes: z.string().max(5000).optional(),
+  }),
   params: applicationIdParamSchema,
   query: z.object({}).strict(),
 });

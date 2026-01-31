@@ -37,6 +37,7 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import { uploadMiddleware } from "@/middleware/multer.middleware";
 
 const router = Router();
 const jobController = new JobController();
@@ -425,6 +426,7 @@ registry.registerPath({
 router.post(
   "/:jobId/apply",
   authMiddleware.requireUserRole,
+  uploadMiddleware.resume,
   validate(applyForJobSchema),
   jobController.applyForJob,
 );

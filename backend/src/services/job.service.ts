@@ -28,6 +28,8 @@ import { AppError } from "@/utils/errors";
 
 import { SearchParams } from "@/validations/base.validation";
 import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
+import { StorageFolder } from "@/workers/file-upload-worker";
+import { FileUploadJobData } from "@/validations/file.validation";
 
 import { fail, ok } from "./base.service";
 import logger from "@/logger";
@@ -464,7 +466,8 @@ export class JobService extends BaseService {
    * @returns A Result containing the application ID and message or an error.
    */
   async applyForJob(
-    applicationData: NewJobApplication,
+    applicationData: NewJobApplication & { resume?: Express.Multer.File },
+    correlationId: string,
   ): Promise<Result<{ applicationId: number; message: string }, Error>> {
     try {
       // Check if job exists and is active
@@ -510,6 +513,30 @@ export class JobService extends BaseService {
 
       if (!applicationId) {
         return fail(new DatabaseError("Failed to submit application"));
+      }
+
+      // Enqueue resume upload if provided
+      if (applicationData.resume) {
+        await queueService.addJob<FileUploadJobData>(
+          QUEUE_NAMES.FILE_UPLOAD_QUEUE,
+          "uploadFile",
+          {
+            entityType: "job",
+            entityId: applicationId.toString(),
+            folder: StorageFolder.RESUMES,
+            mergeWithExisting: false,
+            tempFiles: [
+              {
+                originalname: applicationData.resume.originalname,
+                tempPath: applicationData.resume.path,
+                size: applicationData.resume.size,
+                mimetype: applicationData.resume.mimetype,
+              },
+            ],
+            userId: applicationData.applicantId.toString(),
+            correlationId,
+          },
+        );
       }
 
       // Fetch user details for email notification
