@@ -327,6 +327,7 @@ export const applyForJob = async (
   formData: FormData,
 ): Promise<{ success: boolean; message: string; applicationId?: number }> => {
   const cookieStore = await cookies();
+
   const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}/apply`, {
     method: "POST",
     headers: {

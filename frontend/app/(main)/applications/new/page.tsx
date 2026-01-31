@@ -6,6 +6,8 @@ import {
   JobContextSidebar,
 } from "./components";
 import { MainContent } from "@/app/(main)/applications/new/components/MainContent";
+import { Button, buttonVariants } from "@/components/ui/button";
+import Link from "next/link";
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -37,6 +39,9 @@ export default async function ApplyForJob({ searchParams }: Props) {
           <p className="text-slate-500">
             The job you are looking for does not exist or has been removed.
           </p>
+          <Link href="/" className={buttonVariants({ variant: "secondary" })}>
+            Browse Jobs
+          </Link>
         </div>
       </div>
     );
@@ -49,8 +54,8 @@ export default async function ApplyForJob({ searchParams }: Props) {
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           <JobContextSidebar
-            job={jobRes.data.data.job}
-            employer={jobRes.data.data.employer}
+            job={jobRes.data.job}
+            employer={jobRes.data.employer}
           />
 
           {/* RIGHT COLUMN: Application Flow */}
