@@ -1,1 +1,0 @@
-ALTER TABLE `job_details` MODIFY COLUMN `experience` varchar(5000);

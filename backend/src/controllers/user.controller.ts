@@ -29,6 +29,7 @@ import {
 } from "@/validations/userProfile.validation";
 import { GetJobSchema } from "@/validations/job.validation";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
+import { AuditService } from "@/services/audit.service";
 import {
   CreateJobAlert,
   GetJobAlert,
@@ -41,6 +42,7 @@ import {
  */
 export class UserController extends BaseController {
   private userService: UserService;
+  private auditService: AuditService;
 
   /**
    * Creates an instance of UserController and initializes the required services.
@@ -48,6 +50,7 @@ export class UserController extends BaseController {
   constructor() {
     super();
     this.userService = new UserService();
+    this.auditService = new AuditService();
   }
 
   /**
@@ -113,15 +116,40 @@ export class UserController extends BaseController {
     const id = Number(req.params.id);
 
     const updateData = req.body;
+
+    // Get old values before update
+    const oldUser = await this.userService.getUserById(id);
     const user = await this.userService.updateUser(id, updateData);
 
     if (user.isSuccess) {
+      // Log the audit event
+      await this.auditService.logFromRequest(req, "user.update", {
+        resourceType: "user",
+        resourceId: id,
+        oldValues: oldUser.isSuccess ? {
+          fullName: oldUser.value.fullName,
+          email: oldUser.value.email,
+        } : undefined,
+        newValues: {
+          fullName: updateData.fullName,
+          email: updateData.email,
+        },
+        description: `User profile updated for user ID ${id}`,
+      });
       return this.sendSuccess<User>(
         res,
         user.value,
         "User updated successfully",
       );
     } else {
+      // Log failed attempt
+      await this.auditService.logFromRequest(req, "user.update", {
+        resourceType: "user",
+        resourceId: id,
+        success: "false",
+        errorMessage: user.error.message,
+        description: `Failed to update user ID ${id}`,
+      });
       return this.handleControllerError(res, user.error);
     }
   };
@@ -349,8 +377,24 @@ export class UserController extends BaseController {
     ); // Todo: replace currentPassword with actual confirmation token
 
     if (result.isSuccess) {
+      // Log the deletion
+      await this.auditService.logFromRequest(req, "user.delete", {
+        resourceType: "user",
+        resourceId: req.userId!,
+        severity: "warning",
+        description: `User self-deleted account`,
+      });
       return this.sendSuccess(res, null, "Account deleted successfully", 204);
     } else {
+      // Log failed deletion attempt
+      await this.auditService.logFromRequest(req, "user.delete", {
+        resourceType: "user",
+        resourceId: req.userId!,
+        severity: "warning",
+        success: "false",
+        errorMessage: result.error.message,
+        description: `Failed to delete account`,
+      });
       return this.handleControllerError(res, result.error);
     }
   };
