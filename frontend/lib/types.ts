@@ -93,6 +93,7 @@ export type OrganizationJobApplications = {
 
 export type UserJobApplications = {
   application: {
+    id: number;
     jobTitle: string;
     status:
       | "pending"
@@ -198,6 +199,36 @@ export interface JobApplicationFormData extends JobApplicationInput {
 
 export type SavedState = {
   isSaved: boolean;
+};
+
+export type UserJobApplication = {
+  application: {
+    id: number;
+    jobTitle: string;
+    status:
+      | "pending"
+      | "reviewed"
+      | "shortlisted"
+      | "interviewing"
+      | "rejected"
+      | "hired"
+      | "withdrawn";
+    appliedAt: string;
+  };
+  job: {
+    id: number;
+    title: string;
+    city: string;
+    state: string | null;
+    country: string | null;
+    zipcode: number | null;
+    isRemote: boolean;
+    jobType: string;
+  };
+  employer: {
+    id: number;
+    name: string;
+  };
 };
 
 export type PaginationMeta = {
