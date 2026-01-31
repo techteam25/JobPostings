@@ -84,4 +84,5 @@ export enum EmailType {
   MONTHLY_NEWSLETTER = "monthlyNewsletter",
   MARKETING = "marketingEmails",
   SECURITY_ALERT = "accountSecurityAlerts",
+  MATCHED_CANDIDATES = "matchedCandidates",
 }

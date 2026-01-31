@@ -4,7 +4,7 @@ import { reset, seed } from "drizzle-seed";
 import { eq, sql } from "drizzle-orm";
 
 import * as schema from "./schema";
-import { userProfile } from "@/db/schema";
+import { userProfile, userEmailPreferences } from "@/db/schema";
 import { organizations, organizationMembers } from "@/db/schema";
 import { jobsDetails } from "@/db/schema";
 import { env } from "@/config/env";
@@ -84,6 +84,16 @@ async function runSeed() {
         isAvailableForWork: f.valuesFromArray({
           values: [true, false],
         }),
+      },
+    },
+  }));
+
+  // seed user preferences
+  await seed(db, { userEmailPreferences }, { seed: 44 }).refine((f) => ({
+    userEmailPreferences: {
+      count: 50,
+      columns: {
+        userId: f.int({ minValue: 1, maxValue: 50, isUnique: true }),
       },
     },
   }));

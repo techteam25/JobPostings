@@ -452,6 +452,98 @@ ${footer}`,
   }
 
   /**
+<<<<<<< HEAD
+   * Sends an organization invitation email to the invitee.
+   * @param email The recipient's email address.
+   * @param organizationName The name of the organization.
+   * @param inviterName The name of the person sending the invitation.
+   * @param role The role being assigned.
+   * @param token The invitation token.
+   * @param expirationDate The expiration date of the invitation.
+   */
+  async sendOrganizationInvitation(
+    email: string,
+    organizationName: string,
+    inviterName: string,
+    role: string,
+    token: string,
+    expirationDate: string,
+  ): Promise<void> {
+    const template = await this.loadTemplate("organizationInvitation");
+
+    const acceptanceLink = `${env.FRONTEND_URL}/invitations/accept?token=${token}`;
+    const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+    // Format role for display (capitalize first letter)
+    const roleDisplay =
+      role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+
+    const htmlContent = template
+      .replace(/{{logoPath}}/g, logoPath)
+      .replace(/{{organizationName}}/g, organizationName)
+      .replace(/{{inviterName}}/g, inviterName)
+      .replace(/{{role}}/g, roleDisplay)
+      .replace(/{{acceptanceLink}}/g, acceptanceLink)
+      .replace(/{{expirationDate}}/g, expirationDate);
+
+    try {
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: `Invitation to join ${organizationName} on getInvolved`,
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  /**
+   * Sends a welcome email to a new organization member.
+   * @param email The recipient's email address.
+   * @param name The recipient's name.
+   * @param organizationName The name of the organization.
+   * @param role The role assigned to the member.
+   */
+  async sendOrganizationWelcome(
+    email: string,
+    name: string,
+    organizationName: string,
+    role: string,
+  ): Promise<void> {
+    const template = await this.loadTemplate("organizationWelcome");
+
+    const dashboardLink = `${env.FRONTEND_URL}/dashboard`;
+    const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+    // Format role for display (capitalize first letter)
+    const roleDisplay =
+      role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+
+    const htmlContent = template
+      .replace(/{{logoPath}}/g, logoPath)
+      .replace(/{{name}}/g, name)
+      .replace(/{{organizationName}}/g, organizationName)
+      .replace(/{{role}}/g, roleDisplay)
+      .replace(/{{dashboardLink}}/g, dashboardLink);
+
+    try {
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: `Welcome to ${organizationName} on getInvolved!`,
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  /**
    * Sends an application status update notification email to the applicant.
    * @param email The recipient's email address.
    * @param fullName The recipient's full name.
@@ -653,6 +745,80 @@ ${footer}`,
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
       console.error("Failed to send job alert notification", error);
+    }
+  }
+
+  /**
+   * Sends an unsubscribe confirmation email to the user.
+   * @param userId The ID of the user.
+   * @param email The recipient's email address.
+   * @param name The recipient's name.
+   * @param context The context of unsubscription (job_seeker, employer, or global).
+   */
+  async sendUnsubscribeConfirmation(
+    userId: number,
+    email: string,
+    name: string,
+    context: "job_seeker" | "employer" | "global",
+  ): Promise<void> {
+    try {
+      const template = await this.loadTemplate("unsubscribeConfirmation");
+
+      const settingsLink = `${env.FRONTEND_URL}/settings/email-preferences`;
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      // Generate footer (without unsubscribe link since they just unsubscribed)
+      const footer = `
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; font-size: 12px;">
+          <p style="margin: 10px 0;">
+            This email was sent to you by GetInvolved.
+          </p>
+          <p style="margin: 10px 0;">
+            © ${new Date().getFullYear()} GetInvolved. All rights reserved.
+          </p>
+        </div>
+      `;
+
+      const contextName =
+        context === "global"
+          ? "all emails"
+          : context === "job_seeker"
+            ? "job seeker emails"
+            : "employer emails";
+
+      const description =
+        context === "global"
+          ? "You will no longer receive any promotional or notification emails from us, except for critical account security alerts."
+          : context === "job_seeker"
+            ? "You will no longer receive job match notifications, application updates, or saved job alerts."
+            : "You will no longer receive notifications about matched candidates for your job postings.";
+
+      const htmlContent = template
+        .replace("{{name}}", name)
+        .replace("{{contextName}}", contextName)
+        .replace("{{description}}", description)
+        .replace("{{settingsLink}}", settingsLink)
+        .replace("{{logoPath}}", logoPath)
+        .replace("</body>", `${footer}</body>`);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: "Unsubscribe Confirmation - GetInvolved",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.handleError(error);
+      } else {
+        this.handleError(
+          new AppError(
+            "Unknown error occurred while sending unsubscribe confirmation",
+          ),
+        );
+      }
     }
   }
 }

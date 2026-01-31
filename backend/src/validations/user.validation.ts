@@ -208,5 +208,43 @@ export type UserQuerySchema = z.infer<typeof userQuerySchema>;
 export type CreateUserProfile = z.infer<typeof createUserPayloadSchema>;
 export type DeleteSelfSchema = z.infer<typeof deleteSelfSchema>;
 export type DeleteUserSchema = z.infer<typeof deleteUserSchema>;
+
+// Context-based unsubscribe schema
+export const unsubscribeByContextSchema = z.object({
+  body: z.object({
+    context: z.enum(["job_seeker", "employer", "global"]),
+  }),
+  params: z.object({}).strict(),
+  query: z.object({}).strict(),
+});
+
+// Granular preference update schema
+export const updateGranularPreferenceSchema = z.object({
+  body: z.object({
+    preferenceType: z.string().min(1),
+    enabled: z.boolean(),
+    context: z.enum(["job_seeker", "employer", "global"]),
+  }),
+  params: z.object({}).strict(),
+  query: z.object({}).strict(),
+});
+
+// Get unsubscribe landing page data schema
+export const getUnsubscribeLandingPageSchema = z.object({
+  body: z.object({}).strict(),
+  params: z.object({
+    token: z.string().min(1, "Token is required"),
+  }),
+  query: z.object({}).strict(),
+});
+
+// Export types
+export type UnsubscribeByContext = z.infer<typeof unsubscribeByContextSchema>;
+export type UpdateGranularPreference = z.infer<
+  typeof updateGranularPreferenceSchema
+>;
+export type GetUnsubscribeLandingPage = z.infer<
+  typeof getUnsubscribeLandingPageSchema
+>;
 export type SavedJobs = z.infer<typeof savedJobsSchema>;
 export type SavedJobsQuerySchema = z.infer<typeof getUserSavedJobsQuerySchema>;

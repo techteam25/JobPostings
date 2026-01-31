@@ -6,6 +6,7 @@ import { env } from "@/env";
 import { JobResponse, Job, JobWithEmployer } from "@/schemas/responses/jobs";
 import {
   ApiResponse,
+  EmailPreferences,
   Organization,
   OrganizationJobApplications,
   OrganizationWithMembers,
@@ -16,6 +17,25 @@ import {
   UserProfile,
   UserWithProfile,
 } from "@/lib/types";
+import { UserIntentResponse } from "@/schemas/responses/users";
+
+export const getUserIntent = async (): Promise<UserIntentResponse> => {
+  const cookieStore = await cookies();
+  const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/users/me/intent`, {
+    credentials: "include",
+    headers: {
+      Cookie: cookieStore.toString(),
+    },
+    next: { revalidate: 300, tags: ["user-intent"] },
+  });
+
+  if (!res.ok) {
+    console.error("Failed to fetch user intent");
+    return await res.json();
+  }
+
+  return await res.json();
+};
 
 export const getJobs = async (): Promise<
   PaginatedApiResponse<JobWithEmployer>
@@ -369,6 +389,29 @@ export const withdrawJobApplication = async (
   }
 
   revalidateTag("user-applications");
+
+  return await res.json();
+};
+
+export const fetchEmailPreferences = async (): Promise<
+  ApiResponse<EmailPreferences>
+> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/users/me/email-preferences`,
+    {
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+      next: { revalidate: 300, tags: ["email-preferences"] },
+    },
+  );
+
+  if (!res.ok) {
+    console.error("Failed to fetch email preferences");
+    return await res.json();
+  }
 
   return await res.json();
 };
