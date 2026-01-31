@@ -1,6 +1,7 @@
 import { MutableRefObject } from "react";
 
 import { CreateOrganizationData } from "@/schemas/organizations";
+import { JobApplicationInput } from "@/schemas/applications";
 
 export enum JobType {
   FullTime = "Full-time",
@@ -91,48 +92,34 @@ export type OrganizationJobApplications = {
 };
 
 export type UserJobApplications = {
-  items: {
-    application: {
-      id: number;
-      jobId: number;
-      applicantId: number;
-      status:
-        | "pending"
-        | "reviewed"
-        | "shortlisted"
-        | "interviewing"
-        | "rejected"
-        | "hired"
-        | "withdrawn";
-      coverLetter: string | null;
-      resumeUrl: string | null;
-      appliedAt: Date;
-      reviewedAt: Date | null;
-      notes: string | null;
-      createdAt: Date;
-      updatedAt: Date;
-    };
-    job: {
-      id: number;
-      title: string;
-      city: string;
-      state: string | null;
-      country: string;
-      zipcode: number | null;
-      isRemote: boolean;
-      jobType:
-        | "full-time"
-        | "part-time"
-        | "contract"
-        | "volunteer"
-        | "internship";
-    } | null;
-    employer: {
-      id: number;
-      name: string;
-    } | null;
-  }[];
-};
+  application: {
+    id: number;
+    jobTitle: string;
+    status:
+      | "pending"
+      | "reviewed"
+      | "shortlisted"
+      | "interviewing"
+      | "rejected"
+      | "hired"
+      | "withdrawn";
+    appliedAt: string;
+  };
+  job: {
+    id: number;
+    title: string;
+    city: string;
+    state: string | null;
+    country: string | null;
+    zipcode: number | null;
+    isRemote: boolean;
+    jobType: string;
+  };
+  employer: {
+    id: number;
+    name: string;
+  };
+}[];
 
 export type SavedJob = {
   id: number;
@@ -166,35 +153,49 @@ export type SavedJob = {
 
 export type UserProfile = {
   id: number;
+  userId: number;
+  profilePicture: string | null;
+  bio: string | null;
+  resumeUrl: string | null;
+  linkedinUrl: string | null;
+  portfolioUrl: string | null;
+  phoneNumber: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  country: string | null;
+  isProfilePublic: boolean;
+  isAvailableForWork: boolean;
+  fileMetadata:
+    | {
+        url: string;
+        filename: string;
+        size: number;
+        mimetype: string;
+        uploadedAt: string;
+      }[]
+    | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type UserWithProfile = {
+  id: number;
   fullName: string;
   email: string;
-  emailVerified: true;
-  image: string;
+  emailVerified: boolean;
+  image: string | null;
   createdAt: Date;
   updatedAt: Date;
   status: string;
-  deletedAt: Date;
-  lastLoginAt: Date;
-  profile: {
-    id: number;
-    userId: number;
-    profilePicture: string;
-    bio: string;
-    resumeUrl: string;
-    linkedinUrl: string;
-    portfolioUrl: string;
-    phoneNumber: string;
-    address: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-    isProfilePublic: true;
-    isAvailableForWork: true;
-    createdAt: Date;
-    updatedAt: Date;
-  };
-};
+  deletedAt: Date | null;
+  lastLoginAt: Date | null;
+} & { profile: UserProfile | null };
+
+export interface JobApplicationFormData extends JobApplicationInput {
+  resume: File | null;
+}
 
 export type EmailPreferences = {
   jobMatchNotifications: boolean;
@@ -240,6 +241,36 @@ export type UnsubscribeInfo = {
 
 export type SavedState = {
   isSaved: boolean;
+};
+
+export type UserJobApplication = {
+  application: {
+    id: number;
+    jobTitle: string;
+    status:
+      | "pending"
+      | "reviewed"
+      | "shortlisted"
+      | "interviewing"
+      | "rejected"
+      | "hired"
+      | "withdrawn";
+    appliedAt: string;
+  };
+  job: {
+    id: number;
+    title: string;
+    city: string;
+    state: string | null;
+    country: string | null;
+    zipcode: number | null;
+    isRemote: boolean;
+    jobType: string;
+  };
+  employer: {
+    id: number;
+    name: string;
+  };
 };
 
 export type PaginationMeta = {

@@ -16,6 +16,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ImOffice } from "react-icons/im";
+import Link from "next/link";
 
 interface JobDetailPanelProps {
   jobId: number | undefined;
@@ -88,8 +89,11 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
                 <p>Save this job</p>
               </TooltipContent>
             </Tooltip>
-            <Button className="bg-foreground text-primary-foreground hover:bg-foreground/95 cursor-pointer">
-              Apply on employer site
+            <Button
+              asChild
+              className="bg-foreground text-primary-foreground hover:bg-foreground/95 cursor-pointer"
+            >
+              <Link href={`/applications/new?jobId=${job.id}`}>Apply Now</Link>
             </Button>
           </div>
         </div>

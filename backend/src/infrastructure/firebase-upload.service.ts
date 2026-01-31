@@ -1,13 +1,6 @@
 import fs from "fs";
 
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-} from "firebase/storage";
-
-import { storage } from "@/config/firebase";
+import { bucket } from "@/config/firebase";
 import { BaseService } from "@/services/base.service";
 import logger from "@/logger";
 import {
@@ -100,15 +93,17 @@ export class FirebaseUploadService extends BaseService {
       // Read file from temp path
       const fileBuffer = await fs.promises.readFile(file.tempPath);
 
-      // Create storage reference
-      const storageRef = ref(storage, storagePath);
+      // Get file reference from Admin SDK bucket
+      const bucketFile = bucket.file(storagePath);
 
       // Upload with timeout protection
-      const uploadPromise = uploadBytes(storageRef, fileBuffer, {
+      const uploadPromise = bucketFile.save(fileBuffer, {
         contentType: file.mimetype,
-        customMetadata: {
-          originalName: file.originalname,
-          uploadedAt: new Date().toISOString(),
+        metadata: {
+          metadata: {
+            originalName: file.originalname,
+            uploadedAt: new Date().toISOString(),
+          },
         },
       });
 
@@ -121,8 +116,11 @@ export class FirebaseUploadService extends BaseService {
       // Race between upload and timeout
       await Promise.race([uploadPromise, timeoutPromise]);
 
-      // Get download URL
-      const downloadUrl = await getDownloadURL(storageRef);
+      // Make file publicly readable
+      await bucketFile.makePublic();
+
+      // Get public download URL
+      const downloadUrl = `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
 
       logger.info(
         { correlationId, filename: uniqueFilename, folder },
@@ -278,7 +276,8 @@ export class FirebaseUploadService extends BaseService {
     try {
       // Extract storage path from download URL
       const urlObj = new URL(fileUrl);
-      const pathMatch = urlObj.pathname.match(/\/o\/(.+?)(\?|$)/);
+      // Match pattern: storage.googleapis.com/{bucket}/{path}
+      const pathMatch = urlObj.pathname.match(/\/([^\/]+\/[^?]+)/);
 
       if (!pathMatch) {
         logger.error({ fileUrl }, "Could not extract storage path from URL");
@@ -286,9 +285,9 @@ export class FirebaseUploadService extends BaseService {
       }
 
       const storagePath = decodeURIComponent(pathMatch[1]!);
-      const storageRef = ref(storage, storagePath);
+      const bucketFile = bucket.file(storagePath);
 
-      await deleteObject(storageRef);
+      await bucketFile.delete();
 
       logger.info({ storagePath }, "File deleted successfully");
       return true;
@@ -306,8 +305,7 @@ export class FirebaseUploadService extends BaseService {
    * @returns Public download URL
    */
   async generatePublicUrl(filePath: string): Promise<string> {
-    const storageRef = ref(storage, filePath);
-    return getDownloadURL(storageRef);
+    return `https://storage.googleapis.com/${bucket.name}/${filePath}`;
   }
 
   /**

@@ -43,5 +43,8 @@ uploads/
 uploads/documentation/
 documentation/
 
+# Firebase Service Account Keys
+get-involved-82d94-firebase-adminsdk-fbsvc-ada6af3d3d.json
+
 # Temporary scripts
 tempScripts/

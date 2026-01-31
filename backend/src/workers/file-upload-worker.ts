@@ -50,7 +50,7 @@ async function updateEntityFileMetadata(
       }
       await db
         .update(jobApplications)
-        .set({ fileMetadata: metadata })
+        .set({ fileMetadata: metadata, resumeUrl: urls[0] || null })
         .where(eq(jobApplications.id, id));
       break;
     }

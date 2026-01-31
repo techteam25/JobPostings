@@ -15,6 +15,7 @@ import {
   SavedState,
   UserJobApplications,
   UserProfile,
+  UserWithProfile,
 } from "@/lib/types";
 import { UserIntentResponse } from "@/schemas/responses/users";
 
@@ -50,9 +51,7 @@ export const getJobs = async (): Promise<
   return res.json();
 };
 
-export const getJobById = async (
-  jobId: number,
-): Promise<ApiResponse<JobResponse>> => {
+export const getJobById = async (jobId: number): Promise<JobResponse> => {
   const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}`, {
     next: { revalidate: 300, tags: [`job-${jobId}`] },
   });
@@ -97,7 +96,6 @@ export const getOrganization = async (
 
 export const updateOrganization = async (
   organizationData: Organization | null,
-  formData: FormData,
 ): Promise<Organization | null> => {
   const res = await fetch(
     `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${organizationData?.id}`,
@@ -188,7 +186,7 @@ export const getAllApplicationsByUser = async (): Promise<
       headers: {
         Cookie: cookieStore.toString(),
       },
-      next: { revalidate: 60, tags: [`user-applications`] },
+      next: { revalidate: 60, tags: ["user-applications"] },
     },
   );
 
@@ -297,7 +295,7 @@ export const isJobSavedByUser = async (
 };
 
 export const getUserInformation = async (): Promise<
-  ApiResponse<UserProfile>
+  ApiResponse<UserWithProfile>
 > => {
   const cookieStore = await cookies();
   const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/users/me`, {
@@ -338,6 +336,59 @@ export const updateProfileVisibility = async (
   }
 
   revalidateTag("user-bio-info");
+
+  return await res.json();
+};
+
+export const applyForJob = async (
+  jobId: number,
+  formData: FormData,
+): Promise<{ success: boolean; message: string; applicationId?: number }> => {
+  const cookieStore = await cookies();
+
+  const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}/apply`, {
+    method: "POST",
+    headers: {
+      Cookie: cookieStore.toString(),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    return {
+      success: false,
+      message: errorData.message || "Failed to submit application",
+    };
+  }
+
+  return await res.json();
+};
+
+export const withdrawJobApplication = async (
+  applicationId: number,
+): Promise<{ success: boolean; message: string }> => {
+  const cookieStore = await cookies();
+
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/jobs/applications/${applicationId}/withdraw`,
+    {
+      method: "PATCH",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+    },
+  );
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    return {
+      success: false,
+      message: errorData.message || "Failed to withdraw application",
+    };
+  }
+
+  revalidateTag("user-applications");
 
   return await res.json();
 };
