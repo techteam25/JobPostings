@@ -7,6 +7,7 @@ import { JobResponse, Job, JobWithEmployer } from "@/schemas/responses/jobs";
 import {
   ApiResponse,
   EmailPreferences,
+  JobAlert,
   Organization,
   OrganizationJobApplications,
   OrganizationWithMembers,
@@ -413,5 +414,33 @@ export const fetchEmailPreferences = async (): Promise<
     return await res.json();
   }
 
+  return await res.json();
+};
+
+export const fetchJobAlerts = async (page = 1, limit = 10): Promise<PaginatedApiResponse<JobAlert>> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/users/me/job-alerts?page=${page}&limit=${limit}`,
+    {
+      credentials: "include",
+      headers: { Cookie: cookieStore.toString() },
+      next: { revalidate: 300, tags: ["job-alerts"] },
+    }
+  );
+  if (!res.ok) return await res.json();
+  return await res.json();
+};
+
+export const fetchJobAlert = async (alertId: number): Promise<ApiResponse<JobAlert>> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/users/me/job-alerts/${alertId}`,
+    {
+      credentials: "include",
+      headers: { Cookie: cookieStore.toString() },
+      next: { revalidate: 300, tags: [`job-alert-${alertId}`] },
+    }
+  );
+  if (!res.ok) return await res.json();
   return await res.json();
 };
