@@ -208,6 +208,7 @@ registry.registerPath({
 router.get(
   "/members/:id",
   validate(getUserSchema),
+  cacheMiddleware({ ttl: 600 }),
   organizationController.getOrganizationIdByMemberId,
 );
 
@@ -280,6 +281,7 @@ router.post(
   uploadMiddleware.organizationLogo,
   validate(createOrganizationSchema),
   invalidateCacheMiddleware(() => "/organizations"),
+  invalidateCacheMiddleware(() => "users/me/intent"),
   organizationController.createOrganization,
 );
 
