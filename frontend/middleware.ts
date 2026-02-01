@@ -9,6 +9,32 @@ import {
   OrganizationWithMembersResponse,
 } from "@/schemas/responses/organizations";
 
+async function fetchOrganization(
+  userId: string,
+  cookieHeader: string,
+): Promise<OrganizationIdByMemberIdResponse | null> {
+  try {
+    const response = await fetch(
+      `${env.NEXT_PUBLIC_SERVER_URL}/organizations/members/${userId}`,
+      {
+        headers: {
+          cookie: cookieHeader,
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        next: { revalidate: 300 },
+      },
+    );
+
+    if (response.ok) {
+      return await response.json();
+    }
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -48,7 +74,7 @@ export async function middleware(req: NextRequest) {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        cache: "no-store",
+        next: { revalidate: 300 },
       },
     );
 
@@ -83,37 +109,25 @@ export async function middleware(req: NextRequest) {
 
     // If status is completed
     if (status === "completed") {
+      let orgData: OrganizationIdByMemberIdResponse | null = null;
+
       // Prevent access to onboarding routes after completion
       if (pathname.startsWith("/employer/onboarding")) {
         if (intent === "employer") {
           // Fetch organization data to redirect to organization page
-          try {
-            const orgFetchResponse = await fetch(
-              `${env.NEXT_PUBLIC_SERVER_URL}/organizations/members/${user.id}`,
-              {
-                headers: {
-                  cookie: cookieHeader || "",
-                  "Content-Type": "application/json",
-                },
-                credentials: "include",
-                cache: "no-store",
-              },
+          orgData = await fetchOrganization(
+            user.id,
+            cookieString || cookieHeader || "",
+          );
+
+          if (orgData?.success && orgData.data) {
+            return NextResponse.redirect(
+              new URL(
+                `/employer/organizations/${orgData.data.organizationId}`,
+                req.url,
+              ),
             );
-
-            if (orgFetchResponse.ok) {
-              const orgResponse: OrganizationWithMembersResponse =
-                await orgFetchResponse.json();
-
-              if (orgResponse?.success && orgResponse.data) {
-                return NextResponse.redirect(
-                  new URL(
-                    `/employer/organizations/${orgResponse.data.id}`,
-                    req.url,
-                  ),
-                );
-              }
-            }
-          } catch (error) {
+          } else {
             // If organization fetch fails, redirect to home
             return NextResponse.redirect(new URL("/", req.url));
           }
@@ -128,68 +142,23 @@ export async function middleware(req: NextRequest) {
         !pathname.startsWith("/employer/organizations") &&
         pathname !== "/" // Allow access to home page
       ) {
-        try {
-          const orgFetchResponse = await fetch(
-            `${env.NEXT_PUBLIC_SERVER_URL}/organizations/members/${user.id}`,
-            {
-              headers: {
-                cookie: cookieString || cookieHeader || "",
-                "Content-Type": "application/json",
-              },
-              credentials: "include",
-              cache: "no-store",
-            },
+        // Only fetch if not already cached from previous check
+        if (!orgData) {
+          orgData = await fetchOrganization(
+            user.id,
+            cookieString || cookieHeader || "",
           );
-
-          console.log("Org fetch status:", orgFetchResponse.status);
-          console.log("Org fetch ok:", orgFetchResponse.ok);
-
-          if (orgFetchResponse.ok) {
-            const orgResponse: OrganizationIdByMemberIdResponse =
-              await orgFetchResponse.json();
-
-            console.log("Org response:", orgResponse);
-
-            if (orgResponse?.success && orgResponse.data) {
-              const redirectUrl = `/employer/organizations/${orgResponse.data.organizationId}`;
-              console.log("Redirecting employer to:", redirectUrl);
-
-              // Redirect to their organization dashboard
-              return NextResponse.redirect(new URL(redirectUrl, req.url));
-            } else {
-              console.log("Org response not successful or no data");
-            }
-          } else {
-            console.log(
-              "Org fetch failed with status:",
-              orgFetchResponse.status,
-            );
-
-            // Log the error response
-            try {
-              const errorText = await orgFetchResponse.text();
-              console.log("Error response body:", errorText);
-            } catch (e) {
-              console.log("Could not read error response");
-            }
-
-            // If 400 or 404, user might not have an organization yet
-            // Allow them to access the app normally
-            if (
-              orgFetchResponse.status === 400 ||
-              orgFetchResponse.status === 404
-            ) {
-              console.log(
-                "User doesn't have an organization yet, allowing access",
-              );
-            }
-          }
-        } catch (error) {
-          // If no organization found, continue to allow access
-          console.error("Error fetching organization:", error);
         }
 
-        console.log("=== END EMPLOYER ORG CHECK ===");
+        if (orgData?.success && orgData.data) {
+          // Redirect to their organization dashboard
+          return NextResponse.redirect(
+            new URL(
+              `/employer/organizations/${orgData.data.organizationId}`,
+              req.url,
+            ),
+          );
+        }
       }
     }
 
