@@ -12,6 +12,7 @@ import {
   apiResponseSchema,
   errorResponseSchema,
 } from "@/types";
+import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
 
 const router = Router();
 const organizationController = new OrganizationController();
@@ -167,6 +168,7 @@ router.post(
   "/:token/accept",
   authMiddleware.authenticate,
   validate(acceptOrganizationInvitationSchema),
+  invalidateCacheMiddleware((req) => `organizations/members/${req.userId}`),
   organizationController.acceptInvitation,
 );
 
