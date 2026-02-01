@@ -139,7 +139,7 @@ export type DeleteJobAlert = z.infer<typeof deleteJobAlertSchema>;
 export const togglePauseJobAlertSchema = z.object({
   body: z.object({
     isPaused: z.boolean({
-      invalid_type_error: "isPaused must be a boolean",
+      error: "isPaused must be a boolean",
     }),
   }),
   params: z.object({

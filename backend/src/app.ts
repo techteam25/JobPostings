@@ -4,6 +4,7 @@ import helmet from "helmet";
 import pinoHttp from "pino-http";
 import swaggerUi from "swagger-ui-express";
 
+// @ts-expect-error expects mts
 import { toNodeHandler } from "better-auth/node";
 
 import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
@@ -118,7 +119,7 @@ app.use(requestLogger);
 app.use(
   cors({
     origin: [env.FRONTEND_URL],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-requested-with"],
     exposedHeaders: ["set-cookie"],
     credentials: true,
