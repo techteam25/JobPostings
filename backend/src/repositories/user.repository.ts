@@ -1054,6 +1054,93 @@ export class UserRepository extends BaseRepository<typeof user> {
   }
 
   /**
+   * Updates a job alert for a user.
+   * Only updates provided fields.
+   * @param userId The ID of the user.
+   * @param alertId The ID of the alert.
+   * @param updateData Partial job alert data to update.
+   * @returns The updated job alert or undefined if not found.
+   */
+  async updateJobAlert(
+    userId: number,
+    alertId: number,
+    updateData: Partial<Omit<InsertJobAlert, "userId" | "id">>,
+  ): Promise<JobAlert | undefined> {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(jobAlerts)
+        .set({
+          ...updateData,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(jobAlerts.id, alertId), eq(jobAlerts.userId, userId)));
+
+      if (!result.affectedRows || result.affectedRows === 0) {
+        throw new DatabaseError(
+          `Failed to update job alert with id: ${alertId}`,
+        );
+      }
+
+      return await db.query.jobAlerts.findFirst({
+        where: and(eq(jobAlerts.id, alertId), eq(jobAlerts.userId, userId)),
+      });
+    });
+  }
+
+  /**
+   * Deletes a job alert for a user.
+   * Cascade delete will handle related job_alert_matches records.
+   * @param userId The ID of the user.
+   * @param alertId The ID of the alert.
+   */
+  async deleteJobAlert(userId: number, alertId: number): Promise<void> {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .delete(jobAlerts)
+        .where(and(eq(jobAlerts.id, alertId), eq(jobAlerts.userId, userId)));
+
+      if (!result.affectedRows || result.affectedRows === 0) {
+        throw new DatabaseError(
+          `Failed to delete job alert with id: ${alertId}`,
+        );
+      }
+    });
+  }
+
+  /**
+   * Updates the pause state of a job alert.
+   * @param userId The ID of the user.
+   * @param alertId The ID of the alert.
+   * @param isPaused The new pause state.
+   * @returns The updated job alert or undefined if not found.
+   */
+  async updateJobAlertPauseState(
+    userId: number,
+    alertId: number,
+    isPaused: boolean,
+  ): Promise<JobAlert | undefined> {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(jobAlerts)
+        .set({
+          isPaused,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(jobAlerts.id, alertId), eq(jobAlerts.userId, userId)));
+
+      if (!result.affectedRows || result.affectedRows === 0) {
+        throw new DatabaseError(
+          `Failed to update pause state for job alert with id: ${alertId}`,
+        );
+      }
+
+      return await db.query.jobAlerts.findFirst({
+        where: and(eq(jobAlerts.id, alertId), eq(jobAlerts.userId, userId)),
+      });
+    });
+  }
+
+  /**
    * Retrieves active job alerts that are due for processing based on frequency.
    * @param frequency The frequency type ('daily' or 'weekly').
    * @param cutoffTime The cutoff timestamp - alerts with lastSentAt before this time will be processed.

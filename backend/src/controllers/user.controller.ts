@@ -34,6 +34,9 @@ import {
   GetJobAlert,
   GetUserJobAlertsQuery,
   JobAlert,
+  UpdateJobAlert,
+  DeleteJobAlert,
+  TogglePauseJobAlert,
 } from "@/validations/jobAlerts.validation";
 
 /**
@@ -682,6 +685,92 @@ export class UserController extends BaseController {
         res,
         result.value,
         "Job alert retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Updates an existing job alert for the authenticated user.
+   * All fields are optional - only provided fields will be updated.
+   * @param req The Express request object with alert ID and update data.
+   * @param res The Express response object.
+   */
+  updateJobAlert = async (
+    req: Request<UpdateJobAlert["params"], {}, UpdateJobAlert["body"]>,
+    res: Response<ApiResponse<JobAlert>>,
+  ) => {
+    const alertId = Number(req.params.id);
+    const userId = req.userId!;
+    const updateData = req.body;
+
+    const result = await this.userService.updateJobAlert(
+      userId,
+      alertId,
+      updateData,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<JobAlert>(
+        res,
+        result.value,
+        "Job alert updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Deletes a job alert for the authenticated user.
+   * @param req The Express request object with alert ID parameter.
+   * @param res The Express response object.
+   */
+  deleteJobAlert = async (
+    req: Request<DeleteJobAlert["params"]>,
+    res: Response<ApiResponse<null>>,
+  ) => {
+    const alertId = Number(req.params.id);
+    const userId = req.userId!;
+
+    const result = await this.userService.deleteJobAlert(userId, alertId);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, null, "Job alert deleted successfully", 204);
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Toggles the pause state of a job alert for the authenticated user.
+   * @param req The Express request object with alert ID and pause state.
+   * @param res The Express response object.
+   */
+  togglePauseJobAlert = async (
+    req: Request<
+      TogglePauseJobAlert["params"],
+      {},
+      TogglePauseJobAlert["body"]
+    >,
+    res: Response<ApiResponse<JobAlert>>,
+  ) => {
+    const alertId = Number(req.params.id);
+    const userId = req.userId!;
+    const { isPaused } = req.body;
+
+    const result = await this.userService.togglePauseJobAlert(
+      userId,
+      alertId,
+      isPaused,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<JobAlert>(
+        res,
+        result.value,
+        `Job alert ${isPaused ? "paused" : "resumed"} successfully`,
       );
     } else {
       return this.handleControllerError(res, result.error);

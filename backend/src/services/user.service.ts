@@ -18,6 +18,7 @@ import {
 import {
   CreateJobAlertInput,
   JobAlert,
+  UpdateJobAlertInput,
 } from "@/validations/jobAlerts.validation";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
@@ -982,6 +983,146 @@ export class UserService extends BaseService {
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to retrieve job alert"));
+    }
+  }
+
+  /**
+   * Updates an existing job alert for a user.
+   * Validates ownership and updates only provided fields.
+   * @param userId The ID of the user.
+   * @param alertId The ID of the alert to update.
+   * @param updateData Partial job alert data to update.
+   * @returns A Result containing the updated job alert or an error.
+   */
+  async updateJobAlert(
+    userId: number,
+    alertId: number,
+    updateData: UpdateJobAlertInput,
+  ) {
+    try {
+      const existingAlert = await this.userRepository.getJobAlertById(
+        userId,
+        alertId,
+      );
+
+      if (!existingAlert) {
+        return fail(new NotFoundError("Job alert", alertId));
+      }
+
+      const updatedAlert = await this.userRepository.updateJobAlert(
+        userId,
+        alertId,
+        updateData,
+      );
+
+      if (!updatedAlert) {
+        return fail(new DatabaseError("Failed to update job alert"));
+      }
+
+      // Validate the updated alert still has at least one search criterion
+      const hasSearchQuery =
+        updatedAlert.searchQuery && updatedAlert.searchQuery.trim().length > 0;
+      const hasLocation =
+        (updatedAlert.city && updatedAlert.city.trim().length > 0) ||
+        (updatedAlert.state && updatedAlert.state.trim().length > 0);
+      const hasSkills = updatedAlert.skills && updatedAlert.skills.length > 0;
+      const hasJobTypes =
+        updatedAlert.jobType && updatedAlert.jobType.length > 0;
+      const hasExperienceLevels =
+        updatedAlert.experienceLevel &&
+        updatedAlert.experienceLevel.length > 0;
+
+      const hasValidCriteria =
+        hasSearchQuery ||
+        hasLocation ||
+        hasSkills ||
+        hasJobTypes ||
+        hasExperienceLevels;
+
+      if (!hasValidCriteria) {
+        return fail(
+          new ValidationError(
+            "Job alert must have at least one search criterion (search query, location, skills, job type, or experience level)",
+          ),
+        );
+      }
+
+      return ok(updatedAlert);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update job alert"));
+    }
+  }
+
+  /**
+   * Deletes a job alert for a user.
+   * Validates ownership before deletion.
+   * @param userId The ID of the user.
+   * @param alertId The ID of the alert to delete.
+   * @returns A Result containing success status or an error.
+   */
+  async deleteJobAlert(userId: number, alertId: number) {
+    try {
+      const existingAlert = await this.userRepository.getJobAlertById(
+        userId,
+        alertId,
+      );
+
+      if (!existingAlert) {
+        return fail(new NotFoundError("Job alert", alertId));
+      }
+
+      await this.userRepository.deleteJobAlert(userId, alertId);
+
+      return ok(null);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to delete job alert"));
+    }
+  }
+
+  /**
+   * Toggles the pause state of a job alert for a user.
+   * @param userId The ID of the user.
+   * @param alertId The ID of the alert.
+   * @param isPaused The new pause state.
+   * @returns A Result containing the updated job alert or an error.
+   */
+  async togglePauseJobAlert(
+    userId: number,
+    alertId: number,
+    isPaused: boolean,
+  ) {
+    try {
+      const existingAlert = await this.userRepository.getJobAlertById(
+        userId,
+        alertId,
+      );
+
+      if (!existingAlert) {
+        return fail(new NotFoundError("Job alert", alertId));
+      }
+
+      const updatedAlert = await this.userRepository.updateJobAlertPauseState(
+        userId,
+        alertId,
+        isPaused,
+      );
+
+      if (!updatedAlert) {
+        return fail(new DatabaseError("Failed to update job alert pause state"));
+      }
+
+      return ok(updatedAlert);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update job alert pause state"));
     }
   }
 
