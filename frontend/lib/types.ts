@@ -300,3 +300,26 @@ export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
 export type PaginatedApiResponse<T> = ApiSuccessResponse<T[]> & {
   pagination: PaginationMeta;
 };
+
+export type JobAlert = {
+  id: number;
+  userId: number;
+  name: string;
+  description: string;
+  state?: string;
+  city?: string;
+  searchQuery?: string;
+  jobType?: Array<"full_time" | "part_time" | "contract" | "temporary" | "intern">;
+  skills?: string[];
+  experienceLevel?: string[];
+  includeRemote: boolean;
+  frequency: "daily" | "weekly" | "monthly";
+  isActive: boolean;
+  isPaused: boolean;
+  lastSentAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateJobAlertInput = Omit<JobAlert, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'lastSentAt'>;
+export type UpdateJobAlertInput = Partial<CreateJobAlertInput>;
