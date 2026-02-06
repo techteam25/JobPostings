@@ -179,6 +179,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public assets
      */
-    "/((?!api|_next/static|_next/image|_next/webpack-hmr|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|_next/webpack-hmr|__nextjs_original-stack-frame|_next/turbopack-hmr|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
