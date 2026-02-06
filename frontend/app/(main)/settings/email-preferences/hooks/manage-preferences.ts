@@ -2,6 +2,7 @@ import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { instance } from "@/lib/axios-instance";
+import { revalidateEmailPreferences } from "@/lib/api";
 
 export const useUpdatePreference = () => {
   const queryClient = useQueryClient();
@@ -22,8 +23,9 @@ export const useUpdatePreference = () => {
       );
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["emailPreferences"] });
+      await revalidateEmailPreferences();
       toast.success("Preference updated");
     },
     onError: () => {
@@ -44,8 +46,9 @@ export const useUnsubscribePreferences = () => {
       );
       return response.data;
     },
-    onSuccess: (_, context) => {
+    onSuccess: async (_, context) => {
       queryClient.invalidateQueries({ queryKey: ["emailPreferences"] });
+      await revalidateEmailPreferences();
       toast.success(`Unsubscribed from ${context.replace("_", " ")} emails`);
     },
     onError: () => {
@@ -66,8 +69,9 @@ export const useResubscribePreferences = () => {
       );
       return response.data;
     },
-    onSuccess: (_, context) => {
+    onSuccess: async (_, context) => {
       queryClient.invalidateQueries({ queryKey: ["emailPreferences"] });
+      await revalidateEmailPreferences();
       toast.success(`Re-subscribed to ${context.replace("_", " ")} emails`);
     },
     onError: () => {
