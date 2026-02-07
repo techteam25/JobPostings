@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { request } from "@tests/utils/testHelpers";
 import { db } from "@/db/connection";
 import { jobAlerts, user } from "@/db/schema";
-import { seedUser } from "@tests/utils/seed";
+import { seedUserScenario } from "@tests/utils/seedScenarios";
+import { createUser } from "@tests/utils/seedBuilders";
 import { eq } from "drizzle-orm";
 
 describe("Job Alerts API Integration Tests", () => {
@@ -11,7 +12,7 @@ describe("Job Alerts API Integration Tests", () => {
 
   beforeEach(async () => {
     // Seed a test user
-    await seedUser();
+    await seedUserScenario();
 
     // Login to get auth cookie and user ID
     const loginResponse = await request.post("/api/auth/sign-in/email").send({
@@ -28,11 +29,6 @@ describe("Job Alerts API Integration Tests", () => {
 
     if (foundUser) {
       userId = foundUser.id;
-    }
-
-    // Clean up any existing job alerts for the test user
-    if (userId) {
-      await db.delete(jobAlerts).where(eq(jobAlerts.userId, userId));
     }
   });
 
@@ -253,7 +249,8 @@ describe("Job Alerts API Integration Tests", () => {
     });
 
     it("should not return alerts from other users", async () => {
-      // Login as other user
+      // Create and login as other user
+      await createUser({ email: "other.user@example.com" });
       const loginRes = await request.post("/api/auth/sign-in/email").send({
         email: "other.user@example.com",
         password: "Password@123",

@@ -110,7 +110,7 @@ describe("FirebaseUploadService", () => {
     });
 
     it("should handle read file error", async () => {
-      vi.mocked(fs.promises.readFile).mockRejectedValueOnce(
+      (fs.promises.readFile as any).mockRejectedValueOnce(
         new Error("File not found"),
       );
 
@@ -279,7 +279,7 @@ describe("FirebaseUploadService", () => {
     });
 
     it("should handle cleanup errors gracefully", async () => {
-      vi.mocked(fs.promises.unlink).mockRejectedValueOnce(
+      (fs.promises.unlink as any).mockRejectedValueOnce(
         new Error("File not found"),
       );
 
@@ -290,7 +290,7 @@ describe("FirebaseUploadService", () => {
     });
 
     it("should continue cleanup even if some files fail", async () => {
-      vi.mocked(fs.promises.unlink)
+      (fs.promises.unlink as any)
         .mockRejectedValueOnce(new Error("File not found"))
         .mockResolvedValueOnce(undefined);
 

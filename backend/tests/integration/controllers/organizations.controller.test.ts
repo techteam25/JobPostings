@@ -1,28 +1,21 @@
 // noinspection DuplicatedCode
 
-import { sql } from "drizzle-orm";
-import { db } from "@/db/connection";
-import { organizationMembers, organizations, user } from "@/db/schema";
-
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import {
-  seedJobApplications,
-  seedOrganizations,
-  seedUser,
-} from "@tests/utils/seed";
+  seedJobApplicationsScenario,
+  seedOrgScenario,
+  seedUserScenario,
+} from "@tests/utils/seedScenarios";
 import { organizationFixture } from "@tests/utils/fixtures";
 import { expect } from "vitest";
 
 describe("Organization Controller Integration Tests", async () => {
   const { faker } = await import("@faker-js/faker");
-  beforeEach(async () => {
-    // Clear organizations table before each test
-    await db.delete(user);
-    await db.delete(organizations);
 
-    await seedOrganizations();
-  });
   describe("GET /organizations", () => {
+    beforeEach(async () => {
+      await seedOrgScenario();
+    });
     it("should retrieve all organizations returning 200", async () => {
       const response = await request.get("/api/organizations");
 
@@ -48,19 +41,10 @@ describe("Organization Controller Integration Tests", async () => {
     let cookie: string | undefined;
 
     beforeEach(async () => {
-      await db.delete(organizationMembers);
-      await db.delete(organizations);
-
-      // Reset auto-increment counters
-      await db.execute(
-        sql`ALTER TABLE organization_members AUTO_INCREMENT = 1`,
-      );
-      await db.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
-
-      await seedUser();
+      await seedOrgScenario();
 
       const response = await request.post("/api/auth/sign-in/email").send({
-        email: "normal.user@example.com",
+        email: "org.owner@example.com",
         password: "Password@123",
       });
       cookie = response.headers["set-cookie"]
@@ -111,16 +95,7 @@ describe("Organization Controller Integration Tests", async () => {
     let cookie: string | undefined;
 
     beforeEach(async () => {
-      await db.delete(organizationMembers);
-      await db.delete(organizations);
-
-      // Reset auto-increment counters
-      await db.execute(
-        sql`ALTER TABLE organization_members AUTO_INCREMENT = 1`,
-      );
-      await db.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
-
-      await seedOrganizations();
+      await seedOrgScenario();
 
       const response = await request.post("/api/auth/sign-in/email").send({
         email: "org.owner@example.com",
@@ -186,16 +161,7 @@ describe("Organization Controller Integration Tests", async () => {
     let cookie: string | undefined;
 
     beforeEach(async () => {
-      await db.delete(organizationMembers);
-      await db.delete(organizations);
-
-      // Reset auto-increment counters
-      await db.execute(
-        sql`ALTER TABLE organization_members AUTO_INCREMENT = 1`,
-      );
-      await db.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
-
-      await seedOrganizations();
+      await seedOrgScenario();
 
       const response = await request.post("/api/auth/sign-in/email").send({
         email: "org.owner@example.com",
@@ -245,7 +211,7 @@ describe("Organization Controller Integration Tests", async () => {
 describe("Organization Controller Application Management Integration Tests", () => {
   let cookie: string;
   beforeEach(async () => {
-    await seedJobApplications();
+    await seedJobApplicationsScenario();
 
     const response = await request.post("/api/auth/sign-in/email").send({
       email: "org.member@example.com",
@@ -456,7 +422,7 @@ describe("Organization Controller - Get Applications for Organization Integratio
   let cookie: string;
 
   beforeEach(async () => {
-    await seedJobApplications();
+    await seedJobApplicationsScenario();
 
     const response = await request.post("/api/auth/sign-in/email").send({
       email: "org.member@example.com",

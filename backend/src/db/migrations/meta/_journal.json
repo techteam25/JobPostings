@@ -148,6 +148,13 @@
       "when": 1769311003301,
       "tag": "0020_steep_garia",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1770489764387,
+      "tag": "0021_light_grandmaster",
+      "breakpoints": true
     }
   ]
 }

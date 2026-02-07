@@ -1,5 +1,6 @@
 import { request, TestHelpers } from "@tests/utils/testHelpers";
-import { seedJobs } from "@tests/utils/seed";
+import { seedJobsScenario } from "@tests/utils/seedScenarios";
+import { createUser } from "@tests/utils/seedBuilders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "@/utils/auth";
 import { JobService } from "@/services/job.service";
@@ -14,15 +15,8 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
   beforeEach(async () => {
     const { faker } = await import("@faker-js/faker");
 
-    await seedJobs();
-    await auth.api.signUpEmail({
-      body: {
-        email: "normal.user@example.com",
-        password: "Password@123",
-        name: faker.person.firstName() + " " + faker.person.lastName(),
-        image: faker.image.avatar(),
-      },
-    });
+    await seedJobsScenario();
+    await createUser({ email: "normal.user@example.com" });
 
     // Login as org member (email from seed: org.member@example.com)
     const loginResponse = await request
@@ -303,27 +297,13 @@ describe("Withdraw Job Application Integration Tests", () => {
   beforeEach(async () => {
     const { faker } = await import("@faker-js/faker");
 
-    await seedJobs();
+    await seedJobsScenario();
 
     // Create first test user
-    await auth.api.signUpEmail({
-      body: {
-        email: "test.user1@example.com",
-        password: "Password@123",
-        name: faker.person.firstName() + " " + faker.person.lastName(),
-        image: faker.image.avatar(),
-      },
-    });
+    await createUser({ email: "test.user1@example.com" });
 
     // Create second test user
-    await auth.api.signUpEmail({
-      body: {
-        email: "test.user2@example.com",
-        password: "Password@123",
-        name: faker.person.firstName() + " " + faker.person.lastName(),
-        image: faker.image.avatar(),
-      },
-    });
+    await createUser({ email: "test.user2@example.com" });
 
     // Login first user
     const loginResponse1 = await request
@@ -378,6 +358,7 @@ describe("Withdraw Job Application Integration Tests", () => {
 
       // Verify email queue was called
       expect(queueService.addJob).toHaveBeenCalledWith(
+        "emailQueue",
         "sendApplicationWithdrawalConfirmation",
         expect.objectContaining({
           email: expect.any(String),
@@ -463,6 +444,7 @@ describe("Withdraw Job Application Integration Tests", () => {
         .expect(200);
 
       expect(queueService.addJob).toHaveBeenCalledWith(
+        "emailQueue",
         "sendApplicationWithdrawalConfirmation",
         expect.objectContaining({
           email: expect.stringMatching(/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/),

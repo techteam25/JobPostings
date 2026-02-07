@@ -1,16 +1,13 @@
-// noinspection DuplicatedCode
-
-import { sql, eq, and } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "@/db/connection";
 import {
   organizationInvitations,
   organizationMembers,
-  organizations,
   user,
 } from "@/db/schema";
 
 import { request, TestHelpers } from "@tests/utils/testHelpers";
-import { seedUserWithRole } from "@tests/utils/seed";
+import { seedUserWithRoleScenario } from "@tests/utils/seedScenarios";
 import { expect, beforeEach, describe, it, beforeAll, afterAll, vi } from "vitest";
 import { auth } from "@/utils/auth";
 import { randomUUID } from "crypto";
@@ -29,17 +26,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
   });
 
   beforeEach(async () => {
-    // Clean up all invitation-related data
-    await db.delete(organizationInvitations);
-    await db.delete(organizationMembers);
-    await db.delete(organizations);
-    await db.delete(user);
-
-    // Reset auto-increment counters
-    await db.execute(sql`ALTER TABLE organization_invitations AUTO_INCREMENT = 1`);
-    await db.execute(sql`ALTER TABLE organization_members AUTO_INCREMENT = 1`);
-    await db.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
-    await db.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+    // cleanAll() runs via setupTests.ts beforeEach — no manual cleanup needed
   });
 
   describe("POST /organizations/:organizationId/invitations", () => {
@@ -48,7 +35,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
       let organizationId: number;
 
       beforeEach(async () => {
-        await seedUserWithRole("owner", "owner@example.com");
+        await seedUserWithRoleScenario("owner", "owner@example.com");
         const signInResponse = await request
           .post("/api/auth/sign-in/email")
           .send({ email: "owner@example.com", password: "Password@123" });
@@ -132,7 +119,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
       let organizationId: number;
 
       beforeEach(async () => {
-        await seedUserWithRole("admin", "admin@example.com");
+        await seedUserWithRoleScenario("admin", "admin@example.com");
         const signInResponse = await request
           .post("/api/auth/sign-in/email")
           .send({ email: "admin@example.com", password: "Password@123" });
@@ -163,7 +150,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
       let organizationId: number;
 
       beforeEach(async () => {
-        await seedUserWithRole("recruiter", "recruiter@example.com");
+        await seedUserWithRoleScenario("recruiter", "recruiter@example.com");
         const signInResponse = await request
           .post("/api/auth/sign-in/email")
           .send({ email: "recruiter@example.com", password: "Password@123" });
@@ -213,7 +200,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
 
     beforeEach(async () => {
       // Create organization and owner
-      await seedUserWithRole("owner", "owner@example.com");
+      await seedUserWithRoleScenario("owner", "owner@example.com");
       const ownerUser = await db.query.user.findFirst({
         where: eq(user.email, "owner@example.com"),
       });
@@ -331,7 +318,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
     let inviteeEmail: string;
 
     beforeEach(async () => {
-      await seedUserWithRole("owner", "owner@example.com");
+      await seedUserWithRoleScenario("owner", "owner@example.com");
       const ownerUser = await db.query.user.findFirst({
         where: eq(user.email, "owner@example.com"),
       });
@@ -509,7 +496,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
     let invitationId: number;
 
     beforeEach(async () => {
-      await seedUserWithRole("owner", "owner@example.com");
+      await seedUserWithRoleScenario("owner", "owner@example.com");
       const ownerUser = await db.query.user.findFirst({
         where: eq(user.email, "owner@example.com"),
       });
@@ -673,7 +660,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
       let recruiterCookie: string;
 
       beforeEach(async () => {
-        await seedUserWithRole("recruiter", "recruiter@example.com");
+        await seedUserWithRoleScenario("recruiter", "recruiter@example.com");
         const signInResponse = await request
           .post("/api/auth/sign-in/email")
           .send({ email: "recruiter@example.com", password: "Password@123" });

@@ -10,7 +10,7 @@
     "build:tsc": "tsc",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
-    "test": "--no-env-file DB_NAME=jobpostings_test vitest run",
+    "test": "DB_NAME=jobpostings_test vitest run",
     "test:show-config": "vitest --showConfig",
     "test:watch": "--no-env-file DB_NAME=jobpostings_test vitest",
     "test:ui": "DB_NAME=jobpostings_test vitest --ui",

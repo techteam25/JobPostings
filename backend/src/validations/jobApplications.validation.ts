@@ -13,7 +13,7 @@ const jobApplicationPayload = z
   .object({
     coverLetter: z
       .string()
-      .min(0, "Cover letter must be at least 50 characters")
+      .min(50, "Cover letter must be at least 50 characters")
       .max(2000, "Cover letter must not exceed 2000 characters")
       .optional(),
     resume: z
@@ -31,9 +31,11 @@ const jobApplicationPayload = z
         format: "binary",
         description: "Resume file (max size 5MB)",
       }),
+    resumeUrl: z.url("Invalid resume URL").optional(),
     customAnswers: z.string().max(5000).optional(),
     notes: z.string().max(5000).optional(),
   })
+  .strict()
   .refine(
     (data) =>
       !data.resume || ALLOWED_RESUME_MIMETYPES.includes(data.resume.mimetype),

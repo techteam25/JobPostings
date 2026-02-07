@@ -31,7 +31,7 @@ vi.mock("@/db/connection", () => ({
 }));
 
 // Mock Firebase upload service
-vi.mock("@/services/firebase-upload.service", () => ({
+vi.mock("@/infrastructure/firebase-upload.service", () => ({
   firebaseUploadService: {
     uploadFiles: vi.fn(() =>
       Promise.resolve({
@@ -54,10 +54,8 @@ vi.mock("@/services/firebase-upload.service", () => ({
 }));
 
 // Mock Redis connection
-vi.mock("bullmq", async () => {
-  const actual = await vi.importActual("bullmq");
+vi.mock("bullmq", () => {
   return {
-    ...actual,
     Queue: vi.fn().mockImplementation(() => ({
       add: vi.fn(() => Promise.resolve({ id: "test-job-id" })),
       getJob: vi.fn(() =>
@@ -173,7 +171,7 @@ describe("File Upload Worker Integration", () => {
 
   describe("Error Handling", () => {
     it("should handle upload failures gracefully", async () => {
-      vi.mocked(firebaseUploadService.uploadFiles).mockResolvedValueOnce({
+      (firebaseUploadService.uploadFiles as any).mockResolvedValueOnce({
         urls: [],
         metadata: [],
         successCount: 0,
@@ -205,7 +203,7 @@ describe("File Upload Worker Integration", () => {
 
     it("should still cleanup temp files on error", async () => {
       // Even if upload fails, cleanup should be called
-      vi.mocked(firebaseUploadService.uploadFiles).mockRejectedValueOnce(
+      (firebaseUploadService.uploadFiles as any).mockRejectedValueOnce(
         new Error("Network error"),
       );
 
@@ -227,8 +225,8 @@ describe("File Upload Worker Integration", () => {
       const progressUpdates: number[] = [];
 
       // Mock to capture progress callback
-      vi.mocked(firebaseUploadService.uploadFiles).mockImplementationOnce(
-        async (_files, _options, onProgress) => {
+      (firebaseUploadService.uploadFiles as any).mockImplementationOnce(
+        async (_files: any, _options: any, onProgress?: (progress: number) => void) => {
           if (onProgress) {
             onProgress(25);
             onProgress(50);
@@ -277,7 +275,7 @@ describe("File Upload Worker Integration", () => {
           }) as unknown as ReturnType<typeof db.update>,
       );
 
-      vi.mocked(db.update).mockImplementation(mockUpdate);
+      (db.update as any).mockImplementation(mockUpdate);
 
       // Simulate DB update call
       db.update({} as any);
@@ -287,7 +285,7 @@ describe("File Upload Worker Integration", () => {
 
     it("should merge with existing metadata when specified", async () => {
       // Mock existing metadata
-      vi.mocked(db.query.userProfile.findFirst).mockResolvedValueOnce({
+      (db.query.userProfile.findFirst as any).mockResolvedValueOnce({
         fileMetadata: [
           {
             url: "https://existing.com/file.pdf",

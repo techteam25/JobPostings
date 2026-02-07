@@ -8,13 +8,20 @@ import {
 } from "@/utils/errors";
 
 vi.mock("@/repositories/user.repository", () => ({
-  UserRepository: vi.fn(),
+  UserRepository: vi.fn().mockImplementation(() => ({
+    canCreateJobAlert: vi.fn(),
+    createJobAlert: vi.fn(),
+    getUserJobAlerts: vi.fn(),
+    getJobAlertById: vi.fn(),
+    deleteJobAlert: vi.fn(),
+    updateJobAlert: vi.fn(),
+  })),
 }));
 vi.mock("@/repositories/organization.repository", () => ({
-  OrganizationRepository: vi.fn(),
+  OrganizationRepository: vi.fn().mockImplementation(() => ({})),
 }));
 vi.mock("@/infrastructure/email.service", () => ({
-  EmailService: vi.fn(),
+  EmailService: vi.fn().mockImplementation(() => ({})),
 }));
 vi.mock("@/infrastructure/queue.service", () => ({
   queueService: {},
@@ -27,8 +34,12 @@ describe("UserService - Job Alerts", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Create new UserService instance - this will use the mocked UserRepository
     userService = new UserService();
-    mockUserRepository = UserRepository.prototype;
+    
+    // Get the mock instance that was created
+    mockUserRepository = (UserRepository as any).mock.results[0]?.value;
   });
 
   describe("createJobAlert", () => {
