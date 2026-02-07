@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { JobAlert } from "@/lib/types";
+import { JobAlert, PaginatedApiResponse } from "@/lib/types";
 import { JobAlertCard } from "./JobAlertCard";
 import { CreateJobAlertDialog } from "./CreateJobAlertDialog";
 import { EditJobAlertDialog } from "./EditJobAlertDialog";
@@ -12,17 +12,21 @@ import {
   useJobAlerts,
   useTogglePauseJobAlert,
 } from "../hooks/manage-job-alerts";
-import { AlertCircle, Plus, Loader2 } from "lucide-react";
+import { AlertCircle, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function JobAlertsList() {
+export function JobAlertsList({
+  initialData,
+}: {
+  initialData?: PaginatedApiResponse<JobAlert>;
+}) {
   const [page, setPage] = useState(1);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<JobAlert | null>(null);
 
-  const { data, isLoading, isError } = useJobAlerts(page, 10);
+  const { data, isLoading, isError } = useJobAlerts(page, 10, initialData);
   const togglePauseMutation = useTogglePauseJobAlert();
 
   const alerts = data?.data || [];

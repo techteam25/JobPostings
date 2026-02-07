@@ -9,7 +9,11 @@ import {
   JobAlert,
 } from "@/lib/types";
 
-export const useJobAlerts = (page = 1, limit = 10) => {
+export const useJobAlerts = (
+  page = 1,
+  limit = 10,
+  initialData?: PaginatedApiResponse<JobAlert>,
+) => {
   return useQuery({
     queryKey: ["job-alerts", page, limit],
     queryFn: async (): Promise<PaginatedApiResponse<JobAlert>> => {
@@ -21,6 +25,8 @@ export const useJobAlerts = (page = 1, limit = 10) => {
       );
       return response.data;
     },
+    initialData: page === 1 && limit === 10 ? initialData : undefined,
+    staleTime: 30_000,
   });
 };
 
@@ -33,8 +39,19 @@ export const useCreateJobAlert = () => {
       });
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["job-alerts"] });
+    onSuccess: (result) => {
+      const newAlert = result.data;
+      
+      queryClient.setQueriesData<PaginatedApiResponse<JobAlert>>(
+        { queryKey: ["job-alerts"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: [newAlert, ...old.data],
+          };
+        },
+      );
       toast.success("Job alert created successfully");
     },
     onError: (error: any) => {
@@ -60,17 +77,41 @@ export const useUpdateJobAlert = () => {
       });
       return response.data;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["job-alerts"] });
-      queryClient.invalidateQueries({
-        queryKey: [`job-alert-${variables.id}`],
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ["job-alerts"] });
+      await queryClient.cancelQueries({ queryKey: [`job-alert-${id}`] });
+
+      const previousAlerts = queryClient.getQueriesData<
+        PaginatedApiResponse<JobAlert>
+      >({
+        queryKey: ["job-alerts"],
       });
-      toast.success("Job alert updated");
-    },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to update job alert",
+
+      queryClient.setQueriesData<PaginatedApiResponse<JobAlert>>(
+        { queryKey: ["job-alerts"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: old.data.map((alert) =>
+              alert.id === id ? { ...alert, ...data } : alert,
+            ),
+          };
+        },
       );
+
+      return { previousAlerts };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousAlerts) {
+        context.previousAlerts.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      toast.error("Failed to update job alert");
+    },
+    onSuccess: () => {
+      toast.success("Job alert updated");
     },
   });
 };
@@ -84,14 +125,38 @@ export const useDeleteJobAlert = () => {
       });
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["job-alerts"] });
-      toast.success("Job alert deleted");
-    },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to delete job alert",
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["job-alerts"] });
+
+      const previousAlerts = queryClient.getQueriesData<
+        PaginatedApiResponse<JobAlert>
+      >({
+        queryKey: ["job-alerts"],
+      });
+
+      queryClient.setQueriesData<PaginatedApiResponse<JobAlert>>(
+        { queryKey: ["job-alerts"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: old.data.filter((alert) => alert.id !== id),
+          };
+        },
       );
+
+      return { previousAlerts };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previousAlerts) {
+        context.previousAlerts.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      toast.error("Failed to delete job alert");
+    },
+    onSuccess: () => {
+      toast.success("Job alert deleted");
     },
   });
 };
@@ -109,15 +174,41 @@ export const useTogglePauseJobAlert = () => {
       );
       return response.data;
     },
-    onSuccess: (_, { id, isPaused }) => {
-      queryClient.invalidateQueries({ queryKey: ["job-alerts"] });
-      queryClient.invalidateQueries({ queryKey: [`job-alert-${id}`] });
-      toast.success(`Job alert ${isPaused ? "paused" : "resumed"}`);
-    },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to update job alert status",
+    onMutate: async ({ id, isPaused }) => {
+      await queryClient.cancelQueries({ queryKey: ["job-alerts"] });
+      await queryClient.cancelQueries({ queryKey: [`job-alert-${id}`] });
+
+      const previousAlerts = queryClient.getQueriesData<
+        PaginatedApiResponse<JobAlert>
+      >({
+        queryKey: ["job-alerts"],
+      });
+
+      queryClient.setQueriesData<PaginatedApiResponse<JobAlert>>(
+        { queryKey: ["job-alerts"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: old.data.map((alert) =>
+              alert.id === id ? { ...alert, isPaused } : alert,
+            ),
+          };
+        },
       );
+
+      return { previousAlerts };
+    },
+    onError: (_err, { isPaused }, context) => {
+      if (context?.previousAlerts) {
+        context.previousAlerts.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      toast.error("Failed to update job alert status");
+    },
+    onSuccess: (_, { isPaused }) => {
+      toast.success(`Job alert ${isPaused ? "paused" : "resumed"}`);
     },
   });
 };

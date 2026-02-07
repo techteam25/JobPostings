@@ -1,6 +1,9 @@
 import { JobAlertsList } from "@/app/(main)/settings/job-alerts/components/JobAlertsList";
+import { fetchJobAlerts } from "@/lib/api";
 
 export default async function NotificationsPage() {
+  const initialJobAlerts = await fetchJobAlerts(1, 10);
+
   return (
     <div className="bg-background min-h-screen p-6">
       <div className="mx-auto max-w-4xl">
@@ -11,7 +14,7 @@ export default async function NotificationsPage() {
           </p>
         </div>
 
-        <JobAlertsList />
+        <JobAlertsList initialData={initialJobAlerts} />
       </div>
     </div>
   );

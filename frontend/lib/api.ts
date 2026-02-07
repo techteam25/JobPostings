@@ -427,7 +427,7 @@ export const fetchJobAlerts = async (
     {
       credentials: "include",
       headers: { Cookie: cookieStore.toString() },
-      next: { revalidate: 300, tags: ["job-alerts"] },
+      cache: "no-store",
     },
   );
   if (!res.ok) return await res.json();
