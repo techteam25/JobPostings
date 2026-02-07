@@ -109,7 +109,9 @@ export class CacheService {
       }
 
       const cachePattern = this.buildKey(pattern, options?.prefix);
-      const count = await redisCacheService.invalidatePattern(cachePattern);
+      const count = await redisCacheService.invalidatePattern(
+        `${cachePattern}*`,
+      );
 
       logger.debug("Cache invalidated", { pattern: cachePattern, count });
       return count;
