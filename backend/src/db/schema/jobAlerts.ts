@@ -38,7 +38,7 @@ export const jobAlerts = mysqlTable(
     frequency: mysqlEnum("frequency", ["daily", "weekly", "monthly"])
       .notNull()
       .default("weekly"),
-    lastSentAt: timestamp("last_sent_at").defaultNow().onUpdateNow(),
+    lastSentAt: timestamp("last_sent_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
   },

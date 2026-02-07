@@ -1009,10 +1009,16 @@ export class UserService extends BaseService {
         return fail(new NotFoundError("Job alert", alertId));
       }
 
+      // Recalibrate lastSentAt when frequency changes
+      const dataWithSchedule = this.applyFrequencyChangeSchedule(
+        existingAlert,
+        updateData,
+      );
+
       const updatedAlert = await this.userRepository.updateJobAlert(
         userId,
         alertId,
-        updateData,
+        dataWithSchedule,
       );
 
       if (!updatedAlert) {
@@ -1054,6 +1060,37 @@ export class UserService extends BaseService {
       }
       return fail(new DatabaseError("Failed to update job alert"));
     }
+  }
+
+  /**
+   * Recalibrates `lastSentAt` when alert frequency changes so the worker
+   * picks up the alert at the correct next interval.
+   *
+   * - Switching to a more frequent cadence (e.g. weekly → daily): set lastSentAt
+   *   far enough in the past so the next cron run picks it up immediately.
+   * - Switching to a less frequent cadence (e.g. daily → weekly): set lastSentAt
+   *   to now so the next send is a full interval from now.
+   */
+  applyFrequencyChangeSchedule(
+    existingAlert: JobAlert,
+    updateData: UpdateJobAlertInput,
+  ): UpdateJobAlertInput & { lastSentAt?: Date | null } {
+    if (!updateData.frequency || updateData.frequency === existingAlert.frequency) {
+      return updateData;
+    }
+
+    const now = new Date();
+    const frequencyOrder = { daily: 0, weekly: 1, monthly: 2 } as const;
+    const oldOrder = frequencyOrder[existingAlert.frequency];
+    const newOrder = frequencyOrder[updateData.frequency];
+
+    if (newOrder < oldOrder) {
+      // Switching to more frequent: allow immediate pickup by next cron
+      return { ...updateData, lastSentAt: null };
+    }
+
+    // Switching to less frequent: anchor from now so next send is a full interval away
+    return { ...updateData, lastSentAt: now };
   }
 
   /**

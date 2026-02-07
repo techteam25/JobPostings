@@ -37,6 +37,7 @@ import {
 import {
   initializeJobAlertWorker,
   scheduleDailyAlertProcessing,
+  scheduleMonthlyAlertProcessing,
   scheduleWeeklyAlertProcessing,
 } from "@/workers/job-alert-processor";
 import {
@@ -101,6 +102,7 @@ try {
   scheduleCleanupJob().catch((err) => logger.error(err));
   scheduleDailyAlertProcessing().catch((err) => logger.error(err));
   scheduleWeeklyAlertProcessing().catch((err) => logger.error(err));
+  scheduleMonthlyAlertProcessing().catch((err) => logger.error(err));
   scheduleInactiveUserAlertPausing().catch((err) => logger.error(err));
   scheduleInvitationExpirationJob().catch((err) => logger.error(err));
 } catch (error) {

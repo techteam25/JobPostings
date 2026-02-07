@@ -1142,12 +1142,12 @@ export class UserRepository extends BaseRepository<typeof user> {
 
   /**
    * Retrieves active job alerts that are due for processing based on frequency.
-   * @param frequency The frequency type ('daily' or 'weekly').
+   * @param frequency The frequency type ('daily', 'weekly', or 'monthly').
    * @param cutoffTime The cutoff timestamp - alerts with lastSentAt before this time will be processed.
    * @returns Array of job alerts ready for processing.
    */
   async getAlertsForProcessing(
-    frequency: "daily" | "weekly",
+    frequency: "daily" | "weekly" | "monthly",
     cutoffTime: Date,
   ): Promise<JobAlert[]> {
     return await withDbErrorHandling(async () => {
