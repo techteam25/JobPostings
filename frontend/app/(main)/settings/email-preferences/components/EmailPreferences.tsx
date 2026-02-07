@@ -4,26 +4,30 @@ import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
+  useEmailPreferences,
   useResubscribePreferences,
   useUnsubscribePreferences,
   useUpdatePreference,
 } from "@/app/(main)/settings/email-preferences/hooks/manage-preferences";
-import { type EmailPreferences } from "@/lib/types";
+import { type EmailPreferences as EmailPreferencesType } from "@/lib/types";
 import { UserIntentResponse } from "@/schemas/responses/users";
 import PreferenceSection from "@/app/(main)/settings/email-preferences/components/PreferenceSection";
 import UnsubscribeDialog from "@/app/(main)/settings/email-preferences/components/UnsubscribeDialog";
 
 export function EmailPreferences({
-  preferences,
+  preferences: initialPreferences,
   userIntent,
 }: {
-  preferences: EmailPreferences;
+  preferences: EmailPreferencesType;
   userIntent: UserIntentResponse;
 }) {
   const [showUnsubscribeDialog, setShowUnsubscribeDialog] = useState(false);
   const [unsubscribeContext, setUnsubscribeContext] = useState<
     "job_seeker" | "employer" | "global" | null
   >(null);
+
+  // Use TanStack Query with server-provided initial data
+  const { data: preferences } = useEmailPreferences(initialPreferences);
 
   const updatePreference = useUpdatePreference();
   const unsubscribePreference = useUnsubscribePreferences();

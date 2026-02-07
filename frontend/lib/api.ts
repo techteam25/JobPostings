@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { env } from "@/env";
 import { JobResponse, Job, JobWithEmployer } from "@/schemas/responses/jobs";
 import {
@@ -241,7 +241,7 @@ export const saveJobForUser = async (jobId: number): Promise<boolean> => {
   }
 
   revalidatePath("/saved");
-  revalidateTag(`user-saved-job-${jobId}-exists`);
+  revalidatePath("/job/${jobId}");
 
   return true;
 };
@@ -267,7 +267,7 @@ export const removeSavedJobForUser = async (
   }
 
   revalidatePath("/saved");
-  revalidateTag(`user-saved-job-${jobId}-exists`);
+  revalidatePath("/job/${jobId}");
 
   return true;
 };
@@ -336,7 +336,7 @@ export const updateProfileVisibility = async (
     return await res.json();
   }
 
-  revalidateTag("user-bio-info");
+  revalidatePath("/profile");
 
   return await res.json();
 };
@@ -389,7 +389,7 @@ export const withdrawJobApplication = async (
     };
   }
 
-  revalidateTag("user-applications");
+  revalidatePath("/applications");
 
   return await res.json();
 };
@@ -405,7 +405,7 @@ export const fetchEmailPreferences = async (): Promise<
       headers: {
         Cookie: cookieStore.toString(),
       },
-      next: { revalidate: 300, tags: ["email-preferences"] },
+      cache: "no-store", // Disable Next.js cache - TanStack Query handles caching
     },
   );
 
@@ -417,7 +417,10 @@ export const fetchEmailPreferences = async (): Promise<
   return await res.json();
 };
 
-export const fetchJobAlerts = async (page = 1, limit = 10): Promise<PaginatedApiResponse<JobAlert>> => {
+export const fetchJobAlerts = async (
+  page = 1,
+  limit = 10,
+): Promise<PaginatedApiResponse<JobAlert>> => {
   const cookieStore = await cookies();
   const res = await fetch(
     `${env.NEXT_PUBLIC_SERVER_URL}/users/me/job-alerts?page=${page}&limit=${limit}`,
@@ -425,13 +428,15 @@ export const fetchJobAlerts = async (page = 1, limit = 10): Promise<PaginatedApi
       credentials: "include",
       headers: { Cookie: cookieStore.toString() },
       next: { revalidate: 300, tags: ["job-alerts"] },
-    }
+    },
   );
   if (!res.ok) return await res.json();
   return await res.json();
 };
 
-export const fetchJobAlert = async (alertId: number): Promise<ApiResponse<JobAlert>> => {
+export const fetchJobAlert = async (
+  alertId: number,
+): Promise<ApiResponse<JobAlert>> => {
   const cookieStore = await cookies();
   const res = await fetch(
     `${env.NEXT_PUBLIC_SERVER_URL}/users/me/job-alerts/${alertId}`,
@@ -439,7 +444,7 @@ export const fetchJobAlert = async (alertId: number): Promise<ApiResponse<JobAle
       credentials: "include",
       headers: { Cookie: cookieStore.toString() },
       next: { revalidate: 300, tags: [`job-alert-${alertId}`] },
-    }
+    },
   );
   if (!res.ok) return await res.json();
   return await res.json();
