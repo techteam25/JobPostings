@@ -885,6 +885,7 @@ registry.registerPath({
  */
 router.post(
   "/me/email-preferences/unsubscribe/:token",
+  invalidateCacheMiddleware(() => "users/me/email-preferences"),
   userController.unsubscribeByToken,
 );
 
@@ -1417,6 +1418,7 @@ router.get(
  */
 router.post(
   "/me/email-preferences/unsubscribe-context",
+  invalidateCacheMiddleware(() => "users/me/email-preferences"),
   authMiddleware.authenticate,
   userController.unsubscribeByContext,
 );
@@ -1445,6 +1447,7 @@ router.post(
  */
 router.patch(
   "/me/email-preferences/granular",
+  invalidateCacheMiddleware(() => "users/me/email-preferences"),
   authMiddleware.authenticate,
   userController.updateGranularEmailPreference,
 );
