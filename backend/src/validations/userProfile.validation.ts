@@ -46,7 +46,6 @@ export const selectUserProfileSchema = createSelectSchema(userProfile);
 export const updateUserSchema = insertUserSchema.partial().omit({
   id: true,
   createdAt: true,
-  passwordHash: true,
   updatedAt: true,
   deletedAt: true,
 });

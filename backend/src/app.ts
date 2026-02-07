@@ -4,7 +4,6 @@ import helmet from "helmet";
 import pinoHttp from "pino-http";
 import swaggerUi from "swagger-ui-express";
 
-// @ts-expect-error expects mts
 import { toNodeHandler } from "better-auth/node";
 
 import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
