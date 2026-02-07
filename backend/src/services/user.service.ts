@@ -1015,28 +1015,18 @@ export class UserService extends BaseService {
         updateData,
       );
 
-      const updatedAlert = await this.userRepository.updateJobAlert(
-        userId,
-        alertId,
-        dataWithSchedule,
-      );
+      // Preview the merged state to validate before persisting
+      const merged = { ...existingAlert, ...dataWithSchedule };
 
-      if (!updatedAlert) {
-        return fail(new DatabaseError("Failed to update job alert"));
-      }
-
-      // Validate the updated alert still has at least one search criterion
       const hasSearchQuery =
-        updatedAlert.searchQuery && updatedAlert.searchQuery.trim().length > 0;
+        merged.searchQuery && merged.searchQuery.trim().length > 0;
       const hasLocation =
-        (updatedAlert.city && updatedAlert.city.trim().length > 0) ||
-        (updatedAlert.state && updatedAlert.state.trim().length > 0);
-      const hasSkills = updatedAlert.skills && updatedAlert.skills.length > 0;
-      const hasJobTypes =
-        updatedAlert.jobType && updatedAlert.jobType.length > 0;
+        (merged.city && merged.city.trim().length > 0) ||
+        (merged.state && merged.state.trim().length > 0);
+      const hasSkills = merged.skills && merged.skills.length > 0;
+      const hasJobTypes = merged.jobType && merged.jobType.length > 0;
       const hasExperienceLevels =
-        updatedAlert.experienceLevel &&
-        updatedAlert.experienceLevel.length > 0;
+        merged.experienceLevel && merged.experienceLevel.length > 0;
 
       const hasValidCriteria =
         hasSearchQuery ||
@@ -1051,6 +1041,16 @@ export class UserService extends BaseService {
             "Job alert must have at least one search criterion (search query, location, skills, job type, or experience level)",
           ),
         );
+      }
+
+      const updatedAlert = await this.userRepository.updateJobAlert(
+        userId,
+        alertId,
+        dataWithSchedule,
+      );
+
+      if (!updatedAlert) {
+        return fail(new DatabaseError("Failed to update job alert"));
       }
 
       return ok(updatedAlert);
