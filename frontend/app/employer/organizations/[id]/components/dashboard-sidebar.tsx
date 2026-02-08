@@ -80,11 +80,6 @@ export function AppSidebar({
           <span>Jobs</span>
         </Link>
 
-        <Link href={basePath} className={linkClass(`${basePath}/settings`)}>
-          <Settings size={20} />
-          <span>Settings</span>
-        </Link>
-
         <span className="text-muted-foreground flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2">
           <HelpCircle size={20} />
           <span>Help</span>
