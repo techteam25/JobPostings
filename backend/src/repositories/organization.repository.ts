@@ -210,12 +210,16 @@ export class OrganizationRepository extends BaseRepository<
   /**
    * Finds an organization member by contact (user) ID.
    * @param contactId The ID of the user.
+   * @param organizationId The ID of the organization.
    * @returns The organization member with user details.
    */
-  async findByContact(contactId: number) {
+  async findByContact(contactId: number, organizationId: number) {
     return await withDbErrorHandling(async () => {
       const orgMember = await db.query.organizationMembers.findFirst({
-        where: eq(organizationMembers.userId, contactId),
+        where: and(
+          eq(organizationMembers.userId, contactId),
+          eq(organizationMembers.organizationId, organizationId),
+        ),
         with: {
           user: {
             columns: {
@@ -254,10 +258,8 @@ export class OrganizationRepository extends BaseRepository<
         },
       });
 
-      return memberships.some(
-        (m) =>
-          ["active", "trial"].includes(m.organization?.subscriptionStatus) &&
-          ["owner", "admin", "recruiter"].includes(m.role),
+      return memberships.some((m) =>
+        ["owner", "admin", "recruiter"].includes(m.role),
       );
     });
   }
