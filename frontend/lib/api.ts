@@ -7,9 +7,11 @@ import { JobResponse, Job, JobWithEmployer } from "@/schemas/responses/jobs";
 import {
   ApiResponse,
   EmailPreferences,
+  InvitationDetails,
   JobAlert,
   Organization,
   OrganizationJobApplications,
+  OrganizationJobStats,
   OrganizationWithMembers,
   PaginatedApiResponse,
   SavedJob,
@@ -448,4 +450,69 @@ export const fetchJobAlert = async (
   );
   if (!res.ok) return await res.json();
   return await res.json();
+};
+
+export const getOrganizationJobStats = async (
+  organizationId: number,
+): Promise<ApiResponse<OrganizationJobStats>> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/jobs/employer/${organizationId}/jobs/stats`,
+    {
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+      next: {
+        revalidate: 60,
+        tags: [`organization-${organizationId}-job-stats`],
+      },
+    },
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "Failed to fetch job stats");
+  }
+
+  return res.json();
+};
+
+export const getInvitationDetails = async (
+  token: string,
+): Promise<ApiResponse<InvitationDetails>> => {
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/invitations/${token}/details`,
+    { next: { revalidate: 0 } },
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "Failed to fetch invitation details");
+  }
+
+  return res.json();
+};
+
+export const acceptInvitation = async (
+  token: string,
+): Promise<ApiResponse<{ organizationId: number }>> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/invitations/${token}/accept`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+    },
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "Failed to accept invitation");
+  }
+
+  return res.json();
 };

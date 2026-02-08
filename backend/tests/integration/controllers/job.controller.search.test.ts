@@ -4,7 +4,7 @@ import { db } from "@/db/connection";
 import { jobsDetails, jobSkills, skills } from "@/db/schema";
 import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
 import { request } from "@tests/utils/testHelpers";
-import { seedAdminUser } from "@tests/utils/seed";
+import { seedAdminScenario } from "@tests/utils/seedScenarios";
 import { jobPostingFixture } from "@tests/utils/fixtures";
 import { waitForJobIndexing } from "@tests/utils/wait-for-jobIndexer";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
@@ -15,7 +15,7 @@ describe("Job Search Integration Tests", () => {
   let cookie: string;
 
   beforeAll(async () => {
-    await seedAdminUser();
+    await seedAdminScenario();
 
     const response = await request
       .post("/api/auth/sign-in/email")
@@ -56,12 +56,16 @@ describe("Job Search Integration Tests", () => {
   });
 
   afterAll(async () => {
-    // Cleanup Typesense
-    await Promise.all([
-      typesenseService.deleteJobDocumentById("1"),
-      typesenseService.deleteJobDocumentById("2"),
-      typesenseService.deleteJobDocumentById("3"),
-    ]);
+    // Cleanup Typesense - ignore errors if documents don't exist
+    try {
+      await Promise.all([
+        typesenseService.deleteJobDocumentById("1").catch(() => {}),
+        typesenseService.deleteJobDocumentById("2").catch(() => {}),
+        typesenseService.deleteJobDocumentById("3").catch(() => {}),
+      ]);
+    } catch (error) {
+      // Ignore cleanup errors
+    }
   });
 
   describe("GET /api/jobs/search - Basic Search", () => {

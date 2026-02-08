@@ -8,7 +8,6 @@ import validate from "../middleware/validation.middleware";
 import {
   selectJobSchema,
   createJobSchema,
-  updateJobInputSchema,
   getJobSchema,
   deleteJobSchema,
   updateJobSchema,
@@ -688,7 +687,7 @@ registry.registerPath({
 router.put(
   "/:jobId",
   authMiddleware.requireJobPostingRole(),
-  validate(updateJobInputSchema),
+  validate(updateJobSchema),
   invalidateCacheMiddleware((_req) => `/api/jobs`),
   jobController.updateJob,
 );

@@ -34,11 +34,13 @@ const CreateOrganizationWrapper = () => {
   const { isCreatingOrganization, createOrganizationAsync } =
     useCreateOrganization();
 
-  const canGoBack = steps.findIndex((step) => step.key === currentStep) > 0;
-  const canGoNext =
-    steps.findIndex((step) => step.key === currentStep) < steps.length - 1;
-  const isLastStep =
-    steps.findIndex((step) => step.key === currentStep) === steps.length - 1;
+  const currentIndex = steps.findIndex((step) => step.key === currentStep);
+  const canGoBack = currentIndex > 0;
+  const canGoNext = currentIndex < steps.length - 1;
+  const isLastStep = currentIndex === steps.length - 1;
+  const progressPercentage = Math.round(
+    ((currentIndex + 1) / steps.length) * 100,
+  );
 
   const FormComponent = steps.find(
     (step) => step.key === currentStep,
@@ -144,12 +146,12 @@ const CreateOrganizationWrapper = () => {
 
           <div className="mb-6">
             <div className="text-secondary-foreground mb-2 text-sm font-medium">
-              26% completed
+              {progressPercentage}% completed
             </div>
             <div className="bg-background border-border h-2 w-full rounded-full border">
               <div
-                className="bg-chart-1 h-2 rounded-full"
-                style={{ width: "26%" }}
+                className="bg-chart-1 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progressPercentage}%` }}
               ></div>
             </div>
           </div>

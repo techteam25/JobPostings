@@ -1,21 +1,12 @@
 // noinspection DuplicatedCode
 
 import { request, TestHelpers } from "@tests/utils/testHelpers";
-import { seedUser } from "@tests/utils/seed";
 import { userFixture } from "@tests/utils/fixtures";
 import { beforeEach, expect } from "vitest";
-import { user } from "@/db/schema";
-import { sql } from "drizzle-orm";
-import { db } from "@/db/connection";
+import { seedUserScenario } from "@tests/utils/seedScenarios";
 
 describe("Authentication Controller Integration Tests", () => {
   describe("POST /sign-up/email", () => {
-    beforeEach(async () => {
-      await db.delete(user);
-
-      // Reset auto-increment counters
-      await db.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
-    });
     it("should register a new user returning 201", async () => {
       const newUser = await userFixture();
 
@@ -50,13 +41,6 @@ describe("Authentication Controller Integration Tests", () => {
   });
 
   describe("POST /sign-in/email", () => {
-    beforeEach(async () => {
-      await db.delete(user);
-
-      // Reset auto-increment counters
-      await db.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
-    });
-
     it("should login a user returning 200", async () => {
       const newUser = await userFixture();
 
@@ -91,7 +75,7 @@ describe("Authentication Controller Integration Tests", () => {
     });
 
     it("should fail to login deactivated user returning 401", async () => {
-      await seedUser("deactivated"); // Seed an inactive user
+      await seedUserScenario("deactivated");
 
       const response = await request.post("/api/auth/sign-in/email").send({
         email: "normal.user@example.com",
@@ -105,7 +89,7 @@ describe("Authentication Controller Integration Tests", () => {
 
   describe("POST /change-password", () => {
     it("should change the user's password returning 200", async () => {
-      await seedUser();
+      await seedUserScenario();
 
       // Login to get tokens
       const loginResponse = await request.post("/api/auth/sign-in/email").send({
@@ -134,7 +118,7 @@ describe("Authentication Controller Integration Tests", () => {
     });
 
     it("should fail to change the user's password returning 400", async () => {
-      await seedUser();
+      await seedUserScenario();
 
       // Login to get tokens
       const loginResponse = await request.post("/api/auth/sign-in/email").send({

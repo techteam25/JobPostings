@@ -10,7 +10,7 @@ export const insertJobAlertSchema = createInsertSchema(jobAlerts, {
     .min(3, "Name must be at least 3 characters")
     .max(100)
     .refine((val) => /^[a-zA-Z0-9\s\-]+$/.test(val)), // no special characters except spaces/hyphens
-  frequency: z.enum(["daily", "weekly"]).default("weekly"),
+  frequency: z.enum(["daily", "weekly", "monthly"]).default("weekly"),
   includeRemote: z.boolean().default(true),
 });
 

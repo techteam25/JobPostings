@@ -67,6 +67,8 @@ const validate =
           },
         };
 
+        console.log({ errorResponse });
+
         res.status(400).json(errorResponse);
         return;
       } else if (error instanceof Error) {

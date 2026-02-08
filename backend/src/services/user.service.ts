@@ -1009,28 +1009,24 @@ export class UserService extends BaseService {
         return fail(new NotFoundError("Job alert", alertId));
       }
 
-      const updatedAlert = await this.userRepository.updateJobAlert(
-        userId,
-        alertId,
+      // Recalibrate lastSentAt when frequency changes
+      const dataWithSchedule = this.applyFrequencyChangeSchedule(
+        existingAlert,
         updateData,
       );
 
-      if (!updatedAlert) {
-        return fail(new DatabaseError("Failed to update job alert"));
-      }
+      // Preview the merged state to validate before persisting
+      const merged = { ...existingAlert, ...dataWithSchedule };
 
-      // Validate the updated alert still has at least one search criterion
       const hasSearchQuery =
-        updatedAlert.searchQuery && updatedAlert.searchQuery.trim().length > 0;
+        merged.searchQuery && merged.searchQuery.trim().length > 0;
       const hasLocation =
-        (updatedAlert.city && updatedAlert.city.trim().length > 0) ||
-        (updatedAlert.state && updatedAlert.state.trim().length > 0);
-      const hasSkills = updatedAlert.skills && updatedAlert.skills.length > 0;
-      const hasJobTypes =
-        updatedAlert.jobType && updatedAlert.jobType.length > 0;
+        (merged.city && merged.city.trim().length > 0) ||
+        (merged.state && merged.state.trim().length > 0);
+      const hasSkills = merged.skills && merged.skills.length > 0;
+      const hasJobTypes = merged.jobType && merged.jobType.length > 0;
       const hasExperienceLevels =
-        updatedAlert.experienceLevel &&
-        updatedAlert.experienceLevel.length > 0;
+        merged.experienceLevel && merged.experienceLevel.length > 0;
 
       const hasValidCriteria =
         hasSearchQuery ||
@@ -1047,6 +1043,16 @@ export class UserService extends BaseService {
         );
       }
 
+      const updatedAlert = await this.userRepository.updateJobAlert(
+        userId,
+        alertId,
+        dataWithSchedule,
+      );
+
+      if (!updatedAlert) {
+        return fail(new DatabaseError("Failed to update job alert"));
+      }
+
       return ok(updatedAlert);
     } catch (error) {
       if (error instanceof AppError) {
@@ -1054,6 +1060,37 @@ export class UserService extends BaseService {
       }
       return fail(new DatabaseError("Failed to update job alert"));
     }
+  }
+
+  /**
+   * Recalibrates `lastSentAt` when alert frequency changes so the worker
+   * picks up the alert at the correct next interval.
+   *
+   * - Switching to a more frequent cadence (e.g. weekly → daily): set lastSentAt
+   *   far enough in the past so the next cron run picks it up immediately.
+   * - Switching to a less frequent cadence (e.g. daily → weekly): set lastSentAt
+   *   to now so the next send is a full interval from now.
+   */
+  applyFrequencyChangeSchedule(
+    existingAlert: JobAlert,
+    updateData: UpdateJobAlertInput,
+  ): UpdateJobAlertInput & { lastSentAt?: Date | null } {
+    if (!updateData.frequency || updateData.frequency === existingAlert.frequency) {
+      return updateData;
+    }
+
+    const now = new Date();
+    const frequencyOrder = { daily: 0, weekly: 1, monthly: 2 } as const;
+    const oldOrder = frequencyOrder[existingAlert.frequency];
+    const newOrder = frequencyOrder[updateData.frequency];
+
+    if (newOrder < oldOrder) {
+      // Switching to more frequent: allow immediate pickup by next cron
+      return { ...updateData, lastSentAt: null };
+    }
+
+    // Switching to less frequent: anchor from now so next send is a full interval away
+    return { ...updateData, lastSentAt: now };
   }
 
   /**

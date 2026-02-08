@@ -7,7 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { JobAlert } from "@/lib/types";
 import { toast } from "sonner";
 
@@ -17,7 +23,13 @@ interface JobAlertFormProps {
   isLoading?: boolean;
 }
 
-export function JobAlertForm({ initialData, onSubmit, isLoading }: JobAlertFormProps) {
+type JobType = "full_time" | "part_time" | "contract" | "temporary" | "intern";
+
+export function JobAlertForm({
+  initialData,
+  onSubmit,
+  isLoading,
+}: JobAlertFormProps) {
   const form = useForm({
     defaultValues: {
       name: initialData?.name || "",
@@ -38,7 +50,9 @@ export function JobAlertForm({ initialData, onSubmit, isLoading }: JobAlertFormP
       if (result.success) {
         onSubmit(result.data);
       } else {
-        toast.error(result.error.issues[0]?.message || "Please check your form inputs");
+        toast.error(
+          result.error.issues[0]?.message || "Please check your form inputs",
+        );
       }
     },
   });
@@ -68,13 +82,18 @@ export function JobAlertForm({ initialData, onSubmit, isLoading }: JobAlertFormP
       }}
       className="space-y-4"
     >
-      <form.Field name="name" validators={{
-        onChange: ({ value }) => {
-          if (!value || value.length < 3) return "Name must be at least 3 characters";
-          if (value.length > 100) return "Name must be at most 100 characters";
-          return undefined;
-        },
-      }}>
+      <form.Field
+        name="name"
+        validators={{
+          onChange: ({ value }) => {
+            if (!value || value.length < 3)
+              return "Name must be at least 3 characters";
+            if (value.length > 100)
+              return "Name must be at most 100 characters";
+            return undefined;
+          },
+        }}
+      >
         {(field) => (
           <div className="space-y-2">
             <Label htmlFor="name">Alert Name *</Label>
@@ -86,18 +105,24 @@ export function JobAlertForm({ initialData, onSubmit, isLoading }: JobAlertFormP
               placeholder="e.g., Frontend Developer in NYC"
             />
             {field.state.meta.errors && (
-              <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+              <p className="text-destructive text-sm">
+                {field.state.meta.errors[0]}
+              </p>
             )}
           </div>
         )}
       </form.Field>
 
-      <form.Field name="description" validators={{
-        onChange: ({ value }) => {
-          if (!value || value.trim().length === 0) return "Description is required";
-          return undefined;
-        },
-      }}>
+      <form.Field
+        name="description"
+        validators={{
+          onChange: ({ value }) => {
+            if (!value || value.trim().length === 0)
+              return "Description is required";
+            return undefined;
+          },
+        }}
+      >
         {(field) => (
           <div className="space-y-2">
             <Label htmlFor="description">Description *</Label>
@@ -110,7 +135,9 @@ export function JobAlertForm({ initialData, onSubmit, isLoading }: JobAlertFormP
               rows={3}
             />
             {field.state.meta.errors && (
-              <p className="text-sm text-destructive">{field.state.meta.errors[0]}</p>
+              <p className="text-destructive text-sm">
+                {field.state.meta.errors[0]}
+              </p>
             )}
           </div>
         )}
@@ -169,17 +196,27 @@ export function JobAlertForm({ initialData, onSubmit, isLoading }: JobAlertFormP
                 <div key={option.value} className="flex items-center space-x-2">
                   <Checkbox
                     id={`jobType-${option.value}`}
-                    checked={field.state.value?.includes(option.value as any)}
+                    checked={field.state.value?.includes(
+                      option.value as JobType,
+                    )}
                     onCheckedChange={(checked) => {
                       const current = field.state.value || [];
                       if (checked) {
-                        field.handleChange([...current, option.value] as any);
+                        field.handleChange([
+                          ...current,
+                          option.value as JobType,
+                        ]);
                       } else {
-                        field.handleChange(current.filter((v) => v !== option.value) as any);
+                        field.handleChange(
+                          current.filter((v) => v !== option.value) as any,
+                        );
                       }
                     }}
                   />
-                  <Label htmlFor={`jobType-${option.value}`} className="font-normal cursor-pointer">
+                  <Label
+                    htmlFor={`jobType-${option.value}`}
+                    className="cursor-pointer font-normal"
+                  >
                     {option.label}
                   </Label>
                 </div>
@@ -204,11 +241,16 @@ export function JobAlertForm({ initialData, onSubmit, isLoading }: JobAlertFormP
                       if (checked) {
                         field.handleChange([...current, option.value]);
                       } else {
-                        field.handleChange(current.filter((v) => v !== option.value));
+                        field.handleChange(
+                          current.filter((v) => v !== option.value),
+                        );
                       }
                     }}
                   />
-                  <Label htmlFor={`experience-${option.value}`} className="font-normal cursor-pointer">
+                  <Label
+                    htmlFor={`experience-${option.value}`}
+                    className="cursor-pointer font-normal"
+                  >
                     {option.label}
                   </Label>
                 </div>
@@ -246,7 +288,10 @@ export function JobAlertForm({ initialData, onSubmit, isLoading }: JobAlertFormP
               checked={field.state.value}
               onCheckedChange={(checked) => field.handleChange(!!checked)}
             />
-            <Label htmlFor="includeRemote" className="font-normal cursor-pointer">
+            <Label
+              htmlFor="includeRemote"
+              className="cursor-pointer font-normal"
+            >
               Include remote positions
             </Label>
           </div>
@@ -257,7 +302,12 @@ export function JobAlertForm({ initialData, onSubmit, isLoading }: JobAlertFormP
         {(field) => (
           <div className="space-y-2">
             <Label htmlFor="frequency">Alert Frequency</Label>
-            <Select value={field.state.value} onValueChange={(value) => field.handleChange(value as any)}>
+            <Select
+              value={field.state.value}
+              onValueChange={(value) =>
+                field.handleChange(value as JobAlertFormData["frequency"])
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select frequency" />
               </SelectTrigger>
@@ -278,8 +328,16 @@ export function JobAlertForm({ initialData, onSubmit, isLoading }: JobAlertFormP
         })}
       >
         {({ canSubmit, isSubmitting }) => (
-          <Button type="submit" disabled={!canSubmit || isSubmitting || isLoading} className="w-full">
-            {isLoading ? "Saving..." : initialData ? "Update Alert" : "Create Alert"}
+          <Button
+            type="submit"
+            disabled={!canSubmit || isSubmitting || isLoading}
+            className="w-full"
+          >
+            {isLoading
+              ? "Saving..."
+              : initialData
+                ? "Update Alert"
+                : "Create Alert"}
           </Button>
         )}
       </form.Subscribe>

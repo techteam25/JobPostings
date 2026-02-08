@@ -1,25 +1,18 @@
-import { beforeEach, afterEach } from "vitest";
-import { clearTestData } from "../utils/testDatabase";
+import { beforeEach } from "vitest";
+import { cleanAll } from "../utils/cleanAll";
 import logger from "@/logger";
 
-// Setup that runs before each test
+// Ensure NODE_ENV is "test" in worker processes (globalSetup only sets it in its own process)
+process.env.NODE_ENV = "test";
+
+// Setup that runs before each test — guarantees pristine DB state
 beforeEach(async () => {
-  // Clear test data before each test (if database is available)
   try {
-    if (process.env.DB_HOST && process.env.NODE_ENV === "test") {
-      await clearTestData();
-    }
+    await cleanAll();
   } catch (error) {
-    // Ignore database errors in setup - tests will handle it
     if (error instanceof Error)
       logger.debug(`Test data cleanup skipped: ${error.message}`);
   }
-});
-
-// Cleanup that runs after each test
-afterEach(async () => {
-  // Additional cleanup if needed
-  // Test data is cleared before each test, so this is usually not needed
 });
 
 // Extend global types if needed

@@ -2,20 +2,17 @@
 
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import {
-  seedAdminUser,
-  seedJobs,
-  seedUser,
-  seedUserWithRole,
-} from "@tests/utils/seed";
+  seedAdminScenario,
+  seedJobsScenario,
+  seedUserScenario,
+  seedUserWithRoleScenario,
+} from "@tests/utils/seedScenarios";
 import { jobPostingFixture } from "@tests/utils/fixtures";
-import { jobsDetails } from "@/db/schema";
-import { sql } from "drizzle-orm";
-import { db } from "@/db/connection";
 
 describe("Job Controller Integration Tests", () => {
   describe("GET /jobs", () => {
     beforeEach(async () => {
-      await seedJobs(); // Seed 3 jobs for testing
+      await seedJobsScenario();
     });
     it("should retrieve a list of jobs returning 200", async () => {
       const response = await request.get("/api/jobs");
@@ -57,7 +54,7 @@ describe("Job Controller Integration Tests", () => {
     let cookie: string;
 
     beforeEach(async () => {
-      await seedAdminUser();
+      await seedAdminScenario();
 
       const response = await request
         .post("/api/auth/sign-in/email")
@@ -158,7 +155,7 @@ describe("Job Controller Integration Tests", () => {
 
     it("should return 403 when a non-admin user attempts to create a job", async () => {
       // Seed a regular user
-      await seedUser();
+      await seedUserScenario();
 
       const loginResponse = await request.post("/api/auth/sign-in/email").send({
         email: "normal.user@example.com",
@@ -185,7 +182,7 @@ describe("Job Controller Integration Tests", () => {
 
     describe("Authorization & Permission Tests", () => {
       it("should allow owner role to create a job", async () => {
-        await seedUserWithRole("owner", "owner.user@example.com");
+        await seedUserWithRoleScenario("owner", "owner.user@example.com");
 
         const loginResponse = await request
           .post("/api/auth/sign-in/email")
@@ -213,7 +210,7 @@ describe("Job Controller Integration Tests", () => {
       });
 
       it("should allow admin role to create a job", async () => {
-        await seedUserWithRole("admin", "admin.role@example.com");
+        await seedUserWithRoleScenario("admin", "admin.role@example.com");
 
         const loginResponse = await request
           .post("/api/auth/sign-in/email")
@@ -241,7 +238,7 @@ describe("Job Controller Integration Tests", () => {
       });
 
       it("should allow recruiter role to create a job", async () => {
-        await seedUserWithRole("recruiter", "recruiter.user@example.com");
+        await seedUserWithRoleScenario("recruiter", "recruiter.user@example.com");
 
         const loginResponse = await request
           .post("/api/auth/sign-in/email")
@@ -269,7 +266,7 @@ describe("Job Controller Integration Tests", () => {
       });
 
       it("should deny member role from creating a job", async () => {
-        await seedUserWithRole("member", "member.user@example.com");
+        await seedUserWithRoleScenario("member", "member.user@example.com");
 
         const loginResponse = await request
           .post("/api/auth/sign-in/email")
@@ -401,12 +398,7 @@ describe("Job Controller Integration Tests", () => {
     let cookie: string;
 
     beforeEach(async () => {
-      await db.delete(jobsDetails);
-
-      // Reset auto-increment counters
-      await db.execute(sql`ALTER TABLE job_details AUTO_INCREMENT = 1`);
-
-      await seedAdminUser();
+      await seedAdminScenario();
 
       const response = await request.post("/api/auth/sign-in/email").send({
         email: "admin.user@example.com",
@@ -452,7 +444,7 @@ describe("Job Controller Integration Tests", () => {
     let cookie: string;
 
     beforeEach(async () => {
-      await seedJobs();
+      await seedJobsScenario();
 
       const response = await request.post("/api/auth/sign-in/email").send({
         email: "owner.user@example.com",
@@ -519,7 +511,7 @@ describe("Job Controller Integration Tests", () => {
     let cookie: string;
 
     beforeEach(async () => {
-      await seedJobs(); // Seeds jobs for organization 1
+      await seedJobsScenario(); // Seeds jobs for organization 1
 
       const response = await request.post("/api/auth/sign-in/email").send({
         email: "org.member@example.com",
@@ -628,7 +620,7 @@ describe("Job Controller Integration Tests", () => {
     let cookie: string;
 
     beforeEach(async () => {
-      await seedJobs(); // Seeds jobs for organization 1
+      await seedJobsScenario(); // Seeds jobs for organization 1
 
       const response = await request.post("/api/auth/sign-in/email").send({
         email: "org.member@example.com",

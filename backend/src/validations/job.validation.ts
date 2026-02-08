@@ -20,11 +20,11 @@ const insertJobBaseSchema = createInsertSchema(jobsDetails, {
 
 // Full insert schema WITH refinements (for creating new jobs)
 export const insertJobSchema = insertJobBaseSchema
-  .refine((data) => data.country === "United States" && !data.state, {
+  .refine((data) => !(data.country === "United States" && !data.state), {
     message: "State is required for United States",
     path: ["state"],
   })
-  .refine((data) => data.country === "United States" && !data.zipcode, {
+  .refine((data) => !(data.country === "United States" && !data.zipcode), {
     message: "Zip Code is required for United States",
   });
 
@@ -100,11 +100,11 @@ const createJobPayloadBaseSchema = insertJobBaseSchema
   });
 
 const createJobPayloadSchema = createJobPayloadBaseSchema
-  .refine((data) => data.country === "United States" && !data.state, {
+  .refine((data) => !(data.country === "United States" && !data.state), {
     message: "State is required for United States",
     path: ["state"],
   })
-  .refine((data) => data.country === "United States" && !data.zipcode, {
+  .refine((data) => !(data.country === "United States" && !data.zipcode), {
     message: "Zip Code is required for United States",
   });
 
@@ -119,8 +119,13 @@ export const createJobSchema = z.object({
 });
 
 // Update job schema: use base payload schema, apply partial FIRST, then add refinements
+// Override country to remove the default so partial updates don't trigger
+// the "State and Zip Code required" refinement when country isn't explicitly sent.
 export const updateJobSchema = z.object({
   body: createJobPayloadBaseSchema
+    .extend({
+      country: z.string().max(100).trim().optional(),
+    })
     .partial()
     .refine(
       (data) => {

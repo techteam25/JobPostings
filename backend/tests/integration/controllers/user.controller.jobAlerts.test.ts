@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { request } from "@tests/utils/testHelpers";
 import { db } from "@/db/connection";
 import { jobAlerts, user } from "@/db/schema";
-import { seedUser } from "@tests/utils/seed";
+import { seedUserScenario } from "@tests/utils/seedScenarios";
+import { createUser } from "@tests/utils/seedBuilders";
 import { eq } from "drizzle-orm";
 
 describe("Job Alerts API Integration Tests", () => {
@@ -11,7 +12,7 @@ describe("Job Alerts API Integration Tests", () => {
 
   beforeEach(async () => {
     // Seed a test user
-    await seedUser();
+    await seedUserScenario();
 
     // Login to get auth cookie and user ID
     const loginResponse = await request.post("/api/auth/sign-in/email").send({
@@ -28,11 +29,6 @@ describe("Job Alerts API Integration Tests", () => {
 
     if (foundUser) {
       userId = foundUser.id;
-    }
-
-    // Clean up any existing job alerts for the test user
-    if (userId) {
-      await db.delete(jobAlerts).where(eq(jobAlerts.userId, userId));
     }
   });
 
@@ -253,7 +249,8 @@ describe("Job Alerts API Integration Tests", () => {
     });
 
     it("should not return alerts from other users", async () => {
-      // Login as other user
+      // Create and login as other user
+      await createUser({ email: "other.user@example.com" });
       const loginRes = await request.post("/api/auth/sign-in/email").send({
         email: "other.user@example.com",
         password: "Password@123",
@@ -499,6 +496,116 @@ describe("Job Alerts API Integration Tests", () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.includeRemote).toBe(true);
+    });
+  });
+
+  describe("PUT /api/users/me/job-alerts/:id - Frequency Update", () => {
+    let alertId: number;
+
+    beforeEach(async () => {
+      const createResponse = await request
+        .post("/api/users/me/job-alerts")
+        .set("Cookie", authCookie)
+        .send({
+          name: "Frequency Test Alert",
+          description: "Testing frequency changes",
+          searchQuery: "developer",
+          frequency: "weekly",
+        });
+
+      alertId = createResponse.body.data.id;
+    });
+
+    it("should update frequency from weekly to daily", async () => {
+      const response = await request
+        .put(`/api/users/me/job-alerts/${alertId}`)
+        .set("Cookie", authCookie)
+        .send({ frequency: "daily" })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.frequency).toBe("daily");
+      // lastSentAt should be null (immediate pickup for more frequent)
+      expect(response.body.data.lastSentAt).toBeNull();
+    });
+
+    it("should update frequency from weekly to monthly", async () => {
+      const response = await request
+        .put(`/api/users/me/job-alerts/${alertId}`)
+        .set("Cookie", authCookie)
+        .send({ frequency: "monthly" })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.frequency).toBe("monthly");
+      // lastSentAt should be set to roughly now (less frequent)
+      expect(response.body.data.lastSentAt).not.toBeNull();
+    });
+
+    it("should update frequency from daily to weekly and set lastSentAt", async () => {
+      // First switch to daily
+      await request
+        .put(`/api/users/me/job-alerts/${alertId}`)
+        .set("Cookie", authCookie)
+        .send({ frequency: "daily" });
+
+      // Now switch to weekly (less frequent)
+      const before = new Date();
+      const response = await request
+        .put(`/api/users/me/job-alerts/${alertId}`)
+        .set("Cookie", authCookie)
+        .send({ frequency: "weekly" })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.frequency).toBe("weekly");
+      expect(response.body.data.lastSentAt).not.toBeNull();
+      const lastSentAt = new Date(response.body.data.lastSentAt);
+      expect(lastSentAt.getTime()).toBeGreaterThanOrEqual(
+        before.getTime() - 1000,
+      );
+    });
+
+    it("should not change lastSentAt when frequency stays the same", async () => {
+      // Get current state
+      const getCurrent = await request
+        .get(`/api/users/me/job-alerts/${alertId}`)
+        .set("Cookie", authCookie);
+      const originalLastSentAt = getCurrent.body.data.lastSentAt;
+
+      // Update name only, same frequency
+      const response = await request
+        .put(`/api/users/me/job-alerts/${alertId}`)
+        .set("Cookie", authCookie)
+        .send({ name: "Renamed Alert" })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.name).toBe("Renamed Alert");
+      expect(response.body.data.lastSentAt).toBe(originalLastSentAt);
+    });
+
+    it("should reject invalid frequency value", async () => {
+      await request
+        .put(`/api/users/me/job-alerts/${alertId}`)
+        .set("Cookie", authCookie)
+        .send({ frequency: "hourly" })
+        .expect(400);
+    });
+
+    it("should require authentication", async () => {
+      await request
+        .put(`/api/users/me/job-alerts/${alertId}`)
+        .send({ frequency: "daily" })
+        .expect(401);
+    });
+
+    it("should return 404 for non-existent alert", async () => {
+      await request
+        .put("/api/users/me/job-alerts/99999")
+        .set("Cookie", authCookie)
+        .send({ frequency: "daily" })
+        .expect(404);
     });
   });
 });

@@ -4,15 +4,13 @@ import {
   jobAlerts,
   jobAlertMatches,
   jobsDetails,
-  user,
-  organizations,
 } from "@/db/schema";
-import { seedUser } from "@tests/utils/seed";
+import { seedUserScenario } from "@tests/utils/seedScenarios";
+import { createOrganization } from "@tests/utils/seedBuilders";
 import { eq } from "drizzle-orm";
 import { processJobAlerts } from "@/workers/job-alert-processor";
 import type { SearchResponse } from "typesense/lib/Typesense/Documents";
 import type { JobDocumentType } from "@/validations/base.validation";
-import { organizationFixture } from "@tests/utils/fixtures";
 
 // Mock TypesenseService to control search results
 const mockSearchJobsForAlert = vi.fn();
@@ -39,37 +37,13 @@ describe("Job Alert Processing Integration Tests", () => {
   let testJobId: number;
 
   beforeEach(async () => {
-    // Seed test user
-    await seedUser();
-
-    const foundUser = await db.query.user.findFirst({
-      where: eq(user.email, "normal.user@example.com"),
-    });
-
-    if (foundUser) {
-      testUserId = foundUser.id;
-    }
-
-    const orgFixture = await organizationFixture();
+    // Seed test user (cleanAll() runs via setupTests.ts beforeEach)
+    const { user: seededUser } = await seedUserScenario();
+    testUserId = seededUser.id;
 
     // Create test organization for jobs
-    const [org] = await db
-      .insert(organizations)
-      .values(orgFixture)
-      .$returningId();
-
-    testOrgId = org!.id;
-
-    // Clean up existing alerts and matches
-    if (testUserId) {
-      await db
-        .delete(jobAlertMatches)
-        .where(eq(jobAlertMatches.jobAlertId, testUserId));
-      await db.delete(jobAlerts).where(eq(jobAlerts.userId, testUserId));
-    }
-
-    // Clean up existing jobs
-    await db.delete(jobsDetails).where(eq(jobsDetails.employerId, testOrgId));
+    const org = await createOrganization();
+    testOrgId = org.id;
 
     // Create a test job that can be referenced in matches
     const [job] = await db

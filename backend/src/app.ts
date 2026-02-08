@@ -4,7 +4,6 @@ import helmet from "helmet";
 import pinoHttp from "pino-http";
 import swaggerUi from "swagger-ui-express";
 
-// @ts-expect-error expects mts
 import { toNodeHandler } from "better-auth/node";
 
 import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
@@ -37,6 +36,7 @@ import {
 import {
   initializeJobAlertWorker,
   scheduleDailyAlertProcessing,
+  scheduleMonthlyAlertProcessing,
   scheduleWeeklyAlertProcessing,
 } from "@/workers/job-alert-processor";
 import {
@@ -101,6 +101,7 @@ try {
   scheduleCleanupJob().catch((err) => logger.error(err));
   scheduleDailyAlertProcessing().catch((err) => logger.error(err));
   scheduleWeeklyAlertProcessing().catch((err) => logger.error(err));
+  scheduleMonthlyAlertProcessing().catch((err) => logger.error(err));
   scheduleInactiveUserAlertPausing().catch((err) => logger.error(err));
   scheduleInvitationExpirationJob().catch((err) => logger.error(err));
 } catch (error) {

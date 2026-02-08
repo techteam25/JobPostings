@@ -323,3 +323,66 @@ export type JobAlert = {
 
 export type CreateJobAlertInput = Omit<JobAlert, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'lastSentAt'>;
 export type UpdateJobAlertInput = Partial<CreateJobAlertInput>;
+
+export type Invitation = {
+  id: number;
+  organizationId: number;
+  email: string;
+  role: "admin" | "recruiter" | "member";
+  token: string;
+  status: "pending" | "accepted" | "expired" | "cancelled";
+  expiresAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type InvitationDetails = {
+  invitation: {
+    id: number;
+    email: string;
+    role: string;
+    status: string;
+    expiresAt: Date;
+  };
+  organization: {
+    id: number;
+    name: string;
+    logoUrl: string | null;
+  };
+};
+
+export type OrganizationJobStats = {
+  totalJobs: number;
+  activeJobs: number;
+  expiredJobs: number;
+  totalApplications: number;
+  applicationsByStatus: {
+    pending: number;
+    reviewed: number;
+    shortlisted: number;
+    interviewing: number;
+    rejected: number;
+    hired: number;
+  };
+};
+
+export type CreateJobInput = {
+  title: string;
+  description: string;
+  city: string;
+  state: string;
+  country: string;
+  zipcode: number | null;
+  jobType: "full-time" | "part-time" | "contract" | "volunteer" | "internship";
+  compensationType: "paid" | "missionary" | "volunteer" | "stipend";
+  isRemote: boolean;
+  applicationDeadline: string | null;
+  experience: string;
+};
+
+export type UpdateJobInput = Partial<CreateJobInput> & { isActive?: boolean };
+
+export type SendInvitationInput = {
+  email: string;
+  role: "admin" | "recruiter" | "member";
+};
