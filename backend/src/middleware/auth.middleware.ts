@@ -103,7 +103,7 @@ export class AuthMiddleware {
    */
   requireJobPostingRole = () => {
     return async (
-      req: Request<GetOrganizationSchema["params"]>,
+      req: Request,
       res: Response,
       next: NextFunction,
     ) => {
@@ -167,7 +167,7 @@ export class AuthMiddleware {
    */
   requireAdminOrOwnerRole = (roles: string[]) => {
     return async (
-      req: Request<GetOrganizationSchema["params"]>,
+      req: Request,
       res: Response,
       next: NextFunction,
     ) => {
