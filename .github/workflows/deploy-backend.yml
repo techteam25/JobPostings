@@ -1,0 +1,63 @@
+name: Deploy Backend to Production
+
+on:
+  push:
+    branches: [production]
+    paths:
+      - 'backend/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create deployment tarball
+        run: |
+          cd backend
+          tar -czf ../backend-deploy.tar.gz \
+            --exclude='node_modules' \
+            --exclude='dist' \
+            --exclude='.git' \
+            --exclude='.env*' \
+            --exclude='*.log' \
+            --exclude='mysql-data' \
+            .
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Transfer deployment package
+        run: |
+          scp -i ~/.ssh/deploy_key backend-deploy.tar.gz \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+
+      - name: Transfer deployment script
+        run: |
+          scp -i ~/.ssh/deploy_key scripts/deploy-backend.sh \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+
+      - name: Deploy and restart service
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            'bash /tmp/deploy-backend.sh'
+
+      - name: Health check
+        run: |
+          echo "Waiting 10 seconds for service to start..."
+          sleep 10
+          echo "Checking backend health..."
+          curl -f https://api.getinvolved.team/health || exit 1
+          echo "Backend deployment successful!"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ~/.ssh/deploy_key
