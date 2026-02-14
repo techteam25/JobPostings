@@ -31,6 +31,25 @@ export default async function ApplyForJob({ searchParams }: Props) {
     redirect(`/sign-in?redirect=/applications/new?jobId=${jobId}`);
   }
 
+  if (!userProfileRes.data.emailVerified) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Email verification required</h1>
+          <p className="text-slate-500 mt-2">
+            You need to verify your email address before applying for jobs.
+          </p>
+          <Link
+            href="/settings/email-preferences"
+            className={buttonVariants({ variant: "secondary", className: "mt-4" })}
+          >
+            Go to Email Settings
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!jobRes.success) {
     return (
       <div className="flex h-screen items-center justify-center">

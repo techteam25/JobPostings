@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +15,8 @@ import { type EmailPreferences as EmailPreferencesType } from "@/lib/types";
 import { UserIntentResponse } from "@/schemas/responses/users";
 import PreferenceSection from "@/app/(main)/settings/email-preferences/components/PreferenceSection";
 import UnsubscribeDialog from "@/app/(main)/settings/email-preferences/components/UnsubscribeDialog";
+import { useUserSession } from "@/app/(main)/hooks/use-user-session";
+import { authClient } from "@/lib/auth";
 
 export function EmailPreferences({
   preferences: initialPreferences,
@@ -25,6 +29,26 @@ export function EmailPreferences({
   const [unsubscribeContext, setUnsubscribeContext] = useState<
     "job_seeker" | "employer" | "global" | null
   >(null);
+  const [isResending, setIsResending] = useState(false);
+  const { data: sessionData, isPending: isSessionPending } = useUserSession();
+
+  const handleResendVerification = async () => {
+    const email = sessionData?.data?.user?.email;
+    if (!email) return;
+
+    setIsResending(true);
+    try {
+      await authClient.sendVerificationEmail({
+        email,
+        callbackURL: "/email-verified",
+      });
+      toast.success("Verification email sent!");
+    } catch {
+      toast.error("Failed to send verification email.");
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   // Use TanStack Query with server-provided initial data
   const { data: preferences } = useEmailPreferences(initialPreferences);
@@ -62,6 +86,38 @@ export function EmailPreferences({
 
   return (
     <>
+      {/* Email Verification Status */}
+      {!isSessionPending && sessionData?.data?.user && (
+        <div className="mb-6 rounded-lg border p-4">
+          <h3 className="mb-2 text-sm font-semibold">Email Verification</h3>
+          {sessionData.data.user.emailVerified ? (
+            <div className="flex items-center gap-2 text-sm text-green-700">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>Email verified</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-amber-700">
+                <AlertTriangle className="h-4 w-4" />
+                <span>Email not verified</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResendVerification}
+                disabled={isResending}
+                className="cursor-pointer"
+              >
+                {isResending ? (
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                ) : null}
+                Resend verification email
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Global Unsubscribe Alert */}
       {preferences.globalUnsubscribe && (
         <Alert className="mb-6">

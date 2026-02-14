@@ -253,7 +253,7 @@ ${footer}`,
   ): Promise<void> {
     const template = await this.loadTemplate("verificationEmail");
 
-    const verificationLink = `${env.SERVER_URL}/api/auth/verify-email?token=${token}&callbackURL=${env.FRONTEND_URL}/`;
+    const verificationLink = `${env.SERVER_URL}/api/auth/verify-email?token=${token}&callbackURL=${env.FRONTEND_URL}/email-verified`;
     const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
 
     const htmlContent = template

@@ -67,14 +67,14 @@ export default function RegistrationForm() {
           });
 
           if (response.status === 200) {
-            toast.success("Account creation successful!");
+            toast.success(
+              "Account created! Please check your email to verify your account.",
+            );
             form.reset();
 
-            const redirectUrl =
-              response.data.user?.intent === "employer"
-                ? "/employer/onboarding"
-                : "/";
-            router.replace(redirectUrl);
+            router.replace(
+              `/verify-email?email=${encodeURIComponent(values.value.email)}`,
+            );
           } else {
             toast.error(
               response.data.message || "Account creation unsuccessful",

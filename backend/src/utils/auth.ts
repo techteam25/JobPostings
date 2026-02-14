@@ -41,10 +41,10 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: isProduction,
+    requireEmailVerification: false,
   },
   emailVerification: {
-    sendOnSignUp: isProduction,
+    sendOnSignUp: true,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, token }) => {
       await emailService.sendEmailVerification(user.email, user.name, token);
