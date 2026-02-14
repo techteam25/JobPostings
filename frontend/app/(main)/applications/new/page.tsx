@@ -36,12 +36,15 @@ export default async function ApplyForJob({ searchParams }: Props) {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Email verification required</h1>
-          <p className="text-slate-500 mt-2">
+          <p className="mt-2 text-slate-500">
             You need to verify your email address before applying for jobs.
           </p>
           <Link
             href="/settings/email-preferences"
-            className={buttonVariants({ variant: "secondary", className: "mt-4" })}
+            className={buttonVariants({
+              variant: "secondary",
+              className: "mt-4",
+            })}
           >
             Go to Email Settings
           </Link>
@@ -79,7 +82,7 @@ export default async function ApplyForJob({ searchParams }: Props) {
 
           {/* RIGHT COLUMN: Application Flow */}
           <div className="lg:col-span-8">
-            <div className="flex min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl shadow-slate-200/50">
+            <div className="flex min-h-150 flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl shadow-slate-200/50">
               {/* Main Content Area */}
               <MainContent
                 key={jobId}
