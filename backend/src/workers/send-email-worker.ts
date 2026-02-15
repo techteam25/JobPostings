@@ -95,6 +95,12 @@ export async function processEmailJob(
         job.data.newStatus as string,
       );
       break;
+    case "sendPasswordChangedEmail":
+      await emailService.sendPasswordChangedEmail(
+        job.data.email,
+        job.data.fullName,
+      );
+      break;
     case "sendJobAlertNotification":
     case "job-alert-notification":
       await emailService.sendJobAlertNotification(
