@@ -414,7 +414,7 @@ registry.registerPath({
 /**
  * Allows the authenticated user to apply for a job posting.
  * This authenticated endpoint creates a new job application for the specified job.
- * Requires user authentication and job seeker role.
+ * Requires user authentication and jobseeker role.
  * @route POST /api/jobs/:jobId/apply
  * @param {Object} req.params - Route parameters including the jobId.
  * @param {Object} req.body - Request body with application details (cover letter, resume).
@@ -424,7 +424,7 @@ registry.registerPath({
 router.post(
   "/:jobId/apply",
   authMiddleware.requireUserRole,
-  uploadMiddleware.resume,
+  uploadMiddleware.jobApplication,
   validate(applyForJobSchema),
   jobController.applyForJob,
 );

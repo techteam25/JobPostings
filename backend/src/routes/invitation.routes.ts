@@ -8,10 +8,7 @@ import {
   acceptOrganizationInvitationSchema,
 } from "@/validations/organization.validation";
 import { registry, z } from "@/swagger/registry";
-import {
-  apiResponseSchema,
-  errorResponseSchema,
-} from "@/types";
+import { apiResponseSchema, errorResponseSchema } from "@/types";
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
 
 const router = Router();
@@ -165,7 +162,7 @@ registry.registerPath({
  * @returns {Promise<void>} - Sends a JSON response with success message.
  */
 router.post(
-  "/:token/accept",
+  "/:organizationId/:token/accept",
   authMiddleware.authenticate,
   validate(acceptOrganizationInvitationSchema),
   invalidateCacheMiddleware((req) => `organizations/members/${req.userId}`),

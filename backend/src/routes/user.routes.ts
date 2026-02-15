@@ -24,6 +24,7 @@ import {
   selectUserSchema,
 } from "@/validations/userProfile.validation";
 import { getJobSchema } from "@/validations/job.validation";
+import { selectOrganizationSchema } from "@/validations/organization.validation";
 import {
   cacheMiddleware,
   invalidateCacheMiddleware,
@@ -243,6 +244,60 @@ router.get(
   "/me/intent",
   cacheMiddleware({ ttl: 300 }),
   userController.getCurrentUserIntent,
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/users/me/organizations",
+  tags: ["Users"],
+  summary: "Get Current User's Organizations",
+  description:
+    "Retrieve all organizations the currently logged-in user belongs to.",
+  responses: {
+    200: {
+      description: "User organizations retrieved successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.array(
+              z.object({
+                id: z.number(),
+                userId: z.number(),
+                organizationId: z.number(),
+                role: z.enum(["owner", "admin", "recruiter", "member"]),
+                isActive: z.boolean(),
+                createdAt: z.string(),
+                updatedAt: z.string(),
+                organization: selectOrganizationSchema,
+              }),
+            ),
+          ),
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+/**
+ * Retrieves all organizations the authenticated user belongs to.
+ * This authenticated endpoint fetches the user's organization memberships with organization details.
+ * Includes caching for performance optimization.
+ * @route GET /users/me/organizations
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the user's organizations.
+ */
+router.get(
+  "/me/organizations",
+  cacheMiddleware({ ttl: 300 }),
+  userController.getUserOrganizations,
 );
 
 registry.registerPath({

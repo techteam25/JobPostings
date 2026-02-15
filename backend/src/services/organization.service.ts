@@ -360,6 +360,45 @@ export class OrganizationService extends BaseService {
   }
 
   /**
+   * Retrieves the first active organization membership for a user.
+   * @param userId The ID of the user.
+   * @returns A Result containing the member or an error.
+   */
+  async getFirstOrganizationForUser(userId: number) {
+    try {
+      const member =
+        await this.organizationRepository.findMemberByUserId(userId);
+      if (!member) {
+        return fail(new NotFoundError("Organization member not found"));
+      }
+      return ok(member);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to fetch organization member"));
+    }
+  }
+
+  /**
+   * Retrieves all active organizations for a user.
+   * @param userId The ID of the user.
+   * @returns A Result containing the memberships or an error.
+   */
+  async getUserOrganizations(userId: number) {
+    try {
+      const memberships =
+        await this.organizationRepository.getUserOrganizations(userId);
+      return ok(memberships);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to fetch user organizations"));
+    }
+  }
+
+  /**
    * Retrieves a specific job application for an organization.
    * @param organizationId The ID of the organization.
    * @param jobId The ID of the job.

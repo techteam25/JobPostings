@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { UserService } from "@/services/user.service";
+import { OrganizationService } from "@/services/organization.service";
 import { BaseController } from "./base.controller";
 import {
   ChangePasswordSchema,
@@ -44,6 +45,7 @@ import {
  */
 export class UserController extends BaseController {
   private userService: UserService;
+  private organizationService: OrganizationService;
 
   /**
    * Creates an instance of UserController and initializes the required services.
@@ -51,6 +53,7 @@ export class UserController extends BaseController {
   constructor() {
     super();
     this.userService = new UserService();
+    this.organizationService = new OrganizationService();
   }
 
   /**
@@ -499,6 +502,27 @@ export class UserController extends BaseController {
       }>(res, intentResult.value, "User intent retrieved successfully");
     } else {
       return this.handleControllerError(res, intentResult.error);
+    }
+  };
+
+  /**
+   * Retrieves all organizations the authenticated user belongs to.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
+  getUserOrganizations = async (req: Request, res: Response) => {
+    const result = await this.organizationService.getUserOrganizations(
+      req.userId!,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "User organizations retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
     }
   };
 

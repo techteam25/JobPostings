@@ -93,6 +93,7 @@ export const jobApplications = mysqlTable(
       .default("pending")
       .notNull(),
     coverLetter: text("cover_letter"),
+    coverLetterUrl: varchar("cover_letter_url", { length: 500 }),
     resumeUrl: varchar("resume_url", { length: 500 }),
     appliedAt: timestamp("applied_at").defaultNow().notNull(),
     reviewedAt: timestamp("reviewed_at"),

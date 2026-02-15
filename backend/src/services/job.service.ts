@@ -345,8 +345,10 @@ export class JobService extends BaseService {
       }
 
       // Authorization check - only admin or employer who posted the job can update
-      const organization =
-        await this.organizationRepository.findByContact(requesterId);
+      const organization = await this.organizationRepository.findByContact(
+        requesterId,
+        job.value.employer!.id,
+      );
 
       if (!organization) {
         return fail(
@@ -463,10 +465,14 @@ export class JobService extends BaseService {
   /**
    * Allows a user to apply for a job.
    * @param applicationData The application data including job ID and applicant ID.
+   * @param correlationId A unique identifier for tracking the application process across services.
    * @returns A Result containing the application ID and message or an error.
    */
   async applyForJob(
-    applicationData: NewJobApplication & { resume?: Express.Multer.File },
+    applicationData: NewJobApplication & {
+      resume?: Express.Multer.File;
+      coverLetterFile?: Express.Multer.File;
+    },
     correlationId: string,
   ): Promise<Result<{ applicationId: number; message: string }, Error>> {
     try {
@@ -500,12 +506,18 @@ export class JobService extends BaseService {
         return fail(new ConflictError("You have already applied for this job"));
       }
 
-      // Sanitize application data
+      // Sanitize application data (remove file objects before DB insert)
+      // customAnswers comes from req.body but is not a DB column,
+      // so we store it in the notes field as sanitized JSON
+      const { resume, coverLetterFile, customAnswers, ...dbData } =
+        applicationData as typeof applicationData & {
+          customAnswers?: string;
+        };
       const sanitizedData = {
-        ...applicationData,
-        coverLetter: SecurityUtils.sanitizeInput(
-          applicationData.coverLetter ?? "",
-        ),
+        ...dbData,
+        notes: customAnswers
+          ? SecurityUtils.sanitizeInput(customAnswers)
+          : undefined,
       };
 
       const applicationId =
@@ -515,8 +527,36 @@ export class JobService extends BaseService {
         return fail(new DatabaseError("Failed to submit application"));
       }
 
-      // Enqueue resume upload if provided
-      if (applicationData.resume) {
+      // Collect temp files for upload (resume and/or cover letter)
+      const tempFiles: Array<{
+        originalname: string;
+        tempPath: string;
+        size: number;
+        mimetype: string;
+        fieldName: string;
+      }> = [];
+
+      if (resume) {
+        tempFiles.push({
+          originalname: resume.originalname,
+          tempPath: resume.path,
+          size: resume.size,
+          mimetype: resume.mimetype,
+          fieldName: "resume",
+        });
+      }
+
+      if (coverLetterFile) {
+        tempFiles.push({
+          originalname: coverLetterFile.originalname,
+          tempPath: coverLetterFile.path,
+          size: coverLetterFile.size,
+          mimetype: coverLetterFile.mimetype,
+          fieldName: "coverLetter",
+        });
+      }
+
+      if (tempFiles.length > 0) {
         await queueService.addJob<FileUploadJobData>(
           QUEUE_NAMES.FILE_UPLOAD_QUEUE,
           "uploadFile",
@@ -525,14 +565,7 @@ export class JobService extends BaseService {
             entityId: applicationId.toString(),
             folder: StorageFolder.RESUMES,
             mergeWithExisting: false,
-            tempFiles: [
-              {
-                originalname: applicationData.resume.originalname,
-                tempPath: applicationData.resume.path,
-                size: applicationData.resume.size,
-                mimetype: applicationData.resume.mimetype,
-              },
-            ],
+            tempFiles,
             userId: applicationData.applicantId.toString(),
             correlationId,
           },
@@ -583,14 +616,16 @@ export class JobService extends BaseService {
   ) {
     try {
       // Authorization check - only admin or employer who posted the job can view applications
-      const [job, organization] = await Promise.all([
-        this.getJobById(jobId),
-        this.organizationRepository.findByContact(requesterId),
-      ]);
+      const job = await this.getJobById(jobId);
 
       if (!job.isSuccess) {
         return fail(new NotFoundError("Job", jobId));
       }
+
+      const organization = await this.organizationRepository.findByContact(
+        requesterId,
+        job.value.employer!.id,
+      );
 
       if (!organization) {
         return fail(
@@ -664,14 +699,16 @@ export class JobService extends BaseService {
         return fail(new NotFoundError("Application", applicationId));
       }
 
-      const [job, organization] = await Promise.all([
-        this.getJobById(application.job.id),
-        this.organizationRepository.findByContact(requesterId),
-      ]);
+      const job = await this.getJobById(application.job.id);
 
       if (!job.isSuccess) {
         return fail(new NotFoundError("Job", application.job.id));
       }
+
+      const organization = await this.organizationRepository.findByContact(
+        requesterId,
+        job.value.employer!.id,
+      );
 
       if (!organization) {
         return fail(

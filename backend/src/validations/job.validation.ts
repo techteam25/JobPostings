@@ -31,11 +31,8 @@ export const insertJobSchema = insertJobBaseSchema
 export const insertJobApplicationSchema = createInsertSchema(jobApplications, {
   jobId: z.number().int().positive("Job ID is required"),
   applicantId: z.number().int().positive("Applicant ID is required"),
-  coverLetter: z
-    .string()
-    .min(50, "Cover letter must be at least 50 characters")
-    .max(2000)
-    .optional(),
+  coverLetter: z.string().optional().nullable(),
+  coverLetterUrl: z.url("Invalid cover letter URL").optional(),
   resumeUrl: z.url("Invalid resume URL").optional(),
 });
 

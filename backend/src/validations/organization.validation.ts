@@ -383,8 +383,9 @@ export type NewJobApplicationNote = z.infer<
 >;
 
 // Organization Invitation Schemas
-export const selectOrganizationInvitationSchema =
-  createSelectSchema(organizationInvitations);
+export const selectOrganizationInvitationSchema = createSelectSchema(
+  organizationInvitations,
+);
 export const insertOrganizationInvitationSchema = createInsertSchema(
   organizationInvitations,
   {
@@ -405,7 +406,7 @@ export const insertOrganizationInvitationSchema = createInsertSchema(
 
 export const createOrganizationInvitationSchema = z.object({
   body: z.object({
-    email: z.string().email("Invalid email address").toLowerCase(),
+    email: z.email("Invalid email address").toLowerCase(),
     role: z.enum(["owner", "admin", "recruiter", "member"]).default("member"),
   }),
   params: organizationIdParamSchema,
@@ -414,7 +415,7 @@ export const createOrganizationInvitationSchema = z.object({
 
 export const acceptOrganizationInvitationSchema = z.object({
   body: z.object({}).strict(),
-  params: z.object({
+  params: organizationIdParamSchema.extend({
     token: z.string().min(1, "Token is required"),
   }),
   query: z.object({}).strict(),
@@ -422,7 +423,7 @@ export const acceptOrganizationInvitationSchema = z.object({
 
 export const getOrganizationInvitationDetailsSchema = z.object({
   body: z.object({}).strict(),
-  params: z.object({
+  params: organizationIdParamSchema.extend({
     token: z.string().min(1, "Token is required"),
   }),
   query: z.object({}).strict(),
@@ -430,10 +431,8 @@ export const getOrganizationInvitationDetailsSchema = z.object({
 
 export const cancelOrganizationInvitationSchema = z.object({
   body: z.object({}).strict(),
-  params: z
-    .object({
-      organizationId:
-        getOrganizationSchema.shape["params"].shape["organizationId"],
+  params: organizationIdParamSchema
+    .extend({
       invitationId: z.string().regex(/^\d+$/, "invitationId must be a number"),
     })
     .strict(),

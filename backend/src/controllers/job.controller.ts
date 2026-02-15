@@ -357,9 +357,17 @@ export class JobController extends BaseController {
   ) => {
     const jobId = Number(req.params.jobId);
 
+    // With upload.fields(), files are on req.files (not req.file)
+    const files = req.files as
+      | { [fieldname: string]: Express.Multer.File[] }
+      | undefined;
+    const resumeFile = files?.resume?.[0];
+    const coverLetterFile = files?.coverLetter?.[0];
+
     const applicationData = {
       ...req.body,
-      resume: req.file,
+      resume: resumeFile,
+      coverLetterFile,
       jobId,
       applicantId: req.userId!,
     };

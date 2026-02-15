@@ -658,7 +658,7 @@ export class UserService extends BaseService {
    */
   async getEmailPreferences(userId: number) {
     try {
-      const preferences =
+      let preferences =
         await this.userRepository.findEmailPreferencesByUserId(userId);
 
       if (!preferences) {
@@ -1075,7 +1075,10 @@ export class UserService extends BaseService {
     existingAlert: JobAlert,
     updateData: UpdateJobAlertInput,
   ): UpdateJobAlertInput & { lastSentAt?: Date | null } {
-    if (!updateData.frequency || updateData.frequency === existingAlert.frequency) {
+    if (
+      !updateData.frequency ||
+      updateData.frequency === existingAlert.frequency
+    ) {
       return updateData;
     }
 
@@ -1151,7 +1154,9 @@ export class UserService extends BaseService {
       );
 
       if (!updatedAlert) {
-        return fail(new DatabaseError("Failed to update job alert pause state"));
+        return fail(
+          new DatabaseError("Failed to update job alert pause state"),
+        );
       }
 
       return ok(updatedAlert);

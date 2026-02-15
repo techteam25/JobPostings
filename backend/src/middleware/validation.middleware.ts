@@ -52,6 +52,8 @@ const validate =
         params: req.params ?? {},
       };
 
+      console.log("Validation data:", JSON.stringify(validationData, null, 2));
+
       // Parse and validate the request data
       schema.parse(validationData);
 
@@ -67,7 +69,7 @@ const validate =
           },
         };
 
-        console.log({ errorResponse });
+        console.log(JSON.stringify(errorResponse, null, 2));
 
         res.status(400).json(errorResponse);
         return;
