@@ -17,6 +17,7 @@ import {
   SavedJob,
   SavedState,
   UserJobApplications,
+  UserOrganizationMembership,
   UserProfile,
   UserWithProfile,
 } from "@/lib/types";
@@ -34,6 +35,29 @@ export const getUserIntent = async (): Promise<UserIntentResponse> => {
 
   if (!res.ok) {
     console.error("Failed to fetch user intent");
+    return await res.json();
+  }
+
+  return await res.json();
+};
+
+export const getUserOrganizations = async (): Promise<
+  ApiResponse<UserOrganizationMembership[]>
+> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/users/me/organizations`,
+    {
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+      next: { revalidate: 300, tags: ["user-organizations"] },
+    },
+  );
+
+  if (!res.ok) {
+    console.error("Failed to fetch user organizations");
     return await res.json();
   }
 

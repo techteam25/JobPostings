@@ -4,36 +4,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth-server";
 import { env } from "@/env";
 import { UserIntentResponse } from "@/schemas/responses/users";
-import {
-  OrganizationIdByMemberIdResponse,
-  OrganizationWithMembersResponse,
-} from "@/schemas/responses/organizations";
-
-async function fetchOrganization(
-  userId: string,
-  cookieHeader: string,
-): Promise<OrganizationIdByMemberIdResponse | null> {
-  try {
-    const response = await fetch(
-      `${env.NEXT_PUBLIC_SERVER_URL}/organizations/members/${userId}`,
-      {
-        headers: {
-          cookie: cookieHeader,
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        next: { revalidate: 300 },
-      },
-    );
-
-    if (response.ok) {
-      return await response.json();
-    }
-    return null;
-  } catch (error) {
-    return null;
-  }
-}
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -109,55 +79,14 @@ export async function middleware(req: NextRequest) {
 
     // If status is completed
     if (status === "completed") {
-      let orgData: OrganizationIdByMemberIdResponse | null = null;
-
       // Prevent access to onboarding routes after completion
       if (pathname.startsWith("/employer/onboarding")) {
         if (intent === "employer") {
-          // Fetch organization data to redirect to organization page
-          orgData = await fetchOrganization(
-            user.id,
-            cookieString || cookieHeader || "",
+          return NextResponse.redirect(
+            new URL("/employer/organizations", req.url),
           );
-
-          if (orgData?.success && orgData.data) {
-            return NextResponse.redirect(
-              new URL(
-                `/employer/organizations/${orgData.data.organizationId}`,
-                req.url,
-              ),
-            );
-          } else {
-            // If organization fetch fails, redirect to home
-            return NextResponse.redirect(new URL("/", req.url));
-          }
         } else {
           return NextResponse.redirect(new URL("/", req.url));
-        }
-      }
-
-      // If employer with completed status, ensure they have an organization
-      if (
-        intent === "employer" &&
-        !pathname.startsWith("/employer/organizations") &&
-        pathname !== "/" // Allow access to home page
-      ) {
-        // Only fetch if not already cached from previous check
-        if (!orgData) {
-          orgData = await fetchOrganization(
-            user.id,
-            cookieString || cookieHeader || "",
-          );
-        }
-
-        if (orgData?.success && orgData.data) {
-          // Redirect to their organization dashboard
-          return NextResponse.redirect(
-            new URL(
-              `/employer/organizations/${orgData.data.organizationId}`,
-              req.url,
-            ),
-          );
         }
       }
     }

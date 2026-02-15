@@ -1,7 +1,7 @@
 import { MutableRefObject } from "react";
 
 import { CreateOrganizationData } from "@/schemas/organizations";
-import { JobApplicationInput } from "@/schemas/applications";
+
 
 export enum JobType {
   FullTime = "Full-time",
@@ -68,6 +68,17 @@ export type OrganizationWithMembers = Organization & {
 };
 
 export type Member = OrganizationWithMembers["members"][number];
+
+export type UserOrganizationMembership = {
+  id: number;
+  userId: number;
+  organizationId: number;
+  role: "owner" | "admin" | "recruiter" | "member";
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  organization: Organization;
+};
 
 export type OrganizationJobApplications = {
   applicationId: number;
@@ -193,9 +204,6 @@ export type UserWithProfile = {
   lastLoginAt: Date | null;
 } & { profile: UserProfile | null };
 
-export interface JobApplicationFormData extends JobApplicationInput {
-  resume: File | null;
-}
 
 export type EmailPreferences = {
   jobMatchNotifications: boolean;
