@@ -88,16 +88,6 @@ async function runSeed() {
     },
   }));
 
-  // seed user preferences
-  await seed(db, { userEmailPreferences }, { seed: 44 }).refine((f) => ({
-    userEmailPreferences: {
-      count: 50,
-      columns: {
-        userId: f.int({ minValue: 1, maxValue: 50, isUnique: true }),
-      },
-    },
-  }));
-
   logger.info("Seeding organizations with job postings...");
 
   await seed(db, { organizations, jobsDetails }, { seed: 42 }).refine((f) => ({
