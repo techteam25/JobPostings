@@ -8,13 +8,16 @@ import { z } from "zod";
 import { db } from "@/db/connection";
 import { env, isProduction } from "@/config/env";
 
+import { UserService } from "@/services/user.service";
 import { EmailService } from "@/infrastructure/email.service";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 import { userOnBoarding } from "@/db/schema";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
 import logger from "@/logger";
 import { eq } from "drizzle-orm";
+
 const emailService = new EmailService();
+const userService = new UserService();
 
 type UserRegistrationPayload = {
   name: string;
@@ -149,6 +152,12 @@ export const auth = betterAuth({
                 status: "pending",
               }),
             );
+
+            // Create default email preferences for the user
+            await userService.createDefaultEmailPreferences(
+              Number(userResult.user.id),
+            );
+
             // Modify and return the response with added 'intent' property
             return {
               ...userResult,

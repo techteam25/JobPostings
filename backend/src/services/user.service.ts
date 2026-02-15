@@ -138,9 +138,6 @@ export class UserService extends BaseService {
         profileData,
       );
 
-      // Create default email preferences for the user
-      await this.createDefaultEmailPreferences(userId);
-
       return ok(profile);
     } catch (error) {
       if (error instanceof AppError) {
