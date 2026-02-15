@@ -155,6 +155,13 @@
       "when": 1770489764387,
       "tag": "0021_light_grandmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "5",
+      "when": 1771112255743,
+      "tag": "0022_sweet_mulholland_black",
+      "breakpoints": true
     }
   ]
 }

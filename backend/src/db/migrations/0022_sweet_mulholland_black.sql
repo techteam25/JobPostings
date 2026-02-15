@@ -1,0 +1,1 @@
+ALTER TABLE `job_applications` ADD `cover_letter_url` varchar(500);
