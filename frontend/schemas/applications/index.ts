@@ -1,26 +1,29 @@
 import { z } from "zod";
 
 export const jobApplicationSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.email("Invalid email address"),
-  phone: z.string().min(1, "Phone number is required"),
-  // Resume validator logic is mostly UI based (file size etc), schema just checks presence if needed
-  resume: z.any().optional(),
-  linkedIn: z.url("Invalid URL").optional().or(z.literal("")),
-  website: z.url("Invalid URL").optional().or(z.literal("")),
-  coverLetter: z
-    .string()
-    .min(50, "Cover letter must be at least 50 characters")
-    .optional()
-    .or(z.literal("")),
-  customAnswers: z
-    .object({
-      authorized: z.enum(["yes", "no"], {
-        error: "Please select an option",
-      }),
-    })
-    .optional(),
+  // Location info (pre-populated from profile, editable)
+  country: z.string().min(1, "Country is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().optional().or(z.literal("")),
+  zipcode: z.string().optional().or(z.literal("")),
+
+  // Additional questions
+  customAnswers: z.object({
+    salvationStatement: z
+      .string()
+      .min(10, "Please share your salvation experience"),
+    race: z.string().min(1, "Please select a race"),
+    gender: z.enum(["Male", "Female"], {
+      message: "Please select a gender",
+    }),
+    veteranStatus: z.string().min(1, "Please select veteran status"),
+    yearsOfExperience: z.enum(["0-1", "2-4", "5-9", "10+"], {
+      message: "Please select years of experience",
+    }),
+    authorized: z.enum(["yes", "no"], {
+      message: "Please select an option",
+    }),
+  }),
 });
 
 export type JobApplicationInput = z.infer<typeof jobApplicationSchema>;

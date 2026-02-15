@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  Building,
   Calendar,
   HelpCircle,
   Home,
@@ -47,14 +48,10 @@ export function AppSidebar({
       <div className="flex items-center gap-2 border-b p-4">
         {organizationLogoUrl && (
           <div className="flex h-8 w-8 items-center justify-center rounded-lg">
-            <img
-              src={organizationLogoUrl}
-              alt={organizationName}
-              className="size-8"
-            />
+            <Building />
           </div>
         )}
-        <span className="flex-wrap text-lg font-bold">{organizationName}</span>
+        <span className="flex-wrap font-bold">{organizationName}</span>
       </div>
 
       {/* Navigation */}

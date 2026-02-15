@@ -1,7 +1,8 @@
 export { Step1Upload } from "./Step1Upload";
-export { Step2Details } from "./Step2Details";
-export { Step3Questions } from "./Step3Questions";
-export { Step4Success } from "./Step4Success";
+export { Step2CoverLetter } from "./Step2CoverLetter";
+export { Step3UserInfo } from "./Step3UserInfo";
+export { Step4Questions } from "./Step4Questions";
+export { Step5Success } from "./Step5Success";
 export { JobContextSidebar } from "./JobContextSidebar";
 export { ApplicationHeader } from "./ApplicationHeader";
 export { ApplicationFooter } from "./ApplicationFooter";

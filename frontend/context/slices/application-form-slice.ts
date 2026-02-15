@@ -1,8 +1,20 @@
 import { StateCreator } from "zustand";
-import { JobApplicationInput } from "@/schemas/applications";
 
-export interface ApplicationFormData extends JobApplicationInput {
+export interface ApplicationFormData {
   resume: File | null;
+  coverLetter: File | null;
+  country: string;
+  city: string;
+  state: string;
+  zipcode: string;
+  customAnswers: {
+    salvationStatement: string;
+    race: string;
+    gender: "Male" | "Female" | undefined;
+    veteranStatus: string;
+    yearsOfExperience: string;
+    authorized: "yes" | "no" | undefined;
+  };
 }
 
 export interface ApplicationFormState {
@@ -15,23 +27,29 @@ export interface ApplicationFormState {
       | ((prev: ApplicationFormData) => Partial<ApplicationFormData>),
   ) => void;
   resetForm: () => void;
-  initializeForm: (userData: {
-    firstName: string;
-    lastName: string;
-    email: string;
+  initializeForm: (profileData: {
+    country?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipcode?: string | null;
   }) => void;
 }
 
 const initialFormData: ApplicationFormData = {
-  firstName: "",
-  lastName: "",
-  email: "",
-  phone: "",
   resume: null,
-  linkedIn: "",
-  website: "",
-  coverLetter: "",
-  customAnswers: { authorized: undefined as any },
+  coverLetter: null,
+  country: "",
+  city: "",
+  state: "",
+  zipcode: "",
+  customAnswers: {
+    salvationStatement: "",
+    race: "",
+    gender: undefined,
+    veteranStatus: "",
+    yearsOfExperience: "",
+    authorized: undefined,
+  },
 };
 
 export const applicationFormSlice: StateCreator<ApplicationFormState> = (
@@ -55,13 +73,14 @@ export const applicationFormSlice: StateCreator<ApplicationFormState> = (
       step: 1,
       formData: initialFormData,
     }),
-  initializeForm: (userData) =>
+  initializeForm: (profileData) =>
     set((state) => ({
       formData: {
         ...state.formData,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        email: userData.email,
+        country: profileData.country || "",
+        city: profileData.city || "",
+        state: profileData.state || "",
+        zipcode: profileData.zipcode || "",
       },
     })),
 });

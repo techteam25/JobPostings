@@ -3,12 +3,14 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { Step1Upload } from "@/app/(main)/applications/new/components/Step1Upload";
-import { Step2Details } from "@/app/(main)/applications/new/components/Step2Details";
-import { Step3Questions } from "@/app/(main)/applications/new/components/Step3Questions";
-import { Step4Success } from "@/app/(main)/applications/new/components/Step4Success";
+import { Step2CoverLetter } from "@/app/(main)/applications/new/components/Step2CoverLetter";
+import { Step3UserInfo } from "@/app/(main)/applications/new/components/Step3UserInfo";
+import { Step4Questions } from "@/app/(main)/applications/new/components/Step4Questions";
+import { Step5Success } from "@/app/(main)/applications/new/components/Step5Success";
 import { applyForJob } from "@/lib/api";
 import { UserWithProfile } from "@/lib/types";
 import { useApplicationStore } from "@/context/store";
+import { ApplicationFormData } from "@/context/slices/application-form-slice";
 
 interface MainContentProps {
   jobId: number;
@@ -16,57 +18,66 @@ interface MainContentProps {
 }
 
 export const MainContent = ({ jobId, userProfile }: MainContentProps) => {
-  const { step, formData, initializeForm, resetForm } = useApplicationStore();
+  const { step, initializeForm, resetForm } = useApplicationStore();
 
-  // Initialize form with user data on mount and cleanup on unmount
+  // Initialize form with user profile location data on mount
   useEffect(() => {
     initializeForm({
-      firstName: userProfile.fullName.split(" ")[0],
-      lastName: userProfile.fullName.split(" ")[1],
-      email: userProfile.email,
+      country: userProfile.profile?.country,
+      city: userProfile.profile?.city,
+      state: userProfile.profile?.state,
+      zipcode: userProfile.profile?.zipCode,
     });
 
-    // Cleanup: reset the store when component unmounts
     return () => {
       resetForm();
     };
   }, [userProfile, initializeForm, resetForm]);
 
-  const handleSubmitApplication = async () => {
+  // Accept finalData directly to avoid race condition with async store updates
+  const handleSubmitApplication = async (
+    finalData: ApplicationFormData,
+  ): Promise<boolean> => {
     const formDataToSend = new FormData();
 
-    if (formData.resume) {
-      formDataToSend.append("resume", formData.resume);
-    }
-    formDataToSend.append("coverLetter", formData.coverLetter || "");
-
-    if (formData.customAnswers) {
-      const answers = {
-        authorized: formData.customAnswers.authorized,
-      };
-      formDataToSend.append("customAnswers", JSON.stringify(answers));
+    if (finalData.resume) {
+      formDataToSend.append("resume", finalData.resume);
     }
 
-    formDataToSend.append("firstName", formData.firstName);
-    formDataToSend.append("lastName", formData.lastName);
-    formDataToSend.append("email", formData.email);
-    if (formData.phone) formDataToSend.append("phone", formData.phone);
-    if (formData.linkedIn) formDataToSend.append("linkedIn", formData.linkedIn);
-    if (formData.website) formDataToSend.append("website", formData.website);
+    if (finalData.coverLetter) {
+      formDataToSend.append("coverLetter", finalData.coverLetter);
+    }
+
+    // Serialize all answers + location into customAnswers JSON
+    const customAnswers = {
+      ...finalData.customAnswers,
+      country: finalData.country,
+      city: finalData.city,
+      state: finalData.state,
+      zipcode: finalData.zipcode,
+    };
+    formDataToSend.append("customAnswers", JSON.stringify(customAnswers));
 
     const res = await applyForJob(jobId, formDataToSend);
     if (!res.success) {
       toast.error(res.message);
+      return false;
     }
-    // Success is handled in Step3Questions
+    return true;
   };
 
   return (
     <div className="flex-1 p-8 md:p-12">
       {step === 1 && <Step1Upload />}
-      {step === 2 && <Step2Details />}
-      {step === 3 && <Step3Questions onSubmit={handleSubmitApplication} />}
-      {step === 4 && <Step4Success />}
+      {step === 2 && <Step2CoverLetter />}
+      {step === 3 && <Step3UserInfo />}
+      {step === 4 && <Step4Questions onSubmit={handleSubmitApplication} />}
+      {step === 5 && (
+        <Step5Success
+          userName={userProfile.fullName}
+          email={userProfile.email}
+        />
+      )}
     </div>
   );
 };
