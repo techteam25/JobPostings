@@ -14,10 +14,7 @@ import { userOnBoarding } from "@/db/schema";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
 import logger from "@/logger";
 import { eq } from "drizzle-orm";
-import { OrganizationService } from "@/services/organization.service";
-
 const emailService = new EmailService();
-const organizationService = new OrganizationService();
 
 type UserRegistrationPayload = {
   name: string;
@@ -185,30 +182,18 @@ export const auth = betterAuth({
             .where(eq(userOnBoarding.userId, Number(userId)))
             .limit(1);
 
-          const member = await organizationService.getOrganizationMember(
-            Number(userId),
-          );
+          const intent = onboarding ? onboarding.intent : "seeker";
+          const redirectUrl =
+            intent === "employer" ? "/employer/organizations" : "/";
 
-          if (member.isSuccess) {
-            const intent = onboarding ? onboarding.intent : "seeker";
-            const organizationId = member.value.organizationId;
-            const redirectUrl =
-              intent === "employer"
-                ? `/employer/organizations/${organizationId}`
-                : "/";
-
-            const userResult = ctx.context
-              .returned as BetterAuthSuccessResponseSchema;
-
-            return {
-              ...userResult,
-              user: {
-                ...userResult.user,
-                intent,
-                redirectUrl,
-              },
-            };
-          }
+          return {
+            ...returned,
+            user: {
+              ...returned.user,
+              intent,
+              redirectUrl,
+            },
+          };
         }
       }
       return;
