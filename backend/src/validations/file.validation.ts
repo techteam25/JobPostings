@@ -38,6 +38,7 @@ export const tempFileSchema = z.object({
   originalname: z.string(),
   size: z.number().positive(),
   mimetype: z.string(),
+  fieldName: z.string().optional(),
 });
 
 export type TempFile = z.infer<typeof tempFileSchema>;
