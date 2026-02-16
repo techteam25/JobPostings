@@ -33,9 +33,8 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
   describe("Success Cases", () => {
     it("should successfully submit application with valid data", async () => {
       const applicationData = {
-        coverLetter:
-          "I am very interested in this position. My background in software development makes me a great fit for this role. I have 5 years of experience working with various technologies.",
-        resumeUrl: "https://example.com/resume.pdf",
+        customAnswers: "I have 5 years of experience with TypeScript and Node.js.",
+        notes: "Available to start immediately.",
       };
 
       const response = await request
@@ -51,10 +50,9 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
       // Email notification is queued asynchronously (tested separately)
     });
 
-    it("should submit application with only cover letter", async () => {
+    it("should submit application with only custom answers", async () => {
       const applicationData = {
-        coverLetter:
-          "I am very interested in this position and believe I would be a great fit based on my experience and skills in the field.",
+        customAnswers: "I have extensive experience in this field.",
       };
 
       const response = await request
@@ -66,9 +64,9 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
       expect(response.body.data).toHaveProperty("applicationId");
     });
 
-    it("should submit application with only resume URL", async () => {
+    it("should submit application with only notes", async () => {
       const applicationData = {
-        resumeUrl: "https://example.com/my-resume.pdf",
+        notes: "Referred by a current employee.",
       };
 
       const response = await request
@@ -92,42 +90,9 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
   });
 
   describe("Validation Errors", () => {
-    it("should reject cover letter less than 50 characters", async () => {
+    it("should reject notes exceeding max length", async () => {
       const applicationData = {
-        coverLetter: "Too short",
-      };
-
-      const response = await request
-        .post(`/api/jobs/${jobId}/apply`)
-        .set("Cookie", userCookie)
-        .send(applicationData);
-
-      expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty("error");
-      expect(response.body.error).toHaveProperty("details");
-      expect(Array.isArray(response.body.error.details)).toBeTruthy();
-      expect(response.body.error.details[0].message).toContain(
-        "Cover letter must be at least 50 characters",
-      );
-    });
-
-    it("should reject cover letter more than 2000 characters", async () => {
-      const applicationData = {
-        coverLetter: "a".repeat(2001),
-      };
-
-      const response = await request
-        .post(`/api/jobs/${jobId}/apply`)
-        .set("Cookie", userCookie)
-        .send(applicationData);
-
-      expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty("error");
-    });
-
-    it("should reject invalid resume URL", async () => {
-      const applicationData = {
-        resumeUrl: "not-a-valid-url",
+        notes: "a".repeat(5001),
       };
 
       const response = await request
@@ -151,8 +116,6 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
 
     it("should reject extra fields in body", async () => {
       const applicationData = {
-        coverLetter:
-          "I am very interested in this position and have the required skills.",
         extraField: "should not be allowed",
       };
 

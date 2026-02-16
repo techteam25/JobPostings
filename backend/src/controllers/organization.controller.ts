@@ -490,9 +490,12 @@ export class OrganizationController extends BaseController {
       }>
     >,
   ) => {
-    const { token } = req.params;
+    const { token, organizationId } = req.params;
 
-    const result = await this.organizationService.getInvitationDetails(token);
+    const result = await this.organizationService.getInvitationDetails(
+      token,
+      parseInt(organizationId),
+    );
 
     if (result.isSuccess) {
       return this.sendSuccess(

@@ -15,6 +15,7 @@ import { userOnBoarding } from "@/db/schema";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
 import logger from "@/logger";
 import { eq } from "drizzle-orm";
+import { queueService, QUEUE_NAMES } from "@/infrastructure/queue.service";
 
 const emailService = new EmailService();
 const userService = new UserService();
@@ -203,6 +204,28 @@ export const auth = betterAuth({
               redirectUrl,
             },
           };
+        }
+      } else if (ctx.path === "/change-password") {
+        if (ctx.context.returned instanceof APIError) {
+          return;
+        }
+
+        const returned = ctx.context
+          .returned as BetterAuthSuccessResponseSchema;
+        if (returned?.user) {
+          try {
+            await queueService.addJob(
+              QUEUE_NAMES.EMAIL_QUEUE,
+              "sendPasswordChangedEmail",
+              {
+                userId: Number(returned.user.id),
+                email: returned.user.email,
+                fullName: returned.user.name,
+              },
+            );
+          } catch (error) {
+            logger.error(error, "Failed to queue password changed email");
+          }
         }
       }
       return;

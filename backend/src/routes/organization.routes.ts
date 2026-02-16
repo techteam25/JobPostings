@@ -277,7 +277,6 @@ registry.registerPath({
 router.post(
   "/",
   authMiddleware.authenticate,
-  authMiddleware.requireAdminOrOwnerRole(["owner"]),
   uploadMiddleware.organizationLogo,
   validate(createOrganizationSchema),
   invalidateCacheMiddleware(() => "/organizations"),

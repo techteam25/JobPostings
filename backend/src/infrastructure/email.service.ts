@@ -311,6 +311,55 @@ ${footer}`,
   }
 
   /**
+   * Sends a password changed confirmation email to the user.
+   * This is a security alert and bypasses email preferences.
+   * @param email The recipient's email address.
+   * @param fullName The recipient's full name.
+   */
+  async sendPasswordChangedEmail(
+    email: string,
+    fullName: string,
+  ): Promise<void> {
+    try {
+      const template = await this.loadTemplate("passwordChangedEmail");
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      const now = new Date();
+      const dateString = now.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZoneName: "short",
+      });
+
+      const htmlContent = template
+        .replace("{{name}}", fullName)
+        .replace("{{logoPath}}", logoPath)
+        .replace("{{date}}", dateString);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: "Your password has been changed",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.handleError(error);
+      } else {
+        this.handleError(
+          new AppError("Unknown error occurred while sending password changed email"),
+        );
+      }
+    }
+  }
+
+  /**
    * Sends a job application confirmation email to the user.
    * @param userId The ID of the user.
    * @param email The recipient's email address.
@@ -452,7 +501,6 @@ ${footer}`,
   }
 
   /**
-<<<<<<< HEAD
    * Sends an organization invitation email to the invitee.
    * @param email The recipient's email address.
    * @param organizationName The name of the organization.

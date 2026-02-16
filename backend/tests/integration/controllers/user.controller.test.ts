@@ -1,6 +1,6 @@
 // noinspection DuplicatedCode
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { eq } from "drizzle-orm";
 
@@ -43,22 +43,29 @@ vi.mock("@/infrastructure/email.service", () => {
   };
 });
 
-// Mock only deleteUser on the auth module, preserving the rest (e.g. signUpEmail)
-vi.mock("@/utils/auth", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/utils/auth")>();
+vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/infrastructure/queue.service")>();
   return {
     ...original,
-    auth: {
-      ...original.auth,
-      api: {
-        ...original.auth.api,
-        deleteUser: vi.fn().mockResolvedValue({ success: true }),
-      },
+    queueService: {
+      addJob: vi.fn().mockResolvedValue(undefined),
     },
   };
 });
 
 describe("User Controller Integration Tests", () => {
+  let originalDeleteUser: typeof auth.api.deleteUser;
+
+  beforeAll(() => {
+    // Directly patch auth.api.deleteUser on the real object so the service sees it
+    originalDeleteUser = auth.api.deleteUser;
+    auth.api.deleteUser = vi.fn().mockResolvedValue({ success: true }) as any;
+  });
+
+  afterAll(() => {
+    auth.api.deleteUser = originalDeleteUser;
+  });
+
   describe("GET /users", () => {
     beforeEach(async () => {
       await seedUserScenario();
@@ -283,8 +290,6 @@ describe("User Controller Integration Tests", () => {
           .delete("/api/users/me/delete")
           .set("Cookie", cookie!)
           .send({ currentPassword: "Password@123", confirm: true });
-
-        // const token = "Password@123";
 
         expect(response.status).toBe(204);
         // expect(auth.api.deleteUser).toHaveBeenCalledWith({ body: { token } });

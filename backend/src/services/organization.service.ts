@@ -822,12 +822,18 @@ export class OrganizationService extends BaseService {
    */
   async getInvitationDetails(
     token: string,
+    organizationId: number,
   ): Promise<Result<OrganizationInvitationDetails, Error>> {
     try {
       const invitation =
         await this.organizationRepository.findInvitationByToken(token);
 
       if (!invitation) {
+        return fail(new NotFoundError("Invitation not found"));
+      }
+
+      // Verify the invitation belongs to the specified organization
+      if (invitation.organizationId !== organizationId) {
         return fail(new NotFoundError("Invitation not found"));
       }
 
@@ -875,6 +881,11 @@ export class OrganizationService extends BaseService {
         await this.organizationRepository.findInvitationByToken(token);
 
       if (!invitation) {
+        return fail(new NotFoundError("Invitation not found"));
+      }
+
+      // 1b. Verify the invitation belongs to the specified organization
+      if (invitation.organizationId !== organizationId) {
         return fail(new NotFoundError("Invitation not found"));
       }
 

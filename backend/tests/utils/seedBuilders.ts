@@ -398,21 +398,28 @@ export async function createEmailPreferences(
   const tokenExpiresAt = new Date();
   tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 30);
 
-  await db.insert(userEmailPreferences).values({
-    userId,
-    unsubscribeToken: token,
-    tokenCreatedAt: new Date(),
-    unsubscribeTokenExpiresAt: tokenExpiresAt,
-    jobMatchNotifications: true,
-    applicationStatusNotifications: true,
-    savedJobUpdates: true,
-    weeklyJobDigest: true,
-    monthlyNewsletter: true,
-    marketingEmails: true,
-    accountSecurityAlerts: true,
-    globalUnsubscribe: false,
-    ...overrides,
-  });
+  await db
+    .insert(userEmailPreferences)
+    .values({
+      userId,
+      unsubscribeToken: token,
+      tokenCreatedAt: new Date(),
+      unsubscribeTokenExpiresAt: tokenExpiresAt,
+      jobMatchNotifications: true,
+      applicationStatusNotifications: true,
+      savedJobUpdates: true,
+      weeklyJobDigest: true,
+      monthlyNewsletter: true,
+      marketingEmails: true,
+      accountSecurityAlerts: true,
+      globalUnsubscribe: false,
+      ...overrides,
+    })
+    .onDuplicateKeyUpdate({
+      set: {
+        userId: sql`values(${userEmailPreferences.userId})`,
+      },
+    });
 
   return { userId };
 }
