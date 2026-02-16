@@ -108,7 +108,7 @@ export class AuthMiddleware {
       next: NextFunction,
     ) => {
       try {
-        if (!req.userId || !req.params.organizationId) {
+        if (!req.userId) {
           return res.status(401).json({
             success: false,
             status: "error",
@@ -131,11 +131,15 @@ export class AuthMiddleware {
           });
         }
 
-        const organizationMember =
-          await this.organizationService.getOrganizationMember(
-            req.userId,
-            Number(req.params.organizationId),
-          );
+        // Use organizationId from URL params if available, otherwise derive from membership
+        const organizationMember = req.params.organizationId
+          ? await this.organizationService.getOrganizationMember(
+              req.userId,
+              Number(req.params.organizationId),
+            )
+          : await this.organizationService.getFirstOrganizationForUser(
+              req.userId,
+            );
 
         if (!organizationMember.isSuccess) {
           return res.status(403).json({

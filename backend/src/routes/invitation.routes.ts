@@ -18,7 +18,7 @@ const authMiddleware = new AuthMiddleware();
 // Public route - Get invitation details
 registry.registerPath({
   method: "get",
-  path: "/api/invitations/{token}/details",
+  path: "/api/invitations/{organizationId}/{token}/details",
   summary: "Get invitation details by token",
   tags: ["Invitations"],
   request: {
@@ -72,13 +72,13 @@ registry.registerPath({
  * This endpoint allows anyone with a valid invitation token to view invitation details
  * without authentication, enabling users to see what organization they're being invited to
  * before signing up or signing in.
- * @route GET /api/invitations/:token/details
- * @param {Object} req.params - Route parameters including the invitation token.
+ * @route GET /api/invitations/:organizationId/:token/details
+ * @param {Object} req.params - Route parameters including organizationId and the invitation token.
  * @param {Response} res - Express response object.
  * @returns {Promise<void>} - Sends a JSON response with invitation details.
  */
 router.get(
-  "/:token/details",
+  "/:organizationId/:token/details",
   validate(getOrganizationInvitationDetailsSchema),
   organizationController.getInvitationDetails,
 );
@@ -86,7 +86,7 @@ router.get(
 // Authenticated route - Accept invitation
 registry.registerPath({
   method: "post",
-  path: "/api/invitations/{token}/accept",
+  path: "/api/invitations/{organizationId}/{token}/accept",
   summary: "Accept organization invitation",
   tags: ["Invitations"],
   request: {
@@ -156,8 +156,8 @@ registry.registerPath({
  * - The authenticated user's email matches the invitation email
  * - The user is not already a member of the organization
  * On success, creates an organization member record and updates the invitation status.
- * @route POST /api/invitations/:token/accept
- * @param {Object} req.params - Route parameters including the invitation token.
+ * @route POST /api/invitations/:organizationId/:token/accept
+ * @param {Object} req.params - Route parameters including organizationId and the invitation token.
  * @param {Response} res - Express response object.
  * @returns {Promise<void>} - Sends a JSON response with success message.
  */
