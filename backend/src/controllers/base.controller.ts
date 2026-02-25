@@ -97,7 +97,7 @@ export class BaseController {
     req: Request<{}, {}, {}, Pick<SearchParams["query"], "limit" | "page">>,
   ) {
     const page = Math.max(1, req.query.page ?? 1);
-    const limit = Math.min(1, Math.max(10, req.query.limit ?? 10));
+    const limit = Math.min(100, Math.max(1, req.query.limit ?? 10));
 
     return { page, limit };
   }

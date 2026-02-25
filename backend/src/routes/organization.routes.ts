@@ -779,11 +779,11 @@ router.patch(
   authMiddleware.ensureIsOrganizationMember,
   invalidateCacheMiddleware(
     (req) =>
-      `/${req.params.organizationId}/jobs/${req.params.jobId}/applications`,
+      `organizations/${req.params.organizationId}/jobs/${req.params.jobId}/applications`,
   ),
   invalidateCacheMiddleware(
     (req) =>
-      `/${req.params.organizationId}/jobs/${req.params.jobId}/applications/${req.params.applicationId}`,
+      `organizations/${req.params.organizationId}/jobs/${req.params.jobId}/applications/${req.params.applicationId}`,
   ),
   organizationController.updateJobApplicationStatus,
 );
@@ -874,7 +874,7 @@ router.post(
   authMiddleware.ensureIsOrganizationMember,
   invalidateCacheMiddleware(
     (req) =>
-      `/${req.params.organizationId}/jobs/${req.params.jobId}/applications/${req.params.applicationId}`,
+      `organizations/${req.params.organizationId}/jobs/${req.params.jobId}/applications/${req.params.applicationId}`,
   ),
   organizationController.attachNoteToJobApplication,
 );

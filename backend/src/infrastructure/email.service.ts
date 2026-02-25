@@ -8,6 +8,7 @@ import { AppError } from "@/utils/errors";
 import { getApplicationStatusLabel } from "@/utils/application-status";
 import { EmailType } from "@/types";
 import { UserRepository } from "@/repositories/user.repository";
+import logger from "@/logger";
 
 /**
  * Service for handling email operations, including sending various types of emails.
@@ -270,7 +271,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -306,7 +307,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -406,7 +407,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -459,7 +460,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -496,7 +497,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -544,7 +545,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -587,7 +588,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -673,7 +674,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -792,7 +793,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error("Failed to send job alert notification", error);
+      logger.error(error, "Failed to send job alert notification");
     }
   }
 

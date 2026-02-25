@@ -46,7 +46,7 @@ export class JobInsightsRepository extends BaseRepository<typeof jobInsights> {
         await db
           .update(jobInsights)
           .set({
-            viewCount: sql`(${jobInsights.applicationCount} + 1)`,
+            applicationCount: sql`(${jobInsights.applicationCount} + 1)`,
           })
           .where(eq(jobInsights.job, jobId)),
     );

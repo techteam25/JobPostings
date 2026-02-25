@@ -381,7 +381,7 @@ export class UserController extends BaseController {
         token,
       },
     });
-    return this.sendSuccess(res, result, "User deleted successfully", 200);
+    return this.sendSuccess(res, null, "User deleted successfully", 200);
   };
 
   /**

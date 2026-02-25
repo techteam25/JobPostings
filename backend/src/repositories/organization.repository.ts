@@ -1,4 +1,5 @@
 import { and, count, desc, eq, inArray, like, or } from "drizzle-orm";
+import { SecurityUtils } from "@/utils/security";
 import {
   applicationNotes,
   jobApplications,
@@ -113,10 +114,11 @@ export class OrganizationRepository extends BaseRepository<
     const { page = 1, limit = 10 } = options;
     const offset = (page - 1) * limit;
 
+    const escaped = SecurityUtils.escapeLikePattern(searchTerm);
     const searchCondition = or(
-      like(organizations.name, `%${searchTerm}%`),
-      like(organizations.city, `%${searchTerm}%`),
-      like(organizations.state, `%${searchTerm}%`),
+      like(organizations.name, `%${escaped}%`),
+      like(organizations.city, `%${escaped}%`),
+      like(organizations.state, `%${escaped}%`),
     );
 
     const [items, total] = await withDbErrorHandling(
@@ -274,16 +276,18 @@ export class OrganizationRepository extends BaseRepository<
     userId: number,
     organizationId: number,
   ): Promise<boolean> {
-    const memberships = await db.query.organizationMembers.findMany({
-      where: and(
-        eq(organizationMembers.userId, userId),
-        eq(organizationMembers.organizationId, organizationId),
-        eq(organizationMembers.isActive, true),
-      ),
-      with: {
-        organization: true,
-      },
-    });
+    const memberships = await withDbErrorHandling(async () =>
+      db.query.organizationMembers.findMany({
+        where: and(
+          eq(organizationMembers.userId, userId),
+          eq(organizationMembers.organizationId, organizationId),
+          eq(organizationMembers.isActive, true),
+        ),
+        with: {
+          organization: true,
+        },
+      }),
+    );
 
     return memberships.some(
       (m) =>

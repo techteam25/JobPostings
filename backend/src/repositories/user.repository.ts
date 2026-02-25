@@ -31,6 +31,7 @@ import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
 import { DatabaseError, NotFoundError } from "@/utils/errors";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
+import { SecurityUtils } from "@/utils/security";
 import {
   NewUserProfile,
   UpdateUserProfile,
@@ -417,10 +418,11 @@ export class UserRepository extends BaseRepository<typeof user> {
 
     const conditions = [];
     if (searchTerm) {
+      const escaped = SecurityUtils.escapeLikePattern(searchTerm);
       conditions.push(
         or(
-          like(user.fullName, `%${searchTerm}%`),
-          like(user.email, `%${searchTerm}%`),
+          like(user.fullName, `%${escaped}%`),
+          like(user.email, `%${escaped}%`),
         ),
       );
     }

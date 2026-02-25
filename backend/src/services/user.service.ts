@@ -246,8 +246,6 @@ export class UserService extends BaseService {
         return fail(new DatabaseError("Failed to update profile visibility"));
       }
 
-      console.log({ updatedProfile });
-
       return ok(updatedProfile);
     } catch (error) {
       if (error instanceof AppError) {

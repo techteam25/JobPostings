@@ -338,16 +338,16 @@ export class JobService extends BaseService {
     requesterId: number,
   ): Promise<Result<Job, Error>> {
     try {
-      const job = await this.getJobById(id);
+      const job = await this.jobRepository.findJobById(id);
 
-      if (!job.isSuccess) {
+      if (!job) {
         return fail(new NotFoundError("Job", id));
       }
 
       // Authorization check - only admin or employer who posted the job can update
       const organization = await this.organizationRepository.findByContact(
         requesterId,
-        job.value.employer!.id,
+        job.employer!.id,
       );
 
       if (!organization) {
@@ -356,7 +356,7 @@ export class JobService extends BaseService {
         );
       }
 
-      if (job.value.job.employerId !== organization.id) {
+      if (job.job.employerId !== organization.id) {
         return fail(
           new ForbiddenError(
             "You can only update jobs posted by your organization",
@@ -417,9 +417,9 @@ export class JobService extends BaseService {
     organizationId: number,
   ): Promise<Result<null, Error>> {
     try {
-      const job = await this.getJobById(id);
+      const job = await this.jobRepository.findJobById(id);
 
-      if (!job.isSuccess) {
+      if (!job) {
         return fail(new NotFoundError("Job", id));
       }
 
@@ -448,7 +448,7 @@ export class JobService extends BaseService {
           {
             userEmail: user.email,
             userName: user.fullName,
-            jobTitle: job.value.job.title,
+            jobTitle: job.job.title,
             jobId: id,
             organizationId,
           },

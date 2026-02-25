@@ -453,7 +453,11 @@ export class OrganizationController extends BaseController {
    * @param res The Express response object.
    */
   sendInvitation = async (
-    req: Request<CreateOrganizationInvitationInput["params"]>,
+    req: Request<
+      CreateOrganizationInvitationInput["params"],
+      {},
+      CreateOrganizationInvitationInput["body"]
+    >,
     res: Response<ApiResponse<{ invitationId: number; message: string }>>,
   ) => {
     // Note: Authentication is validated by middleware before this method is called.

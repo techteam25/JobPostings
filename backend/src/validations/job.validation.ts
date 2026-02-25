@@ -93,7 +93,7 @@ const createJobPayloadBaseSchema = insertJobBaseSchema
   .omit({ applicationDeadline: true, employerId: true })
   .extend({
     applicationDeadline: z.iso.datetime(),
-    skills: z.array(z.string()),
+    skills: z.array(z.string().min(1).max(100)).min(1).max(50),
   });
 
 const createJobPayloadSchema = createJobPayloadBaseSchema
