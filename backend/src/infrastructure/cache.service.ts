@@ -18,7 +18,7 @@ export class CacheService {
   static async get<T>(key: string, options?: CacheOptions): Promise<T | null> {
     try {
       if (!redisCacheService.isReady()) {
-        logger.warn("Redis Cache not ready, cache GET skipped", { key });
+        logger.warn("Cache GET skipped", { key, cacheResult: "SKIP" });
         return null;
       }
 
@@ -26,15 +26,16 @@ export class CacheService {
       const cached = await redisCacheService.getJSON<T>(cacheKey);
 
       if (cached) {
-        logger.debug("Cache HIT", { key: cacheKey });
+        logger.debug("Cache GET", { key: cacheKey, cacheResult: "HIT" });
         return cached;
       }
 
-      logger.debug("Cache MISS", { key: cacheKey });
+      logger.debug("Cache GET", { key: cacheKey, cacheResult: "MISS" });
       return null;
     } catch (error) {
-      logger.error("Cache GET error", {
+      logger.warn("Cache GET error", {
         key,
+        cacheResult: "ERROR",
         error: error instanceof Error ? error.message : "Unknown error",
       });
       return null;
@@ -48,7 +49,7 @@ export class CacheService {
   ): Promise<boolean> {
     try {
       if (!redisCacheService.isReady()) {
-        logger.warn("Redis Cache not ready, cache SET skipped", { key });
+        logger.warn("Cache SET skipped", { key, cacheResult: "SKIP" });
         return false;
       }
 
@@ -58,13 +59,14 @@ export class CacheService {
       const result = await redisCacheService.setJSON(cacheKey, value, ttl);
 
       if (result) {
-        logger.debug("Cache SET", { key: cacheKey, ttl });
+        logger.debug("Cache SET", { key: cacheKey, ttl, cacheResult: "SET" });
       }
 
       return result;
     } catch (error) {
-      logger.error("Cache SET error", {
+      logger.warn("Cache SET error", {
         key,
+        cacheResult: "ERROR",
         error: error instanceof Error ? error.message : "Unknown error",
       });
       return false;
@@ -74,7 +76,7 @@ export class CacheService {
   static async del(key: string, options?: CacheOptions): Promise<boolean> {
     try {
       if (!redisCacheService.isReady()) {
-        logger.warn("Redis Cache not ready, cache DEL skipped", { key });
+        logger.warn("Cache DEL skipped", { key, cacheResult: "SKIP" });
         return false;
       }
 
@@ -82,14 +84,15 @@ export class CacheService {
       const result = await redisCacheService.del(cacheKey);
 
       if (result > 0) {
-        logger.debug("Cache DEL", { key: cacheKey });
+        logger.debug("Cache DEL", { key: cacheKey, cacheResult: "DEL" });
         return true;
       }
 
       return false;
     } catch (error) {
-      logger.error("Cache DEL error", {
+      logger.warn("Cache DEL error", {
         key,
+        cacheResult: "ERROR",
         error: error instanceof Error ? error.message : "Unknown error",
       });
       return false;
@@ -102,8 +105,9 @@ export class CacheService {
   ): Promise<number> {
     try {
       if (!redisCacheService.isReady()) {
-        logger.warn("Redis Cache not ready, cache invalidation skipped", {
+        logger.warn("Cache invalidation skipped", {
           pattern,
+          cacheResult: "SKIP",
         });
         return 0;
       }
@@ -113,11 +117,12 @@ export class CacheService {
         `${cachePattern}*`,
       );
 
-      logger.debug("Cache invalidated", { pattern: cachePattern, count });
+      logger.debug("Cache invalidated", { pattern: cachePattern, count, cacheResult: "DEL" });
       return count;
     } catch (error) {
-      logger.error("Cache invalidation error", {
+      logger.warn("Cache invalidation error", {
         pattern,
+        cacheResult: "ERROR",
         error: error instanceof Error ? error.message : "Unknown error",
       });
       return 0;
@@ -142,8 +147,9 @@ export class CacheService {
     try {
       await this.set(key, data, options);
     } catch (error) {
-      logger.error("Cache SET failed in getOrSet", {
+      logger.warn("Cache SET failed in getOrSet", {
         key,
+        cacheResult: "ERROR",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }

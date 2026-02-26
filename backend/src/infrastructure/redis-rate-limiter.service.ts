@@ -18,16 +18,12 @@ class RedisRateLimiterService {
         socket: {
           connectTimeout: 10000,
           reconnectStrategy: (retries) => {
-            if (retries > 10) {
-              logger.error(
-                "Redis Rate Limiter max reconnection attempts reached",
-              );
-              return new Error("Max reconnection attempts reached");
+            const delay = Math.min(retries * 500, 30000);
+            if (retries <= 10 || retries % 10 === 0) {
+              logger.warn(`Redis Rate Limiter reconnecting in ${delay}ms`, {
+                attempt: retries,
+              });
             }
-            const delay = Math.min(retries * 100, 3000);
-            logger.warn(`Redis Rate Limiter reconnecting in ${delay}ms`, {
-              attempt: retries,
-            });
             return delay;
           },
         },

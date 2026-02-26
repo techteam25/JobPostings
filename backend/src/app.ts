@@ -48,66 +48,84 @@ import {
   scheduleInvitationExpirationJob,
 } from "@/workers/invitation-expiration-worker";
 
-// Initialize Typesense schema
-try {
-  initializeTypesenseSchema().catch((err) => logger.error(err));
-  logger.info("✅ Typesense schema initialization successful");
-} catch (error) {
-  logger.error("❌ Failed to initialize Typesense schema");
-  process.exit(1);
-}
-
-// Connect to Redis instances (all optional - server will continue if they fail)
-try {
-  redisCacheService.connect().catch((err) => logger.error(err));
-  logger.info("Redis Cache connected");
-} catch (error) {
-  logger.warn("Redis Cache connection failed, continuing without cache", {
-    error: error instanceof Error ? error.message : "Unknown error",
-  });
-}
-
-// Connect to Redis for Rate Limiting
-try {
-  redisRateLimiterService.connect().catch((err) => logger.error(err));
-  logger.info("Redis Rate Limiter connected");
-} catch (error) {
-  logger.warn("Redis Rate Limiter connection failed, using memory store", {
-    error: error instanceof Error ? error.message : "Unknown error",
-  });
-}
-
-// Initialize queue service and workers
-try {
-  queueService.initialize().catch((err) => logger.error(err));
-  initializeTypesenseWorker();
-  initializeFileUploadWorker();
-  initializeEmailWorker();
-  initializeFileCleanupWorker();
-  initializeJobAlertWorker();
-  initializeInactiveUserAlertWorker();
-  initializeInvitationExpirationWorker();
-  logger.info("Queue service and workers initialized");
-} catch (error) {
-  logger.warn(
-    "Queue service initialization failed, image uploads will be synchronous",
-    {
+/**
+ * Initialize all infrastructure services.
+ * Non-critical services log warnings on failure and continue.
+ * Must be called before the server starts accepting requests.
+ */
+export async function initializeInfrastructure(): Promise<void> {
+  // Typesense — non-critical
+  try {
+    await initializeTypesenseSchema();
+    logger.info("Typesense schema initialized");
+  } catch (error) {
+    logger.warn("Typesense schema initialization failed, continuing without search", {
       error: error instanceof Error ? error.message : "Unknown error",
-    },
-  );
-}
+    });
+  }
 
-try {
-  scheduleCleanupJob().catch((err) => logger.error(err));
-  scheduleDailyAlertProcessing().catch((err) => logger.error(err));
-  scheduleWeeklyAlertProcessing().catch((err) => logger.error(err));
-  scheduleMonthlyAlertProcessing().catch((err) => logger.error(err));
-  scheduleInactiveUserAlertPausing().catch((err) => logger.error(err));
-  scheduleInvitationExpirationJob().catch((err) => logger.error(err));
-} catch (error) {
-  logger.warn("Failed to schedule background jobs", {
-    error: error instanceof Error ? error.message : "Unknown error",
-  });
+  // Redis Cache — non-critical
+  try {
+    await redisCacheService.connect();
+    logger.info("Redis Cache connected");
+  } catch (error) {
+    logger.warn("Redis Cache connection failed, continuing without cache", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+
+  // Redis Rate Limiter — non-critical
+  try {
+    await redisRateLimiterService.connect();
+    logger.info("Redis Rate Limiter connected");
+  } catch (error) {
+    logger.warn("Redis Rate Limiter connection failed, using memory store", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+
+  // Queue service — await init; if it fails, HTTP still serves
+  try {
+    await queueService.initialize();
+    logger.info("Queue service initialized");
+  } catch (error) {
+    logger.error("Queue service initialization failed, background jobs will not process", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+
+  // Workers — wrap in try/catch, log on failure
+  try {
+    initializeTypesenseWorker();
+    initializeFileUploadWorker();
+    initializeEmailWorker();
+    initializeFileCleanupWorker();
+    initializeJobAlertWorker();
+    initializeInactiveUserAlertWorker();
+    initializeInvitationExpirationWorker();
+    logger.info("Workers initialized");
+  } catch (error) {
+    logger.warn("Worker initialization failed", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+
+  // Scheduled jobs — non-critical
+  try {
+    await Promise.all([
+      scheduleCleanupJob(),
+      scheduleDailyAlertProcessing(),
+      scheduleWeeklyAlertProcessing(),
+      scheduleMonthlyAlertProcessing(),
+      scheduleInactiveUserAlertPausing(),
+      scheduleInvitationExpirationJob(),
+    ]);
+    logger.info("Background jobs scheduled");
+  } catch (error) {
+    logger.warn("Failed to schedule background jobs", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
 }
 
 // Create Express application

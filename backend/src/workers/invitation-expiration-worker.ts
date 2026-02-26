@@ -18,45 +18,22 @@ export async function expireInvitationsWorker(_job: BullMqJob): Promise<{
   try {
     const now = new Date();
 
-    // Find all pending invitations that have expired
-    const expiredInvitations = await db.query.organizationInvitations.findMany({
-      where: and(
-        eq(organizationInvitations.status, "pending"),
-        lt(organizationInvitations.expiresAt, now),
-      ),
-    });
+    // Atomically update all expired pending invitations in a single query
+    const result = await db
+      .update(organizationInvitations)
+      .set({
+        status: "expired",
+        expiredAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(organizationInvitations.status, "pending"),
+          lt(organizationInvitations.expiresAt, now),
+        ),
+      );
 
-    if (expiredInvitations.length === 0) {
-      logger.info("No expired invitations found");
-      return { expired: 0 };
-    }
-
-    let expiredCount = 0;
-
-    // Update each expired invitation
-    for (const invitation of expiredInvitations) {
-      try {
-        await db
-          .update(organizationInvitations)
-          .set({
-            status: "expired",
-            expiredAt: now,
-            updatedAt: now,
-          })
-          .where(eq(organizationInvitations.id, invitation.id));
-
-        expiredCount++;
-        logger.debug(
-          { invitationId: invitation.id, email: invitation.email },
-          "Expired invitation",
-        );
-      } catch (error) {
-        logger.warn(
-          { invitationId: invitation.id, error },
-          "Failed to expire invitation",
-        );
-      }
-    }
+    const expiredCount = result[0].affectedRows;
 
     logger.info({ expiredCount }, "Invitation expiration job completed");
     return { expired: expiredCount };
