@@ -14,7 +14,7 @@ const insertJobBaseSchema = createInsertSchema(jobsDetails, {
   city: z.string().min(1, "City is required").max(255).trim(),
   state: z.string().max(50).trim().optional(),
   country: z.string().max(100).trim().optional().default("United States"),
-  zipcode: z.coerce.number().positive("Zip Code must be positive").optional(),
+  zipcode: z.string().max(20).trim().optional(),
   employerId: z.number().int().positive("Employer ID is required"),
 });
 

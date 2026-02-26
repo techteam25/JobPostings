@@ -255,8 +255,8 @@ describe("TypesenseQueryBuilder", () => {
       expect(query).toBe("skills:C++ && skills:C# && skills:.NET");
     });
 
-    it("should handle zipcode as number", () => {
-      const query = builder.addSingleFilter("zipcode", 78701).build();
+    it("should handle zipcode as string", () => {
+      const query = builder.addSingleFilter("zipcode", "78701").build();
 
       expect(query).toBe("zipcode:78701");
     });

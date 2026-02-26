@@ -282,7 +282,7 @@ registry.registerPath({
                   city: z.string(),
                   state: z.string().nullable(),
                   country: z.string().nullable(),
-                  zipcode: z.number().nullable(),
+                  zipcode: z.string().nullable(),
                   isRemote: z.boolean(),
                   jobType: z.string(),
                 }),

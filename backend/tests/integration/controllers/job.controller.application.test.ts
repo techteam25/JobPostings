@@ -164,7 +164,7 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
               city: "New York",
               state: "NY",
               country: "United States",
-              zipcode: 10001,
+              zipcode: "10001",
               jobType: "full-time",
               compensationType: "paid",
               isRemote: false,

@@ -47,7 +47,7 @@ describe("Application Status Change Notification Integration Tests", () => {
         city: faker.location.city(),
         state: faker.location.state(),
         country: "United States",
-        zipcode: parseInt(faker.location.zipCode("#####")),
+        zipcode: faker.location.zipCode("#####"),
         employerId: org.id,
         jobType: "full-time",
         compensationType: "paid",

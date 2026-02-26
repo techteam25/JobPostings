@@ -223,7 +223,7 @@ export async function createJob(
     city: string;
     state: string;
     country: string;
-    zipcode: number;
+    zipcode: string;
     experience: string;
     jobType: string;
     compensationType: string;
@@ -241,7 +241,7 @@ export async function createJob(
     city: overrides.city ?? faker.location.city(),
     state: overrides.state ?? faker.location.state(),
     country: overrides.country ?? faker.location.country(),
-    zipcode: overrides.zipcode ?? parseInt(faker.location.zipCode("#####")),
+    zipcode: overrides.zipcode ?? faker.location.zipCode("#####"),
     experience:
       overrides.experience ??
       faker.helpers

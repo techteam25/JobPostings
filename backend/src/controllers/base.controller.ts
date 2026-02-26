@@ -1,5 +1,5 @@
 // controllers/base.controller.ts
-import { Request, Response } from "express";
+import { Response } from "express";
 import {
   AppError,
   ErrorCode,
@@ -11,7 +11,6 @@ import {
 } from "@/utils/errors";
 import logger from "@/logger";
 import { PaginationMeta } from "@/types";
-import { SearchParams } from "@/validations/base.validation";
 
 /**
  * Base controller class providing common response handling methods for API controllers.
@@ -86,20 +85,6 @@ export class BaseController {
     };
 
     return res.status(error.statusCode).json(response);
-  }
-
-  /**
-   * Extracts pagination parameters from the request query.
-   * @param req The Express request object with pagination query parameters.
-   * @returns An object containing page and limit.
-   */
-  protected extractPaginationParams(
-    req: Request<{}, {}, {}, Pick<SearchParams["query"], "limit" | "page">>,
-  ) {
-    const page = Math.max(1, req.query.page ?? 1);
-    const limit = Math.min(100, Math.max(1, req.query.limit ?? 10));
-
-    return { page, limit };
   }
 
   /**

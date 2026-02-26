@@ -304,7 +304,7 @@ export const organizationJobApplicationsResponseSchema = z.object({
   city: z.string().nullable(),
   state: z.string().nullable(),
   country: z.string().nullable(),
-  zipcode: z.number().nullable(),
+  zipcode: z.string().nullable(),
   jobType: z.enum([
     "full-time",
     "part-time",

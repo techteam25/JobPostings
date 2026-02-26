@@ -40,7 +40,7 @@ export const jobAlerts = mysqlTable(
       .default("weekly"),
     lastSentAt: timestamp("last_sent_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },
   (table) => [
     index("job_alerts_user_id_idx").on(table.userId),

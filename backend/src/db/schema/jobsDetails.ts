@@ -30,7 +30,7 @@ export const jobsDetails = mysqlTable(
     city: varchar("city", { length: 255 }).notNull(),
     state: varchar("state", { length: 50 }),
     country: varchar("country", { length: 100 }).notNull(),
-    zipcode: int("zipcode"),
+    zipcode: varchar("zipcode", { length: 20 }),
     jobType: mysqlEnum("job_type", [
       "full-time",
       "part-time",
