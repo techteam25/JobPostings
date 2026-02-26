@@ -267,7 +267,7 @@ export const saveJobForUser = async (jobId: number): Promise<boolean> => {
   }
 
   revalidatePath("/saved");
-  revalidatePath("/job/${jobId}");
+  revalidatePath(`/job/${jobId}`);
 
   return true;
 };
@@ -293,7 +293,7 @@ export const removeSavedJobForUser = async (
   }
 
   revalidatePath("/saved");
-  revalidatePath("/job/${jobId}");
+  revalidatePath(`/job/${jobId}`);
 
   return true;
 };

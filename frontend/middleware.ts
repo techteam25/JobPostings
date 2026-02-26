@@ -49,12 +49,14 @@ export async function middleware(req: NextRequest) {
     );
 
     if (!onboardingResponse.ok) {
+      // Intent API unavailable — allow authenticated user through
       return NextResponse.next();
     }
 
     const onboarding: UserIntentResponse = await onboardingResponse.json();
 
     if (!onboarding?.success) {
+      // No intent data yet (new user) — allow through to set intent
       return NextResponse.next();
     }
 
@@ -93,7 +95,12 @@ export async function middleware(req: NextRequest) {
 
     return NextResponse.next();
   } catch (error) {
-    console.error("Middleware error:", error);
+    // User is authenticated (session verified above) but onboarding status
+    // check failed. Allow access rather than blocking authenticated users
+    // when the intent API is unavailable.
+    if (process.env.NODE_ENV === "development") {
+      console.error("Middleware onboarding check failed:", error);
+    }
     return NextResponse.next();
   }
 }

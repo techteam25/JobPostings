@@ -16,8 +16,10 @@ import Link from "next/link";
 
 // This is a Server Component (no "use client")
 export default async function EmailPreferencesPage() {
-  const preferences = await fetchEmailPreferences();
-  const userIntent = await getUserIntent();
+  const [preferences, userIntent] = await Promise.all([
+    fetchEmailPreferences(),
+    getUserIntent(),
+  ]);
 
   if (!preferences.success || !preferences.data) {
     return (
