@@ -151,39 +151,36 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
     it("should reject application for inactive job", async () => {
       const inactiveJobId = 3;
 
-      // Spy on getJobById to return an inactive job
+      // Spy on findJobById to return an inactive job
       const getJobByIdSpy = vi
-        .spyOn(JobService.prototype, "getJobById")
-        .mockResolvedValue(
-          ok({
-            hasApplied: false,
-            job: {
-              id: inactiveJobId,
-              title: "Inactive Job",
-              description: "This job is inactive",
-              city: "New York",
-              state: "NY",
-              country: "United States",
-              zipcode: 10001,
-              jobType: "full-time",
-              compensationType: "paid",
-              isRemote: false,
-              isActive: false,
-              applicationDeadline: null,
-              experience: null,
-              employerId: 1,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-            employer: {
-              id: 1,
-              name: "Test Employer",
-              city: "New York",
-              state: "NY",
-              logoUrl: null,
-            },
-          }),
-        );
+        .spyOn(JobRepository.prototype, "findJobById")
+        .mockResolvedValue({
+          job: {
+            id: inactiveJobId,
+            title: "Inactive Job",
+            description: "This job is inactive",
+            city: "New York",
+            state: "NY",
+            country: "United States",
+            zipcode: "10001",
+            jobType: "full-time",
+            compensationType: "paid",
+            isRemote: false,
+            isActive: false,
+            applicationDeadline: null,
+            experience: null,
+            employerId: 1,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          employer: {
+            id: 1,
+            name: "Test Employer",
+            city: "New York",
+            state: "NY",
+            logoUrl: null,
+          },
+        } as any);
 
       const response = await request
         .post(`/api/jobs/${inactiveJobId}/apply`)

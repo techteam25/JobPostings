@@ -173,6 +173,17 @@ export default function RichTextEditor({
       return;
     }
 
+    try {
+      const parsed = new URL(url);
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        window.alert("Only http and https URLs are allowed.");
+        return;
+      }
+    } catch {
+      window.alert("Please enter a valid URL.");
+      return;
+    }
+
     editor.chain().focus().setLink({ href: url }).run();
   };
 

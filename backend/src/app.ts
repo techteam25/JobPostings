@@ -48,66 +48,91 @@ import {
   scheduleInvitationExpirationJob,
 } from "@/workers/invitation-expiration-worker";
 
-// Initialize Typesense schema
-try {
-  initializeTypesenseSchema().catch((err) => logger.error(err));
-  logger.info("✅ Typesense schema initialization successful");
-} catch (error) {
-  logger.error("❌ Failed to initialize Typesense schema");
-  process.exit(1);
-}
-
-// Connect to Redis instances (all optional - server will continue if they fail)
-try {
-  redisCacheService.connect().catch((err) => logger.error(err));
-  logger.info("Redis Cache connected");
-} catch (error) {
-  logger.warn("Redis Cache connection failed, continuing without cache", {
-    error: error instanceof Error ? error.message : "Unknown error",
-  });
-}
-
-// Connect to Redis for Rate Limiting
-try {
-  redisRateLimiterService.connect().catch((err) => logger.error(err));
-  logger.info("Redis Rate Limiter connected");
-} catch (error) {
-  logger.warn("Redis Rate Limiter connection failed, using memory store", {
-    error: error instanceof Error ? error.message : "Unknown error",
-  });
-}
-
-// Initialize queue service and workers
-try {
-  queueService.initialize().catch((err) => logger.error(err));
-  initializeTypesenseWorker();
-  initializeFileUploadWorker();
-  initializeEmailWorker();
-  initializeFileCleanupWorker();
-  initializeJobAlertWorker();
-  initializeInactiveUserAlertWorker();
-  initializeInvitationExpirationWorker();
-  logger.info("Queue service and workers initialized");
-} catch (error) {
-  logger.warn(
-    "Queue service initialization failed, image uploads will be synchronous",
-    {
+/**
+ * Initialize all infrastructure services.
+ * Non-critical services log warnings on failure and continue.
+ * Must be called before the server starts accepting requests.
+ */
+export async function initializeInfrastructure(): Promise<void> {
+  // Typesense — non-critical
+  try {
+    await initializeTypesenseSchema();
+    logger.info("Typesense schema initialized");
+  } catch (error) {
+    logger.warn("Typesense schema initialization failed, continuing without search", {
       error: error instanceof Error ? error.message : "Unknown error",
-    },
-  );
-}
+    });
+  }
 
-try {
-  scheduleCleanupJob().catch((err) => logger.error(err));
-  scheduleDailyAlertProcessing().catch((err) => logger.error(err));
-  scheduleWeeklyAlertProcessing().catch((err) => logger.error(err));
-  scheduleMonthlyAlertProcessing().catch((err) => logger.error(err));
-  scheduleInactiveUserAlertPausing().catch((err) => logger.error(err));
-  scheduleInvitationExpirationJob().catch((err) => logger.error(err));
-} catch (error) {
-  logger.warn("Failed to schedule background jobs", {
-    error: error instanceof Error ? error.message : "Unknown error",
-  });
+  // Redis Cache — non-critical
+  try {
+    await redisCacheService.connect();
+    logger.info("Redis Cache connected");
+  } catch (error) {
+    logger.warn("Redis Cache connection failed, continuing without cache", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+
+  // Redis Rate Limiter — non-critical
+  try {
+    await redisRateLimiterService.connect();
+    logger.info("Redis Rate Limiter connected");
+  } catch (error) {
+    logger.warn("Redis Rate Limiter connection failed, using memory store", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+
+  // Queue service — await init; if it fails, skip workers and scheduled jobs
+  let queueReady = false;
+  try {
+    await queueService.initialize();
+    logger.info("Queue service initialized");
+    queueReady = true;
+  } catch (error) {
+    logger.error("Queue service initialization failed, background jobs will not process", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+
+  if (queueReady) {
+    // Workers — wrap in try/catch, log on failure
+    try {
+      initializeTypesenseWorker();
+      initializeFileUploadWorker();
+      initializeEmailWorker();
+      initializeFileCleanupWorker();
+      initializeJobAlertWorker();
+      initializeInactiveUserAlertWorker();
+      initializeInvitationExpirationWorker();
+      logger.info("Workers initialized");
+    } catch (error) {
+      logger.warn("Worker initialization failed", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+
+    // Scheduled jobs — non-critical, each should attempt independently
+    const results = await Promise.allSettled([
+      scheduleCleanupJob(),
+      scheduleDailyAlertProcessing(),
+      scheduleWeeklyAlertProcessing(),
+      scheduleMonthlyAlertProcessing(),
+      scheduleInactiveUserAlertPausing(),
+      scheduleInvitationExpirationJob(),
+    ]);
+    const failed = results.filter((r) => r.status === "rejected");
+    if (failed.length > 0) {
+      for (const f of failed) {
+        logger.warn("Failed to schedule a background job", {
+          error: (f as PromiseRejectedResult).reason?.message ?? "Unknown error",
+        });
+      }
+    } else {
+      logger.info("Background jobs scheduled");
+    }
+  }
 }
 
 // Create Express application
@@ -128,9 +153,12 @@ app.use(
 );
 app.use(helmet());
 
-// Disable CSP for the API docs route
+// Relaxed CSP for the API docs route (needs inline scripts/styles for Scalar UI)
 app.use("/api/auth/reference", (_req, res, next) => {
-  res.removeHeader("Content-Security-Policy");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self'",
+  );
   next();
 });
 
@@ -158,12 +186,35 @@ const swaggerOptions = generator.generateDocument({
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerOptions));
 
-// Request logging middleware (development only)
+// Redact sensitive fields from request bodies before logging
+const SENSITIVE_KEYS = new Set([
+  "password",
+  "currentPassword",
+  "newPassword",
+  "confirmPassword",
+  "token",
+  "accessToken",
+  "refreshToken",
+  "secret",
+  "authorization",
+]);
+
+const redactBody = (body: Record<string, unknown>): Record<string, unknown> => {
+  if (!body || typeof body !== "object") return body;
+  return Object.fromEntries(
+    Object.entries(body).map(([key, value]) => [
+      key,
+      SENSITIVE_KEYS.has(key) ? "[REDACTED]" : value,
+    ]),
+  );
+};
+
+// Verbose request logging (development only)
 if (env.NODE_ENV === "development") {
   app.use((req: Request, _: Response, next: NextFunction) => {
     logger.info(
       {
-        body: req.body,
+        body: redactBody(req.body),
         query: req.query,
         params: req.params,
       },
@@ -240,9 +291,6 @@ app.get(
         environment: env.NODE_ENV,
         database: {
           connected: isDatabaseHealthy,
-          host: env.DB_HOST,
-          port: env.DB_PORT,
-          name: env.DB_NAME,
         },
         version: "1.0.0",
       };

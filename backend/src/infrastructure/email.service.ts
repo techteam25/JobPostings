@@ -8,6 +8,7 @@ import { AppError } from "@/utils/errors";
 import { getApplicationStatusLabel } from "@/utils/application-status";
 import { EmailType } from "@/types";
 import { UserRepository } from "@/repositories/user.repository";
+import logger from "@/logger";
 
 /**
  * Service for handling email operations, including sending various types of emails.
@@ -36,6 +37,18 @@ export class EmailService extends BaseService {
       // },
     });
     this.userRepository = new UserRepository();
+  }
+
+  /**
+   * Escapes HTML special characters to prevent injection in email templates.
+   */
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   /**
@@ -177,7 +190,7 @@ Your account has been successfully deactivated. If you did not initiate this act
 
 Best regards,
 Tech Team`,
-        html: `<p>Dear ${firstName},</p>
+        html: `<p>Dear ${this.escapeHtml(firstName)},</p>
 <p>Your account has been successfully deactivated. If you did not initiate this action, please contact support immediately.</p>
 <p>Best regards,<br>Tech Team</p>
 ${footer}`,
@@ -222,7 +235,7 @@ Your account has been successfully deleted. If you did not initiate this action,
 
 Best regards,
 Tech Team`,
-        html: `<p>Dear ${firstName},</p>
+        html: `<p>Dear ${this.escapeHtml(firstName)},</p>
 <p>Your account has been successfully deleted. If you did not initiate this action, please contact support immediately.</p>
 <p>Best regards,<br>Tech Team</p>
 ${footer}`,
@@ -257,7 +270,7 @@ ${footer}`,
     const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
 
     const htmlContent = template
-      .replace("{{name}}", name)
+      .replace("{{name}}", this.escapeHtml(name))
       .replace("{{verificationLink}}", verificationLink)
       .replace("{{logoPath}}", logoPath);
     try {
@@ -270,7 +283,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -293,7 +306,7 @@ ${footer}`,
     const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
 
     const htmlContent = template
-      .replace("{{name}}", name)
+      .replace("{{name}}", this.escapeHtml(name))
       .replace("{{verificationLink}}", url)
       .replace("{{logoPath}}", logoPath);
     try {
@@ -306,7 +319,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -336,7 +349,7 @@ ${footer}`,
       });
 
       const htmlContent = template
-        .replace("{{name}}", fullName)
+        .replace("{{name}}", this.escapeHtml(fullName))
         .replace("{{logoPath}}", logoPath)
         .replace("{{date}}", dateString);
 
@@ -391,8 +404,8 @@ ${footer}`,
       );
 
       const htmlContent = template
-        .replace("{{name}}", fullName)
-        .replace("{{jobTitle}}", jobTitle)
+        .replace("{{name}}", this.escapeHtml(fullName))
+        .replace("{{jobTitle}}", this.escapeHtml(jobTitle))
         .replace("{{dashboardLink}}", dashboardLink)
         .replace("{{logoPath}}", logoPath)
         .replace("</body>", `${footer}</body>`);
@@ -406,7 +419,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -444,8 +457,8 @@ ${footer}`,
       );
 
       const htmlContent = template
-        .replace("{{name}}", fullName)
-        .replace("{{jobTitle}}", jobTitle)
+        .replace("{{name}}", this.escapeHtml(fullName))
+        .replace("{{jobTitle}}", this.escapeHtml(jobTitle))
         .replace("{{dashboardLink}}", dashboardLink)
         .replace("{{logoPath}}", logoPath)
         .replace("</body>", `${footer}</body>`);
@@ -459,7 +472,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -481,8 +494,8 @@ ${footer}`,
       const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
 
       const htmlContent = template
-        .replace(/{{userName}}/g, userName)
-        .replace(/{{jobTitle}}/g, jobTitle)
+        .replace(/{{userName}}/g, this.escapeHtml(userName))
+        .replace(/{{jobTitle}}/g, this.escapeHtml(jobTitle))
         .replace(/{{jobId}}/g, jobId.toString())
         .replace(/{{deletionDate}}/g, new Date().toLocaleDateString())
         .replace("{{logoPath}}", logoPath);
@@ -496,7 +509,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -528,9 +541,9 @@ ${footer}`,
 
     const htmlContent = template
       .replace(/{{logoPath}}/g, logoPath)
-      .replace(/{{organizationName}}/g, organizationName)
-      .replace(/{{inviterName}}/g, inviterName)
-      .replace(/{{role}}/g, roleDisplay)
+      .replace(/{{organizationName}}/g, this.escapeHtml(organizationName))
+      .replace(/{{inviterName}}/g, this.escapeHtml(inviterName))
+      .replace(/{{role}}/g, this.escapeHtml(roleDisplay))
       .replace(/{{acceptanceLink}}/g, acceptanceLink)
       .replace(/{{expirationDate}}/g, expirationDate);
 
@@ -544,7 +557,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -572,9 +585,9 @@ ${footer}`,
 
     const htmlContent = template
       .replace(/{{logoPath}}/g, logoPath)
-      .replace(/{{name}}/g, name)
-      .replace(/{{organizationName}}/g, organizationName)
-      .replace(/{{role}}/g, roleDisplay)
+      .replace(/{{name}}/g, this.escapeHtml(name))
+      .replace(/{{organizationName}}/g, this.escapeHtml(organizationName))
+      .replace(/{{role}}/g, this.escapeHtml(roleDisplay))
       .replace(/{{dashboardLink}}/g, dashboardLink);
 
     try {
@@ -587,7 +600,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -654,13 +667,13 @@ ${footer}`,
       const newStatusLabel = getApplicationStatusLabel(newStatus);
 
       const htmlContent = template
-        .replace("{{name}}", fullName)
-        .replace("{{jobTitle}}", jobTitle)
-        .replace("{{oldStatus}}", oldStatusLabel)
-        .replace("{{newStatusRaw}}", newStatus.toLowerCase()) // Raw status for CSS classes
-        .replace("{{newStatusLabel}}", newStatusLabel) // Human-readable label for display
-        .replace("{{statusMessage}}", statusInfo.message)
-        .replace("{{nextStepsMessage}}", statusInfo.nextSteps)
+        .replace("{{name}}", this.escapeHtml(fullName))
+        .replace("{{jobTitle}}", this.escapeHtml(jobTitle))
+        .replace("{{oldStatus}}", this.escapeHtml(oldStatusLabel))
+        .replace("{{newStatusRaw}}", this.escapeHtml(newStatus.toLowerCase()))
+        .replace("{{newStatusLabel}}", this.escapeHtml(newStatusLabel))
+        .replace("{{statusMessage}}", this.escapeHtml(statusInfo.message))
+        .replace("{{nextStepsMessage}}", this.escapeHtml(statusInfo.nextSteps))
         .replace("{{dashboardLink}}", dashboardLink)
         .replace("{{logoPath}}", logoPath);
 
@@ -673,7 +686,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error(error);
+      logger.error(error, "Email service error");
     }
   }
 
@@ -720,26 +733,27 @@ ${footer}`,
       const footer = await this.generateEmailFooter(userId, EmailType.JOB_MATCH);
 
       // Build job matches HTML
+      const esc = (s: string) => this.escapeHtml(s);
       const jobsHtml = matches
         .map(
           (match) => `
         <div style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px;">
           <h3 style="margin: 0 0 10px 0; color: #333;">
             <a href="${env.FRONTEND_URL}/jobs/${match.job.id}" style="color: #0066cc; text-decoration: none;">
-              ${match.job.title}
+              ${esc(match.job.title)}
             </a>
           </h3>
           <p style="margin: 5px 0; color: #666;">
-            <strong>${match.job.company}</strong>
-            ${match.job.location ? ` • ${match.job.location}` : ""}
+            <strong>${esc(match.job.company)}</strong>
+            ${match.job.location ? ` • ${esc(match.job.location)}` : ""}
           </p>
           ${
             match.job.jobType || match.job.experienceLevel
               ? `
           <p style="margin: 5px 0; color: #666; font-size: 14px;">
-            ${match.job.jobType ? `${match.job.jobType}` : ""}
+            ${match.job.jobType ? esc(match.job.jobType) : ""}
             ${match.job.jobType && match.job.experienceLevel ? " • " : ""}
-            ${match.job.experienceLevel ? `${match.job.experienceLevel}` : ""}
+            ${match.job.experienceLevel ? esc(match.job.experienceLevel) : ""}
           </p>
           `
               : ""
@@ -748,12 +762,12 @@ ${footer}`,
             match.job.description
               ? `
           <p style="margin: 10px 0; color: #555; font-size: 14px;">
-            ${match.job.description.substring(0, 200)}${match.job.description.length > 200 ? "..." : ""}
+            ${esc(match.job.description.substring(0, 200))}${match.job.description.length > 200 ? "..." : ""}
           </p>
           `
               : ""
           }
-          <a href="${env.FRONTEND_URL}/jobs/${match.job.id}" 
+          <a href="${env.FRONTEND_URL}/jobs/${match.job.id}"
              style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px;">
             View Job
           </a>
@@ -770,8 +784,8 @@ ${footer}`,
           : "";
 
       const htmlContent = template
-        .replace("{{name}}", fullName)
-        .replace("{{alertName}}", alertName)
+        .replace("{{name}}", this.escapeHtml(fullName))
+        .replace("{{alertName}}", this.escapeHtml(alertName))
         .replace("{{matchCount}}", totalMatches.toString())
         .replace(
           "{{matchWord}}",
@@ -792,7 +806,7 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error("Failed to send job alert notification", error);
+      logger.error(error, "Failed to send job alert notification");
     }
   }
 
@@ -842,7 +856,7 @@ ${footer}`,
             : "You will no longer receive notifications about matched candidates for your job postings.";
 
       const htmlContent = template
-        .replace("{{name}}", name)
+        .replace("{{name}}", this.escapeHtml(name))
         .replace("{{contextName}}", contextName)
         .replace("{{description}}", description)
         .replace("{{settingsLink}}", settingsLink)

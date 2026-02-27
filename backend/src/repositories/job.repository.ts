@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, inArray, like, or, sql, SQL } from "drizzle-orm";
+import { SecurityUtils } from "@/utils/security";
 import {
   jobApplications,
   jobInsights,
@@ -317,9 +318,10 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
     ];
 
     if (q) {
+      const escaped = SecurityUtils.escapeLikePattern(q);
       const searchCondition = or(
-        like(jobsDetails.title, `%${q}%`),
-        like(jobsDetails.description, `%${q}%`),
+        like(jobsDetails.title, `%${escaped}%`),
+        like(jobsDetails.description, `%${escaped}%`),
       );
 
       if (searchCondition) {
@@ -411,7 +413,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
         await transaction
           .update(jobInsights)
           .set({
-            viewCount: sql`(${jobInsights.viewCount} + 1)`,
+            applicationCount: sql`(${jobInsights.applicationCount} + 1)`,
           })
           .where(eq(jobInsights.job, applicationData.jobId));
 

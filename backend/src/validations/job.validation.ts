@@ -10,11 +10,11 @@ const insertJobBaseSchema = createInsertSchema(jobsDetails, {
     .min(5, "Title must be at least 5 characters")
     .max(255)
     .trim(),
-  description: z.string(),
+  description: z.string().max(50_000, "Description must not exceed 50,000 characters"),
   city: z.string().min(1, "City is required").max(255).trim(),
   state: z.string().max(50).trim().optional(),
   country: z.string().max(100).trim().optional().default("United States"),
-  zipcode: z.coerce.number().positive("Zip Code must be positive").optional(),
+  zipcode: z.string().max(20).trim().optional(),
   employerId: z.number().int().positive("Employer ID is required"),
 });
 
@@ -93,7 +93,7 @@ const createJobPayloadBaseSchema = insertJobBaseSchema
   .omit({ applicationDeadline: true, employerId: true })
   .extend({
     applicationDeadline: z.iso.datetime(),
-    skills: z.array(z.string()),
+    skills: z.array(z.string().min(1).max(100)).min(1).max(50),
   });
 
 const createJobPayloadSchema = createJobPayloadBaseSchema

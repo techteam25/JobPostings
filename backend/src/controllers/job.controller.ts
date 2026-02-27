@@ -484,7 +484,7 @@ export class JobController extends BaseController {
     if (result.isSuccess) {
       return this.sendSuccess(
         res,
-        result,
+        result.value,
         "Application status updated successfully",
       );
     } else {

@@ -28,7 +28,10 @@ export const session = mysqlTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
-  (table) => [index("idx_session_user_id").on(table.userId)],
+  (table) => [
+    index("idx_session_user_id").on(table.userId),
+    index("idx_session_expires_at").on(table.expiresAt),
+  ],
 );
 
 /**
@@ -55,7 +58,7 @@ export const account = mysqlTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("idx_session_user_id").on(table.userId)],
+  (table) => [index("idx_account_user_id").on(table.userId)],
 );
 
 /**

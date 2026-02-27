@@ -782,7 +782,7 @@ export class AuthMiddleware {
       }
 
       // Attach invitation to request for use in controller/service
-      (req as any).invitation = invitation;
+      req.invitation = invitation;
 
       return next();
     } catch (error) {

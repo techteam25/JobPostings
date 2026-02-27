@@ -31,6 +31,7 @@ import { BaseRepository } from "./base.repository";
 import { db } from "@/db/connection";
 import { DatabaseError, NotFoundError } from "@/utils/errors";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
+import { SecurityUtils } from "@/utils/security";
 import {
   NewUserProfile,
   UpdateUserProfile,
@@ -274,7 +275,7 @@ export class UserRepository extends BaseRepository<typeof user> {
             ...userProfileData
           } = profileData;
 
-          await tx.update(userProfile).set({ ...userProfileData, userId });
+          await tx.update(userProfile).set({ ...userProfileData, userId }).where(eq(userProfile.userId, userId));
           const userProfileId = await tx
             .select({ id: userProfile.id })
             .from(userProfile)
@@ -417,10 +418,11 @@ export class UserRepository extends BaseRepository<typeof user> {
 
     const conditions = [];
     if (searchTerm) {
+      const escaped = SecurityUtils.escapeLikePattern(searchTerm);
       conditions.push(
         or(
-          like(user.fullName, `%${searchTerm}%`),
-          like(user.email, `%${searchTerm}%`),
+          like(user.fullName, `%${escaped}%`),
+          like(user.email, `%${escaped}%`),
         ),
       );
     }
@@ -593,14 +595,19 @@ export class UserRepository extends BaseRepository<typeof user> {
         isExpired: !savedJob.job.isActive,
       }));
 
-      const totalPages = Math.ceil(response.length / limit);
+      const [totalResult] = await db
+        .select({ total: count() })
+        .from(savedJobs)
+        .where(eq(savedJobs.userId, userId));
+      const total = totalResult?.total ?? 0;
 
+      const totalPages = Math.ceil(total / limit);
       const hasNext = page < totalPages;
       const hasPrevious = page > 1;
       return {
         items: response,
         pagination: {
-          total: response.length,
+          total,
           page,
           limit,
           totalPages,

@@ -1,131 +1,232 @@
-import { Job as BullMqJob } from "bullmq";
+import { Job as BullMqJob, UnrecoverableError } from "bullmq";
+import { z } from "zod";
 import { EmailService } from "@/infrastructure/email.service";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 
 import logger from "@/logger";
 
-type EmailJobData = {
-  userId: number;
-  email: string;
-  fullName: string;
-  [key: string]: unknown;
-};
+// ============================================================================
+// Discriminated union schemas for each email job type
+// ============================================================================
+
+const baseEmailSchema = z.object({
+  userId: z.number(),
+  email: z.string().email(),
+  fullName: z.string(),
+});
+
+const jobApplicationConfirmationSchema = baseEmailSchema.extend({
+  jobTitle: z.string(),
+});
+
+const applicationWithdrawalSchema = baseEmailSchema.extend({
+  jobTitle: z.string(),
+});
+
+const jobDeletionSchema = baseEmailSchema.extend({
+  jobTitle: z.string(),
+  jobId: z.number(),
+});
+
+const organizationInvitationSchema = z.object({
+  userId: z.number(),
+  email: z.string().email(),
+  fullName: z.string(),
+  organizationName: z.string(),
+  inviterName: z.string(),
+  role: z.string(),
+  token: z.string(),
+  expirationDate: z.string(),
+});
+
+const organizationWelcomeSchema = z.object({
+  userId: z.number(),
+  email: z.string().email(),
+  fullName: z.string(),
+  name: z.string(),
+  organizationName: z.string(),
+  role: z.string(),
+});
+
+const applicationStatusUpdateSchema = baseEmailSchema.extend({
+  jobTitle: z.string(),
+  oldStatus: z.string(),
+  newStatus: z.string(),
+});
+
+const jobAlertMatchSchema = z.object({
+  job: z.object({
+    id: z.number(),
+    title: z.string(),
+    company: z.string(),
+    location: z.string().optional(),
+    jobType: z.string().optional(),
+    experienceLevel: z.string().optional(),
+    description: z.string().optional(),
+  }),
+  matchScore: z.number(),
+});
+
+const jobAlertNotificationSchema = baseEmailSchema.extend({
+  alertName: z.string(),
+  matches: z.array(jobAlertMatchSchema),
+  totalMatches: z.number(),
+});
+
+// Map of job names to their validation schemas
+export const emailJobSchemas = {
+  sendWelcomeEmail: baseEmailSchema,
+  sendPasswordResetEmail: baseEmailSchema,
+  sendJobApplicationConfirmation: jobApplicationConfirmationSchema,
+  sendApplicationWithdrawalConfirmation: applicationWithdrawalSchema,
+  sendAccountDeletionConfirmation: baseEmailSchema,
+  sendAccountDeactivationConfirmation: baseEmailSchema,
+  sendJobDeletionEmail: jobDeletionSchema,
+  sendOrganizationInvitation: organizationInvitationSchema,
+  sendOrganizationWelcome: organizationWelcomeSchema,
+  sendApplicationStatusUpdate: applicationStatusUpdateSchema,
+  sendPasswordChangedEmail: baseEmailSchema,
+  sendJobAlertNotification: jobAlertNotificationSchema,
+  "job-alert-notification": jobAlertNotificationSchema,
+} as const;
+
+export type EmailJobName = keyof typeof emailJobSchemas;
+
+/** Inferred payload type for a given email job name */
+export type EmailJobPayload<T extends EmailJobName> = z.infer<
+  (typeof emailJobSchemas)[T]
+>;
+
+// Generic job data type for BullMQ registration
+type EmailJobData = Record<string, unknown>;
 
 const emailService = new EmailService();
 
 export async function processEmailJob(
   job: BullMqJob<EmailJobData>,
 ): Promise<void> {
-  const { userId } = job.data;
+  const jobName = job.name as EmailJobName;
+  const schema = emailJobSchemas[jobName];
 
-  if (!userId) {
-    logger.error(`Email job missing userId for job: ${job.name}`);
-    return;
+  if (!schema) {
+    throw new UnrecoverableError(`Unknown email job type: ${jobName}`);
   }
 
-  switch (job.name) {
+  const parsed = schema.safeParse(job.data);
+  if (!parsed.success) {
+    throw new UnrecoverableError(
+      `Invalid email job data for ${jobName}: ${parsed.error.message}`,
+    );
+  }
+
+  const data = parsed.data;
+
+  switch (jobName) {
     case "sendWelcomeEmail":
-      // await emailService.sendWelcomeEmail(job.data);
+      // await emailService.sendWelcomeEmail(data);
       break;
     case "sendPasswordResetEmail":
-      // await emailService.sendPasswordResetEmail(job.data);
+      // await emailService.sendPasswordResetEmail(data);
       break;
-    case "sendJobApplicationConfirmation":
+    case "sendJobApplicationConfirmation": {
+      const d = data as z.infer<typeof jobApplicationConfirmationSchema>;
       await emailService.sendJobApplicationConfirmation(
-        userId,
-        job.data.email,
-        job.data.fullName,
-        job.data.jobTitle as string,
+        d.userId,
+        d.email,
+        d.fullName,
+        d.jobTitle,
       );
       break;
-    case "sendApplicationWithdrawalConfirmation":
+    }
+    case "sendApplicationWithdrawalConfirmation": {
+      const d = data as z.infer<typeof applicationWithdrawalSchema>;
       await emailService.sendApplicationWithdrawalConfirmation(
-        userId,
-        job.data.email,
-        job.data.fullName,
-        job.data.jobTitle as string,
+        d.userId,
+        d.email,
+        d.fullName,
+        d.jobTitle,
       );
       break;
-    case "sendAccountDeletionConfirmation":
+    }
+    case "sendAccountDeletionConfirmation": {
+      const d = data as z.infer<typeof baseEmailSchema>;
       await emailService.sendAccountDeletionConfirmation(
-        userId,
-        job.data.email,
-        job.data.fullName,
+        d.userId,
+        d.email,
+        d.fullName,
       );
       break;
-    case "sendAccountDeactivationConfirmation":
+    }
+    case "sendAccountDeactivationConfirmation": {
+      const d = data as z.infer<typeof baseEmailSchema>;
       await emailService.sendAccountDeactivationConfirmation(
-        userId,
-        job.data.email,
-        job.data.fullName,
+        d.userId,
+        d.email,
+        d.fullName,
       );
       break;
-    case "sendJobDeletionEmail":
+    }
+    case "sendJobDeletionEmail": {
+      const d = data as z.infer<typeof jobDeletionSchema>;
       await emailService.sendJobDeletionEmail(
-        job.data.email,
-        job.data.fullName,
-        job.data.jobTitle as string,
-        job.data.jobId as number,
+        d.email,
+        d.fullName,
+        d.jobTitle,
+        d.jobId,
       );
       break;
-    case "sendOrganizationInvitation":
+    }
+    case "sendOrganizationInvitation": {
+      const d = data as z.infer<typeof organizationInvitationSchema>;
       await emailService.sendOrganizationInvitation(
-        job.data.email as string,
-        job.data.organizationName as string,
-        job.data.inviterName as string,
-        job.data.role as string,
-        job.data.token as string,
-        job.data.expirationDate as string,
+        d.email,
+        d.organizationName,
+        d.inviterName,
+        d.role,
+        d.token,
+        d.expirationDate,
       );
       break;
-    case "sendOrganizationWelcome":
+    }
+    case "sendOrganizationWelcome": {
+      const d = data as z.infer<typeof organizationWelcomeSchema>;
       await emailService.sendOrganizationWelcome(
-        job.data.email as string,
-        job.data.name as string,
-        job.data.organizationName as string,
-        job.data.role as string,
+        d.email,
+        d.name,
+        d.organizationName,
+        d.role,
       );
       break;
-    case "sendApplicationStatusUpdate":
+    }
+    case "sendApplicationStatusUpdate": {
+      const d = data as z.infer<typeof applicationStatusUpdateSchema>;
       await emailService.sendApplicationStatusUpdate(
-        job.data.email,
-        job.data.fullName,
-        job.data.jobTitle as string,
-        job.data.oldStatus as string,
-        job.data.newStatus as string,
+        d.email,
+        d.fullName,
+        d.jobTitle,
+        d.oldStatus,
+        d.newStatus,
       );
       break;
-    case "sendPasswordChangedEmail":
-      await emailService.sendPasswordChangedEmail(
-        job.data.email,
-        job.data.fullName,
-      );
+    }
+    case "sendPasswordChangedEmail": {
+      const d = data as z.infer<typeof baseEmailSchema>;
+      await emailService.sendPasswordChangedEmail(d.email, d.fullName);
       break;
+    }
     case "sendJobAlertNotification":
-    case "job-alert-notification":
+    case "job-alert-notification": {
+      const d = data as z.infer<typeof jobAlertNotificationSchema>;
       await emailService.sendJobAlertNotification(
-        userId,
-        job.data.email,
-        job.data.fullName,
-        job.data.alertName as string,
-        job.data.matches as Array<{
-          job: {
-            id: number;
-            title: string;
-            company: string;
-            location?: string;
-            jobType?: string;
-            experienceLevel?: string;
-            description?: string;
-          };
-          matchScore: number;
-        }>,
-        job.data.totalMatches as number,
+        d.userId,
+        d.email,
+        d.fullName,
+        d.alertName,
+        d.matches,
+        d.totalMatches,
       );
       break;
-
-    default:
-      logger.error(`Unknown email job type: ${job.name}`);
+    }
   }
 }
 
@@ -133,7 +234,7 @@ export async function processEmailJob(
  * Initialize Email Sender worker
  */
 export function initializeEmailWorker(): void {
-  queueService.registerWorker<EmailJobData & { correlationId: string }, void>(
+  queueService.registerWorker<EmailJobData, void>(
     QUEUE_NAMES.EMAIL_QUEUE,
     processEmailJob,
     {

@@ -27,6 +27,15 @@ vi.mock("@/infrastructure/queue.service", () => ({
   queueService: {},
   QUEUE_NAMES: {},
 }));
+vi.mock("@/utils/auth", () => ({
+  auth: {
+    api: {
+      updateUser: vi.fn(),
+      changePassword: vi.fn(),
+      deleteUser: vi.fn(),
+    },
+  },
+}));
 
 describe("UserService - Job Alerts", () => {
   let userService: UserService;

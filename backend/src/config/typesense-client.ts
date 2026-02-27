@@ -15,6 +15,8 @@ export const typesenseClient = new Typesense.Client({
   apiKey: env.TYPESENSE_API_KEY,
   connectionTimeoutSeconds: 2,
   healthcheckIntervalSeconds: 30,
+  retryIntervalSeconds: 1,
+  timeoutSeconds: 10,
 });
 
 // Explicit initialization function

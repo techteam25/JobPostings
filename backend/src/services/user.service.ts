@@ -178,7 +178,7 @@ export class UserService extends BaseService {
         },
       });
       if (!success) {
-        return fail(new Error("Failed to update user"));
+        return fail(new DatabaseError("Failed to update user"));
       }
 
       return await this.getUserById(id);
@@ -245,8 +245,6 @@ export class UserService extends BaseService {
       if (!updatedProfile) {
         return fail(new DatabaseError("Failed to update profile visibility"));
       }
-
-      console.log({ updatedProfile });
 
       return ok(updatedProfile);
     } catch (error) {
@@ -316,7 +314,7 @@ export class UserService extends BaseService {
         },
       );
       if (!deactivatedUser) {
-        return fail(new Error("Failed to deactivate account"));
+        return fail(new DatabaseError("Failed to deactivate account"));
       }
 
       // Email notification
@@ -375,13 +373,13 @@ export class UserService extends BaseService {
         status: "deactivated",
       });
       if (!success) {
-        return fail(new Error("Failed to deactivate user"));
+        return fail(new DatabaseError("Failed to deactivate user"));
       }
 
       // Queue notification email
       await queueService.addJob(
         QUEUE_NAMES.EMAIL_QUEUE,
-        "sendAccountDeletionConfirmation",
+        "sendAccountDeactivationConfirmation",
         {
           userId: id,
           email: user.email,
@@ -415,7 +413,7 @@ export class UserService extends BaseService {
 
     const success = await this.userRepository.update(id, { status: "active" });
     if (!success) {
-      return this.handleError(new Error("Failed to activate user"));
+      return this.handleError(new DatabaseError("Failed to activate user"));
     }
 
     return await this.getUserById(id);
@@ -517,7 +515,7 @@ export class UserService extends BaseService {
       });
 
       if (!userDeleted) {
-        return fail(new Error("Failed to delete account"));
+        return fail(new DatabaseError("Failed to delete account"));
       }
 
       // Queue notification email

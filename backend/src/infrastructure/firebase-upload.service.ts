@@ -46,12 +46,14 @@ export class FirebaseUploadService extends BaseService {
    * @param file - Temporary file info from multer
    * @param index - File index for error tracking
    * @param folder - Firebase Storage folder path
+   * @param deterministicName - Optional deterministic filename for idempotent retries
    * @returns Object with url on success, or error details on failure
    */
   async uploadSingleFile(
     file: TempFile,
     index: number,
     folder: string,
+    deterministicName?: string,
   ): Promise<{ url: string; metadata: FileMetadata } | { error: UploadError }> {
     const correlationId = `file-${index}-${Date.now()}`;
 
@@ -86,8 +88,8 @@ export class FirebaseUploadService extends BaseService {
         };
       }
 
-      // Generate unique filename
-      const uniqueFilename = generateUniqueFilename(file.originalname);
+      // Use deterministic name if provided (for idempotent retries), otherwise generate unique
+      const uniqueFilename = deterministicName || generateUniqueFilename(file.originalname);
       const storagePath = `${folder}/${uniqueFilename}`;
 
       // Read file from temp path
@@ -159,12 +161,14 @@ export class FirebaseUploadService extends BaseService {
    * @param files - Array of temporary files
    * @param startIndex - Starting index for error tracking
    * @param folder - Firebase Storage folder path
+   * @param deterministicNames - Optional deterministic filenames for idempotent retries
    * @returns Batch results with URLs and failures
    */
   async processBatch(
     files: TempFile[],
     startIndex: number,
     folder: string,
+    deterministicNames?: string[],
   ): Promise<{
     urls: string[];
     metadata: FileMetadata[];
@@ -180,9 +184,11 @@ export class FirebaseUploadService extends BaseService {
       const chunkStartIndex = startIndex + i;
 
       const results = await Promise.allSettled(
-        chunk.map((file, chunkIndex) =>
-          this.uploadSingleFile(file, chunkStartIndex + chunkIndex, folder),
-        ),
+        chunk.map((file, chunkIndex) => {
+          const globalIndex = chunkStartIndex + chunkIndex;
+          const detName = deterministicNames?.[startIndex + i + chunkIndex];
+          return this.uploadSingleFile(file, globalIndex, folder, detName);
+        }),
       );
 
       for (const result of results) {
@@ -210,13 +216,13 @@ export class FirebaseUploadService extends BaseService {
   /**
    * Main upload method - uploads multiple files with batch processing
    * @param files - Array of temporary files from multer
-   * @param options - Upload options (folder, maxFileSizeMB, allowedTypes)
+   * @param options - Upload options (folder, maxFileSizeMB, allowedTypes, deterministicNames)
    * @param onProgress - Optional callback for progress updates (0-100)
    * @returns Upload result with URLs, failures, and counts
    */
   async uploadFiles(
     files: TempFile[],
-    options: Partial<UploadOptions> = {},
+    options: Partial<UploadOptions> & { deterministicNames?: string[] } = {},
     onProgress?: (progress: number) => void,
   ): Promise<FileUploadResult & { metadata: FileMetadata[] }> {
     const folder = options.folder || "uploads";
@@ -233,7 +239,7 @@ export class FirebaseUploadService extends BaseService {
     // Process in batches
     for (let i = 0; i < files.length; i += this.batchSize) {
       const batch = files.slice(i, i + this.batchSize);
-      const batchResult = await this.processBatch(batch, i, folder);
+      const batchResult = await this.processBatch(batch, i, folder, options.deterministicNames);
 
       allUrls.push(...batchResult.urls);
       allMetadata.push(...batchResult.metadata);

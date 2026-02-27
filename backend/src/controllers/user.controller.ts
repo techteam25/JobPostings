@@ -19,6 +19,7 @@ import {
   GetUnsubscribeLandingPage,
 } from "@/validations/user.validation";
 import { ApiResponse } from "@/types";
+import { ValidationError } from "@/utils/errors";
 import { auth } from "@/utils/auth";
 import {
   UpdateProfileVisibilityInput,
@@ -381,7 +382,7 @@ export class UserController extends BaseController {
         token,
       },
     });
-    return this.sendSuccess(res, result, "User deleted successfully", 200);
+    return this.sendSuccess(res, null, "User deleted successfully", 200);
   };
 
   /**
@@ -560,11 +561,10 @@ export class UserController extends BaseController {
     const preferences = req.body;
 
     if (preferences.accountSecurityAlerts === false) {
-      return res.status(400).json({
-        success: false,
-        message: "Security alerts cannot be disabled",
-        timestamp: new Date().toISOString(),
-      });
+      return this.sendError(
+        res,
+        new ValidationError("Security alerts cannot be disabled"),
+      );
     }
 
     const result = await this.userService.updateEmailPreferences(

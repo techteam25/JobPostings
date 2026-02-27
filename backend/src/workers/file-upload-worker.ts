@@ -10,6 +10,7 @@ import {
   FileMetadata,
   FileUploadJobData,
   FileUploadResult,
+  sanitizeFilename,
 } from "@/validations/file.validation";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 
@@ -138,10 +139,15 @@ export async function processFileUploadJob(job: BullMqJob<FileUploadJobData>) {
     // Update progress: starting
     await job.updateProgress(0);
 
+    // Build deterministic filenames from job ID for idempotent retries
+    const deterministicNames = tempFiles.map(
+      (f, index) => `${job.id}-${index}-${sanitizeFilename(f.originalname)}`,
+    );
+
     // Upload files to Firebase
     const result = await firebaseUploadService.uploadFiles(
       tempFiles,
-      { folder },
+      { folder, deterministicNames },
       async (progress) => {
         await job.updateProgress(progress);
       },

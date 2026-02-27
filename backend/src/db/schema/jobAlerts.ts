@@ -15,7 +15,7 @@ import { relations, sql } from "drizzle-orm";
 import { user } from "./users";
 import { jobsDetails } from "@/db/schema/jobsDetails";
 
-type JobTypes = "full_time | part_time | contract | temporary | intern";
+type JobTypes = "full_time" | "part_time" | "contract" | "temporary" | "intern";
 
 export const jobAlerts = mysqlTable(
   "job_alerts",
@@ -40,7 +40,7 @@ export const jobAlerts = mysqlTable(
       .default("weekly"),
     lastSentAt: timestamp("last_sent_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
   },
   (table) => [
     index("job_alerts_user_id_idx").on(table.userId),

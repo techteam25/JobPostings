@@ -1,17 +1,8 @@
 // controllers/base.controller.ts
-import { Request, Response } from "express";
-import {
-  AppError,
-  ErrorCode,
-  UnauthorizedError,
-  DatabaseError,
-  NotFoundError,
-  ConflictError,
-  ForbiddenError,
-} from "@/utils/errors";
+import { Response } from "express";
+import { AppError, ErrorCode } from "@/utils/errors";
 import logger from "@/logger";
 import { PaginationMeta } from "@/types";
-import { SearchParams } from "@/validations/base.validation";
 
 /**
  * Base controller class providing common response handling methods for API controllers.
@@ -89,20 +80,6 @@ export class BaseController {
   }
 
   /**
-   * Extracts pagination parameters from the request query.
-   * @param req The Express request object with pagination query parameters.
-   * @returns An object containing page and limit.
-   */
-  protected extractPaginationParams(
-    req: Request<{}, {}, {}, Pick<SearchParams["query"], "limit" | "page">>,
-  ) {
-    const page = Math.max(1, req.query.page ?? 1);
-    const limit = Math.min(1, Math.max(10, req.query.limit ?? 10));
-
-    return { page, limit };
-  }
-
-  /**
    * Handles errors in controllers by logging and sending appropriate responses.
    * @param res The Express response object.
    * @param error The unknown error.
@@ -138,23 +115,8 @@ export class BaseController {
     defaultMessage: string,
     defaultStatusCode: number,
   ): AppError {
-    // Already a known AppError
+    // All error subclasses (NotFoundError, UnauthorizedError, etc.) extend AppError
     if (error instanceof AppError) return error;
-
-    // UnauthorizedError
-    if (error instanceof UnauthorizedError) return error;
-
-    // ForbiddenError
-    if (error instanceof ForbiddenError) return error;
-
-    // NotFoundError
-    if (error instanceof NotFoundError) return error;
-
-    // ConflictError
-    if (error instanceof ConflictError) return error;
-
-    // DatabaseError
-    if (error instanceof DatabaseError) return error;
 
     // Catch-all fallback
     return new AppError(
