@@ -59,60 +59,31 @@ export class JobInsightsRepository extends BaseRepository<typeof jobInsights> {
    */
   async getJobInsightByOrganizationId(organizationId: number) {
     return await withDbErrorHandling(async () => {
-      return await db.transaction(async (transaction) => {
-        const [total] = await transaction
-          .select({
-            total: count(),
-          })
-          .from(jobInsights)
-          .where(eq(jobInsights.organization, organizationId));
-
-        const [active] = await transaction
-          .select({
-            active: count(),
-          })
-          .from(jobInsights)
-          .where(eq(jobInsights.organization, organizationId));
-
-        const [inactive] = await transaction
-          .select({
-            inactive: count(),
-          })
-          .from(jobInsights)
-          .innerJoin(jobsDetails, eq(jobsDetails.employerId, organizationId))
-          .where(
-            and(
-              eq(jobInsights.organization, organizationId),
-              eq(jobsDetails.isActive, false),
-            ),
-          );
-
-        const [totalViews] = await transaction
-          .select({
-            totalViews: sum(jobInsights.viewCount).mapWith(Number),
-          })
-          .from(jobInsights)
-          .where(eq(jobInsights.organization, organizationId))
-          .groupBy(jobInsights.organization);
-
-        const [totalApplications] = await transaction
-          .select({
-            totalApplications: sum(jobInsights.applicationCount).mapWith(
+      const [result] = await db
+        .select({
+          total: count(),
+          active:
+            sql<number>`SUM(CASE WHEN ${jobsDetails.isActive} = true THEN 1 ELSE 0 END)`.mapWith(
               Number,
             ),
-          })
-          .from(jobInsights)
-          .where(eq(jobInsights.organization, organizationId))
-          .groupBy(jobInsights.organization);
+          inactive:
+            sql<number>`SUM(CASE WHEN ${jobsDetails.isActive} = false THEN 1 ELSE 0 END)`.mapWith(
+              Number,
+            ),
+          totalViews: sum(jobInsights.viewCount).mapWith(Number),
+          totalApplications: sum(jobInsights.applicationCount).mapWith(Number),
+        })
+        .from(jobInsights)
+        .innerJoin(jobsDetails, eq(jobInsights.job, jobsDetails.id))
+        .where(eq(jobInsights.organization, organizationId));
 
-        return {
-          total: total?.total || 0,
-          active: active?.active || 0,
-          inactive: inactive?.inactive || 0,
-          totalApplications: totalApplications?.totalApplications || 0,
-          totalViews: totalViews?.totalViews || 0,
-        };
-      });
+      return {
+        total: result?.total || 0,
+        active: result?.active || 0,
+        inactive: result?.inactive || 0,
+        totalViews: result?.totalViews || 0,
+        totalApplications: result?.totalApplications || 0,
+      };
     });
   }
 

@@ -54,16 +54,12 @@ vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
 });
 
 describe("User Controller Integration Tests", () => {
-  let originalDeleteUser: typeof auth.api.deleteUser;
-
   beforeAll(() => {
-    // Directly patch auth.api.deleteUser on the real object so the service sees it
-    originalDeleteUser = auth.api.deleteUser;
-    auth.api.deleteUser = vi.fn().mockResolvedValue({ success: true }) as any;
+    vi.spyOn(auth.api, "deleteUser").mockResolvedValue({ success: true } as any);
   });
 
   afterAll(() => {
-    auth.api.deleteUser = originalDeleteUser;
+    vi.mocked(auth.api.deleteUser).mockRestore();
   });
 
   describe("GET /users", () => {

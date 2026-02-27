@@ -121,3 +121,15 @@ startServer().catch((err) => logger.error(err));
 // Graceful shutdown on both signals
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+
+// Catch unhandled promise rejections — log and shut down gracefully
+process.on("unhandledRejection", (reason) => {
+  logger.error({ err: reason }, "Unhandled promise rejection");
+  gracefulShutdown("unhandledRejection");
+});
+
+// Catch uncaught exceptions — log and exit (state may be corrupted)
+process.on("uncaughtException", (error) => {
+  logger.fatal({ err: error }, "Uncaught exception");
+  process.exit(1);
+});

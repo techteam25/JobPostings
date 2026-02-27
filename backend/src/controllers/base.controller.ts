@@ -1,14 +1,6 @@
 // controllers/base.controller.ts
 import { Response } from "express";
-import {
-  AppError,
-  ErrorCode,
-  UnauthorizedError,
-  DatabaseError,
-  NotFoundError,
-  ConflictError,
-  ForbiddenError,
-} from "@/utils/errors";
+import { AppError, ErrorCode } from "@/utils/errors";
 import logger from "@/logger";
 import { PaginationMeta } from "@/types";
 
@@ -123,23 +115,8 @@ export class BaseController {
     defaultMessage: string,
     defaultStatusCode: number,
   ): AppError {
-    // Already a known AppError
+    // All error subclasses (NotFoundError, UnauthorizedError, etc.) extend AppError
     if (error instanceof AppError) return error;
-
-    // UnauthorizedError
-    if (error instanceof UnauthorizedError) return error;
-
-    // ForbiddenError
-    if (error instanceof ForbiddenError) return error;
-
-    // NotFoundError
-    if (error instanceof NotFoundError) return error;
-
-    // ConflictError
-    if (error instanceof ConflictError) return error;
-
-    // DatabaseError
-    if (error instanceof DatabaseError) return error;
 
     // Catch-all fallback
     return new AppError(

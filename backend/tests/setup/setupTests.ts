@@ -21,6 +21,19 @@ vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
   };
 });
 
+// Global mock for EmailService — prevents tests from hitting the real SMTP server.
+// Test files that need custom email behavior can override with their own vi.mock.
+vi.mock("@/infrastructure/email.service", () => {
+  return {
+    EmailService: vi.fn().mockImplementation(() =>
+      new Proxy(
+        {},
+        { get: (_target, prop) => (typeof prop === "string" ? vi.fn().mockResolvedValue(undefined) : undefined) },
+      ),
+    ),
+  };
+});
+
 // Setup that runs before each test — guarantees pristine DB state
 beforeEach(async () => {
   try {

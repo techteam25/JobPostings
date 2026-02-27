@@ -84,35 +84,37 @@ export async function initializeInfrastructure(): Promise<void> {
     });
   }
 
-  // Queue service — await init; if it fails, HTTP still serves
+  // Queue service — await init; if it fails, skip workers and scheduled jobs
+  let queueReady = false;
   try {
     await queueService.initialize();
     logger.info("Queue service initialized");
+    queueReady = true;
   } catch (error) {
     logger.error("Queue service initialization failed, background jobs will not process", {
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 
-  // Workers — wrap in try/catch, log on failure
-  try {
-    initializeTypesenseWorker();
-    initializeFileUploadWorker();
-    initializeEmailWorker();
-    initializeFileCleanupWorker();
-    initializeJobAlertWorker();
-    initializeInactiveUserAlertWorker();
-    initializeInvitationExpirationWorker();
-    logger.info("Workers initialized");
-  } catch (error) {
-    logger.warn("Worker initialization failed", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
+  if (queueReady) {
+    // Workers — wrap in try/catch, log on failure
+    try {
+      initializeTypesenseWorker();
+      initializeFileUploadWorker();
+      initializeEmailWorker();
+      initializeFileCleanupWorker();
+      initializeJobAlertWorker();
+      initializeInactiveUserAlertWorker();
+      initializeInvitationExpirationWorker();
+      logger.info("Workers initialized");
+    } catch (error) {
+      logger.warn("Worker initialization failed", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
 
-  // Scheduled jobs — non-critical
-  try {
-    await Promise.all([
+    // Scheduled jobs — non-critical, each should attempt independently
+    const results = await Promise.allSettled([
       scheduleCleanupJob(),
       scheduleDailyAlertProcessing(),
       scheduleWeeklyAlertProcessing(),
@@ -120,11 +122,16 @@ export async function initializeInfrastructure(): Promise<void> {
       scheduleInactiveUserAlertPausing(),
       scheduleInvitationExpirationJob(),
     ]);
-    logger.info("Background jobs scheduled");
-  } catch (error) {
-    logger.warn("Failed to schedule background jobs", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+    const failed = results.filter((r) => r.status === "rejected");
+    if (failed.length > 0) {
+      for (const f of failed) {
+        logger.warn("Failed to schedule a background job", {
+          error: (f as PromiseRejectedResult).reason?.message ?? "Unknown error",
+        });
+      }
+    } else {
+      logger.info("Background jobs scheduled");
+    }
   }
 }
 
@@ -146,9 +153,12 @@ app.use(
 );
 app.use(helmet());
 
-// Disable CSP for the API docs route
+// Relaxed CSP for the API docs route (needs inline scripts/styles for Scalar UI)
 app.use("/api/auth/reference", (_req, res, next) => {
-  res.removeHeader("Content-Security-Policy");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self'",
+  );
   next();
 });
 
@@ -176,12 +186,35 @@ const swaggerOptions = generator.generateDocument({
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerOptions));
 
-// Request logging middleware (development only)
+// Redact sensitive fields from request bodies before logging
+const SENSITIVE_KEYS = new Set([
+  "password",
+  "currentPassword",
+  "newPassword",
+  "confirmPassword",
+  "token",
+  "accessToken",
+  "refreshToken",
+  "secret",
+  "authorization",
+]);
+
+const redactBody = (body: Record<string, unknown>): Record<string, unknown> => {
+  if (!body || typeof body !== "object") return body;
+  return Object.fromEntries(
+    Object.entries(body).map(([key, value]) => [
+      key,
+      SENSITIVE_KEYS.has(key) ? "[REDACTED]" : value,
+    ]),
+  );
+};
+
+// Verbose request logging (development only)
 if (env.NODE_ENV === "development") {
   app.use((req: Request, _: Response, next: NextFunction) => {
     logger.info(
       {
-        body: req.body,
+        body: redactBody(req.body),
         query: req.query,
         params: req.params,
       },
@@ -258,9 +291,6 @@ app.get(
         environment: env.NODE_ENV,
         database: {
           connected: isDatabaseHealthy,
-          host: env.DB_HOST,
-          port: env.DB_PORT,
-          name: env.DB_NAME,
         },
         version: "1.0.0",
       };

@@ -379,7 +379,7 @@ export class UserService extends BaseService {
       // Queue notification email
       await queueService.addJob(
         QUEUE_NAMES.EMAIL_QUEUE,
-        "sendAccountDeletionConfirmation",
+        "sendAccountDeactivationConfirmation",
         {
           userId: id,
           email: user.email,

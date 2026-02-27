@@ -15,7 +15,7 @@ import { relations, sql } from "drizzle-orm";
 import { user } from "./users";
 import { jobsDetails } from "@/db/schema/jobsDetails";
 
-type JobTypes = "full_time | part_time | contract | temporary | intern";
+type JobTypes = "full_time" | "part_time" | "contract" | "temporary" | "intern";
 
 export const jobAlerts = mysqlTable(
   "job_alerts",

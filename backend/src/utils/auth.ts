@@ -31,21 +31,26 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "mysql",
   }),
+  rateLimit: {
+    enabled: isProduction,
+    window: 60, // 60 seconds
+    max: 100, // limit each IP to 100 requests per windowMs
+  },
   trustedOrigins: [env.FRONTEND_URL],
   baseURL: isProduction ? env.SERVER_URL : undefined,
   basePath: "/api/auth",
   session: {
     cookieCache: {
-      enabled: true,
+      enabled: isProduction,
       maxAge: 5 * 60, // 5 minutes
     },
   },
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: false,
+    requireEmailVerification: isProduction,
   },
   emailVerification: {
-    sendOnSignUp: true,
+    sendOnSignUp: isProduction,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, token }) => {
       await emailService.sendEmailVerification(user.email, user.name, token);
@@ -68,7 +73,7 @@ export const auth = betterAuth({
   },
   user: {
     deleteUser: {
-      enabled: true,
+      enabled: isProduction,
       sendDeleteAccountVerification: async ({ user, url, token }) => {
         await emailService.sendDeleteAccountEmailVerification(
           user.email,

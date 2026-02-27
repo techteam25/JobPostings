@@ -275,7 +275,7 @@ export class UserRepository extends BaseRepository<typeof user> {
             ...userProfileData
           } = profileData;
 
-          await tx.update(userProfile).set({ ...userProfileData, userId });
+          await tx.update(userProfile).set({ ...userProfileData, userId }).where(eq(userProfile.userId, userId));
           const userProfileId = await tx
             .select({ id: userProfile.id })
             .from(userProfile)
@@ -595,14 +595,19 @@ export class UserRepository extends BaseRepository<typeof user> {
         isExpired: !savedJob.job.isActive,
       }));
 
-      const totalPages = Math.ceil(response.length / limit);
+      const [totalResult] = await db
+        .select({ total: count() })
+        .from(savedJobs)
+        .where(eq(savedJobs.userId, userId));
+      const total = totalResult?.total ?? 0;
 
+      const totalPages = Math.ceil(total / limit);
       const hasNext = page < totalPages;
       const hasPrevious = page > 1;
       return {
         items: response,
         pagination: {
-          total: response.length,
+          total,
           page,
           limit,
           totalPages,

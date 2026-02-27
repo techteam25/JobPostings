@@ -61,7 +61,6 @@ export const jobsDetails = mysqlTable(
     index("is_remote_idx").on(table.isRemote),
     index("experience_idx").on(table.experience),
     index("is_active_idx").on(table.isActive),
-    index("active_idx").on(table.isActive),
     index("deadline_idx").on(table.applicationDeadline),
     index("created_at_idx").on(table.createdAt),
     foreignKey({

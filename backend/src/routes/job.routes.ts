@@ -220,6 +220,15 @@ registry.registerPath({
  * @param {Response} res - Express response object.
  * @returns {Promise<void>} - Sends a JSON response with the job posting details.
  */
+// /me/applications must be registered before /:jobId to avoid "me" matching as a jobId param
+router.get(
+  "/me/applications",
+  authMiddleware.authenticate,
+  authMiddleware.requireUserRole,
+  cacheMiddleware({ ttl: 300 }),
+  jobController.getUserApplications,
+);
+
 router.get(
   "/:jobId",
   validate(getJobSchema),
@@ -332,13 +341,6 @@ registry.registerPath({
  * @param {Response} res - Express response object.
  * @returns {Promise<void>} - Sends a JSON response with the user's job applications.
  */
-router.get(
-  "/me/applications",
-  authMiddleware.requireUserRole,
-  cacheMiddleware({ ttl: 300 }),
-  jobController.getUserApplications,
-);
-
 registry.registerPath({
   method: "post",
   path: "/api/jobs/{jobId}/apply",

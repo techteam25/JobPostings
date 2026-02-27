@@ -413,7 +413,7 @@ export class JobRepository extends BaseRepository<typeof jobsDetails> {
         await transaction
           .update(jobInsights)
           .set({
-            viewCount: sql`(${jobInsights.viewCount} + 1)`,
+            applicationCount: sql`(${jobInsights.applicationCount} + 1)`,
           })
           .where(eq(jobInsights.job, applicationData.jobId));
 

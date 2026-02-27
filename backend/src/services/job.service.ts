@@ -377,7 +377,7 @@ export class JobService extends BaseService {
           ? SecurityUtils.sanitizeInput(updateData.city)
           : undefined,
         state: updateData.state
-          ? this.processSkillsArray(updateData.state)
+          ? SecurityUtils.sanitizeInput(updateData.state)
           : undefined,
       };
 
@@ -446,11 +446,11 @@ export class JobService extends BaseService {
           QUEUE_NAMES.EMAIL_QUEUE,
           "sendJobDeletionEmail",
           {
-            userEmail: user.email,
-            userName: user.fullName,
+            userId: requesterId,
+            email: user.email,
+            fullName: user.fullName,
             jobTitle: job.job.title,
             jobId: id,
-            organizationId,
           },
         );
       }
@@ -476,13 +476,13 @@ export class JobService extends BaseService {
     correlationId: string,
   ): Promise<Result<{ applicationId: number; message: string }, Error>> {
     try {
-      // Check if job exists and is active
-      const job = await this.getJobById(applicationData.jobId);
+      // Check if job exists and is active (use repository directly to avoid incrementing view count)
+      const jobData = await this.jobRepository.findJobById(applicationData.jobId);
 
-      if (!job.isSuccess) {
+      if (!jobData?.job) {
         return fail(new NotFoundError("Job", applicationData.jobId));
       }
-      if (!job.value.job.isActive) {
+      if (!jobData.job.isActive) {
         return fail(
           new ValidationError("This job is no longer accepting applications"),
         );
@@ -490,8 +490,8 @@ export class JobService extends BaseService {
 
       // Check application deadline
       if (
-        job.value.job.applicationDeadline &&
-        new Date() > new Date(job.value.job.applicationDeadline)
+        jobData.job.applicationDeadline &&
+        new Date() > new Date(jobData.job.applicationDeadline)
       ) {
         return fail(new ValidationError("The application deadline has passed"));
       }
@@ -586,7 +586,7 @@ export class JobService extends BaseService {
             userId: applicationData.applicantId,
             email: applicant.email,
             fullName: applicant.fullName,
-            jobTitle: job.value.job.title,
+            jobTitle: jobData.job.title,
             jobId: applicationData.jobId,
           },
         );
@@ -597,6 +597,9 @@ export class JobService extends BaseService {
         message: "Application submitted successfully",
       });
     } catch (error) {
+      if (error instanceof AppError) {
+        return fail(error);
+      }
       logger.error(error);
       return fail(new DatabaseError("Failed to submit application"));
     }

@@ -74,7 +74,7 @@ const jobAlertNotificationSchema = baseEmailSchema.extend({
 });
 
 // Map of job names to their validation schemas
-const emailJobSchemas = {
+export const emailJobSchemas = {
   sendWelcomeEmail: baseEmailSchema,
   sendPasswordResetEmail: baseEmailSchema,
   sendJobApplicationConfirmation: jobApplicationConfirmationSchema,
@@ -90,7 +90,12 @@ const emailJobSchemas = {
   "job-alert-notification": jobAlertNotificationSchema,
 } as const;
 
-type EmailJobName = keyof typeof emailJobSchemas;
+export type EmailJobName = keyof typeof emailJobSchemas;
+
+/** Inferred payload type for a given email job name */
+export type EmailJobPayload<T extends EmailJobName> = z.infer<
+  (typeof emailJobSchemas)[T]
+>;
 
 // Generic job data type for BullMQ registration
 type EmailJobData = Record<string, unknown>;
