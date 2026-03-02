@@ -102,7 +102,7 @@ export const auth = betterAuth({
   },
   advanced: {
     database: {
-      useNumberId: true,
+      generateId: "serial",
     },
     defaultCookieAttributes: {
       domain: isProduction ? ".getinvolved.team" : undefined,
