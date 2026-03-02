@@ -1,4 +1,5 @@
 import { eq, and, gte, lte, desc, sql, or, like, count } from "drizzle-orm";
+import logger from "@/logger";
 import { db } from "@/db/connection";
 import {
   auditLogs,
@@ -23,7 +24,7 @@ export class AuditRepository {
       const [log] = await db.insert(auditLogs).values(logData);
       return log;
     } catch (error) {
-      console.error("Failed to create audit log:", error);
+      logger.error({ err: error }, "Failed to create audit log");
       return null;
     }
   }
@@ -168,7 +169,7 @@ export class AuditRepository {
         .select({ total: count() })
         .from(auditLogs)
         .where(whereClause);
-      const total = totalResult[0]?.total ?? 0; 
+      const total = totalResult[0]?.total ?? 0;
       return {
         items: logs,
         pagination: {
@@ -179,7 +180,7 @@ export class AuditRepository {
         },
       };
     } catch (error) {
-      console.error("Failed to retrieve audit logs:", error);
+      logger.error({ err: error }, "Failed to retrieve audit logs");
       throw error;
     }
   }
@@ -220,7 +221,7 @@ export class AuditRepository {
 
       return log || null;
     } catch (error) {
-      console.error("Failed to retrieve audit log:", error);
+      logger.error({ err: error }, "Failed to retrieve audit log");
       return null;
     }
   }
@@ -350,7 +351,7 @@ export class AuditRepository {
         resourceCounts,
       };
     } catch (error) {
-      console.error("Failed to retrieve audit statistics:", error);
+      logger.error({ err: error }, "Failed to retrieve audit statistics");
       throw error;
     }
   }
@@ -371,7 +372,7 @@ export class AuditRepository {
 
       return result;
     } catch (error) {
-      console.error("Failed to delete old audit logs:", error);
+      logger.error({ err: error }, "Failed to delete old audit logs");
       throw error;
     }
   }

@@ -64,7 +64,7 @@ export default async function Page({ params }: PageProps) {
               <CompanyInformation organization={organization} />
             </TabsContent>
             <TabsContent value="members">
-              <EmployeeListSection members={organization.members} />
+              <EmployeeListSection members={organization.members} organizationId={organization.id} />
             </TabsContent>
           </Tabs>
         </div>

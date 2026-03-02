@@ -1,16 +1,13 @@
-// noinspection DuplicatedCode
-
-import { sql, eq, and } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "@/db/connection";
 import {
   organizationInvitations,
   organizationMembers,
-  organizations,
   user,
 } from "@/db/schema";
 
 import { request, TestHelpers } from "@tests/utils/testHelpers";
-import { seedUserWithRole } from "@tests/utils/seed";
+import { seedUserWithRoleScenario } from "@tests/utils/seedScenarios";
 import { expect, beforeEach, describe, it, beforeAll, afterAll, vi } from "vitest";
 import { auth } from "@/utils/auth";
 import { randomUUID } from "crypto";
@@ -29,17 +26,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
   });
 
   beforeEach(async () => {
-    // Clean up all invitation-related data
-    await db.delete(organizationInvitations);
-    await db.delete(organizationMembers);
-    await db.delete(organizations);
-    await db.delete(user);
-
-    // Reset auto-increment counters
-    await db.execute(sql`ALTER TABLE organization_invitations AUTO_INCREMENT = 1`);
-    await db.execute(sql`ALTER TABLE organization_members AUTO_INCREMENT = 1`);
-    await db.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
-    await db.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+    // cleanAll() runs via setupTests.ts beforeEach — no manual cleanup needed
   });
 
   describe("POST /organizations/:organizationId/invitations", () => {
@@ -48,7 +35,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
       let organizationId: number;
 
       beforeEach(async () => {
-        await seedUserWithRole("owner", "owner@example.com");
+        await seedUserWithRoleScenario("owner", "owner@example.com");
         const signInResponse = await request
           .post("/api/auth/sign-in/email")
           .send({ email: "owner@example.com", password: "Password@123" });
@@ -132,7 +119,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
       let organizationId: number;
 
       beforeEach(async () => {
-        await seedUserWithRole("admin", "admin@example.com");
+        await seedUserWithRoleScenario("admin", "admin@example.com");
         const signInResponse = await request
           .post("/api/auth/sign-in/email")
           .send({ email: "admin@example.com", password: "Password@123" });
@@ -163,7 +150,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
       let organizationId: number;
 
       beforeEach(async () => {
-        await seedUserWithRole("recruiter", "recruiter@example.com");
+        await seedUserWithRoleScenario("recruiter", "recruiter@example.com");
         const signInResponse = await request
           .post("/api/auth/sign-in/email")
           .send({ email: "recruiter@example.com", password: "Password@123" });
@@ -206,14 +193,14 @@ describe("Organization Invitations Controller Integration Tests", async () => {
     });
   });
 
-  describe("GET /invitations/:token/details", () => {
+  describe("GET /invitations/:organizationId/:token/details", () => {
     let organizationId: number;
     let inviterId: number;
     let invitationToken: string;
 
     beforeEach(async () => {
       // Create organization and owner
-      await seedUserWithRole("owner", "owner@example.com");
+      await seedUserWithRoleScenario("owner", "owner@example.com");
       const ownerUser = await db.query.user.findFirst({
         where: eq(user.email, "owner@example.com"),
       });
@@ -254,7 +241,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
 
     it("should return invitation details for valid token", async () => {
       const response = await request.get(
-        `/api/invitations/${invitationToken}/details`,
+        `/api/invitations/${organizationId}/${invitationToken}/details`,
       );
 
       TestHelpers.validateApiResponse(response, 200);
@@ -267,7 +254,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
 
     it("should fail for invalid token returning 404", async () => {
       const response = await request.get(
-        `/api/invitations/invalid-token-123/details`,
+        `/api/invitations/${organizationId}/invalid-token-123/details`,
       );
 
       expect(response.status).toBe(404);
@@ -291,7 +278,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
       });
 
       const response = await request.get(
-        `/api/invitations/${expiredToken}/details`,
+        `/api/invitations/${organizationId}/${expiredToken}/details`,
       );
 
       expect(response.status).toBe(400);
@@ -316,7 +303,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
       });
 
       const response = await request.get(
-        `/api/invitations/${acceptedToken}/details`,
+        `/api/invitations/${organizationId}/${acceptedToken}/details`,
       );
 
       expect(response.status).toBe(400);
@@ -324,14 +311,14 @@ describe("Organization Invitations Controller Integration Tests", async () => {
     });
   });
 
-  describe("POST /invitations/:token/accept", () => {
+  describe("POST /invitations/:organizationId/:token/accept", () => {
     let organizationId: number;
     let inviterId: number;
     let invitationToken: string;
     let inviteeEmail: string;
 
     beforeEach(async () => {
-      await seedUserWithRole("owner", "owner@example.com");
+      await seedUserWithRoleScenario("owner", "owner@example.com");
       const ownerUser = await db.query.user.findFirst({
         where: eq(user.email, "owner@example.com"),
       });
@@ -373,7 +360,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
       const inviteeCookie = signInResponse.headers["set-cookie"]?.[0] || "";
 
       const response = await request
-        .post(`/api/invitations/${invitationToken}/accept`)
+        .post(`/api/invitations/${organizationId}/${invitationToken}/accept`)
         .set("Cookie", inviteeCookie);
 
       TestHelpers.validateApiResponse(response, 200);
@@ -418,7 +405,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
       const cookie = signInResponse.headers["set-cookie"]?.[0] || "";
 
       const response = await request
-        .post(`/api/invitations/${invitationToken}/accept`)
+        .post(`/api/invitations/${organizationId}/${invitationToken}/accept`)
         .set("Cookie", cookie);
 
       expect(response.status).toBe(400);
@@ -456,7 +443,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
       const cookie = signInResponse.headers["set-cookie"]?.[0] || "";
 
       const response = await request
-        .post(`/api/invitations/${expiredToken}/accept`)
+        .post(`/api/invitations/${organizationId}/${expiredToken}/accept`)
         .set("Cookie", cookie);
 
       expect(response.status).toBe(400);
@@ -481,12 +468,12 @@ describe("Organization Invitations Controller Integration Tests", async () => {
 
       // Accept once
       await request
-        .post(`/api/invitations/${invitationToken}/accept`)
+        .post(`/api/invitations/${organizationId}/${invitationToken}/accept`)
         .set("Cookie", cookie);
 
       // Try to accept again
       const response = await request
-        .post(`/api/invitations/${invitationToken}/accept`)
+        .post(`/api/invitations/${organizationId}/${invitationToken}/accept`)
         .set("Cookie", cookie);
 
       expect(response.status).toBe(400);
@@ -495,7 +482,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
 
     it("should fail without authentication returning 401", async () => {
       const response = await request.post(
-        `/api/invitations/${invitationToken}/accept`,
+        `/api/invitations/${organizationId}/${invitationToken}/accept`,
       );
 
       expect(response.status).toBe(401);
@@ -509,7 +496,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
     let invitationId: number;
 
     beforeEach(async () => {
-      await seedUserWithRole("owner", "owner@example.com");
+      await seedUserWithRoleScenario("owner", "owner@example.com");
       const ownerUser = await db.query.user.findFirst({
         where: eq(user.email, "owner@example.com"),
       });
@@ -673,7 +660,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
       let recruiterCookie: string;
 
       beforeEach(async () => {
-        await seedUserWithRole("recruiter", "recruiter@example.com");
+        await seedUserWithRoleScenario("recruiter", "recruiter@example.com");
         const signInResponse = await request
           .post("/api/auth/sign-in/email")
           .send({ email: "recruiter@example.com", password: "Password@123" });

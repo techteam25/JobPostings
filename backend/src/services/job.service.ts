@@ -28,6 +28,8 @@ import { AppError } from "@/utils/errors";
 
 import { SearchParams } from "@/validations/base.validation";
 import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
+import { StorageFolder } from "@/workers/file-upload-worker";
+import { FileUploadJobData } from "@/validations/file.validation";
 
 import { fail, ok } from "./base.service";
 import logger from "@/logger";
@@ -379,15 +381,17 @@ export class JobService extends BaseService {
     requesterId: number,
   ): Promise<Result<Job, Error>> {
     try {
-      const job = await this.getJobById(id);
+      const job = await this.jobRepository.findJobById(id);
 
-      if (!job.isSuccess) {
+      if (!job) {
         return fail(new NotFoundError("Job", id));
       }
 
       // Authorization check - only admin or employer who posted the job can update
-      const organization =
-        await this.organizationRepository.findByContact(requesterId);
+      const organization = await this.organizationRepository.findByContact(
+        requesterId,
+        job.employer!.id,
+      );
 
       if (!organization) {
         return fail(
@@ -395,7 +399,7 @@ export class JobService extends BaseService {
         );
       }
 
-      if (job.value.job.employerId !== organization.id) {
+      if (job.job.employerId !== organization.id) {
         return fail(
           new ForbiddenError(
             "You can only update jobs posted by your organization",
@@ -416,7 +420,7 @@ export class JobService extends BaseService {
           ? SecurityUtils.sanitizeInput(updateData.city)
           : undefined,
         state: updateData.state
-          ? this.processSkillsArray(updateData.state)
+          ? SecurityUtils.sanitizeInput(updateData.state)
           : undefined,
       };
 
@@ -456,9 +460,9 @@ export class JobService extends BaseService {
     organizationId: number,
   ): Promise<Result<null, Error>> {
     try {
-      const job = await this.getJobById(id);
+      const job = await this.jobRepository.findJobById(id);
 
-      if (!job.isSuccess) {
+      if (!job) {
         return fail(new NotFoundError("Job", id));
       }
 
@@ -485,11 +489,11 @@ export class JobService extends BaseService {
           QUEUE_NAMES.EMAIL_QUEUE,
           "sendJobDeletionEmail",
           {
-            userEmail: user.email,
-            userName: user.fullName,
-            jobTitle: job.value.job.title,
+            userId: requesterId,
+            email: user.email,
+            fullName: user.fullName,
+            jobTitle: job.job.title,
             jobId: id,
-            organizationId,
           },
         );
       }
@@ -504,19 +508,24 @@ export class JobService extends BaseService {
   /**
    * Allows a user to apply for a job.
    * @param applicationData The application data including job ID and applicant ID.
+   * @param correlationId A unique identifier for tracking the application process across services.
    * @returns A Result containing the application ID and message or an error.
    */
   async applyForJob(
-    applicationData: NewJobApplication,
+    applicationData: NewJobApplication & {
+      resume?: Express.Multer.File;
+      coverLetterFile?: Express.Multer.File;
+    },
+    correlationId: string,
   ): Promise<Result<{ applicationId: number; message: string }, Error>> {
     try {
-      // Check if job exists and is active
-      const job = await this.getJobById(applicationData.jobId);
+      // Check if job exists and is active (use repository directly to avoid incrementing view count)
+      const jobData = await this.jobRepository.findJobById(applicationData.jobId);
 
-      if (!job.isSuccess) {
+      if (!jobData?.job) {
         return fail(new NotFoundError("Job", applicationData.jobId));
       }
-      if (!job.value.job.isActive) {
+      if (!jobData.job.isActive) {
         return fail(
           new ValidationError("This job is no longer accepting applications"),
         );
@@ -524,8 +533,8 @@ export class JobService extends BaseService {
 
       // Check application deadline
       if (
-        job.value.job.applicationDeadline &&
-        new Date() > new Date(job.value.job.applicationDeadline)
+        jobData.job.applicationDeadline &&
+        new Date() > new Date(jobData.job.applicationDeadline)
       ) {
         return fail(new ValidationError("The application deadline has passed"));
       }
@@ -540,12 +549,18 @@ export class JobService extends BaseService {
         return fail(new ConflictError("You have already applied for this job"));
       }
 
-      // Sanitize application data
+      // Sanitize application data (remove file objects before DB insert)
+      // customAnswers comes from req.body but is not a DB column,
+      // so we store it in the notes field as sanitized JSON
+      const { resume, coverLetterFile, customAnswers, ...dbData } =
+        applicationData as typeof applicationData & {
+          customAnswers?: string;
+        };
       const sanitizedData = {
-        ...applicationData,
-        coverLetter: SecurityUtils.sanitizeInput(
-          applicationData.coverLetter ?? "",
-        ),
+        ...dbData,
+        notes: customAnswers
+          ? SecurityUtils.sanitizeInput(customAnswers)
+          : undefined,
       };
 
       const applicationId =
@@ -553,6 +568,51 @@ export class JobService extends BaseService {
 
       if (!applicationId) {
         return fail(new DatabaseError("Failed to submit application"));
+      }
+
+      // Collect temp files for upload (resume and/or cover letter)
+      const tempFiles: Array<{
+        originalname: string;
+        tempPath: string;
+        size: number;
+        mimetype: string;
+        fieldName: string;
+      }> = [];
+
+      if (resume) {
+        tempFiles.push({
+          originalname: resume.originalname,
+          tempPath: resume.path,
+          size: resume.size,
+          mimetype: resume.mimetype,
+          fieldName: "resume",
+        });
+      }
+
+      if (coverLetterFile) {
+        tempFiles.push({
+          originalname: coverLetterFile.originalname,
+          tempPath: coverLetterFile.path,
+          size: coverLetterFile.size,
+          mimetype: coverLetterFile.mimetype,
+          fieldName: "coverLetter",
+        });
+      }
+
+      if (tempFiles.length > 0) {
+        await queueService.addJob<FileUploadJobData>(
+          QUEUE_NAMES.FILE_UPLOAD_QUEUE,
+          "uploadFile",
+          {
+            entityType: "job",
+            entityId: applicationId.toString(),
+            folder: StorageFolder.RESUMES,
+            mergeWithExisting: false,
+            tempFiles,
+            userId: applicationData.applicantId.toString(),
+            correlationId,
+          },
+        );
       }
 
       // Fetch user details for email notification
@@ -569,7 +629,7 @@ export class JobService extends BaseService {
             userId: applicationData.applicantId,
             email: applicant.email,
             fullName: applicant.fullName,
-            jobTitle: job.value.job.title,
+            jobTitle: jobData.job.title,
             jobId: applicationData.jobId,
           },
         );
@@ -580,6 +640,9 @@ export class JobService extends BaseService {
         message: "Application submitted successfully",
       });
     } catch (error) {
+      if (error instanceof AppError) {
+        return fail(error);
+      }
       logger.error(error);
       return fail(new DatabaseError("Failed to submit application"));
     }
@@ -599,14 +662,16 @@ export class JobService extends BaseService {
   ) {
     try {
       // Authorization check - only admin or employer who posted the job can view applications
-      const [job, organization] = await Promise.all([
-        this.getJobById(jobId),
-        this.organizationRepository.findByContact(requesterId),
-      ]);
+      const job = await this.getJobById(jobId);
 
       if (!job.isSuccess) {
         return fail(new NotFoundError("Job", jobId));
       }
+
+      const organization = await this.organizationRepository.findByContact(
+        requesterId,
+        job.value.employer!.id,
+      );
 
       if (!organization) {
         return fail(
@@ -680,14 +745,16 @@ export class JobService extends BaseService {
         return fail(new NotFoundError("Application", applicationId));
       }
 
-      const [job, organization] = await Promise.all([
-        this.getJobById(application.job.id),
-        this.organizationRepository.findByContact(requesterId),
-      ]);
+      const job = await this.getJobById(application.job.id);
 
       if (!job.isSuccess) {
         return fail(new NotFoundError("Job", application.job.id));
       }
+
+      const organization = await this.organizationRepository.findByContact(
+        requesterId,
+        job.value.employer!.id,
+      );
 
       if (!organization) {
         return fail(

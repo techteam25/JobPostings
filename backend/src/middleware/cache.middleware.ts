@@ -21,7 +21,7 @@ export const cacheMiddleware = (options: CacheMiddlewareOptions) => {
       // Generate cache key
       const cacheKey = options.keyGenerator
         ? options.keyGenerator(req)
-        : `${req.originalUrl || req.url}`;
+        : `${(req.originalUrl || req.url).replace(/^\/api\//, "")}`;
 
       // Try to get from cache
       const cached = await CacheService.get(cacheKey, {

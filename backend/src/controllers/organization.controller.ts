@@ -109,7 +109,7 @@ export class OrganizationController extends BaseController {
   ) => {
     const memberId = parseInt(req.params.id);
     const organization =
-      await this.organizationService.getOrganizationMember(memberId);
+      await this.organizationService.getFirstOrganizationForUser(memberId);
 
     if (organization.isSuccess) {
       return this.sendSuccess<{ organizationId: number }>(
@@ -453,7 +453,11 @@ export class OrganizationController extends BaseController {
    * @param res The Express response object.
    */
   sendInvitation = async (
-    req: Request<CreateOrganizationInvitationInput["params"]>,
+    req: Request<
+      CreateOrganizationInvitationInput["params"],
+      {},
+      CreateOrganizationInvitationInput["body"]
+    >,
     res: Response<ApiResponse<{ invitationId: number; message: string }>>,
   ) => {
     // Note: Authentication is validated by middleware before this method is called.
@@ -490,9 +494,12 @@ export class OrganizationController extends BaseController {
       }>
     >,
   ) => {
-    const { token } = req.params;
+    const { token, organizationId } = req.params;
 
-    const result = await this.organizationService.getInvitationDetails(token);
+    const result = await this.organizationService.getInvitationDetails(
+      token,
+      parseInt(organizationId),
+    );
 
     if (result.isSuccess) {
       return this.sendSuccess(
@@ -515,11 +522,12 @@ export class OrganizationController extends BaseController {
     res: Response<ApiResponse<{ message: string }>>,
   ) => {
     // Note: Authentication is validated by middleware before this method is called.
-    const { token } = req.params;
+    const { token, organizationId } = req.params;
 
     const result = await this.organizationService.acceptInvitation(
       token,
       req.userId!,
+      parseInt(organizationId),
     );
 
     if (result.isSuccess) {

@@ -18,7 +18,9 @@ import {
 import {
   CreateJobAlertInput,
   JobAlert,
+  UpdateJobAlertInput,
 } from "@/validations/jobAlerts.validation";
+import { CandidateSearchParams } from "@/validations/candidateSearch.validation";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 import crypto from "crypto";
@@ -30,7 +32,7 @@ import { AuditService } from "./audit.service";
  */
 export class UserService extends BaseService {
   async searchCandidates(
-    filters: { q: string; city: string; page?: number; limit?: number },
+    filters: CandidateSearchParams,
     requestingUserId: number,
   ) {
     try {
@@ -166,9 +168,6 @@ export class UserService extends BaseService {
         profileData,
       );
 
-      // Create default email preferences for the user
-      await this.createDefaultEmailPreferences(userId);
-
       return ok(profile);
     } catch (error) {
       if (error instanceof AppError) {
@@ -209,7 +208,7 @@ export class UserService extends BaseService {
         },
       });
       if (!success) {
-        return fail(new Error("Failed to update user"));
+        return fail(new DatabaseError("Failed to update user"));
       }
 
       return await this.getUserById(id);
@@ -276,8 +275,6 @@ export class UserService extends BaseService {
       if (!updatedProfile) {
         return fail(new DatabaseError("Failed to update profile visibility"));
       }
-
-      console.log({ updatedProfile });
 
       return ok(updatedProfile);
     } catch (error) {
@@ -347,7 +344,7 @@ export class UserService extends BaseService {
         },
       );
       if (!deactivatedUser) {
-        return fail(new Error("Failed to deactivate account"));
+        return fail(new DatabaseError("Failed to deactivate account"));
       }
 
       // Log the deactivation event
@@ -383,7 +380,7 @@ export class UserService extends BaseService {
         errorMessage: error instanceof Error ? error.message : "Unknown error",
         description: "Failed to deactivate account",
       });
-      
+
       if (error instanceof AppError) {
         return this.handleError(error);
       }
@@ -431,13 +428,13 @@ export class UserService extends BaseService {
         status: "deactivated",
       });
       if (!success) {
-        return fail(new Error("Failed to deactivate user"));
+        return fail(new DatabaseError("Failed to deactivate user"));
       }
 
       // Queue notification email
       await queueService.addJob(
         QUEUE_NAMES.EMAIL_QUEUE,
-        "sendAccountDeletionConfirmation",
+        "sendAccountDeactivationConfirmation",
         {
           userId: id,
           email: user.email,
@@ -471,7 +468,7 @@ export class UserService extends BaseService {
 
     const success = await this.userRepository.update(id, { status: "active" });
     if (!success) {
-      return this.handleError(new Error("Failed to activate user"));
+      return this.handleError(new DatabaseError("Failed to activate user"));
     }
 
     return await this.getUserById(id);
@@ -573,7 +570,7 @@ export class UserService extends BaseService {
       });
 
       if (!userDeleted) {
-        return fail(new Error("Failed to delete account"));
+        return fail(new DatabaseError("Failed to delete account"));
       }
 
       // Queue notification email
@@ -711,7 +708,7 @@ export class UserService extends BaseService {
    */
   async getEmailPreferences(userId: number) {
     try {
-      const preferences =
+      let preferences =
         await this.userRepository.findEmailPreferencesByUserId(userId);
 
       if (!preferences) {
@@ -1036,6 +1033,188 @@ export class UserService extends BaseService {
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to retrieve job alert"));
+    }
+  }
+
+  /**
+   * Updates an existing job alert for a user.
+   * Validates ownership and updates only provided fields.
+   * @param userId The ID of the user.
+   * @param alertId The ID of the alert to update.
+   * @param updateData Partial job alert data to update.
+   * @returns A Result containing the updated job alert or an error.
+   */
+  async updateJobAlert(
+    userId: number,
+    alertId: number,
+    updateData: UpdateJobAlertInput,
+  ) {
+    try {
+      const existingAlert = await this.userRepository.getJobAlertById(
+        userId,
+        alertId,
+      );
+
+      if (!existingAlert) {
+        return fail(new NotFoundError("Job alert", alertId));
+      }
+
+      // Recalibrate lastSentAt when frequency changes
+      const dataWithSchedule = this.applyFrequencyChangeSchedule(
+        existingAlert,
+        updateData,
+      );
+
+      // Preview the merged state to validate before persisting
+      const merged = { ...existingAlert, ...dataWithSchedule };
+
+      const hasSearchQuery =
+        merged.searchQuery && merged.searchQuery.trim().length > 0;
+      const hasLocation =
+        (merged.city && merged.city.trim().length > 0) ||
+        (merged.state && merged.state.trim().length > 0);
+      const hasSkills = merged.skills && merged.skills.length > 0;
+      const hasJobTypes = merged.jobType && merged.jobType.length > 0;
+      const hasExperienceLevels =
+        merged.experienceLevel && merged.experienceLevel.length > 0;
+
+      const hasValidCriteria =
+        hasSearchQuery ||
+        hasLocation ||
+        hasSkills ||
+        hasJobTypes ||
+        hasExperienceLevels;
+
+      if (!hasValidCriteria) {
+        return fail(
+          new ValidationError(
+            "Job alert must have at least one search criterion (search query, location, skills, job type, or experience level)",
+          ),
+        );
+      }
+
+      const updatedAlert = await this.userRepository.updateJobAlert(
+        userId,
+        alertId,
+        dataWithSchedule,
+      );
+
+      if (!updatedAlert) {
+        return fail(new DatabaseError("Failed to update job alert"));
+      }
+
+      return ok(updatedAlert);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update job alert"));
+    }
+  }
+
+  /**
+   * Recalibrates `lastSentAt` when alert frequency changes so the worker
+   * picks up the alert at the correct next interval.
+   *
+   * - Switching to a more frequent cadence (e.g. weekly → daily): set lastSentAt
+   *   far enough in the past so the next cron run picks it up immediately.
+   * - Switching to a less frequent cadence (e.g. daily → weekly): set lastSentAt
+   *   to now so the next send is a full interval from now.
+   */
+  applyFrequencyChangeSchedule(
+    existingAlert: JobAlert,
+    updateData: UpdateJobAlertInput,
+  ): UpdateJobAlertInput & { lastSentAt?: Date | null } {
+    if (
+      !updateData.frequency ||
+      updateData.frequency === existingAlert.frequency
+    ) {
+      return updateData;
+    }
+
+    const now = new Date();
+    const frequencyOrder = { daily: 0, weekly: 1, monthly: 2 } as const;
+    const oldOrder = frequencyOrder[existingAlert.frequency];
+    const newOrder = frequencyOrder[updateData.frequency];
+
+    if (newOrder < oldOrder) {
+      // Switching to more frequent: allow immediate pickup by next cron
+      return { ...updateData, lastSentAt: null };
+    }
+
+    // Switching to less frequent: anchor from now so next send is a full interval away
+    return { ...updateData, lastSentAt: now };
+  }
+
+  /**
+   * Deletes a job alert for a user.
+   * Validates ownership before deletion.
+   * @param userId The ID of the user.
+   * @param alertId The ID of the alert to delete.
+   * @returns A Result containing success status or an error.
+   */
+  async deleteJobAlert(userId: number, alertId: number) {
+    try {
+      const existingAlert = await this.userRepository.getJobAlertById(
+        userId,
+        alertId,
+      );
+
+      if (!existingAlert) {
+        return fail(new NotFoundError("Job alert", alertId));
+      }
+
+      await this.userRepository.deleteJobAlert(userId, alertId);
+
+      return ok(null);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to delete job alert"));
+    }
+  }
+
+  /**
+   * Toggles the pause state of a job alert for a user.
+   * @param userId The ID of the user.
+   * @param alertId The ID of the alert.
+   * @param isPaused The new pause state.
+   * @returns A Result containing the updated job alert or an error.
+   */
+  async togglePauseJobAlert(
+    userId: number,
+    alertId: number,
+    isPaused: boolean,
+  ) {
+    try {
+      const existingAlert = await this.userRepository.getJobAlertById(
+        userId,
+        alertId,
+      );
+
+      if (!existingAlert) {
+        return fail(new NotFoundError("Job alert", alertId));
+      }
+
+      const updatedAlert = await this.userRepository.updateJobAlertPauseState(
+        userId,
+        alertId,
+        isPaused,
+      );
+
+      if (!updatedAlert) {
+        return fail(
+          new DatabaseError("Failed to update job alert pause state"),
+        );
+      }
+
+      return ok(updatedAlert);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update job alert pause state"));
     }
   }
 

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { UserService } from "@/services/user.service";
+import { OrganizationService } from "@/services/organization.service";
 import { BaseController } from "./base.controller";
 import {
   ChangePasswordSchema,
@@ -18,6 +19,7 @@ import {
   GetUnsubscribeLandingPage,
 } from "@/validations/user.validation";
 import { ApiResponse } from "@/types";
+import { ValidationError } from "@/utils/errors";
 import { auth } from "@/utils/auth";
 import {
   UpdateProfileVisibilityInput,
@@ -30,11 +32,15 @@ import {
 import { GetJobSchema } from "@/validations/job.validation";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 import { AuditService } from "@/services/audit.service";
+import logger from "@/logger";
 import {
   CreateJobAlert,
   GetJobAlert,
   GetUserJobAlertsQuery,
   JobAlert,
+  UpdateJobAlert,
+  DeleteJobAlert,
+  TogglePauseJobAlert,
 } from "@/validations/jobAlerts.validation";
 import { CandidateSearchParams } from "@/validations/candidateSearch.validation";
 
@@ -44,6 +50,7 @@ import { CandidateSearchParams } from "@/validations/candidateSearch.validation"
 export class UserController extends BaseController {
   private userService: UserService;
   private auditService: AuditService;
+  private organizationService: OrganizationService;
 
   /**
    * Creates an instance of UserController and initializes the required services.
@@ -52,6 +59,7 @@ export class UserController extends BaseController {
     super();
     this.userService = new UserService();
     this.auditService = new AuditService();
+    this.organizationService = new OrganizationService();
   }
 
   /**
@@ -124,19 +132,23 @@ export class UserController extends BaseController {
 
     if (user.isSuccess) {
       // Log the audit event
-      await this.auditService.logFromRequest(req, "user.update", {
-        resourceType: "user",
-        resourceId: id,
-        oldValues: oldUser.isSuccess ? {
-          fullName: oldUser.value.fullName,
-          email: oldUser.value.email,
-        } : undefined,
-        newValues: {
-          fullName: updateData.fullName,
-          email: updateData.email,
-        },
-        description: `User profile updated for user ID ${id}`,
-      });
+      try {
+        await this.auditService.logFromRequest(req, "user.update", {
+          resourceType: "user",
+          resourceId: id,
+          oldValues: oldUser.isSuccess ? {
+            fullName: oldUser.value.fullName,
+            email: oldUser.value.email,
+          } : undefined,
+          newValues: {
+            fullName: updateData.fullName,
+            email: updateData.email,
+          },
+          description: `User profile updated for user ID ${id}`,
+        });
+      } catch (err) {
+        logger.error({ err, userId: id }, "Failed to write audit log for user update");
+      }
       return this.sendSuccess<User>(
         res,
         user.value,
@@ -144,13 +156,17 @@ export class UserController extends BaseController {
       );
     } else {
       // Log failed attempt
-      await this.auditService.logFromRequest(req, "user.update", {
-        resourceType: "user",
-        resourceId: id,
-        success: "false",
-        errorMessage: user.error.message,
-        description: `Failed to update user ID ${id}`,
-      });
+      try {
+        await this.auditService.logFromRequest(req, "user.update", {
+          resourceType: "user",
+          resourceId: id,
+          success: "false",
+          errorMessage: user.error.message,
+          description: `Failed to update user ID ${id}`,
+        });
+      } catch (err) {
+        logger.error({ err, userId: id }, "Failed to write audit log for failed user update");
+      }
       return this.handleControllerError(res, user.error);
     }
   };
@@ -379,23 +395,33 @@ export class UserController extends BaseController {
 
     if (result.isSuccess) {
       // Log the deletion
-      await this.auditService.logFromRequest(req, "user.delete", {
-        resourceType: "user",
-        resourceId: req.userId!,
-        severity: "warning",
-        description: `User self-deleted account`,
-      });
+      try {
+        await this.auditService.logFromRequest(req, "user.delete", {
+          resourceType: "user",
+          resourceId: req.userId!,
+          severity: "warning",
+          description: `User self-deleted account`,
+        });
+      } catch (err) {
+        // Audit logging failure should not impact account deletion response
+        logger.error({ err, userId: req.userId }, "Failed to write audit log for user deletion");
+      }
       return this.sendSuccess(res, null, "Account deleted successfully", 204);
     } else {
       // Log failed deletion attempt
-      await this.auditService.logFromRequest(req, "user.delete", {
-        resourceType: "user",
-        resourceId: req.userId!,
-        severity: "warning",
-        success: "false",
-        errorMessage: result.error.message,
-        description: `Failed to delete account`,
-      });
+      try {
+        await this.auditService.logFromRequest(req, "user.delete", {
+          resourceType: "user",
+          resourceId: req.userId!,
+          severity: "warning",
+          success: "false",
+          errorMessage: result.error.message,
+          description: `Failed to delete account`,
+        });
+      } catch (err) {
+        // Audit logging failure should not impact error response
+        logger.error({ err, userId: req.userId }, "Failed to write audit log for failed deletion");
+      }
       return this.handleControllerError(res, result.error);
     }
   };
@@ -420,7 +446,7 @@ export class UserController extends BaseController {
         token,
       },
     });
-    return this.sendSuccess(res, result, "User deleted successfully", 200);
+    return this.sendSuccess(res, null, "User deleted successfully", 200);
   };
 
   /**
@@ -545,6 +571,27 @@ export class UserController extends BaseController {
   };
 
   /**
+   * Retrieves all organizations the authenticated user belongs to.
+   * @param req The Express request object.
+   * @param res The Express response object.
+   */
+  getUserOrganizations = async (req: Request, res: Response) => {
+    const result = await this.organizationService.getUserOrganizations(
+      req.userId!,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "User organizations retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
    * Retrieves email preferences for the authenticated user.
    * @param req The Express request object.
    * @param res The Express response object.
@@ -578,11 +625,10 @@ export class UserController extends BaseController {
     const preferences = req.body;
 
     if (preferences.accountSecurityAlerts === false) {
-      return res.status(400).json({
-        success: false,
-        message: "Security alerts cannot be disabled",
-        timestamp: new Date().toISOString(),
-      });
+      return this.sendError(
+        res,
+        new ValidationError("Security alerts cannot be disabled"),
+      );
     }
 
     const result = await this.userService.updateEmailPreferences(
@@ -742,10 +788,9 @@ export class UserController extends BaseController {
     req: Request<{}, {}, {}, CandidateSearchParams>,
     res: Response,
   ) => {
-    const { q = "", city = "" } = req.query;
     const userId = req.userId!;
 
-    const result = await this.userService.searchCandidates({ q, city }, userId);
+    const result = await this.userService.searchCandidates(req.query, userId);
 
     if (result.isSuccess) {
       const pagination = {
@@ -763,6 +808,92 @@ export class UserController extends BaseController {
       );
     }
     return this.handleControllerError(res, result.error);
+  };
+
+  /**
+   * Updates an existing job alert for the authenticated user.
+   * All fields are optional - only provided fields will be updated.
+   * @param req The Express request object with alert ID and update data.
+   * @param res The Express response object.
+   */
+  updateJobAlert = async (
+    req: Request<UpdateJobAlert["params"], {}, UpdateJobAlert["body"]>,
+    res: Response<ApiResponse<JobAlert>>,
+  ) => {
+    const alertId = Number(req.params.id);
+    const userId = req.userId!;
+    const updateData = req.body;
+
+    const result = await this.userService.updateJobAlert(
+      userId,
+      alertId,
+      updateData,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<JobAlert>(
+        res,
+        result.value,
+        "Job alert updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Deletes a job alert for the authenticated user.
+   * @param req The Express request object with alert ID parameter.
+   * @param res The Express response object.
+   */
+  deleteJobAlert = async (
+    req: Request<DeleteJobAlert["params"]>,
+    res: Response<ApiResponse<null>>,
+  ) => {
+    const alertId = Number(req.params.id);
+    const userId = req.userId!;
+
+    const result = await this.userService.deleteJobAlert(userId, alertId);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, null, "Job alert deleted successfully", 204);
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Toggles the pause state of a job alert for the authenticated user.
+   * @param req The Express request object with alert ID and pause state.
+   * @param res The Express response object.
+   */
+  togglePauseJobAlert = async (
+    req: Request<
+      TogglePauseJobAlert["params"],
+      {},
+      TogglePauseJobAlert["body"]
+    >,
+    res: Response<ApiResponse<JobAlert>>,
+  ) => {
+    const alertId = Number(req.params.id);
+    const userId = req.userId!;
+    const { isPaused } = req.body;
+
+    const result = await this.userService.togglePauseJobAlert(
+      userId,
+      alertId,
+      isPaused,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<JobAlert>(
+        res,
+        result.value,
+        `Job alert ${isPaused ? "paused" : "resumed"} successfully`,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
   };
 
   /**

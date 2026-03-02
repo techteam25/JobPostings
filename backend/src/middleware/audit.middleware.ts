@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AuditService } from "@/services/audit.service";
 import { AuditActionType } from "@/db/schema/auditLogs";
+import logger from "@/logger";
 
 /**
  * Middleware class for automatic audit logging
@@ -36,10 +37,10 @@ export class AuditMiddleware {
             metadata: { statusCode: res.statusCode, duration },
           })
           .then(() => {
-            console.log(`✅ Audit log created for ${action}`);
+            logger.debug({ action }, "Audit log created");
           })
           .catch((error) => {
-            console.error("❌ Failed to log audit trail:", error);
+            logger.error({ err: error, action }, "Failed to log audit trail");
           });
         // Call original end function
         return originalEnd.apply(this, args as Parameters<typeof originalEnd>);
@@ -162,7 +163,7 @@ export class AuditMiddleware {
         },
       });
     } catch (auditError) {
-      console.error("Failed to log error to audit trail:", auditError);
+      logger.error({ err: auditError }, "Failed to log error to audit trail");
     }
   };
 }

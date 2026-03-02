@@ -338,12 +338,15 @@ export class OrganizationService extends BaseService {
   /**
    * Retrieves the organization member for a given user.
    * @param sessionUserId The ID of the user.
+   * @param organizationId The ID of the organization.
    * @returns A Result containing the member or an error.
    */
-  async getOrganizationMember(sessionUserId: number) {
+  async getOrganizationMember(sessionUserId: number, organizationId: number) {
     try {
-      const member =
-        await this.organizationRepository.findByContact(sessionUserId);
+      const member = await this.organizationRepository.findByContact(
+        sessionUserId,
+        organizationId,
+      );
       if (!member) {
         return fail(new NotFoundError("Organization member not found"));
       }
@@ -353,6 +356,45 @@ export class OrganizationService extends BaseService {
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to fetch organization member"));
+    }
+  }
+
+  /**
+   * Retrieves the first active organization membership for a user.
+   * @param userId The ID of the user.
+   * @returns A Result containing the member or an error.
+   */
+  async getFirstOrganizationForUser(userId: number) {
+    try {
+      const member =
+        await this.organizationRepository.findMemberByUserId(userId);
+      if (!member) {
+        return fail(new NotFoundError("Organization member not found"));
+      }
+      return ok(member);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to fetch organization member"));
+    }
+  }
+
+  /**
+   * Retrieves all active organizations for a user.
+   * @param userId The ID of the user.
+   * @returns A Result containing the memberships or an error.
+   */
+  async getUserOrganizations(userId: number) {
+    try {
+      const memberships =
+        await this.organizationRepository.getUserOrganizations(userId);
+      return ok(memberships);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to fetch user organizations"));
     }
   }
 
@@ -727,9 +769,8 @@ export class OrganizationService extends BaseService {
       }
 
       // Queue invitation email
-      const organization = await this.organizationRepository.findById(
-        organizationId,
-      );
+      const organization =
+        await this.organizationRepository.findById(organizationId);
       const inviter = await this.userRepository.findById(requesterId);
 
       if (organization && inviter) {
@@ -781,6 +822,7 @@ export class OrganizationService extends BaseService {
    */
   async getInvitationDetails(
     token: string,
+    organizationId: number,
   ): Promise<Result<OrganizationInvitationDetails, Error>> {
     try {
       const invitation =
@@ -790,19 +832,20 @@ export class OrganizationService extends BaseService {
         return fail(new NotFoundError("Invitation not found"));
       }
 
+      // Verify the invitation belongs to the specified organization
+      if (invitation.organizationId !== organizationId) {
+        return fail(new NotFoundError("Invitation not found"));
+      }
+
       // Check if invitation is expired
       if (new Date() > new Date(invitation.expiresAt)) {
-        return fail(
-          new ValidationError("This invitation has expired"),
-        );
+        return fail(new ValidationError("This invitation has expired"));
       }
 
       // Check if invitation is already accepted
       if (invitation.status !== "pending") {
         return fail(
-          new ValidationError(
-            `This invitation has been ${invitation.status}`,
-          ),
+          new ValidationError(`This invitation has been ${invitation.status}`),
         );
       }
 
@@ -824,11 +867,13 @@ export class OrganizationService extends BaseService {
    * Accepts an organization invitation.
    * @param token The invitation token.
    * @param userId The ID of the user accepting the invitation.
+   * @param organizationId The ID of the organization.
    * @returns Success message.
    */
   async acceptInvitation(
     token: string,
     userId: number,
+    organizationId: number,
   ): Promise<Result<{ message: string }, Error>> {
     try {
       // 1. Find invitation by token
@@ -839,12 +884,15 @@ export class OrganizationService extends BaseService {
         return fail(new NotFoundError("Invitation not found"));
       }
 
+      // 1b. Verify the invitation belongs to the specified organization
+      if (invitation.organizationId !== organizationId) {
+        return fail(new NotFoundError("Invitation not found"));
+      }
+
       // 2. Validate invitation status
       if (invitation.status !== "pending") {
         return fail(
-          new ValidationError(
-            `This invitation has been ${invitation.status}`,
-          ),
+          new ValidationError(`This invitation has been ${invitation.status}`),
         );
       }
 
@@ -874,17 +922,17 @@ export class OrganizationService extends BaseService {
 
       // 6. Check if user is already a member of this organization
       try {
-        const existingMember =
-          await this.organizationRepository.findByContact(userId);
+        const existingMember = await this.organizationRepository.findByContact(
+          userId,
+          organizationId,
+        );
         if (
           existingMember &&
           existingMember.organizationId === invitation.organizationId &&
           existingMember.isActive
         ) {
           return fail(
-            new ConflictError(
-              "You are already a member of this organization",
-            ),
+            new ConflictError("You are already a member of this organization"),
           );
         }
       } catch (error) {
@@ -903,13 +951,10 @@ export class OrganizationService extends BaseService {
       });
 
       // 8. Update invitation status to accepted
-      await this.organizationRepository.updateInvitationStatus(
-        invitation.id,
-        {
-          status: "accepted",
-          acceptedAt: new Date(),
-        },
-      );
+      await this.organizationRepository.updateInvitationStatus(invitation.id, {
+        status: "accepted",
+        acceptedAt: new Date(),
+      });
 
       // 9. Queue welcome email
       const organization = await this.organizationRepository.findById(
@@ -981,14 +1026,11 @@ export class OrganizationService extends BaseService {
       }
 
       // 3. Update invitation status to cancelled
-      await this.organizationRepository.updateInvitationStatus(
-        invitationId,
-        {
-          status: "cancelled",
-          cancelledAt: new Date(),
-          cancelledBy: requesterId,
-        },
-      );
+      await this.organizationRepository.updateInvitationStatus(invitationId, {
+        status: "cancelled",
+        cancelledAt: new Date(),
+        cancelledBy: requesterId,
+      });
 
       return ok({
         message: "Invitation cancelled successfully",

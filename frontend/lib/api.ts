@@ -1,20 +1,25 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { env } from "@/env";
 import { JobResponse, Job, JobWithEmployer } from "@/schemas/responses/jobs";
 import {
   ApiResponse,
   EmailPreferences,
+  InvitationDetails,
+  JobAlert,
   Organization,
   OrganizationJobApplications,
+  OrganizationJobStats,
   OrganizationWithMembers,
   PaginatedApiResponse,
   SavedJob,
   SavedState,
   UserJobApplications,
+  UserOrganizationMembership,
   UserProfile,
+  UserWithProfile,
 } from "@/lib/types";
 import { UserIntentResponse } from "@/schemas/responses/users";
 
@@ -36,6 +41,29 @@ export const getUserIntent = async (): Promise<UserIntentResponse> => {
   return await res.json();
 };
 
+export const getUserOrganizations = async (): Promise<
+  ApiResponse<UserOrganizationMembership[]>
+> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/users/me/organizations`,
+    {
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+      next: { revalidate: 300, tags: ["user-organizations"] },
+    },
+  );
+
+  if (!res.ok) {
+    console.error("Failed to fetch user organizations");
+    return await res.json();
+  }
+
+  return await res.json();
+};
+
 export const getJobs = async (): Promise<
   PaginatedApiResponse<JobWithEmployer>
 > => {
@@ -50,9 +78,7 @@ export const getJobs = async (): Promise<
   return res.json();
 };
 
-export const getJobById = async (
-  jobId: number,
-): Promise<ApiResponse<JobResponse>> => {
+export const getJobById = async (jobId: number): Promise<JobResponse> => {
   const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}`, {
     next: { revalidate: 300, tags: [`job-${jobId}`] },
   });
@@ -97,7 +123,6 @@ export const getOrganization = async (
 
 export const updateOrganization = async (
   organizationData: Organization | null,
-  formData: FormData,
 ): Promise<Organization | null> => {
   const res = await fetch(
     `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${organizationData?.id}`,
@@ -188,7 +213,7 @@ export const getAllApplicationsByUser = async (): Promise<
       headers: {
         Cookie: cookieStore.toString(),
       },
-      next: { revalidate: 60, tags: [`user-applications`] },
+      next: { revalidate: 60, tags: ["user-applications"] },
     },
   );
 
@@ -242,7 +267,7 @@ export const saveJobForUser = async (jobId: number): Promise<boolean> => {
   }
 
   revalidatePath("/saved");
-  revalidateTag(`user-saved-job-${jobId}-exists`);
+  revalidatePath(`/job/${jobId}`);
 
   return true;
 };
@@ -268,7 +293,7 @@ export const removeSavedJobForUser = async (
   }
 
   revalidatePath("/saved");
-  revalidateTag(`user-saved-job-${jobId}-exists`);
+  revalidatePath(`/job/${jobId}`);
 
   return true;
 };
@@ -297,7 +322,7 @@ export const isJobSavedByUser = async (
 };
 
 export const getUserInformation = async (): Promise<
-  ApiResponse<UserProfile>
+  ApiResponse<UserWithProfile>
 > => {
   const cookieStore = await cookies();
   const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/users/me`, {
@@ -337,7 +362,60 @@ export const updateProfileVisibility = async (
     return await res.json();
   }
 
-  revalidateTag("user-bio-info");
+  revalidatePath("/profile");
+
+  return await res.json();
+};
+
+export const applyForJob = async (
+  jobId: number,
+  formData: FormData,
+): Promise<{ success: boolean; message: string; applicationId?: number }> => {
+  const cookieStore = await cookies();
+
+  const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}/apply`, {
+    method: "POST",
+    headers: {
+      Cookie: cookieStore.toString(),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    return {
+      success: false,
+      message: errorData.message || "Failed to submit application",
+    };
+  }
+
+  return await res.json();
+};
+
+export const withdrawJobApplication = async (
+  applicationId: number,
+): Promise<{ success: boolean; message: string }> => {
+  const cookieStore = await cookies();
+
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/jobs/applications/${applicationId}/withdraw`,
+    {
+      method: "PATCH",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+    },
+  );
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    return {
+      success: false,
+      message: errorData.message || "Failed to withdraw application",
+    };
+  }
+
+  revalidatePath("/applications");
 
   return await res.json();
 };
@@ -353,7 +431,7 @@ export const fetchEmailPreferences = async (): Promise<
       headers: {
         Cookie: cookieStore.toString(),
       },
-      next: { revalidate: 300, tags: ["email-preferences"] },
+      cache: "no-store", // Disable Next.js cache - TanStack Query handles caching
     },
   );
 
@@ -363,4 +441,102 @@ export const fetchEmailPreferences = async (): Promise<
   }
 
   return await res.json();
+};
+
+export const fetchJobAlerts = async (
+  page = 1,
+  limit = 10,
+): Promise<PaginatedApiResponse<JobAlert>> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/users/me/job-alerts?page=${page}&limit=${limit}`,
+    {
+      credentials: "include",
+      headers: { Cookie: cookieStore.toString() },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) return await res.json();
+  return await res.json();
+};
+
+export const fetchJobAlert = async (
+  alertId: number,
+): Promise<ApiResponse<JobAlert>> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/users/me/job-alerts/${alertId}`,
+    {
+      credentials: "include",
+      headers: { Cookie: cookieStore.toString() },
+      next: { revalidate: 300, tags: [`job-alert-${alertId}`] },
+    },
+  );
+  if (!res.ok) return await res.json();
+  return await res.json();
+};
+
+export const getOrganizationJobStats = async (
+  organizationId: number,
+): Promise<ApiResponse<OrganizationJobStats>> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/jobs/employer/${organizationId}/jobs/stats`,
+    {
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+      next: {
+        revalidate: 60,
+        tags: [`organization-${organizationId}-job-stats`],
+      },
+    },
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "Failed to fetch job stats");
+  }
+
+  return res.json();
+};
+
+export const getInvitationDetails = async (
+  token: string,
+): Promise<ApiResponse<InvitationDetails>> => {
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/invitations/${token}/details`,
+    { next: { revalidate: 0 } },
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "Failed to fetch invitation details");
+  }
+
+  return res.json();
+};
+
+export const acceptInvitation = async (
+  token: string,
+): Promise<ApiResponse<{ organizationId: number }>> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/invitations/${token}/accept`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+    },
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "Failed to accept invitation");
+  }
+
+  return res.json();
 };

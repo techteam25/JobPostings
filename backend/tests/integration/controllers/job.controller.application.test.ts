@@ -1,5 +1,6 @@
 import { request, TestHelpers } from "@tests/utils/testHelpers";
-import { seedJobs } from "@tests/utils/seed";
+import { seedJobsScenario } from "@tests/utils/seedScenarios";
+import { createUser } from "@tests/utils/seedBuilders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "@/utils/auth";
 import { JobService } from "@/services/job.service";
@@ -14,15 +15,8 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
   beforeEach(async () => {
     const { faker } = await import("@faker-js/faker");
 
-    await seedJobs();
-    await auth.api.signUpEmail({
-      body: {
-        email: "normal.user@example.com",
-        password: "Password@123",
-        name: faker.person.firstName() + " " + faker.person.lastName(),
-        image: faker.image.avatar(),
-      },
-    });
+    await seedJobsScenario();
+    await createUser({ email: "normal.user@example.com" });
 
     // Login as org member (email from seed: org.member@example.com)
     const loginResponse = await request
@@ -39,9 +33,8 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
   describe("Success Cases", () => {
     it("should successfully submit application with valid data", async () => {
       const applicationData = {
-        coverLetter:
-          "I am very interested in this position. My background in software development makes me a great fit for this role. I have 5 years of experience working with various technologies.",
-        resumeUrl: "https://example.com/resume.pdf",
+        customAnswers: "I have 5 years of experience with TypeScript and Node.js.",
+        notes: "Available to start immediately.",
       };
 
       const response = await request
@@ -57,10 +50,9 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
       // Email notification is queued asynchronously (tested separately)
     });
 
-    it("should submit application with only cover letter", async () => {
+    it("should submit application with only custom answers", async () => {
       const applicationData = {
-        coverLetter:
-          "I am very interested in this position and believe I would be a great fit based on my experience and skills in the field.",
+        customAnswers: "I have extensive experience in this field.",
       };
 
       const response = await request
@@ -72,9 +64,9 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
       expect(response.body.data).toHaveProperty("applicationId");
     });
 
-    it("should submit application with only resume URL", async () => {
+    it("should submit application with only notes", async () => {
       const applicationData = {
-        resumeUrl: "https://example.com/my-resume.pdf",
+        notes: "Referred by a current employee.",
       };
 
       const response = await request
@@ -98,42 +90,9 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
   });
 
   describe("Validation Errors", () => {
-    it("should reject cover letter less than 50 characters", async () => {
+    it("should reject notes exceeding max length", async () => {
       const applicationData = {
-        coverLetter: "Too short",
-      };
-
-      const response = await request
-        .post(`/api/jobs/${jobId}/apply`)
-        .set("Cookie", userCookie)
-        .send(applicationData);
-
-      expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty("error");
-      expect(response.body.error).toHaveProperty("details");
-      expect(Array.isArray(response.body.error.details)).toBeTruthy();
-      expect(response.body.error.details[0].message).toContain(
-        "Cover letter must be at least 50 characters",
-      );
-    });
-
-    it("should reject cover letter more than 2000 characters", async () => {
-      const applicationData = {
-        coverLetter: "a".repeat(2001),
-      };
-
-      const response = await request
-        .post(`/api/jobs/${jobId}/apply`)
-        .set("Cookie", userCookie)
-        .send(applicationData);
-
-      expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty("error");
-    });
-
-    it("should reject invalid resume URL", async () => {
-      const applicationData = {
-        resumeUrl: "not-a-valid-url",
+        notes: "a".repeat(5001),
       };
 
       const response = await request
@@ -157,8 +116,6 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
 
     it("should reject extra fields in body", async () => {
       const applicationData = {
-        coverLetter:
-          "I am very interested in this position and have the required skills.",
         extraField: "should not be allowed",
       };
 
@@ -194,39 +151,36 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
     it("should reject application for inactive job", async () => {
       const inactiveJobId = 3;
 
-      // Spy on getJobById to return an inactive job
+      // Spy on findJobById to return an inactive job
       const getJobByIdSpy = vi
-        .spyOn(JobService.prototype, "getJobById")
-        .mockResolvedValue(
-          ok({
-            hasApplied: false,
-            job: {
-              id: inactiveJobId,
-              title: "Inactive Job",
-              description: "This job is inactive",
-              city: "New York",
-              state: "NY",
-              country: "United States",
-              zipcode: 10001,
-              jobType: "full-time",
-              compensationType: "paid",
-              isRemote: false,
-              isActive: false,
-              applicationDeadline: null,
-              experience: null,
-              employerId: 1,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-            employer: {
-              id: 1,
-              name: "Test Employer",
-              city: "New York",
-              state: "NY",
-              logoUrl: null,
-            },
-          }),
-        );
+        .spyOn(JobRepository.prototype, "findJobById")
+        .mockResolvedValue({
+          job: {
+            id: inactiveJobId,
+            title: "Inactive Job",
+            description: "This job is inactive",
+            city: "New York",
+            state: "NY",
+            country: "United States",
+            zipcode: "10001",
+            jobType: "full-time",
+            compensationType: "paid",
+            isRemote: false,
+            isActive: false,
+            applicationDeadline: null,
+            experience: null,
+            employerId: 1,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          employer: {
+            id: 1,
+            name: "Test Employer",
+            city: "New York",
+            state: "NY",
+            logoUrl: null,
+          },
+        } as any);
 
       const response = await request
         .post(`/api/jobs/${inactiveJobId}/apply`)
@@ -303,27 +257,13 @@ describe("Withdraw Job Application Integration Tests", () => {
   beforeEach(async () => {
     const { faker } = await import("@faker-js/faker");
 
-    await seedJobs();
+    await seedJobsScenario();
 
     // Create first test user
-    await auth.api.signUpEmail({
-      body: {
-        email: "test.user1@example.com",
-        password: "Password@123",
-        name: faker.person.firstName() + " " + faker.person.lastName(),
-        image: faker.image.avatar(),
-      },
-    });
+    await createUser({ email: "test.user1@example.com" });
 
     // Create second test user
-    await auth.api.signUpEmail({
-      body: {
-        email: "test.user2@example.com",
-        password: "Password@123",
-        name: faker.person.firstName() + " " + faker.person.lastName(),
-        image: faker.image.avatar(),
-      },
-    });
+    await createUser({ email: "test.user2@example.com" });
 
     // Login first user
     const loginResponse1 = await request
@@ -378,6 +318,7 @@ describe("Withdraw Job Application Integration Tests", () => {
 
       // Verify email queue was called
       expect(queueService.addJob).toHaveBeenCalledWith(
+        "emailQueue",
         "sendApplicationWithdrawalConfirmation",
         expect.objectContaining({
           email: expect.any(String),
@@ -463,6 +404,7 @@ describe("Withdraw Job Application Integration Tests", () => {
         .expect(200);
 
       expect(queueService.addJob).toHaveBeenCalledWith(
+        "emailQueue",
         "sendApplicationWithdrawalConfirmation",
         expect.objectContaining({
           email: expect.stringMatching(/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/),

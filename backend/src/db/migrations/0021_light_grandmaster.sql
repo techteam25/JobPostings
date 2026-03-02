@@ -1,0 +1,1 @@
+ALTER TABLE `job_alerts` MODIFY COLUMN `last_sent_at` timestamp;

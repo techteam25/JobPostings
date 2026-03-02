@@ -25,6 +25,7 @@ import {
 } from "@/validations/userProfile.validation";
 import { getJobSchema } from "@/validations/job.validation";
 import { auditMiddleware } from "@/middleware/audit.middleware";
+import { selectOrganizationSchema } from "@/validations/organization.validation";
 import {
   cacheMiddleware,
   invalidateCacheMiddleware,
@@ -34,6 +35,9 @@ import {
   getUserJobAlertsQuerySchema,
   getJobAlertSchema,
   selectJobAlertSchema,
+  updateJobAlertSchema,
+  deleteJobAlertSchema,
+  togglePauseJobAlertSchema,
 } from "@/validations/jobAlerts.validation";
 import {
   candidateSearchParams,
@@ -241,7 +245,65 @@ registry.registerPath({
  * @param {Response} res - Express response object.
  * @returns {Promise<void>} - Sends a JSON response with the user's intent and status.
  */
-router.get("/me/intent", userController.getCurrentUserIntent);
+router.get(
+  "/me/intent",
+  cacheMiddleware({ ttl: 300 }),
+  userController.getCurrentUserIntent,
+);
+
+registry.registerPath({
+  method: "get",
+  path: "/users/me/organizations",
+  tags: ["Users"],
+  summary: "Get Current User's Organizations",
+  description:
+    "Retrieve all organizations the currently logged-in user belongs to.",
+  responses: {
+    200: {
+      description: "User organizations retrieved successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.array(
+              z.object({
+                id: z.number(),
+                userId: z.number(),
+                organizationId: z.number(),
+                role: z.enum(["owner", "admin", "recruiter", "member"]),
+                isActive: z.boolean(),
+                createdAt: z.string(),
+                updatedAt: z.string(),
+                organization: selectOrganizationSchema,
+              }),
+            ),
+          ),
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+/**
+ * Retrieves all organizations the authenticated user belongs to.
+ * This authenticated endpoint fetches the user's organization memberships with organization details.
+ * Includes caching for performance optimization.
+ * @route GET /users/me/organizations
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the user's organizations.
+ */
+router.get(
+  "/me/organizations",
+  cacheMiddleware({ ttl: 300 }),
+  userController.getUserOrganizations,
+);
 
 registry.registerPath({
   method: "put",
@@ -884,6 +946,7 @@ registry.registerPath({
  */
 router.post(
   "/me/email-preferences/unsubscribe/:token",
+  invalidateCacheMiddleware(() => "users/me/email-preferences"),
   userController.unsubscribeByToken,
 );
 
@@ -1123,10 +1186,6 @@ registry.registerPath({
         },
       },
     },
-    400: {
-      description: "Validation error",
-      content: { "application/json": { schema: errorResponseSchema } },
-    },
     401: {
       description: "Authentication required",
       content: { "application/json": { schema: errorResponseSchema } },
@@ -1151,6 +1210,193 @@ router.get(
   "/candidates/search",
   validate(candidateSearchParams),
   userController.searchCandidates,
+);
+
+registry.registerPath({
+  method: "put",
+  path: "/users/me/job-alerts/{id}",
+  tags: ["Users"],
+  summary: "Update Job Alert",
+  description:
+    "Update an existing job alert for the authenticated user. All fields are optional.",
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string" },
+      description: "Job alert ID",
+    },
+  ],
+  request: {
+    body: {
+      description: "Job alert update data (all fields optional)",
+      content: {
+        "application/json": {
+          schema: updateJobAlertSchema.shape.body,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Job alert updated successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(selectJobAlertSchema),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    401: {
+      description: "Authentication required",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    404: {
+      description: "Job alert not found",
+    },
+  },
+});
+
+/**
+ * Updates an existing job alert for the authenticated user.
+ * All fields are optional - only provided fields will be updated.
+ * Requires user authentication and job seeker role.
+ * Invalidates cache for job alerts.
+ * @route PUT /users/me/job-alerts/:id
+ * @param {Object} req.params - Route parameters including the alert ID.
+ * @param {Object} req.body - Request body with fields to update.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<ApiResponse<JobAlert>>} - Updated job alert.
+ */
+router.put(
+  "/me/job-alerts/:id",
+  authMiddleware.requireUserRole,
+  validate(updateJobAlertSchema),
+  invalidateCacheMiddleware(() => "users/me/job-alerts"),
+  userController.updateJobAlert,
+);
+
+registry.registerPath({
+  method: "patch",
+  path: "/users/me/job-alerts/{id}/pause",
+  tags: ["Users"],
+  summary: "Toggle Job Alert Pause State",
+  description:
+    "Toggle the pause state of a job alert. Paused alerts won't send notifications.",
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string" },
+      description: "Job alert ID",
+    },
+  ],
+  request: {
+    body: {
+      description: "Pause state",
+      content: {
+        "application/json": {
+          schema: togglePauseJobAlertSchema.shape.body,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Job alert pause state updated successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(selectJobAlertSchema),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+    },
+    404: {
+      description: "Job alert not found",
+    },
+  },
+});
+
+/**
+ * Toggles the pause state of a job alert for the authenticated user.
+ * Paused alerts remain active but won't trigger notifications.
+ * Requires user authentication and job seeker role.
+ * Invalidates cache for job alerts.
+ * @route PATCH /users/me/job-alerts/:id/pause
+ * @param {Object} req.params - Route parameters including the alert ID.
+ * @param {Object} req.body - Request body with isPaused boolean.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<ApiResponse<JobAlert>>} - Updated job alert.
+ */
+router.patch(
+  "/me/job-alerts/:id/pause",
+  authMiddleware.requireUserRole,
+  validate(togglePauseJobAlertSchema),
+  invalidateCacheMiddleware(() => "users/me/job-alerts"),
+  userController.togglePauseJobAlert,
+);
+
+registry.registerPath({
+  method: "delete",
+  path: "/users/me/job-alerts/{id}",
+  tags: ["Users"],
+  summary: "Delete Job Alert",
+  description: "Delete a job alert for the authenticated user.",
+  parameters: [
+    {
+      name: "id",
+      in: "path",
+      required: true,
+      schema: { type: "string" },
+      description: "Job alert ID",
+    },
+  ],
+  responses: {
+    204: {
+      description: "Job alert deleted successfully",
+    },
+    404: {
+      description: "Job alert not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+/**
+ * Deletes a job alert for the authenticated user.
+ * Permanently removes the job alert and associated data.
+ * Requires user authentication and job seeker role.
+ * Invalidates cache for job alerts.
+ * @route DELETE /users/me/job-alerts/:id
+ * @param {Object} req.params - Route parameters including the alert ID.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<ApiResponse<null>>} - Success message.
+ */
+router.delete(
+  "/me/job-alerts/:id",
+  authMiddleware.requireUserRole,
+  validate(deleteJobAlertSchema),
+  invalidateCacheMiddleware(() => "users/me/job-alerts"),
+  userController.deleteJobAlert,
 );
 
 // Admin only routes for user management
@@ -1285,6 +1531,7 @@ router.get(
  */
 router.post(
   "/me/email-preferences/unsubscribe-context",
+  invalidateCacheMiddleware(() => "users/me/email-preferences"),
   authMiddleware.authenticate,
   userController.unsubscribeByContext,
 );
@@ -1313,6 +1560,7 @@ router.post(
  */
 router.patch(
   "/me/email-preferences/granular",
+  invalidateCacheMiddleware(() => "users/me/email-preferences"),
   authMiddleware.authenticate,
   userController.updateGranularEmailPreference,
 );

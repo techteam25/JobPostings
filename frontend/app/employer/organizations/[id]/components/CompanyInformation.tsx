@@ -1,12 +1,16 @@
 "use client";
+
+import { useRef } from "react";
 import { useActionState } from "react";
 import { updateOrganization } from "@/lib/api";
+import { toast } from "sonner";
 
 import { Copy, Loader2, Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { Organization } from "@/lib/types";
+import { useUploadLogo } from "@/app/employer/organizations/hooks/use-upload-logo";
 
 interface CompanyInformationProps {
   organization: Organization;
@@ -17,6 +21,28 @@ const CompanyInformation = ({ organization }: CompanyInformationProps) => {
     updateOrganization,
     organization,
   );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { mutateAsync: uploadLogo, isPending: isUploading } = useUploadLogo(
+    organization.id,
+  );
+
+  const handleLogoUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5MB");
+      return;
+    }
+    await uploadLogo(file);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
+  };
+
   return (
     <div className="flex h-full w-full flex-col p-8">
       <form action={action}>
@@ -34,8 +60,9 @@ const CompanyInformation = ({ organization }: CompanyInformationProps) => {
                 defaultValue={state?.name || ""}
               />
               <Copy
-                className="text-muted-foreground absolute top-2.5 right-3"
+                className="text-muted-foreground hover:text-foreground absolute top-2.5 right-3 cursor-pointer"
                 size={20}
+                onClick={() => copyToClipboard(state?.name || "")}
               />
             </div>
           </div>
@@ -51,8 +78,9 @@ const CompanyInformation = ({ organization }: CompanyInformationProps) => {
                 defaultValue={state?.url || ""}
               />
               <Copy
-                className="text-muted-foreground absolute top-2.5 right-3"
+                className="text-muted-foreground hover:text-foreground absolute top-2.5 right-3 cursor-pointer"
                 size={20}
+                onClick={() => copyToClipboard(state?.url || "")}
               />
             </div>
           </div>
@@ -63,7 +91,7 @@ const CompanyInformation = ({ organization }: CompanyInformationProps) => {
             <Label className="mb-2 block text-sm font-medium">City</Label>
             <Input
               type="text"
-              placeholder="Enter the website..."
+              placeholder="Enter the city..."
               className="border-border w-full rounded-lg border px-4 py-2"
               defaultValue={state?.city || ""}
             />
@@ -72,7 +100,7 @@ const CompanyInformation = ({ organization }: CompanyInformationProps) => {
             <Label className="mb-2 block text-sm font-medium">Country</Label>
             <Input
               type="text"
-              placeholder="Enter the website..."
+              placeholder="Enter the country..."
               className="border-border w-full rounded-lg border px-4 py-2"
               defaultValue={state?.country || ""}
             />
@@ -84,7 +112,7 @@ const CompanyInformation = ({ organization }: CompanyInformationProps) => {
             <Label className="mb-2 block text-sm font-medium">Address</Label>
             <Input
               type="text"
-              placeholder="Enter the website..."
+              placeholder="Enter the address..."
               className="border-border w-full rounded-lg border px-4 py-2"
               defaultValue={state?.streetAddress || ""}
             />
@@ -93,7 +121,7 @@ const CompanyInformation = ({ organization }: CompanyInformationProps) => {
             <Label className="mb-2 block text-sm font-medium">State</Label>
             <Input
               type="text"
-              placeholder="Enter the website..."
+              placeholder="Enter the state..."
               className="border-border w-full rounded-lg border px-4 py-2"
               defaultValue={state?.state || ""}
             />
@@ -103,13 +131,36 @@ const CompanyInformation = ({ organization }: CompanyInformationProps) => {
           {/* Upload Logo */}
           <div>
             <h3 className="mb-3 font-semibold">Upload Your Logo</h3>
-            <div className="border-border bg-background rounded-lg border-2 border-dashed p-12 text-center">
-              <Upload
-                className="text-muted-foreground mx-auto mb-2"
-                size={32}
+            <div
+              className="border-border bg-background cursor-pointer rounded-lg border-2 border-dashed p-12 text-center"
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files[0];
+                if (file) handleLogoUpload(file);
+              }}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/png,image/jpeg,image/jpg"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleLogoUpload(file);
+                }}
               />
+              {isUploading ? (
+                <Loader2 className="text-muted-foreground mx-auto mb-2 animate-spin" size={32} />
+              ) : (
+                <Upload
+                  className="text-muted-foreground mx-auto mb-2"
+                  size={32}
+                />
+              )}
               <p className="text-secondary-foreground text-sm">
-                Click to upload your logo
+                {isUploading ? "Uploading..." : "Click or drag to upload your logo"}
               </p>
               <p className="text-muted-foreground text-xs">
                 It must be a PNG, JPG or JPEG file

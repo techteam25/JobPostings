@@ -10,6 +10,7 @@ import {
   FileMetadata,
   FileUploadJobData,
   FileUploadResult,
+  sanitizeFilename,
 } from "@/validations/file.validation";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 
@@ -18,6 +19,7 @@ export enum StorageFolder {
   ORGANIZATION_LOGOS = "organization-logos",
   JOB_ATTACHMENTS = "job-attachments",
   RESUMES = "resumes",
+  COVER_LETTERS = "cover-letters",
 }
 
 /** * Update file metadata for the specified entity
@@ -27,6 +29,7 @@ export enum StorageFolder {
  * @param urls The URLs of the uploaded files
  * @param metadata The metadata of the uploaded files
  * @param mergeWithExisting Whether to merge with existing metadata or replace it
+ * @param tempFiles The original temp files with fieldName for URL routing
  */
 async function updateEntityFileMetadata(
   entityType: FileUploadJobData["entityType"],
@@ -34,6 +37,7 @@ async function updateEntityFileMetadata(
   urls: string[],
   metadata: FileMetadata[],
   mergeWithExisting: boolean,
+  tempFiles?: FileUploadJobData["tempFiles"],
 ): Promise<void> {
   const id = parseInt(entityId, 10);
 
@@ -48,9 +52,28 @@ async function updateEntityFileMetadata(
           (existing?.fileMetadata as FileMetadata[]) || [];
         metadata = [...existingMetadata, ...metadata];
       }
+
+      // Route URLs to the correct columns based on fieldName
+      const updateData: Record<string, unknown> = { fileMetadata: metadata };
+
+      if (tempFiles) {
+        tempFiles.forEach((file, index) => {
+          if (urls[index]) {
+            if (file.fieldName === "coverLetter") {
+              updateData.coverLetterUrl = urls[index];
+            } else {
+              updateData.resumeUrl = urls[index];
+            }
+          }
+        });
+      } else {
+        // Fallback for backward compatibility
+        updateData.resumeUrl = urls[0] || null;
+      }
+
       await db
         .update(jobApplications)
-        .set({ fileMetadata: metadata })
+        .set(updateData)
         .where(eq(jobApplications.id, id));
       break;
     }
@@ -116,10 +139,15 @@ export async function processFileUploadJob(job: BullMqJob<FileUploadJobData>) {
     // Update progress: starting
     await job.updateProgress(0);
 
+    // Build deterministic filenames from job ID for idempotent retries
+    const deterministicNames = tempFiles.map(
+      (f, index) => `${job.id}-${index}-${sanitizeFilename(f.originalname)}`,
+    );
+
     // Upload files to Firebase
     const result = await firebaseUploadService.uploadFiles(
       tempFiles,
-      { folder },
+      { folder, deterministicNames },
       async (progress) => {
         await job.updateProgress(progress);
       },
@@ -136,6 +164,7 @@ export async function processFileUploadJob(job: BullMqJob<FileUploadJobData>) {
         result.urls,
         result.metadata,
         mergeWithExisting,
+        tempFiles,
       );
     }
 

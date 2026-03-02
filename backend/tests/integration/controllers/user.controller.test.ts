@@ -1,26 +1,22 @@
 // noinspection DuplicatedCode
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { request, TestHelpers } from "@tests/utils/testHelpers";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { db } from "@/db/connection";
 
 import {
-  certifications,
-  educations,
-  userCertifications,
   userEmailPreferences,
-  userProfile,
-  workExperiences,
 } from "@/db/schema";
 
 import {
-  seedJobs,
-  seedOrganizations,
-  seedUser,
-  seedUserProfile,
-} from "@tests/utils/seed";
+  seedJobsScenario,
+  seedOrgScenario,
+  seedUserScenario,
+  seedUserProfileScenario,
+} from "@tests/utils/seedScenarios";
+import { createUser, createUserProfile } from "@tests/utils/seedBuilders";
 import {
   userCertificationsFixture,
   userProfileFixture,
@@ -47,28 +43,28 @@ vi.mock("@/infrastructure/email.service", () => {
   };
 });
 
-// Mock the better-auth client
-vi.mock("@/utils/auth", async () => {
-  // get the real module first
-  const actual = await vi.importActual<Record<string, any>>("@/utils/auth");
-
-  // clone and override only deleteUser
+vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/infrastructure/queue.service")>();
   return {
-    ...actual,
-    auth: {
-      ...actual.auth,
-      api: {
-        ...actual.auth.api,
-        deleteUser: vi.fn().mockResolvedValue({ success: true }),
-      },
+    ...original,
+    queueService: {
+      addJob: vi.fn().mockResolvedValue(undefined),
     },
   };
 });
 
 describe("User Controller Integration Tests", () => {
+  beforeAll(() => {
+    vi.spyOn(auth.api, "deleteUser").mockResolvedValue({ success: true } as any);
+  });
+
+  afterAll(() => {
+    vi.mocked(auth.api.deleteUser).mockRestore();
+  });
+
   describe("GET /users", () => {
     beforeEach(async () => {
-      await seedUser();
+      await seedUserScenario();
     });
 
     it("should retrieve currently logged in user returning 200", async () => {
@@ -132,14 +128,7 @@ describe("User Controller Integration Tests", () => {
   describe("POST and PUT /users/me/profile", () => {
     describe("POST /users/me/profile", () => {
       beforeEach(async () => {
-        db.delete(userCertifications).catch(console.error);
-
-        db.delete(educations).catch(console.error);
-        db.delete(workExperiences).catch(console.error);
-        db.delete(certifications).catch(console.error);
-        db.delete(userProfile).catch(console.error);
-        await db.execute(sql`ALTER TABLE user_profile AUTO_INCREMENT = 1`);
-        await seedUser();
+        await seedUserScenario();
       });
 
       it("should create user profile returning 201", async () => {
@@ -187,7 +176,11 @@ describe("User Controller Integration Tests", () => {
       });
 
       it("should update user profile returning 200", async () => {
-        await seedUserProfile();
+        // User already created by beforeEach(seedUserScenario); just add profile + prefs
+        const { createUserProfile: createProfile, createEmailPreferences: createPrefs } = await import("@tests/utils/seedBuilders");
+        await createProfile(1);
+        await createPrefs(1);
+
         const loginResponse = await request
           .post("/api/auth/sign-in/email")
           .send({
@@ -236,7 +229,7 @@ describe("User Controller Integration Tests", () => {
       beforeEach(async () => {
         vi.clearAllMocks();
 
-        await seedUser();
+        await seedUserScenario();
       });
 
       it("should deactivate user account returning 200", async () => {
@@ -274,7 +267,7 @@ describe("User Controller Integration Tests", () => {
       beforeEach(async () => {
         vi.clearAllMocks();
 
-        await seedOrganizations();
+        await seedOrgScenario();
       });
 
       it("should delete user account returning 204", async () => {
@@ -294,8 +287,6 @@ describe("User Controller Integration Tests", () => {
           .set("Cookie", cookie!)
           .send({ currentPassword: "Password@123", confirm: true });
 
-        // const token = "Password@123";
-
         expect(response.status).toBe(204);
         // expect(auth.api.deleteUser).toHaveBeenCalledWith({ body: { token } });
       });
@@ -304,20 +295,9 @@ describe("User Controller Integration Tests", () => {
 
   describe("GET users/me/saved-jobs/:jobId/check", () => {
     beforeEach(async () => {
-      await seedJobs();
-      const createdUser = await auth.api.signUpEmail({
-        body: {
-          email: "normal.user@example.com",
-          password: "Password@123",
-          name: "Normal User",
-          image: "https://example.com/image.png",
-        },
-      });
-      const userProfileData = await userProfileFixture();
-      await db.insert(userProfile).values({
-        ...userProfileData,
-        userId: Number(createdUser.user.id),
-      });
+      const { jobs } = await seedJobsScenario();
+      const user = await createUser({ email: "normal.user@example.com" });
+      await createUserProfile(user.id);
     });
 
     it("retrieves saved status for a job when user is authenticated returning 200", async () => {
@@ -371,20 +351,9 @@ describe("User Controller Integration Tests", () => {
 
   describe("saveJobForCurrentUser", () => {
     beforeEach(async () => {
-      await seedJobs();
-      const createdUser = await auth.api.signUpEmail({
-        body: {
-          email: "normal.user@example.com",
-          password: "Password@123",
-          name: "Normal User",
-          image: "https://example.com/image.png",
-        },
-      });
-      const userProfileData = await userProfileFixture();
-      await db.insert(userProfile).values({
-        ...userProfileData,
-        userId: Number(createdUser.user.id),
-      });
+      await seedJobsScenario();
+      const user = await createUser({ email: "normal.user@example.com" });
+      await createUserProfile(user.id);
     });
 
     it("saves a job for the current user successfully returning 200", async () => {
@@ -433,20 +402,9 @@ describe("User Controller Integration Tests", () => {
 
   describe("getSavedJobsForCurrentUser", () => {
     beforeEach(async () => {
-      await seedJobs();
-      const createdUser = await auth.api.signUpEmail({
-        body: {
-          email: "normal.user@example.com",
-          password: "Password@123",
-          name: "Normal User",
-          image: "https://example.com/image.png",
-        },
-      });
-      const userProfileData = await userProfileFixture();
-      await db.insert(userProfile).values({
-        ...userProfileData,
-        userId: Number(createdUser.user.id),
-      });
+      await seedJobsScenario();
+      const user = await createUser({ email: "normal.user@example.com" });
+      await createUserProfile(user.id);
     });
 
     it("retrieves saved jobs for the current user successfully returning 200", async () => {
@@ -504,20 +462,9 @@ describe("User Controller Integration Tests", () => {
 
   describe("unsaveJobForCurrentUser", () => {
     beforeEach(async () => {
-      await seedJobs();
-      const createdUser = await auth.api.signUpEmail({
-        body: {
-          email: "normal.user@example.com",
-          password: "Password@123",
-          name: "Normal User",
-          image: "https://example.com/image.png",
-        },
-      });
-      const userProfileData = await userProfileFixture();
-      await db.insert(userProfile).values({
-        ...userProfileData,
-        userId: Number(createdUser.user.id),
-      });
+      await seedJobsScenario();
+      const user = await createUser({ email: "normal.user@example.com" });
+      await createUserProfile(user.id);
     });
 
     it("unsaves a job for the current user successfully returning 200", async () => {
@@ -571,8 +518,7 @@ describe("User Controller Integration Tests", () => {
 
   describe("Email Preferences", () => {
     beforeEach(async () => {
-      // await seedUser();
-      await seedUserProfile();
+      await seedUserProfileScenario();
     });
 
     describe("GET /users/me/email-preferences", () => {
@@ -741,8 +687,6 @@ describe("User Controller Integration Tests", () => {
 
       describe("POST /users/me/email-preferences/unsubscribe/:token", () => {
         it("should unsubscribe with valid token - 200", async () => {
-          await seedUserProfile();
-
           const loginResponse = await request
             .post("/api/auth/sign-in/email")
             .send({

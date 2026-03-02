@@ -1,6 +1,6 @@
-import rateLimit from "express-rate-limit";
+import rateLimit, { type RateLimitRequestHandler } from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 
 import { redisRateLimiterService } from "@/infrastructure/redis-rate-limiter.service";
 import logger from "@/logger";
@@ -10,7 +10,7 @@ import { isTest } from "@/config/env";
  * Get Redis store for rate limiting
  * Falls back to memory store if Redis is not available
  */
-const getStore = () => {
+export const getStore = () => {
   try {
     if (redisRateLimiterService.isReady()) {
       return new RedisStore({
@@ -30,31 +30,43 @@ const getStore = () => {
   return undefined; // Use default memory store
 };
 
-/**
- * General API rate limiter
- * Limits: 100 requests per 15 minutes per IP
- */
-export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 100, // Limit each IP to 100 requests per windowMs
-  skip: () => isTest, // Skip rate limiting in test environment
-  store: getStore(),
-  message: {
-    status: "error",
-    message: "Too many requests from this IP, please try again later.",
-  },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  handler: (req: Request, res: Response) => {
-    logger.warn("Rate limit exceeded", {
-      ip: req.ip,
-      path: req.path,
-      correlationId: req.correlationId,
-    });
-    res.status(429).json({
+const createLimiter = () =>
+  rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 100, // Limit each IP to 100 requests per windowMs
+    skip: () => isTest, // Skip rate limiting in test environment
+    store: getStore(),
+    validate: { creationStack: false }, // Intentional lazy init — suppress false positive
+    message: {
       status: "error",
-      message: "Too many requests, please try again later.",
-      retryAfter: res.getHeader("RateLimit-Reset"),
-    });
-  },
-});
+      message: "Too many requests from this IP, please try again later.",
+    },
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    handler: (req: Request, res: Response) => {
+      logger.warn("Rate limit exceeded", {
+        ip: req.ip,
+        path: req.path,
+        correlationId: req.correlationId,
+      });
+      res.status(429).json({
+        status: "error",
+        message: "Too many requests, please try again later.",
+        retryAfter: res.getHeader("RateLimit-Reset"),
+      });
+    },
+  });
+
+/**
+ * General API rate limiter (lazily initialized).
+ * The store is resolved on first request so Redis has time to connect
+ * during infrastructure initialization.
+ */
+let _limiter: RateLimitRequestHandler | null = null;
+
+export const apiLimiter = (req: Request, res: Response, next: NextFunction) => {
+  if (!_limiter) {
+    _limiter = createLimiter();
+  }
+  return _limiter(req, res, next);
+};

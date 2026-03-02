@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { BaseController } from "./base.controller";
 import { AuditService } from "@/services/audit.service";
-import { ApiResponse } from "@/types";
+import { stringify } from "csv-stringify/sync";
 import {
   AuditLogQuerySchema,
   AuditLogByIdSchema,
@@ -338,32 +338,27 @@ export class AuditController extends BaseController {
     });
 
     if (result.isSuccess) {
-      // Convert to CSV format
-      const logs = result.value.items;
-      const csvHeader =
-        "ID,User ID,User Email,User Name,Action,Severity,Resource Type,Resource ID,IP Address,Session ID,Description,Success,Created At\n";
+      // Convert to CSV format using proper escaping
+      const csvData = [
+        ["ID", "User ID", "User Email", "User Name", "Action", "Severity", "Resource Type", "Resource ID", "IP Address", "Session ID", "Description", "Success", "Created At"],
+        ...result.value.items.map((log) => [
+          log.id,
+          log.userId || "",
+          log.userEmail || "",
+          log.userName || "",
+          log.action,
+          log.severity,
+          log.resourceType || "",
+          log.resourceId || "",
+          log.ipAddress || "",
+          log.sessionId || "",
+          log.description || "",
+          log.success,
+          log.createdAt instanceof Date ? log.createdAt.toISOString() : log.createdAt,
+        ])
+      ];
 
-      const csvRows = logs
-        .map((log) =>
-          [
-            log.id,
-            log.userId || "",
-            log.userEmail || "",
-            log.userName || "",
-            log.action,
-            log.severity,
-            log.resourceType || "",
-            log.resourceId || "",
-            log.ipAddress || "",
-            log.sessionId || "",
-            (log.description || "").replace(/,/g, ";"), // Escape commas
-            log.success,
-            log.createdAt,
-          ].join(",")
-        )
-        .join("\n");
-
-      const csv = csvHeader + csvRows;
+      const csv = stringify(csvData);
 
       // Set headers for file download
       res.setHeader("Content-Type", "text/csv");

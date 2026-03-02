@@ -4,17 +4,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth-server";
 import { env } from "@/env";
 import { UserIntentResponse } from "@/schemas/responses/users";
-import {
-  OrganizationIdByMemberIdResponse,
-  OrganizationWithMembersResponse,
-} from "@/schemas/responses/organizations";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Public routes that don't require authentication
-  const publicRoutes = ["/sign-in", "/sign-up", "/"];
-  const isPublicRoute = publicRoutes.some((route) =>
+  const publicRoutes = ["/sign-in", "/sign-up", "/verify-email", "/email-verified"];
+  const isPublicRoute = pathname === "/" || publicRoutes.some((route) =>
     pathname.startsWith(route),
   );
 
@@ -48,17 +44,19 @@ export async function middleware(req: NextRequest) {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        cache: "no-store",
+        next: { revalidate: 300 },
       },
     );
 
     if (!onboardingResponse.ok) {
+      // Intent API unavailable — allow authenticated user through
       return NextResponse.next();
     }
 
     const onboarding: UserIntentResponse = await onboardingResponse.json();
 
     if (!onboarding?.success) {
+      // No intent data yet (new user) — allow through to set intent
       return NextResponse.next();
     }
 
@@ -86,116 +84,23 @@ export async function middleware(req: NextRequest) {
       // Prevent access to onboarding routes after completion
       if (pathname.startsWith("/employer/onboarding")) {
         if (intent === "employer") {
-          // Fetch organization data to redirect to organization page
-          try {
-            const orgFetchResponse = await fetch(
-              `${env.NEXT_PUBLIC_SERVER_URL}/organizations/members/${user.id}`,
-              {
-                headers: {
-                  cookie: cookieHeader || "",
-                  "Content-Type": "application/json",
-                },
-                credentials: "include",
-                cache: "no-store",
-              },
-            );
-
-            if (orgFetchResponse.ok) {
-              const orgResponse: OrganizationWithMembersResponse =
-                await orgFetchResponse.json();
-
-              if (orgResponse?.success && orgResponse.data) {
-                return NextResponse.redirect(
-                  new URL(
-                    `/employer/organizations/${orgResponse.data.id}`,
-                    req.url,
-                  ),
-                );
-              }
-            }
-          } catch (error) {
-            // If organization fetch fails, redirect to home
-            return NextResponse.redirect(new URL("/", req.url));
-          }
+          return NextResponse.redirect(
+            new URL("/employer/organizations", req.url),
+          );
         } else {
           return NextResponse.redirect(new URL("/", req.url));
         }
-      }
-
-      // If employer with completed status, ensure they have an organization
-      if (
-        intent === "employer" &&
-        !pathname.startsWith("/employer/organizations") &&
-        pathname !== "/" // Allow access to home page
-      ) {
-        try {
-          const orgFetchResponse = await fetch(
-            `${env.NEXT_PUBLIC_SERVER_URL}/organizations/members/${user.id}`,
-            {
-              headers: {
-                cookie: cookieString || cookieHeader || "",
-                "Content-Type": "application/json",
-              },
-              credentials: "include",
-              cache: "no-store",
-            },
-          );
-
-          console.log("Org fetch status:", orgFetchResponse.status);
-          console.log("Org fetch ok:", orgFetchResponse.ok);
-
-          if (orgFetchResponse.ok) {
-            const orgResponse: OrganizationIdByMemberIdResponse =
-              await orgFetchResponse.json();
-
-            console.log("Org response:", orgResponse);
-
-            if (orgResponse?.success && orgResponse.data) {
-              const redirectUrl = `/employer/organizations/${orgResponse.data.organizationId}`;
-              console.log("Redirecting employer to:", redirectUrl);
-
-              // Redirect to their organization dashboard
-              return NextResponse.redirect(new URL(redirectUrl, req.url));
-            } else {
-              console.log("Org response not successful or no data");
-            }
-          } else {
-            console.log(
-              "Org fetch failed with status:",
-              orgFetchResponse.status,
-            );
-
-            // Log the error response
-            try {
-              const errorText = await orgFetchResponse.text();
-              console.log("Error response body:", errorText);
-            } catch (e) {
-              console.log("Could not read error response");
-            }
-
-            // If 400 or 404, user might not have an organization yet
-            // Allow them to access the app normally
-            if (
-              orgFetchResponse.status === 400 ||
-              orgFetchResponse.status === 404
-            ) {
-              console.log(
-                "User doesn't have an organization yet, allowing access",
-              );
-            }
-          }
-        } catch (error) {
-          // If no organization found, continue to allow access
-          console.error("Error fetching organization:", error);
-        }
-
-        console.log("=== END EMPLOYER ORG CHECK ===");
       }
     }
 
     return NextResponse.next();
   } catch (error) {
-    console.error("Middleware error:", error);
+    // User is authenticated (session verified above) but onboarding status
+    // check failed. Allow access rather than blocking authenticated users
+    // when the intent API is unavailable.
+    if (process.env.NODE_ENV === "development") {
+      console.error("Middleware onboarding check failed:", error);
+    }
     return NextResponse.next();
   }
 }
@@ -210,6 +115,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public assets
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|_next/webpack-hmr|__nextjs_original-stack-frame|_next/turbopack-hmr|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

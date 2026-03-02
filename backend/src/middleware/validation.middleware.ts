@@ -55,8 +55,6 @@ const validate =
       // Parse and validate the request data
       schema.parse(validationData);
 
-      console.log({ message: "Validation successful", data: validationData });
-
       next();
     } catch (error) {
       if (error instanceof ZodError) {

@@ -1,6 +1,8 @@
 import { Logger } from "pino";
+import { InferSelectModel } from "drizzle-orm";
 
 import { User } from "@/validations/userProfile.validation";
+import { organizationInvitations } from "@/db/schema";
 
 declare global {
   namespace Express {
@@ -10,6 +12,7 @@ declare global {
       organizationId?: number;
       correlationId?: string;
       user?: User;
+      invitation?: InferSelectModel<typeof organizationInvitations>;
       log: Logger;
       file?: Express.Multer.File;
       files?:

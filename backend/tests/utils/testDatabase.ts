@@ -3,8 +3,6 @@ import { drizzle, MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { env } from "@/config/env";
 import * as schema from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { NewJob, NewJobApplication } from "@/validations/job.validation";
 
 let testConnection: mysql.Pool | null = null;
 let testDb: (MySql2Database<typeof schema> & { $client: Pool }) | null = null;
@@ -47,92 +45,6 @@ export async function cleanupTestDatabase() {
     testConnection = null;
     testDb = null;
   }
-}
-
-/**
- * Clear all test data from tables
- */
-export async function clearTestData() {
-  const { db } = createTestDatabase();
-
-  try {
-    // Clear in reverse order to respect foreign keys
-    await db.delete(schema.jobApplications);
-    await db.delete(schema.jobsDetails);
-    await db.delete(schema.user);
-  } catch (error) {
-    console.error("Failed to clear test data:", error);
-    throw error;
-  }
-}
-
-/**
- * Create test job data
- */
-export async function createTestJob(
-  employerId: number,
-  overrides: Partial<NewJob> = {},
-) {
-  const { db } = createTestDatabase();
-
-  const defaultJob: NewJob = {
-    title: "Test Software Engineer Position",
-    description:
-      "This is a test job posting for a software engineer position with great benefits and competitive salary.",
-    city: "Test City",
-    state: "Test State",
-    country: "Test Country",
-    zipcode: 12345,
-    compensationType: "missionary",
-    jobType: "full-time",
-    experience: "mid-level",
-    isRemote: true,
-    isActive: true,
-    employerId,
-    ...overrides,
-  };
-
-  const [result] = await db.insert(schema.jobsDetails).values(defaultJob);
-
-  // Get the inserted job
-  const [job] = await db
-    .select()
-    .from(schema.jobsDetails)
-    .where(eq(schema.jobsDetails.id, result.insertId));
-
-  return job;
-}
-
-/**
- * Create test job application
- */
-export async function createTestJobApplication(
-  jobId: number,
-  applicantId: number,
-  overrides: Partial<NewJobApplication> = {},
-) {
-  const { db } = createTestDatabase();
-
-  const defaultApplication: NewJobApplication = {
-    jobId,
-    applicantId,
-    status: "pending",
-    coverLetter: "This is a test cover letter for the job application.",
-    resumeUrl: "https://example.com/resume.pdf",
-    ...overrides,
-  };
-
-  const [result] = await db
-    .insert(schema.jobApplications)
-    .values(defaultApplication);
-
-  // Get the inserted application
-  const [application] = await db
-    .select()
-    .from(schema.jobApplications)
-    .where(eq(schema.jobApplications.id, result.insertId));
-
-  return application;
 }
 
 /**

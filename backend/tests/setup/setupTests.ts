@@ -1,25 +1,47 @@
-import { beforeEach, afterEach } from "vitest";
-import { clearTestData } from "../utils/testDatabase";
+import { beforeEach, vi } from "vitest";
+import { cleanAll } from "../utils/cleanAll";
 import logger from "@/logger";
 
-// Setup that runs before each test
+// Ensure NODE_ENV is "test" in worker processes (globalSetup only sets it in its own process)
+process.env.NODE_ENV = "test";
+
+// Global mock for queue service — prevents tests from requiring a live Redis connection.
+// Test files that need custom queue behavior can override with their own vi.mock.
+vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import("@/infrastructure/queue.service")>();
+  return {
+    ...original,
+    queueService: {
+      addJob: vi.fn().mockResolvedValue(undefined),
+      initialize: vi.fn().mockResolvedValue(undefined),
+      shutdown: vi.fn().mockResolvedValue(undefined),
+      obliterateQueue: vi.fn().mockResolvedValue(undefined),
+    },
+  };
+});
+
+// Global mock for EmailService — prevents tests from hitting the real SMTP server.
+// Test files that need custom email behavior can override with their own vi.mock.
+vi.mock("@/infrastructure/email.service", () => {
+  return {
+    EmailService: vi.fn().mockImplementation(() =>
+      new Proxy(
+        {},
+        { get: (_target, prop) => (typeof prop === "string" ? vi.fn().mockResolvedValue(undefined) : undefined) },
+      ),
+    ),
+  };
+});
+
+// Setup that runs before each test — guarantees pristine DB state
 beforeEach(async () => {
-  // Clear test data before each test (if database is available)
   try {
-    if (process.env.DB_HOST && process.env.NODE_ENV === "test") {
-      await clearTestData();
-    }
+    await cleanAll();
   } catch (error) {
-    // Ignore database errors in setup - tests will handle it
     if (error instanceof Error)
       logger.debug(`Test data cleanup skipped: ${error.message}`);
   }
-});
-
-// Cleanup that runs after each test
-afterEach(async () => {
-  // Additional cleanup if needed
-  // Test data is cleared before each test, so this is usually not needed
 });
 
 // Extend global types if needed

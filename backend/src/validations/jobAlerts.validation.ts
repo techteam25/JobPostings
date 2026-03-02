@@ -10,7 +10,8 @@ export const insertJobAlertSchema = createInsertSchema(jobAlerts, {
     .min(3, "Name must be at least 3 characters")
     .max(100)
     .refine((val) => /^[a-zA-Z0-9\s\-]+$/.test(val)), // no special characters except spaces/hyphens
-  frequency: z.enum(["daily", "weekly"]).default("weekly"),
+  searchQuery: z.string().max(500, "Search query must be at most 500 characters").optional(),
+  frequency: z.enum(["daily", "weekly", "monthly"]).default("weekly"),
   includeRemote: z.boolean().default(true),
 });
 
@@ -97,7 +98,61 @@ export const getJobAlertSchema = z.object({
 
 export type GetJobAlert = z.infer<typeof getJobAlertSchema>;
 
+// Update job alert - all fields optional
+const updateJobAlertBodySchema = insertJobAlertSchema
+  .omit({
+    userId: true,
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    lastSentAt: true,
+  })
+  .partial()
+  .refine(
+    (data) => {
+      return Object.keys(data).length > 0;
+    },
+    { message: "At least one field must be provided for update." },
+  );
+
+export const updateJobAlertSchema = z.object({
+  body: updateJobAlertBodySchema,
+  params: z.object({
+    id: z.string().regex(/^\d+$/, "Alert ID must be a valid number"),
+  }),
+  query: z.object({}).strict(),
+});
+
+export type UpdateJobAlert = z.infer<typeof updateJobAlertSchema>;
+
+// Delete job alert - params only
+export const deleteJobAlertSchema = z.object({
+  body: z.object({}).strict(),
+  params: z.object({
+    id: z.string().regex(/^\d+$/, "Alert ID must be a valid number"),
+  }),
+  query: z.object({}).strict(),
+});
+
+export type DeleteJobAlert = z.infer<typeof deleteJobAlertSchema>;
+
+// Toggle pause job alert
+export const togglePauseJobAlertSchema = z.object({
+  body: z.object({
+    isPaused: z.boolean({
+      error: "isPaused must be a boolean",
+    }),
+  }),
+  params: z.object({
+    id: z.string().regex(/^\d+$/, "Alert ID must be a valid number"),
+  }),
+  query: z.object({}).strict(),
+});
+
+export type TogglePauseJobAlert = z.infer<typeof togglePauseJobAlertSchema>;
+
 // Export types for use in services/controllers
 export type JobAlert = z.infer<typeof selectJobAlertSchema>;
 export type JobAlertMatch = z.infer<typeof selectJobAlertMatchSchema>;
 export type CreateJobAlertInput = z.infer<typeof createJobAlertSchema>["body"];
+export type UpdateJobAlertInput = z.infer<typeof updateJobAlertSchema>["body"];

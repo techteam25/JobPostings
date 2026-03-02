@@ -44,6 +44,10 @@ export default async function SavedJobsPage() {
   return (
     <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
+        <p className="mb-6 text-base font-semibold md:text-lg lg:text-2xl">
+          {savedJobs.data.length}{" "}
+          {savedJobs.data.length > 1 ? "Saved Jobs" : "Saved Job"}
+        </p>
         <Suspense fallback={<SavedJobsGridSkeleton />}>
           <SavedJobsGrid userSavedJobs={savedJobs} />
         </Suspense>

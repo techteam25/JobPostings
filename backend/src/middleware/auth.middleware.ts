@@ -172,7 +172,11 @@ export class AuthMiddleware {
    * @returns A middleware function that checks if the user has permission to post jobs.
    */
   requireJobPostingRole = () => {
-    return async (req: Request, res: Response, next: NextFunction) => {
+    return async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ) => {
       try {
         if (!req.userId) {
           return res.status(401).json({
@@ -210,8 +214,15 @@ export class AuthMiddleware {
           });
         }
 
-        const organizationMember =
-          await this.organizationService.getOrganizationMember(req.userId);
+        // Use organizationId from URL params if available, otherwise derive from membership
+        const organizationMember = req.params.organizationId
+          ? await this.organizationService.getOrganizationMember(
+              req.userId,
+              Number(req.params.organizationId),
+            )
+          : await this.organizationService.getFirstOrganizationForUser(
+              req.userId,
+            );
 
         if (!organizationMember.isSuccess) {
           // Log authorization failure
@@ -271,9 +282,13 @@ export class AuthMiddleware {
    * @returns A middleware function that checks if the user has the required role.
    */
   requireAdminOrOwnerRole = (roles: string[]) => {
-    return async (req: Request, res: Response, next: NextFunction) => {
+    return async (
+      req: Request,
+      res: Response,
+      next: NextFunction,
+    ) => {
       try {
-        if (!req.userId) {
+        if (!req.userId || !req.params.organizationId) {
           return res.status(401).json({
             success: false,
             status: "error",
@@ -294,6 +309,7 @@ export class AuthMiddleware {
 
         const user = await this.organizationService.getOrganizationMember(
           req.userId,
+          Number(req.params.organizationId),
         );
 
         if (!user.isSuccess) {
@@ -534,7 +550,10 @@ export class AuthMiddleware {
       }
 
       const organizationMember =
-        await this.organizationService.getOrganizationMember(req.userId);
+        await this.organizationService.getOrganizationMember(
+          req.userId,
+          Number(req.params.organizationId),
+        );
 
       if (
         !organizationMember.isSuccess ||
@@ -745,6 +764,7 @@ export class AuthMiddleware {
 
       const member = await this.organizationService.getOrganizationMember(
         req.userId,
+        job.value.job.employerId,
       );
 
       if (!member.isSuccess) {
@@ -923,12 +943,12 @@ export class AuthMiddleware {
    * @param next The next middleware function.
    */
   validateRoleAssignment = async (
-    req: Request,
+    req: Request<GetOrganizationSchema["params"]>,
     res: Response,
     next: NextFunction,
   ) => {
     try {
-      if (!req.userId) {
+      if (!req.userId || !req.params.organizationId) {
         return res.status(401).json({
           success: false,
           status: "error",
@@ -950,7 +970,10 @@ export class AuthMiddleware {
 
       // Get requester's organization member
       const requesterMember =
-        await this.organizationService.getOrganizationMember(req.userId);
+        await this.organizationService.getOrganizationMember(
+          req.userId,
+          Number(req.params.organizationId),
+        );
 
       if (!requesterMember.isSuccess) {
         return res.status(403).json({
@@ -1051,7 +1074,7 @@ export class AuthMiddleware {
       }
 
       // Attach invitation to request for use in controller/service
-      (req as any).invitation = invitation;
+      req.invitation = invitation;
 
       return next();
     } catch (error) {

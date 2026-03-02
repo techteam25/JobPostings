@@ -10,31 +10,29 @@ const baseInsertJobSchema = createInsertSchema(jobsDetails, {
     .min(5, "Title must be at least 5 characters")
     .max(255)
     .trim(),
-  description: z.string(),
+  description: z.string().max(50_000, "Description must not exceed 50,000 characters"),
   city: z.string().min(1, "City is required").max(255).trim(),
   state: z.string().max(50).trim().optional(),
   country: z.string().max(100).trim().optional().default("United States"),
-  zipcode: z.coerce.number().positive("Zip Code must be positive").optional(),
+  zipcode: z.string().max(20).trim().optional(),
   employerId: z.number().int().positive("Employer ID is required"),
 });
 
+// Full insert schema WITH refinements (for creating new jobs)
 export const insertJobSchema = baseInsertJobSchema
-  .refine((data) => data.country === "United States" && !data.state, {
+  .refine((data) => !(data.country === "United States" && !data.state), {
     message: "State is required for United States",
     path: ["state"],
   })
-  .refine((data) => data.country === "United States" && !data.zipcode, {
+  .refine((data) => !(data.country === "United States" && !data.zipcode), {
     message: "Zip Code is required for United States",
   });
 
 export const insertJobApplicationSchema = createInsertSchema(jobApplications, {
   jobId: z.number().int().positive("Job ID is required"),
   applicantId: z.number().int().positive("Applicant ID is required"),
-  coverLetter: z
-    .string()
-    .min(50, "Cover letter must be at least 50 characters")
-    .max(2000)
-    .optional(),
+  coverLetter: z.string().optional().nullable(),
+  coverLetterUrl: z.url("Invalid cover letter URL").optional(),
   resumeUrl: z.url("Invalid resume URL").optional(),
 });
 
@@ -78,13 +76,21 @@ export const updateJobInsightsSchema = insertJobInsightsSchema
   .partial()
   .omit({ id: true });
 
-const createJobPayloadSchema = baseInsertJobSchema
+const createJobPayloadBaseSchema = baseInsertJobSchema
   .omit({ applicationDeadline: true, employerId: true })
   .extend({
     applicationDeadline: z.iso.datetime(),
-    skills: z.array(z.string()),
+    skills: z.array(z.string().min(1).max(100)).min(1).max(50),
   });
 
+const createJobPayloadSchema = createJobPayloadBaseSchema
+  .refine((data) => !(data.country === "United States" && !data.state), {
+    message: "State is required for United States",
+    path: ["state"],
+  })
+  .refine((data) => !(data.country === "United States" && !data.zipcode), {
+    message: "Zip Code is required for United States",
+  });
 const jobIdParamSchema = z.object({
   jobId: z.string().regex(/^\d+$/, "jobId must be a valid number"),
 });
@@ -95,8 +101,27 @@ export const createJobSchema = z.object({
   query: z.object({}).strict(),
 });
 
+// Update job schema: use base payload schema, apply partial FIRST, then add refinements
+// Override country to remove the default so partial updates don't trigger
+// the "State and Zip Code required" refinement when country isn't explicitly sent.
 export const updateJobSchema = z.object({
-  body: createJobPayloadSchema.partial(),
+  body: createJobPayloadBaseSchema
+    .extend({
+      country: z.string().max(100).trim().optional(),
+    })
+    .partial()
+    .refine(
+      (data) => {
+        // Only validate if country is provided and is "United States"
+        if (data.country === "United States") {
+          return !!data.state && !!data.zipcode;
+        }
+        return true;
+      },
+      {
+        message: "State and Zip Code are required for United States",
+      },
+    ),
   params: jobIdParamSchema,
   query: z.object({}).strict(),
 });

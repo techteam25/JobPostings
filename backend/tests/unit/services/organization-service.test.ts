@@ -3,7 +3,7 @@ import { db } from "@/db/connection";
 
 import { OrganizationService } from "@/services/organization.service";
 
-import { seedJobs } from "@tests/utils/seed";
+import { seedJobsScenario } from "@tests/utils/seedScenarios";
 
 describe("OrganizationService", () => {
   beforeEach(async () => {
@@ -11,7 +11,7 @@ describe("OrganizationService", () => {
     const bcrypt = await import("bcrypt");
 
     const hashedPassword = await bcrypt.hash("Password@123", 12);
-    await seedJobs();
+    await seedJobsScenario();
 
     await db.insert(user).values(
       Array.from({ length: 2 }).map((_, index) => ({

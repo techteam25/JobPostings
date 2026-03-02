@@ -97,6 +97,12 @@ export const uploadMiddleware = {
   // Job application attachments (multiple files)
   applicationAttachments: uploadArray("attachments", 5),
 
+  // Job application with resume and optional cover letter
+  jobApplication: uploadFields([
+    { name: "resume", maxCount: 1 },
+    { name: "coverLetter", maxCount: 1 },
+  ]),
+
   // Mixed file upload (different fields)
   mixedFiles: uploadFields([
     { name: "coverLetter", maxCount: 1 },

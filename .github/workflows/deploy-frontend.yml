@@ -1,0 +1,69 @@
+name: Deploy Frontend to Production
+
+on:
+  push:
+    branches: [production]
+    paths:
+      - 'frontend/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check backend health before deployment
+        run: |
+          echo "Checking if backend is healthy before deploying frontend..."
+          curl -f https://api.getinvolved.team/health || \
+          (echo "❌ Backend is not healthy, aborting frontend deployment" && exit 1)
+          echo "✅ Backend is healthy, proceeding with frontend deployment"
+
+      - name: Create deployment tarball
+        run: |
+          cd frontend
+          tar -czf ../frontend-deploy.tar.gz \
+            --exclude='node_modules' \
+            --exclude='.next' \
+            --exclude='.git' \
+            --exclude='.env*' \
+            --exclude='*.log' \
+            .
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Transfer deployment package
+        run: |
+          scp -i ~/.ssh/deploy_key frontend-deploy.tar.gz \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+
+      - name: Transfer deployment script
+        run: |
+          scp -i ~/.ssh/deploy_key scripts/deploy-frontend.sh \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+
+      - name: Deploy and restart service
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            'bash /tmp/deploy-frontend.sh'
+
+      - name: Health check
+        run: |
+          echo "Waiting 15 seconds for frontend service to start..."
+          sleep 15
+          echo "Checking frontend health..."
+          curl -f https://site.getinvolved.team || exit 1
+          echo "Frontend deployment successful!"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ~/.ssh/deploy_key

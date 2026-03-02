@@ -68,7 +68,7 @@ export default function PreferenceSection({
             label={pref.label}
             description={pref.description}
             enabled={pref.enabled}
-            disabled={disabled || pref.locked}
+            disabled={disabled || !!pref.locked}
             onToggle={() =>
               onTogglePreference(pref.key, pref.enabled, pref.context)
             }

@@ -4,10 +4,16 @@ import { db } from "@/db/connection";
 import { jobsDetails, jobSkills, skills } from "@/db/schema";
 import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
 import { request } from "@tests/utils/testHelpers";
-import { seedAdminUser } from "@tests/utils/seed";
+import { seedAdminScenario } from "@tests/utils/seedScenarios";
 import { jobPostingFixture } from "@tests/utils/fixtures";
 import { waitForJobIndexing } from "@tests/utils/wait-for-jobIndexer";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import { initializeTypesenseWorker } from "@/workers/typesense-job-indexer";
+
+// Override the global queue mock — this test needs real Redis queue + Typesense
+vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
+  return await importOriginal();
+});
 
 const typesenseService = new TypesenseService();
 
@@ -15,7 +21,15 @@ describe("Job Search Integration Tests", () => {
   let cookie: string;
 
   beforeAll(async () => {
-    await seedAdminUser();
+    // Initialize real queue service and Typesense worker (requires running Docker services)
+    await queueService.initialize();
+    initializeTypesenseWorker();
+
+    // Clean DB before seeding — beforeEach only runs before each test, not before beforeAll
+    const { cleanAll } = await import("@tests/utils/cleanAll");
+    await cleanAll();
+
+    await seedAdminScenario();
 
     const response = await request
       .post("/api/auth/sign-in/email")
@@ -51,17 +65,28 @@ describe("Job Search Integration Tests", () => {
         .expect(201),
     ]);
 
-    // Index directly in Typesense (bypass queue for tests)
+    // Wait for jobs to be indexed in Typesense via the worker
     await Promise.all(res.map((r) => waitForJobIndexing(r.body.data.id)));
   });
 
   afterAll(async () => {
-    // Cleanup Typesense
-    await Promise.all([
-      typesenseService.deleteJobDocumentById("1"),
-      typesenseService.deleteJobDocumentById("2"),
-      typesenseService.deleteJobDocumentById("3"),
-    ]);
+    // Cleanup Typesense - ignore errors if documents don't exist
+    try {
+      await Promise.all([
+        typesenseService.deleteJobDocumentById("1").catch(() => {}),
+        typesenseService.deleteJobDocumentById("2").catch(() => {}),
+        typesenseService.deleteJobDocumentById("3").catch(() => {}),
+      ]);
+    } catch {
+      // Ignore cleanup errors
+    }
+
+    // Shut down queue service
+    try {
+      await queueService.shutdown();
+    } catch {
+      // Ignore shutdown errors
+    }
   });
 
   describe("GET /api/jobs/search - Basic Search", () => {

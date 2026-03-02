@@ -27,6 +27,8 @@ export const useCreateOrganization = () => {
         throw new Error("Failed to create organization");
       }
 
+      console.log({ res });
+
       return res.data;
     },
     onSuccess: async (organizationData: OrganizationWithMembersResponse) => {
@@ -38,7 +40,7 @@ export const useCreateOrganization = () => {
       }
     },
     onError: (e) => {
-      console.log({ e });
+      console.log("Error creating organization:", e);
       toast.error("There was an error creating the organization.");
     },
   });

@@ -1,6 +1,7 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useMemo, useState } from "react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -29,16 +30,61 @@ import {
   Plus,
   UserPlus,
   Calendar,
-  Building2,
+  UserCheck,
   Users,
 } from "lucide-react";
 import { Member } from "@/lib/types";
 import { formatToReadableDate } from "@/lib/utils";
+import { InviteMemberDialog } from "./InviteMemberDialog";
 
 interface EmployeeListSectionProps {
   members: Member[];
+  organizationId: number;
 }
-export function EmployeeListSection({ members }: EmployeeListSectionProps) {
+
+export function EmployeeListSection({
+  members,
+  organizationId,
+}: EmployeeListSectionProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+
+  const filteredMembers = useMemo(() => {
+    if (!searchTerm) return members;
+    const lower = searchTerm.toLowerCase();
+    return members.filter(
+      (m) =>
+        m.memberName.toLowerCase().includes(lower) ||
+        m.memberEmail.toLowerCase().includes(lower),
+    );
+  }, [members, searchTerm]);
+
+  const totalMembers = members.length;
+  const activeMembers = members.filter((m) => m.isActive).length;
+
+  const newHiresThisMonth = useMemo(() => {
+    const now = new Date();
+    return members.filter((m) => {
+      const joinDate = new Date(m.createdAt);
+      return (
+        joinDate.getMonth() === now.getMonth() &&
+        joinDate.getFullYear() === now.getFullYear()
+      );
+    }).length;
+  }, [members]);
+
+  const averageTenure = useMemo(() => {
+    if (members.length === 0) return 0;
+    const now = new Date();
+    const totalYears = members.reduce((sum, m) => {
+      const joinDate = new Date(m.createdAt);
+      const years =
+        (now.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+      return sum + years;
+    }, 0);
+    return (totalYears / members.length).toFixed(1);
+  }, [members]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Active":
@@ -69,9 +115,8 @@ export function EmployeeListSection({ members }: EmployeeListSectionProps) {
               <p className="text-secondary-foreground text-sm font-medium">
                 Total Employees
               </p>
-              <p className="text-foreground mt-2 text-3xl font-bold">134</p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                +2 from last month
+              <p className="text-foreground mt-2 text-3xl font-bold">
+                {totalMembers}
               </p>
             </div>
             <div className="bg-primary/10 rounded-lg p-3">
@@ -86,9 +131,8 @@ export function EmployeeListSection({ members }: EmployeeListSectionProps) {
               <p className="text-secondary-foreground text-sm font-medium">
                 New Hires This Month
               </p>
-              <p className="text-foreground mt-2 text-3xl font-bold">5</p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                +2 from last month
+              <p className="text-foreground mt-2 text-3xl font-bold">
+                {newHiresThisMonth}
               </p>
             </div>
             <div className="rounded-lg bg-emerald-100 p-3">
@@ -103,9 +147,8 @@ export function EmployeeListSection({ members }: EmployeeListSectionProps) {
               <p className="text-secondary-foreground text-sm font-medium">
                 Average Tenure (Years)
               </p>
-              <p className="text-foreground mt-2 text-3xl font-bold">2.8</p>
-              <p className="mt-1 text-xs text-green-600">
-                +1.2% from last year
+              <p className="text-foreground mt-2 text-3xl font-bold">
+                {averageTenure}
               </p>
             </div>
             <div className="rounded-lg bg-purple-100 p-3">
@@ -118,15 +161,14 @@ export function EmployeeListSection({ members }: EmployeeListSectionProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-secondary-foreground text-sm font-medium">
-                Active Departments
+                Active Members
               </p>
-              <p className="text-foreground mt-2 text-3xl font-bold">7</p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                -1 from last year
+              <p className="text-foreground mt-2 text-3xl font-bold">
+                {activeMembers}
               </p>
             </div>
             <div className="rounded-lg bg-orange-100 p-3">
-              <Building2 className="h-6 w-6 text-orange-600" />
+              <UserCheck className="h-6 w-6 text-orange-600" />
             </div>
           </div>
         </Card>
@@ -139,7 +181,12 @@ export function EmployeeListSection({ members }: EmployeeListSectionProps) {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
-                <Input placeholder="Search employee" className="w-64 pl-10" />
+                <Input
+                  placeholder="Search employee"
+                  className="w-64 pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
               <Button
                 variant="outline"
@@ -171,6 +218,7 @@ export function EmployeeListSection({ members }: EmployeeListSectionProps) {
               <Button
                 size="sm"
                 className="bg-primary/90 hover:bg-primary [&_svg]:size-4"
+                onClick={() => setShowInviteDialog(true)}
               >
                 <Plus className="mr-1" />
                 Add a New Employee
@@ -182,7 +230,7 @@ export function EmployeeListSection({ members }: EmployeeListSectionProps) {
         <div className="p-6">
           <div className="mb-4 flex items-center gap-2">
             <span className="text-secondary-foreground text-sm">
-              Total Employee: 134 employees
+              Total Employee: {totalMembers} employees
             </span>
           </div>
 
@@ -201,14 +249,11 @@ export function EmployeeListSection({ members }: EmployeeListSectionProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {members.map((employee) => (
+              {filteredMembers.map((employee) => (
                 <TableRow key={employee.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="bg-secondary h-9 w-9">
-                        {/*<AvatarImage*/}
-                        {/*  src={`/avatars/${employee.name.split(" ")[0].toLowerCase()}.jpg`}*/}
-                        {/*/>*/}
                         <AvatarFallback className="bg-secondary h-9 w-9">
                           {employee.memberName
                             .split(" ")
@@ -216,7 +261,6 @@ export function EmployeeListSection({ members }: EmployeeListSectionProps) {
                             .join("")}
                         </AvatarFallback>
                       </Avatar>
-                      {/*<span className="font-medium">{employee.memberName}</span>*/}
                     </div>
                   </TableCell>
                   <TableCell className="text-secondary-foreground">
@@ -230,9 +274,9 @@ export function EmployeeListSection({ members }: EmployeeListSectionProps) {
                   </TableCell>
                   <TableCell>
                     <Badge
-                      className={`${getStatusColor(employee.memberStatus ? "Active" : "Inactive")} border-0`}
+                      className={`${getStatusColor(employee.isActive ? "Active" : "Inactive")} border-0`}
                     >
-                      {employee.memberStatus}
+                      {employee.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-secondary-foreground">
@@ -252,12 +296,6 @@ export function EmployeeListSection({ members }: EmployeeListSectionProps) {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem>View Profile</DropdownMenuItem>
                         <DropdownMenuItem>Edit Details</DropdownMenuItem>
-                        <DropdownMenuItem>
-                          View Sales Performance
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          Delete Employee
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -267,6 +305,12 @@ export function EmployeeListSection({ members }: EmployeeListSectionProps) {
           </Table>
         </div>
       </Card>
+
+      <InviteMemberDialog
+        organizationId={organizationId}
+        open={showInviteDialog}
+        onOpenChange={setShowInviteDialog}
+      />
     </div>
   );
 }

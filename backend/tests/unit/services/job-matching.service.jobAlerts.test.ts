@@ -42,7 +42,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         frequency: "weekly" as const,
         lastSentAt: null,
         createdAt: new Date(),
-        updatedAt: null,
+        updatedAt: new Date(),
       };
 
       const mockSearchResponse: SearchResponse<JobDocumentType> = {
@@ -86,7 +86,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         frequency: "weekly" as const,
         lastSentAt: null,
         createdAt: new Date(),
-        updatedAt: null,
+        updatedAt: new Date(),
       };
 
       const mockSearchResponse: SearchResponse<JobDocumentType> = {
@@ -130,7 +130,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         frequency: "weekly" as const,
         lastSentAt: null,
         createdAt: new Date(),
-        updatedAt: null,
+        updatedAt: new Date(),
       };
 
       const mockSearchResponse: SearchResponse<JobDocumentType> = {
@@ -171,7 +171,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         frequency: "weekly" as const,
         lastSentAt: null,
         createdAt: new Date(),
-        updatedAt: null,
+        updatedAt: new Date(),
       };
 
       const mockSearchResponse: SearchResponse<JobDocumentType> = {
@@ -214,7 +214,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         frequency: "weekly" as const,
         lastSentAt: null,
         createdAt: new Date(),
-        updatedAt: null,
+        updatedAt: new Date(),
       };
 
       const mockSearchResponse: SearchResponse<JobDocumentType> = {
@@ -262,7 +262,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         frequency: "weekly" as const,
         lastSentAt: null,
         createdAt: new Date(),
-        updatedAt: null,
+        updatedAt: new Date(),
       };
 
       const mockSearchResponse: SearchResponse<JobDocumentType> = {
@@ -309,7 +309,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         frequency: "weekly" as const,
         lastSentAt: null,
         createdAt: new Date(),
-        updatedAt: null,
+        updatedAt: new Date(),
       };
 
       const nowTimestamp = Math.floor(Date.now() / 1000);
@@ -382,7 +382,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         frequency: "weekly" as const,
         lastSentAt: null,
         createdAt: new Date(),
-        updatedAt: null,
+        updatedAt: new Date(),
       };
 
       const nowTimestamp = Math.floor(Date.now() / 1000);
@@ -503,7 +503,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         frequency: "weekly" as const,
         lastSentAt: null,
         createdAt: new Date(),
-        updatedAt: null,
+        updatedAt: new Date(),
       };
 
       const mockSearchResponse: SearchResponse<JobDocumentType> = {
@@ -550,7 +550,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         frequency: "weekly" as const,
         lastSentAt: null,
         createdAt: new Date(),
-        updatedAt: null,
+        updatedAt: new Date(),
       };
 
       vi.spyOn(mockTypesenseService, "searchJobsForAlert").mockRejectedValue(

@@ -8,7 +8,7 @@ import { JobMatchingService } from "@/services/job-matching.service";
  * Worker function to process job alerts and find matches.
  * @param job The BullMQ job containing the frequency type.
  */
-export async function processJobAlerts(job: BullMqJob<{ frequency: "daily" | "weekly" }>) {
+export async function processJobAlerts(job: BullMqJob<{ frequency: "daily" | "weekly" | "monthly" }>) {
   const { frequency } = job.data;
   const userRepository = new UserRepository();
   const jobMatchingService = new JobMatchingService();
@@ -26,6 +26,9 @@ export async function processJobAlerts(job: BullMqJob<{ frequency: "daily" | "we
     } else if (frequency === "weekly") {
       // Process alerts that haven't been sent in the last 7 days
       cutoffTime.setDate(cutoffTime.getDate() - 7);
+    } else if (frequency === "monthly") {
+      // Process alerts that haven't been sent in the last 30 days
+      cutoffTime.setDate(cutoffTime.getDate() - 30);
     }
 
     // Get all alerts that need processing
@@ -168,7 +171,7 @@ export async function processJobAlerts(job: BullMqJob<{ frequency: "daily" | "we
  */
 export function initializeJobAlertWorker(): void {
   queueService.registerWorker<
-    { frequency: "daily" | "weekly" },
+    { frequency: "daily" | "weekly" | "monthly" },
     {
       frequency: string;
       totalAlerts: number;
@@ -232,5 +235,27 @@ export async function scheduleWeeklyAlertProcessing() {
     logger.info("📅 Scheduled weekly job alert processing (8:00 AM every Monday)");
   } catch (error) {
     logger.error({ error }, "Failed to schedule weekly job alert processing");
+  }
+}
+
+/**
+ * Schedule monthly job alert processing (runs on the 1st of every month at 8:00 AM).
+ */
+export async function scheduleMonthlyAlertProcessing() {
+  try {
+    await queueService.addJob(
+      QUEUE_NAMES.JOB_ALERT_QUEUE,
+      "monthly-job-alerts",
+      { frequency: "monthly" as const },
+      {
+        repeat: {
+          pattern: "0 8 1 * *", // 1st of every month at 8:00 AM
+        },
+        jobId: "monthly-job-alert-processing", // Prevent duplicate jobs
+      },
+    );
+    logger.info("📅 Scheduled monthly job alert processing (8:00 AM on the 1st of each month)");
+  } catch (error) {
+    logger.error({ error }, "Failed to schedule monthly job alert processing");
   }
 }

@@ -1,5 +1,8 @@
 "use client";
 
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Search, MoreVertical, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,41 +23,120 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 import { formatToReadableDate } from "@/lib/utils";
-
 import { Job } from "@/schemas/responses/jobs";
 import { PaginatedApiResponse } from "@/lib/types";
+import {
+  useUpdateJob,
+  useCreateJob,
+} from "@/app/employer/organizations/hooks/use-manage-jobs";
 
 interface JobListingInformationProps {
   jobsList: PaginatedApiResponse<Job>;
+  organizationId: number;
 }
 
-export function JobListingsSection({ jobsList }: JobListingInformationProps) {
-  const getStatusBadge = (status: boolean) => {
-    switch (status) {
-      case true:
-        return (
-          <Badge className="border-accent/80 bg-accent/10 text-accent/80 hover:bg-accent/20">
-            Active
-          </Badge>
-        );
-      // case "Expiring":
-      //   return (
-      //     <Badge className="border-amber-200 bg-amber-100 text-amber-700 hover:bg-amber-200">
-      //       Expiring
-      //     </Badge>
-      //   );
-      case false:
-        return (
-          <Badge className="border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20">
-            Expired
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+export function JobListingsSection({
+  jobsList,
+  organizationId,
+}: JobListingInformationProps) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const { mutateAsync: updateJobAsync } = useUpdateJob(organizationId);
+  const { mutateAsync: createJobAsync } = useCreateJob(organizationId);
+
+  const filteredJobs = useMemo(() => {
+    let jobs = jobsList.data;
+
+    // Tab filtering
+    switch (activeTab) {
+      case "open":
+        jobs = jobs.filter((j) => j.isActive);
+        break;
+      case "expiring":
+        jobs = jobs.filter((j) => {
+          if (!j.applicationDeadline || !j.isActive) return false;
+          const deadline = new Date(j.applicationDeadline);
+          const now = new Date();
+          const daysUntil = Math.ceil(
+            (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+          );
+          return daysUntil <= 7 && daysUntil >= 0;
+        });
+        break;
+      case "expired":
+        jobs = jobs.filter((j) => !j.isActive);
+        break;
     }
+
+    // Search filtering
+    if (searchTerm) {
+      const lower = searchTerm.toLowerCase();
+      jobs = jobs.filter(
+        (j) =>
+          j.title.toLowerCase().includes(lower) ||
+          j.city.toLowerCase().includes(lower),
+      );
+    }
+
+    return jobs;
+  }, [jobsList.data, activeTab, searchTerm]);
+
+  const getStatusBadge = (job: Job) => {
+    if (!job.isActive) {
+      return (
+        <Badge className="border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20">
+          Expired
+        </Badge>
+      );
+    }
+
+    if (job.applicationDeadline) {
+      const deadline = new Date(job.applicationDeadline);
+      const now = new Date();
+      const daysUntil = Math.ceil(
+        (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      if (daysUntil <= 7 && daysUntil >= 0) {
+        return (
+          <Badge className="border-amber-200 bg-amber-100 text-amber-700 hover:bg-amber-200">
+            Expiring
+          </Badge>
+        );
+      }
+    }
+
+    return (
+      <Badge className="border-accent/80 bg-accent/10 text-accent/80 hover:bg-accent/20">
+        Active
+      </Badge>
+    );
+  };
+
+  const handleCloseJob = async (jobId: number) => {
+    await updateJobAsync({ jobId, data: { isActive: false } });
+  };
+
+  const handleDuplicate = async (job: Job) => {
+    await createJobAsync({
+      title: `${job.title} (Copy)`,
+      description: job.description,
+      city: job.city,
+      state: job.state || "",
+      country: job.country,
+      zipcode: job.zipcode,
+      jobType: job.jobType,
+      compensationType: job.compensationType,
+      isRemote: job.isRemote,
+      applicationDeadline: job.applicationDeadline
+        ? new Date(job.applicationDeadline).toISOString().split("T")[0]
+        : null,
+      experience: job.experience || "",
+    });
   };
 
   return (
@@ -70,17 +152,25 @@ export function JobListingsSection({ jobsList }: JobListingInformationProps) {
               Manage all your jobs in one place
             </p>
           </div>
-          <Button className="bg-primary/90 hover:bg-primary cursor-pointer [&_svg]:size-4">
-            <Plus className="size-4" />
-            Post new job
-          </Button>
+          <Link
+            href={`/employer/organizations/${organizationId}/jobs/new`}
+          >
+            <Button className="bg-primary/90 hover:bg-primary cursor-pointer [&_svg]:size-4">
+              <Plus className="size-4" />
+              Post new job
+            </Button>
+          </Link>
         </div>
 
         {/* Filters & Tabs */}
         <Card className="border-0 shadow-sm">
           <div className="p-6">
             {/* Status Tabs */}
-            <Tabs defaultValue="all" className="mb-6">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="mb-6"
+            >
               <TabsList className="bg-background grid w-full max-w-md grid-cols-4">
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="open">Open</TabsTrigger>
@@ -92,10 +182,12 @@ export function JobListingsSection({ jobsList }: JobListingInformationProps) {
             {/* Search & Filters */}
             <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center">
               <div className="relative max-w-md flex-1">
-                <Search className="text-muted-foreground-foreground absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2" />
+                <Search className="text-muted-foreground absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2" />
                 <Input
                   placeholder="Search by job title or location..."
                   className="bg-input/50 pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
@@ -115,54 +207,77 @@ export function JobListingsSection({ jobsList }: JobListingInformationProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {jobsList.data.map((job, idx) => {
-                  return (
-                    <TableRow key={job.id} className="hover:bg-background">
-                      <TableCell className="font-medium">
-                        <div>
-                          <div className="text-foreground text-sm font-semibold">
-                            {job.title}
-                          </div>
-                          <div className="text-secondary-foreground mt-1 text-xs">
-                            {job.jobType}
-                          </div>
+                {filteredJobs.map((job) => (
+                  <TableRow key={job.id} className="hover:bg-background">
+                    <TableCell className="font-medium">
+                      <div>
+                        <div className="text-foreground text-sm font-semibold">
+                          {job.title}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium">{job.city}</span>
-                      </TableCell>
-                      <TableCell className="text-secondary-foreground">
-                        {formatToReadableDate(job.createdAt)}
-                      </TableCell>
-                      <TableCell className="text-secondary-foreground">
-                        {formatToReadableDate(job.applicationDeadline!)}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(job.isActive)}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="hover:bg-primary hover:text-primary-foreground [&_svg]:size-4"
+                        <div className="text-secondary-foreground mt-1 text-xs">
+                          {job.jobType}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-medium">{job.city}</span>
+                    </TableCell>
+                    <TableCell className="text-secondary-foreground">
+                      {formatToReadableDate(job.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-secondary-foreground">
+                      {job.applicationDeadline
+                        ? formatToReadableDate(job.applicationDeadline)
+                        : "—"}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(job)}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="hover:bg-primary hover:text-primary-foreground [&_svg]:size-4"
+                          >
+                            Options
+                            <MoreVertical className="ml-2" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              router.push(
+                                `/employer/organizations/${organizationId}/applications`,
+                              )
+                            }
+                          >
+                            View Applicants
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              toast.info("Job editing is coming soon")
+                            }
+                          >
+                            Edit Job
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDuplicate(job)}
+                          >
+                            Duplicate
+                          </DropdownMenuItem>
+                          {job.isActive && (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleCloseJob(job.id)}
                             >
-                              Options
-                              <MoreVertical className="ml-2" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>View Applicants</DropdownMenuItem>
-                            <DropdownMenuItem>Edit Job</DropdownMenuItem>
-                            <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
                               Close Job
                             </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -176,7 +291,6 @@ export function JobListingsSectionSkeleton() {
   return (
     <div className="min-h-screen p-8">
       <div>
-        {/* Header */}
         <div className="mb-8 flex items-start justify-between">
           <div>
             <Skeleton className="h-8 w-64 rounded-md" />
@@ -185,7 +299,6 @@ export function JobListingsSectionSkeleton() {
           <Skeleton className="h-10 w-40 rounded-md" />
         </div>
 
-        {/* Stats cards */}
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-background rounded-md p-4 shadow-sm">
@@ -195,31 +308,21 @@ export function JobListingsSectionSkeleton() {
           ))}
         </div>
 
-        {/* Filters & Tabs (card) */}
         <div className="bg-background mb-6 rounded-md p-6 shadow-sm">
-          {/* Tabs */}
           <div className="mb-6 grid w-full max-w-md grid-cols-4 gap-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-10 rounded-md" />
             ))}
           </div>
-
-          {/* Search & actions */}
           <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center">
             <div className="relative max-w-md flex-1">
               <Skeleton className="h-10 w-full rounded-md" />
             </div>
-            <div className="mt-2 flex items-center gap-2 lg:mt-0">
-              <Skeleton className="h-10 w-24 rounded-md" />
-              <Skeleton className="h-10 w-36 rounded-md" />
-            </div>
           </div>
         </div>
 
-        {/* Table skeleton */}
         <div className="overflow-x-auto">
           <div className="bg-background rounded-md shadow-sm">
-            {/* Table header */}
             <div className="grid grid-cols-6 gap-4 border-b p-4">
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-4 w-28" />
@@ -230,8 +333,6 @@ export function JobListingsSectionSkeleton() {
                 <Skeleton className="h-4 w-16" />
               </div>
             </div>
-
-            {/* Table rows */}
             <div className="divide-y">
               {Array.from({ length: 6 }).map((_, row) => (
                 <div
@@ -245,12 +346,10 @@ export function JobListingsSectionSkeleton() {
                       <Skeleton className="h-3 w-24" />
                     </div>
                   </div>
-
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-4 w-28" />
                   <Skeleton className="h-4 w-28" />
                   <Skeleton className="h-4 w-20" />
-
                   <div className="flex justify-end">
                     <Skeleton className="h-8 w-16 rounded-md" />
                   </div>

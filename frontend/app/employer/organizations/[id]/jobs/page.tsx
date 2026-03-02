@@ -14,6 +14,7 @@ import {
   JobListingsSectionSkeleton,
 } from "@/app/employer/organizations/[id]/components/JobListingInformation";
 import { Suspense } from "react";
+import Link from "next/link";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -36,10 +37,12 @@ export default async function OrganizationJobsPage({ params }: PageProps) {
         </EmptyHeader>
         <EmptyContent>
           <p>There are currently no jobs posted under this organization.</p>
-          <Button className="bg-primary/90 hover:bg-primary cursor-pointer [&_svg]:size-4">
-            <Plus className="mr-1" />
-            Post new job
-          </Button>
+          <Link href={`/employer/organizations/${id}/jobs/new`}>
+            <Button className="bg-primary/90 hover:bg-primary cursor-pointer [&_svg]:size-4">
+              <Plus className="mr-1" />
+              Post new job
+            </Button>
+          </Link>
         </EmptyContent>
       </Empty>
     );
@@ -47,7 +50,10 @@ export default async function OrganizationJobsPage({ params }: PageProps) {
 
   return (
     <Suspense fallback={<JobListingsSectionSkeleton />}>
-      <JobListingsSection jobsList={organizationJobsList} />
+      <JobListingsSection
+        jobsList={organizationJobsList}
+        organizationId={Number(id)}
+      />
     </Suspense>
   );
 }

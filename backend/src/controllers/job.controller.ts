@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 
 import { JobService } from "@/services/job.service";
-import { JobMatchingService } from "@/services/job-matching.service";
 import { BaseController } from "./base.controller";
 import { ForbiddenError } from "@/utils/errors";
 import {
@@ -358,13 +357,25 @@ export class JobController extends BaseController {
   ) => {
     const jobId = Number(req.params.jobId);
 
+    // With upload.fields(), files are on req.files (not req.file)
+    const files = req.files as
+      | { [fieldname: string]: Express.Multer.File[] }
+      | undefined;
+    const resumeFile = files?.resume?.[0];
+    const coverLetterFile = files?.coverLetter?.[0];
+
     const applicationData = {
       ...req.body,
+      resume: resumeFile,
+      coverLetterFile,
       jobId,
       applicantId: req.userId!,
     };
 
-    const result = await this.jobService.applyForJob(applicationData);
+    const result = await this.jobService.applyForJob(
+      applicationData,
+      req.correlationId!,
+    );
 
     if (result.isSuccess) {
       return this.sendSuccess(
@@ -473,7 +484,7 @@ export class JobController extends BaseController {
     if (result.isSuccess) {
       return this.sendSuccess(
         res,
-        result,
+        result.value,
         "Application status updated successfully",
       );
     } else {

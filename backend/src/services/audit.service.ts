@@ -1,4 +1,5 @@
 import { Request } from "express";
+import logger from "@/logger";
 import { AuditRepository } from "@/repositories/audit.repository";
 import { BaseService, ok, fail } from "./base.service";
 import {
@@ -69,7 +70,7 @@ export class AuditService extends BaseService {
       return ok(log);
     } catch (error) {
       // Log audit failures but don't throw - we don't want to break app flow
-      console.error("Failed to create audit log:", error);
+      logger.error({ err: error }, "Failed to create audit log");
       return fail(new DatabaseError("Failed to create audit log"));
     }
   }

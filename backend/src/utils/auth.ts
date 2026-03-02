@@ -8,6 +8,7 @@ import { z } from "zod";
 import { db } from "@/db/connection";
 import { env, isProduction } from "@/config/env";
 
+import { UserService } from "@/services/user.service";
 import { EmailService } from "@/infrastructure/email.service";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 import { userOnBoarding } from "@/db/schema";
@@ -16,9 +17,10 @@ import logger from "@/logger";
 import { eq } from "drizzle-orm";
 import { OrganizationService } from "@/services/organization.service";
 import { authHooks } from "./audit-auth-hooks";
+import { queueService, QUEUE_NAMES } from "@/infrastructure/queue.service";
 
 const emailService = new EmailService();
-const organizationService = new OrganizationService();
+const userService = new UserService();
 
 type UserRegistrationPayload = {
   name: string;
@@ -31,12 +33,17 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "mysql",
   }),
+  rateLimit: {
+    enabled: isProduction,
+    window: 60, // 60 seconds
+    max: 100, // limit each IP to 100 requests per windowMs
+  },
   trustedOrigins: [env.FRONTEND_URL],
   baseURL: isProduction ? env.SERVER_URL : undefined,
   basePath: "/api/auth",
   session: {
     cookieCache: {
-      enabled: true,
+      enabled: isProduction,
       maxAge: 5 * 60, // 5 minutes
     },
   },
@@ -68,7 +75,7 @@ export const auth = betterAuth({
   },
   user: {
     deleteUser: {
-      enabled: true,
+      enabled: isProduction,
       sendDeleteAccountVerification: async ({ user, url, token }) => {
         await emailService.sendDeleteAccountEmailVerification(
           user.email,
@@ -154,6 +161,12 @@ export const auth = betterAuth({
                 status: "pending",
               }),
             );
+
+            // Create default email preferences for the user
+            await userService.createDefaultEmailPreferences(
+              Number(userResult.user.id),
+            );
+
             // Modify and return the response with added 'intent' property
             return {
               ...userResult,
@@ -187,29 +200,39 @@ export const auth = betterAuth({
             .where(eq(userOnBoarding.userId, Number(userId)))
             .limit(1);
 
-          const member = await organizationService.getOrganizationMember(
-            Number(userId),
-          );
+          const intent = onboarding ? onboarding.intent : "seeker";
+          const redirectUrl =
+            intent === "employer" ? "/employer/organizations" : "/";
 
-          if (member.isSuccess) {
-            const intent = onboarding ? onboarding.intent : "seeker";
-            const organizationId = member.value.organizationId;
-            const redirectUrl =
-              intent === "employer"
-                ? `/employer/organizations/${organizationId}`
-                : "/";
+          return {
+            ...returned,
+            user: {
+              ...returned.user,
+              intent,
+              redirectUrl,
+            },
+          };
+        }
+      } else if (ctx.path === "/change-password") {
+        if (ctx.context.returned instanceof APIError) {
+          return;
+        }
 
-            const userResult = ctx.context
-              .returned as BetterAuthSuccessResponseSchema;
-
-            return {
-              ...userResult,
-              user: {
-                ...userResult.user,
-                intent,
-                redirectUrl,
+        const returned = ctx.context
+          .returned as BetterAuthSuccessResponseSchema;
+        if (returned?.user) {
+          try {
+            await queueService.addJob(
+              QUEUE_NAMES.EMAIL_QUEUE,
+              "sendPasswordChangedEmail",
+              {
+                userId: Number(returned.user.id),
+                email: returned.user.email,
+                fullName: returned.user.name,
               },
-            };
+            );
+          } catch (error) {
+            logger.error(error, "Failed to queue password changed email");
           }
         }
       }

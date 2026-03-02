@@ -1,13 +1,6 @@
 import fs from "fs";
 
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-} from "firebase/storage";
-
-import { storage } from "@/config/firebase";
+import { bucket } from "@/config/firebase";
 import { BaseService } from "@/services/base.service";
 import logger from "@/logger";
 import {
@@ -53,12 +46,14 @@ export class FirebaseUploadService extends BaseService {
    * @param file - Temporary file info from multer
    * @param index - File index for error tracking
    * @param folder - Firebase Storage folder path
+   * @param deterministicName - Optional deterministic filename for idempotent retries
    * @returns Object with url on success, or error details on failure
    */
   async uploadSingleFile(
     file: TempFile,
     index: number,
     folder: string,
+    deterministicName?: string,
   ): Promise<{ url: string; metadata: FileMetadata } | { error: UploadError }> {
     const correlationId = `file-${index}-${Date.now()}`;
 
@@ -93,22 +88,24 @@ export class FirebaseUploadService extends BaseService {
         };
       }
 
-      // Generate unique filename
-      const uniqueFilename = generateUniqueFilename(file.originalname);
+      // Use deterministic name if provided (for idempotent retries), otherwise generate unique
+      const uniqueFilename = deterministicName || generateUniqueFilename(file.originalname);
       const storagePath = `${folder}/${uniqueFilename}`;
 
       // Read file from temp path
       const fileBuffer = await fs.promises.readFile(file.tempPath);
 
-      // Create storage reference
-      const storageRef = ref(storage, storagePath);
+      // Get file reference from Admin SDK bucket
+      const bucketFile = bucket.file(storagePath);
 
       // Upload with timeout protection
-      const uploadPromise = uploadBytes(storageRef, fileBuffer, {
+      const uploadPromise = bucketFile.save(fileBuffer, {
         contentType: file.mimetype,
-        customMetadata: {
-          originalName: file.originalname,
-          uploadedAt: new Date().toISOString(),
+        metadata: {
+          metadata: {
+            originalName: file.originalname,
+            uploadedAt: new Date().toISOString(),
+          },
         },
       });
 
@@ -121,8 +118,11 @@ export class FirebaseUploadService extends BaseService {
       // Race between upload and timeout
       await Promise.race([uploadPromise, timeoutPromise]);
 
-      // Get download URL
-      const downloadUrl = await getDownloadURL(storageRef);
+      // Make file publicly readable
+      await bucketFile.makePublic();
+
+      // Get public download URL
+      const downloadUrl = `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
 
       logger.info(
         { correlationId, filename: uniqueFilename, folder },
@@ -161,12 +161,14 @@ export class FirebaseUploadService extends BaseService {
    * @param files - Array of temporary files
    * @param startIndex - Starting index for error tracking
    * @param folder - Firebase Storage folder path
+   * @param deterministicNames - Optional deterministic filenames for idempotent retries
    * @returns Batch results with URLs and failures
    */
   async processBatch(
     files: TempFile[],
     startIndex: number,
     folder: string,
+    deterministicNames?: string[],
   ): Promise<{
     urls: string[];
     metadata: FileMetadata[];
@@ -182,9 +184,11 @@ export class FirebaseUploadService extends BaseService {
       const chunkStartIndex = startIndex + i;
 
       const results = await Promise.allSettled(
-        chunk.map((file, chunkIndex) =>
-          this.uploadSingleFile(file, chunkStartIndex + chunkIndex, folder),
-        ),
+        chunk.map((file, chunkIndex) => {
+          const globalIndex = chunkStartIndex + chunkIndex;
+          const detName = deterministicNames?.[startIndex + i + chunkIndex];
+          return this.uploadSingleFile(file, globalIndex, folder, detName);
+        }),
       );
 
       for (const result of results) {
@@ -212,13 +216,13 @@ export class FirebaseUploadService extends BaseService {
   /**
    * Main upload method - uploads multiple files with batch processing
    * @param files - Array of temporary files from multer
-   * @param options - Upload options (folder, maxFileSizeMB, allowedTypes)
+   * @param options - Upload options (folder, maxFileSizeMB, allowedTypes, deterministicNames)
    * @param onProgress - Optional callback for progress updates (0-100)
    * @returns Upload result with URLs, failures, and counts
    */
   async uploadFiles(
     files: TempFile[],
-    options: Partial<UploadOptions> = {},
+    options: Partial<UploadOptions> & { deterministicNames?: string[] } = {},
     onProgress?: (progress: number) => void,
   ): Promise<FileUploadResult & { metadata: FileMetadata[] }> {
     const folder = options.folder || "uploads";
@@ -235,7 +239,7 @@ export class FirebaseUploadService extends BaseService {
     // Process in batches
     for (let i = 0; i < files.length; i += this.batchSize) {
       const batch = files.slice(i, i + this.batchSize);
-      const batchResult = await this.processBatch(batch, i, folder);
+      const batchResult = await this.processBatch(batch, i, folder, options.deterministicNames);
 
       allUrls.push(...batchResult.urls);
       allMetadata.push(...batchResult.metadata);
@@ -278,7 +282,8 @@ export class FirebaseUploadService extends BaseService {
     try {
       // Extract storage path from download URL
       const urlObj = new URL(fileUrl);
-      const pathMatch = urlObj.pathname.match(/\/o\/(.+?)(\?|$)/);
+      // Match pattern: storage.googleapis.com/{bucket}/{path}
+      const pathMatch = urlObj.pathname.match(/\/([^\/]+\/[^?]+)/);
 
       if (!pathMatch) {
         logger.error({ fileUrl }, "Could not extract storage path from URL");
@@ -286,9 +291,9 @@ export class FirebaseUploadService extends BaseService {
       }
 
       const storagePath = decodeURIComponent(pathMatch[1]!);
-      const storageRef = ref(storage, storagePath);
+      const bucketFile = bucket.file(storagePath);
 
-      await deleteObject(storageRef);
+      await bucketFile.delete();
 
       logger.info({ storagePath }, "File deleted successfully");
       return true;
@@ -306,8 +311,7 @@ export class FirebaseUploadService extends BaseService {
    * @returns Public download URL
    */
   async generatePublicUrl(filePath: string): Promise<string> {
-    const storageRef = ref(storage, filePath);
-    return getDownloadURL(storageRef);
+    return `https://storage.googleapis.com/${bucket.name}/${filePath}`;
   }
 
   /**

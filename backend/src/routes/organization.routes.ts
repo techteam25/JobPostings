@@ -208,6 +208,7 @@ registry.registerPath({
 router.get(
   "/members/:id",
   validate(getUserSchema),
+  cacheMiddleware({ ttl: 600 }),
   organizationController.getOrganizationIdByMemberId,
 );
 
@@ -276,10 +277,10 @@ registry.registerPath({
 router.post(
   "/",
   authMiddleware.authenticate,
-  authMiddleware.requireAdminOrOwnerRole(["owner"]),
   uploadMiddleware.organizationLogo,
   validate(createOrganizationSchema),
   invalidateCacheMiddleware(() => "/organizations"),
+  invalidateCacheMiddleware(() => "users/me/intent"),
   organizationController.createOrganization,
 );
 
@@ -778,11 +779,11 @@ router.patch(
   authMiddleware.ensureIsOrganizationMember,
   invalidateCacheMiddleware(
     (req) =>
-      `/${req.params.organizationId}/jobs/${req.params.jobId}/applications`,
+      `organizations/${req.params.organizationId}/jobs/${req.params.jobId}/applications`,
   ),
   invalidateCacheMiddleware(
     (req) =>
-      `/${req.params.organizationId}/jobs/${req.params.jobId}/applications/${req.params.applicationId}`,
+      `organizations/${req.params.organizationId}/jobs/${req.params.jobId}/applications/${req.params.applicationId}`,
   ),
   organizationController.updateJobApplicationStatus,
 );
@@ -873,7 +874,7 @@ router.post(
   authMiddleware.ensureIsOrganizationMember,
   invalidateCacheMiddleware(
     (req) =>
-      `/${req.params.organizationId}/jobs/${req.params.jobId}/applications/${req.params.applicationId}`,
+      `organizations/${req.params.organizationId}/jobs/${req.params.jobId}/applications/${req.params.applicationId}`,
   ),
   organizationController.attachNoteToJobApplication,
 );

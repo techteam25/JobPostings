@@ -2,6 +2,7 @@ import { MutableRefObject } from "react";
 
 import { CreateOrganizationData } from "@/schemas/organizations";
 
+
 export enum JobType {
   FullTime = "Full-time",
   PartTime = "Part-time",
@@ -68,6 +69,17 @@ export type OrganizationWithMembers = Organization & {
 
 export type Member = OrganizationWithMembers["members"][number];
 
+export type UserOrganizationMembership = {
+  id: number;
+  userId: number;
+  organizationId: number;
+  role: "owner" | "admin" | "recruiter" | "member";
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  organization: Organization;
+};
+
 export type OrganizationJobApplications = {
   applicationId: number;
   jobId: number;
@@ -91,48 +103,34 @@ export type OrganizationJobApplications = {
 };
 
 export type UserJobApplications = {
-  items: {
-    application: {
-      id: number;
-      jobId: number;
-      applicantId: number;
-      status:
-        | "pending"
-        | "reviewed"
-        | "shortlisted"
-        | "interviewing"
-        | "rejected"
-        | "hired"
-        | "withdrawn";
-      coverLetter: string | null;
-      resumeUrl: string | null;
-      appliedAt: Date;
-      reviewedAt: Date | null;
-      notes: string | null;
-      createdAt: Date;
-      updatedAt: Date;
-    };
-    job: {
-      id: number;
-      title: string;
-      city: string;
-      state: string | null;
-      country: string;
-      zipcode: number | null;
-      isRemote: boolean;
-      jobType:
-        | "full-time"
-        | "part-time"
-        | "contract"
-        | "volunteer"
-        | "internship";
-    } | null;
-    employer: {
-      id: number;
-      name: string;
-    } | null;
-  }[];
-};
+  application: {
+    id: number;
+    jobTitle: string;
+    status:
+      | "pending"
+      | "reviewed"
+      | "shortlisted"
+      | "interviewing"
+      | "rejected"
+      | "hired"
+      | "withdrawn";
+    appliedAt: string;
+  };
+  job: {
+    id: number;
+    title: string;
+    city: string;
+    state: string | null;
+    country: string | null;
+    zipcode: number | null;
+    isRemote: boolean;
+    jobType: string;
+  };
+  employer: {
+    id: number;
+    name: string;
+  };
+}[];
 
 export type SavedJob = {
   id: number;
@@ -166,35 +164,46 @@ export type SavedJob = {
 
 export type UserProfile = {
   id: number;
+  userId: number;
+  profilePicture: string | null;
+  bio: string | null;
+  resumeUrl: string | null;
+  linkedinUrl: string | null;
+  portfolioUrl: string | null;
+  phoneNumber: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  country: string | null;
+  isProfilePublic: boolean;
+  isAvailableForWork: boolean;
+  fileMetadata:
+    | {
+        url: string;
+        filename: string;
+        size: number;
+        mimetype: string;
+        uploadedAt: string;
+      }[]
+    | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type UserWithProfile = {
+  id: number;
   fullName: string;
   email: string;
-  emailVerified: true;
-  image: string;
+  emailVerified: boolean;
+  image: string | null;
   createdAt: Date;
   updatedAt: Date;
   status: string;
-  deletedAt: Date;
-  lastLoginAt: Date;
-  profile: {
-    id: number;
-    userId: number;
-    profilePicture: string;
-    bio: string;
-    resumeUrl: string;
-    linkedinUrl: string;
-    portfolioUrl: string;
-    phoneNumber: string;
-    address: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-    isProfilePublic: true;
-    isAvailableForWork: true;
-    createdAt: Date;
-    updatedAt: Date;
-  };
-};
+  deletedAt: Date | null;
+  lastLoginAt: Date | null;
+} & { profile: UserProfile | null };
+
 
 export type EmailPreferences = {
   jobMatchNotifications: boolean;
@@ -242,6 +251,36 @@ export type SavedState = {
   isSaved: boolean;
 };
 
+export type UserJobApplication = {
+  application: {
+    id: number;
+    jobTitle: string;
+    status:
+      | "pending"
+      | "reviewed"
+      | "shortlisted"
+      | "interviewing"
+      | "rejected"
+      | "hired"
+      | "withdrawn";
+    appliedAt: string;
+  };
+  job: {
+    id: number;
+    title: string;
+    city: string;
+    state: string | null;
+    country: string | null;
+    zipcode: number | null;
+    isRemote: boolean;
+    jobType: string;
+  };
+  employer: {
+    id: number;
+    name: string;
+  };
+};
+
 export type PaginationMeta = {
   total: number;
   page: number;
@@ -268,4 +307,90 @@ export type ApiSuccessResponse<T> = {
 export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
 export type PaginatedApiResponse<T> = ApiSuccessResponse<T[]> & {
   pagination: PaginationMeta;
+};
+
+export type JobAlert = {
+  id: number;
+  userId: number;
+  name: string;
+  description: string;
+  state?: string;
+  city?: string;
+  searchQuery?: string;
+  jobType?: Array<"full_time" | "part_time" | "contract" | "temporary" | "intern">;
+  skills?: string[];
+  experienceLevel?: string[];
+  includeRemote: boolean;
+  frequency: "daily" | "weekly" | "monthly";
+  isActive: boolean;
+  isPaused: boolean;
+  lastSentAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateJobAlertInput = Omit<JobAlert, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'lastSentAt'>;
+export type UpdateJobAlertInput = Partial<CreateJobAlertInput>;
+
+export type Invitation = {
+  id: number;
+  organizationId: number;
+  email: string;
+  role: "admin" | "recruiter" | "member";
+  token: string;
+  status: "pending" | "accepted" | "expired" | "cancelled";
+  expiresAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type InvitationDetails = {
+  invitation: {
+    id: number;
+    email: string;
+    role: string;
+    status: string;
+    expiresAt: Date;
+  };
+  organization: {
+    id: number;
+    name: string;
+    logoUrl: string | null;
+  };
+};
+
+export type OrganizationJobStats = {
+  totalJobs: number;
+  activeJobs: number;
+  expiredJobs: number;
+  totalApplications: number;
+  applicationsByStatus: {
+    pending: number;
+    reviewed: number;
+    shortlisted: number;
+    interviewing: number;
+    rejected: number;
+    hired: number;
+  };
+};
+
+export type CreateJobInput = {
+  title: string;
+  description: string;
+  city: string;
+  state: string;
+  country: string;
+  zipcode: number | null;
+  jobType: "full-time" | "part-time" | "contract" | "volunteer" | "internship";
+  compensationType: "paid" | "missionary" | "volunteer" | "stipend";
+  isRemote: boolean;
+  applicationDeadline: string | null;
+  experience: string;
+};
+
+export type UpdateJobInput = Partial<CreateJobInput> & { isActive?: boolean };
+
+export type SendInvitationInput = {
+  email: string;
+  role: "admin" | "recruiter" | "member";
 };

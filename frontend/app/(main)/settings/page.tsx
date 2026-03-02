@@ -19,7 +19,7 @@ export default function SettingsPage() {
       id: "notifications",
       icon: Bell,
       title: "Notifications",
-      description: "Choose what we get in touch about",
+      description: "Manage email preferences and job alerts",
     },
     {
       id: "change-password",

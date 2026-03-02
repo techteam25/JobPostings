@@ -8,7 +8,6 @@ import validate from "../middleware/validation.middleware";
 import {
   selectJobSchema,
   createJobSchema,
-  updateJobInputSchema,
   getJobSchema,
   deleteJobSchema,
   updateJobSchema,
@@ -38,6 +37,7 @@ import {
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
 import { auditMiddleware } from "@/middleware/audit.middleware";
+import { uploadMiddleware } from "@/middleware/multer.middleware";
 
 const router = Router();
 const jobController = new JobController();
@@ -245,6 +245,15 @@ registry.registerPath({
  * @param {Response} res - Express response object.
  * @returns {Promise<void>} - Sends a JSON response with the job posting details.
  */
+// /me/applications must be registered before /:jobId to avoid "me" matching as a jobId param
+router.get(
+  "/me/applications",
+  authMiddleware.authenticate,
+  authMiddleware.requireUserRole,
+  cacheMiddleware({ ttl: 300 }),
+  jobController.getUserApplications,
+);
+
 router.get(
   "/:jobId",
   validate(getJobSchema),
@@ -256,23 +265,6 @@ router.get(
 router.use(authMiddleware.authenticate);
 
 // User routes (authenticated users)
-
-/**
- * Retrieves job applications submitted by the authenticated user.
- * This authenticated endpoint fetches the user's job applications with pagination and optional status filtering.
- * Requires user authentication and job seeker role.
- * Includes caching for performance optimization.
- * @route GET /api/jobs/me/applications
- * @param {Object} req.query - Query parameters for pagination and status filter.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the user's job applications.
- */
-router.get(
-  "/me/applications",
-  authMiddleware.requireUserRole,
-  cacheMiddleware({ ttl: 300 }),
-  jobController.getUserApplications,
-);
 
 registry.registerPath({
   method: "get",
@@ -324,7 +316,7 @@ registry.registerPath({
                   city: z.string(),
                   state: z.string().nullable(),
                   country: z.string().nullable(),
-                  zipcode: z.number().nullable(),
+                  zipcode: z.string().nullable(),
                   isRemote: z.boolean(),
                   jobType: z.string(),
                 }),
@@ -364,7 +356,16 @@ registry.registerPath({
     },
   },
 });
-
+/**
+ * Retrieves job applications submitted by the authenticated user.
+ * This authenticated endpoint fetches the user's job applications with pagination and optional status filtering.
+ * Requires user authentication and job seeker role.
+ * Includes caching for performance optimization.
+ * @route GET /api/jobs/me/applications
+ * @param {Object} req.query - Query parameters for pagination and status filter.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the user's job applications.
+ */
 registry.registerPath({
   method: "post",
   path: "/api/jobs/{jobId}/apply",
@@ -440,7 +441,7 @@ registry.registerPath({
 /**
  * Allows the authenticated user to apply for a job posting.
  * This authenticated endpoint creates a new job application for the specified job.
- * Requires user authentication and job seeker role.
+ * Requires user authentication and jobseeker role.
  * @route POST /api/jobs/:jobId/apply
  * @param {Object} req.params - Route parameters including the jobId.
  * @param {Object} req.body - Request body with application details (cover letter, resume).
@@ -450,6 +451,7 @@ registry.registerPath({
 router.post(
   "/:jobId/apply",
   authMiddleware.requireUserRole,
+  uploadMiddleware.jobApplication,
   validate(applyForJobSchema),
   jobController.applyForJob,
 );
@@ -712,7 +714,7 @@ registry.registerPath({
 router.put(
   "/:jobId",
   authMiddleware.requireJobPostingRole(),
-  validate(updateJobInputSchema),
+  validate(updateJobSchema),
   invalidateCacheMiddleware((_req) => `/api/jobs`),
   jobController.updateJob,
 );
