@@ -26,10 +26,7 @@ export const applyForJobSchema = z.object({
 });
 
 export const updateApplicationStatusSchema = z.object({
-  body: z.object({
-    customAnswers: z.string().optional(),
-    notes: z.string().max(5000).optional(),
-  }),
+  body: jobApplicationPayload,
   params: applicationIdParamSchema,
   query: z.object({}).strict(),
 });

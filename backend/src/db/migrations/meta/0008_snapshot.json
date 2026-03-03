@@ -1,9 +1,84 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "548f56c8-2603-4c44-b81e-1a371ba77f54",
-  "prevId": "66f9e281-2e72-490d-b7e1-dd066a961279",
+  "id": "f5bb482e-5cae-4bf7-ae57-325bbe259f05",
+  "prevId": "93ddad1d-468f-4f86-b35e-46e65faf59ec",
   "tables": {
+    "auth": {
+      "name": "auth",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "onUpdate": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "auth_user_id_users_id_fk": {
+          "name": "auth_user_id_users_id_fk",
+          "tableFrom": "auth",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "auth_id": {
+          "name": "auth_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
     "certifications": {
       "name": "certifications",
       "columns": {
@@ -65,7 +140,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "user_certifications_certification_id_certifications_id_fk": {
@@ -78,7 +153,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -202,128 +277,6 @@
         }
       }
     },
-    "users": {
-      "name": "users",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "full_name": {
-          "name": "full_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "email": {
-          "name": "email",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "email_verified": {
-          "name": "email_verified",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "image": {
-          "name": "image",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
-        },
-        "status": {
-          "name": "status",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'active'"
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "last_login_at": {
-          "name": "last_login_at",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "idx_users_status": {
-          "name": "idx_users_status",
-          "columns": [
-            "status"
-          ],
-          "isUnique": false
-        },
-        "idx_users_email": {
-          "name": "idx_users_email",
-          "columns": [
-            "email"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "users_id": {
-          "name": "users_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {
-        "users_email_unique": {
-          "name": "users_email_unique",
-          "columns": [
-            "email"
-          ]
-        }
-      },
-      "checkConstraint": {
-        "status_must_be_valid": {
-          "name": "status_must_be_valid",
-          "value": "(`users`.`status` IN (\"active\", \"deactivated\", \"deleted\"))"
-        },
-        "deleted_status_requires_deleted_at": {
-          "name": "deleted_status_requires_deleted_at",
-          "value": "(`users`.`status` != 'deleted' OR `users`.`deleted_at` IS NOT NULL)"
-        }
-      }
-    },
     "user_profile": {
       "name": "user_profile",
       "columns": {
@@ -419,22 +372,6 @@
           "autoincrement": false,
           "default": "'US'"
         },
-        "is_profile_public": {
-          "name": "is_profile_public",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
-        "is_available_for_work": {
-          "name": "is_available_for_work",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -477,18 +414,11 @@
           ]
         }
       },
-      "uniqueConstraints": {
-        "user_profile_user_id_unique": {
-          "name": "user_profile_user_id_unique",
-          "columns": [
-            "user_id"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "checkConstraint": {}
     },
-    "organization_members": {
-      "name": "organization_members",
+    "users": {
+      "name": "users",
       "columns": {
         "id": {
           "name": "id",
@@ -497,27 +427,56 @@
           "notNull": true,
           "autoincrement": true
         },
-        "user_id": {
-          "name": "user_id",
-          "type": "int",
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "int",
+        "first_name": {
+          "name": "first_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "role": {
           "name": "role",
-          "type": "enum('owner','admin','recruiter','member')",
+          "type": "enum('user','employer','admin')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'member'"
+          "default": "'user'"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_email_verified": {
+          "name": "is_email_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
         },
         "is_active": {
           "name": "is_active",
@@ -526,6 +485,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": true
+        },
+        "last_login_at": {
+          "name": "last_login_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
@@ -545,68 +511,30 @@
           "default": "(now())"
         }
       },
-      "indexes": {
-        "idx_org_members_user": {
-          "name": "idx_org_members_user",
-          "columns": [
-            "user_id"
-          ],
-          "isUnique": false
-        },
-        "idx_org_members_org": {
-          "name": "idx_org_members_org",
-          "columns": [
-            "organization_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "organization_members_user_id_users_id_fk": {
-          "name": "organization_members_user_id_users_id_fk",
-          "tableFrom": "organization_members",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "organization_members_organization_id_organizations_id_fk": {
-          "name": "organization_members_organization_id_organizations_id_fk",
-          "tableFrom": "organization_members",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {
-        "organization_members_id": {
-          "name": "organization_members_id",
+        "users_id": {
+          "name": "users_id",
           "columns": [
             "id"
           ]
         }
       },
       "uniqueConstraints": {
-        "unique_user_org": {
-          "name": "unique_user_org",
+        "users_email_unique": {
+          "name": "users_email_unique",
           "columns": [
-            "user_id",
-            "organization_id"
+            "email"
           ]
         }
       },
-      "checkConstraint": {}
+      "checkConstraint": {
+        "employer_must_have_organization": {
+          "name": "employer_must_have_organization",
+          "value": "(`users`.`role` != 'employer' OR `users`.`organization_id` IS NOT NULL)"
+        }
+      }
     },
     "organizations": {
       "name": "organizations",
@@ -646,13 +574,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "country": {
-          "name": "country",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "zip_code": {
           "name": "zip_code",
           "type": "varchar(5)",
@@ -667,18 +588,18 @@
           "notNull": false,
           "autoincrement": false
         },
+        "contact": {
+          "name": "contact",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "url": {
           "name": "url",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "logo_url": {
-          "name": "logo_url",
-          "type": "varchar(500)",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "mission": {
@@ -687,52 +608,6 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "subscription_tier": {
-          "name": "subscription_tier",
-          "type": "enum('free','basic','professional','enterprise')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'free'"
-        },
-        "subscription_status": {
-          "name": "subscription_status",
-          "type": "enum('active','cancelled','expired','trial')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'trial'"
-        },
-        "subscription_start_date": {
-          "name": "subscription_start_date",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "subscription_end_date": {
-          "name": "subscription_end_date",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "job_posting_limit": {
-          "name": "job_posting_limit",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": 1
-        },
-        "status": {
-          "name": "status",
-          "type": "enum('active','suspended','deleted')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'active'"
         },
         "created_at": {
           "name": "created_at",
@@ -780,123 +655,12 @@
             "zip_code"
           ],
           "isUnique": false
-        },
-        "idx_subscription_status": {
-          "name": "idx_subscription_status",
-          "columns": [
-            "subscription_status"
-          ],
-          "isUnique": false
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "organizations_id": {
           "name": "organizations_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "application_notes": {
-      "name": "application_notes",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "application_id": {
-          "name": "application_id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "note": {
-          "name": "note",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "onUpdate": true,
-          "default": "(now())"
-        }
-      },
-      "indexes": {
-        "application_idx": {
-          "name": "application_idx",
-          "columns": [
-            "application_id"
-          ],
-          "isUnique": false
-        },
-        "user_idx": {
-          "name": "user_idx",
-          "columns": [
-            "user_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "fk_note_application": {
-          "name": "fk_note_application",
-          "tableFrom": "application_notes",
-          "tableTo": "job_applications",
-          "columnsFrom": [
-            "application_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "fk_note_user": {
-          "name": "fk_note_user",
-          "tableFrom": "application_notes",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "application_notes_id": {
-          "name": "application_notes_id",
           "columns": [
             "id"
           ]
@@ -951,6 +715,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "custom_answers": {
+          "name": "custom_answers",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "applied_at": {
           "name": "applied_at",
           "type": "timestamp",
@@ -966,9 +737,23 @@
           "notNull": false,
           "autoincrement": false
         },
+        "reviewed_by": {
+          "name": "reviewed_by",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "notes": {
           "name": "notes",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "rating": {
+          "name": "rating",
+          "type": "int",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -1032,7 +817,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "fk_application_applicant": {
@@ -1045,7 +830,20 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fk_application_reviewer": {
+          "name": "fk_application_reviewer",
+          "tableFrom": "job_applications",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reviewed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -1099,23 +897,6 @@
           "notNull": false,
           "autoincrement": false,
           "default": 0
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "onUpdate": true,
-          "default": "(now())"
         }
       },
       "indexes": {
@@ -1167,114 +948,9 @@
       "checkConstraint": {
         "application_count_must_be_gt_0": {
           "name": "application_count_must_be_gt_0",
-          "value": "(`job_insights`.`application_count` >= 0)"
+          "value": "(`job_insights`.`application_count` >= 0"
         }
       }
-    },
-    "job_skills": {
-      "name": "job_skills",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "job_id": {
-          "name": "job_id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "skill_id": {
-          "name": "skill_id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "isRequired": {
-          "name": "isRequired",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "onUpdate": true,
-          "default": "(now())"
-        }
-      },
-      "indexes": {
-        "job_idx": {
-          "name": "job_idx",
-          "columns": [
-            "job_id"
-          ],
-          "isUnique": false
-        },
-        "skill_idx": {
-          "name": "skill_idx",
-          "columns": [
-            "skill_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "job_skills_job_id_job_details_id_fk": {
-          "name": "job_skills_job_id_job_details_id_fk",
-          "tableFrom": "job_skills",
-          "tableTo": "job_details",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "job_skills_skill_id_skills_id_fk": {
-          "name": "job_skills_skill_id_skills_id_fk",
-          "tableFrom": "job_skills",
-          "tableTo": "skills",
-          "columnsFrom": [
-            "skill_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "job_skills_id": {
-          "name": "job_skills_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
     },
     "job_details": {
       "name": "job_details",
@@ -1300,37 +976,16 @@
           "notNull": true,
           "autoincrement": false
         },
-        "city": {
-          "name": "city",
+        "location": {
+          "name": "location",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "state": {
-          "name": "state",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "country": {
-          "name": "country",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "zipcode": {
-          "name": "zipcode",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "job_type": {
           "name": "job_type",
-          "type": "enum('full-time','part-time','contract','volunteer','internship')",
+          "type": "enum('full-time','part-time','contract','volunteer','internship','short-term-trip')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -1340,6 +995,20 @@
           "type": "enum('paid','missionary','volunteer','stipend')",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "salary_min": {
+          "name": "salary_min",
+          "type": "decimal(12,2)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "salary_max": {
+          "name": "salary_max",
+          "type": "decimal(12,2)",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "is_remote": {
@@ -1365,9 +1034,16 @@
           "notNull": false,
           "autoincrement": false
         },
+        "skills": {
+          "name": "skills",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "experience": {
           "name": "experience",
-          "type": "varchar(255)",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -1412,45 +1088,10 @@
           ],
           "isUnique": false
         },
-        "city_idx": {
-          "name": "city_idx",
+        "location_idx": {
+          "name": "location_idx",
           "columns": [
-            "city"
-          ],
-          "isUnique": false
-        },
-        "state_idx": {
-          "name": "state_idx",
-          "columns": [
-            "state"
-          ],
-          "isUnique": false
-        },
-        "zipcode_idx": {
-          "name": "zipcode_idx",
-          "columns": [
-            "zipcode"
-          ],
-          "isUnique": false
-        },
-        "is_remote_idx": {
-          "name": "is_remote_idx",
-          "columns": [
-            "is_remote"
-          ],
-          "isUnique": false
-        },
-        "experience_idx": {
-          "name": "experience_idx",
-          "columns": [
-            "experience"
-          ],
-          "isUnique": false
-        },
-        "is_active_idx": {
-          "name": "is_active_idx",
-          "columns": [
-            "is_active"
+            "location"
           ],
           "isUnique": false
         },
@@ -1467,13 +1108,6 @@
             "application_deadline"
           ],
           "isUnique": false
-        },
-        "created_at_idx": {
-          "name": "created_at_idx",
-          "columns": [
-            "created_at"
-          ],
-          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -1487,7 +1121,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -1500,165 +1134,6 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "saved_jobs": {
-      "name": "saved_jobs",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "job_id": {
-          "name": "job_id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
-        }
-      },
-      "indexes": {
-        "user_idx": {
-          "name": "user_idx",
-          "columns": [
-            "user_id"
-          ],
-          "isUnique": false
-        },
-        "job_idx": {
-          "name": "job_idx",
-          "columns": [
-            "job_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "saved_jobs_user_id_users_id_fk": {
-          "name": "saved_jobs_user_id_users_id_fk",
-          "tableFrom": "saved_jobs",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "saved_jobs_job_id_job_details_id_fk": {
-          "name": "saved_jobs_job_id_job_details_id_fk",
-          "tableFrom": "saved_jobs",
-          "tableTo": "job_details",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "saved_jobs_id": {
-          "name": "saved_jobs_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {
-        "unique_user_job": {
-          "name": "unique_user_job",
-          "columns": [
-            "user_id",
-            "job_id"
-          ]
-        }
-      },
-      "checkConstraint": {}
-    },
-    "skills": {
-      "name": "skills",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "onUpdate": true,
-          "default": "(now())"
-        }
-      },
-      "indexes": {
-        "skill_name_idx": {
-          "name": "skill_name_idx",
-          "columns": [
-            "name"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "skills_id": {
-          "name": "skills_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {
-        "skills_name_unique": {
-          "name": "skills_name_unique",
-          "columns": [
-            "name"
-          ]
-        }
-      },
       "checkConstraint": {}
     },
     "work_experiences": {
@@ -1748,8 +1223,8 @@
         }
       }
     },
-    "account": {
-      "name": "account",
+    "sessions": {
+      "name": "sessions",
       "columns": {
         "id": {
           "name": "id",
@@ -1757,20 +1232,6 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": true
-        },
-        "account_id": {
-          "name": "account_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "provider_id": {
-          "name": "provider_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
         },
         "user_id": {
           "name": "user_id",
@@ -1781,178 +1242,75 @@
         },
         "access_token": {
           "name": "access_token",
-          "type": "text",
+          "type": "varchar(512)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
         "refresh_token": {
           "name": "refresh_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "id_token": {
-          "name": "id_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "access_token_expires_at": {
-          "name": "access_token_expires_at",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "refresh_token_expires_at": {
-          "name": "refresh_token_expires_at",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "scope": {
-          "name": "scope",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "password": {
-          "name": "password",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "idx_session_user_id": {
-          "name": "idx_session_user_id",
-          "columns": [
-            "user_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "account_user_id_users_id_fk": {
-          "name": "account_user_id_users_id_fk",
-          "tableFrom": "account",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "account_id": {
-          "name": "account_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "session": {
-      "name": "session",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "token": {
-          "name": "token",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "refresh_expires_at": {
+          "name": "refresh_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp(3)",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
           "default": "(now())"
         },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "ip_address": {
-          "name": "ip_address",
-          "type": "text",
+        "last_used_at": {
+          "name": "last_used_at",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
-        },
-        "user_agent": {
-          "name": "user_agent",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
         }
       },
-      "indexes": {
-        "idx_session_user_id": {
-          "name": "idx_session_user_id",
-          "columns": [
-            "user_id"
-          ],
-          "isUnique": false
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
-        "session_user_id_users_id_fk": {
-          "name": "session_user_id_users_id_fk",
-          "tableFrom": "session",
+        "sessions_user_id_users_id_fk": {
+          "name": "sessions_user_id_users_id_fk",
+          "tableFrom": "sessions",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
@@ -1965,82 +1323,21 @@
         }
       },
       "compositePrimaryKeys": {
-        "session_id": {
-          "name": "session_id",
+        "sessions_id": {
+          "name": "sessions_id",
           "columns": [
             "id"
           ]
         }
       },
       "uniqueConstraints": {
-        "session_token_unique": {
-          "name": "session_token_unique",
+        "sessions_refresh_token_unique": {
+          "name": "sessions_refresh_token_unique",
           "columns": [
-            "token"
+            "refresh_token"
           ]
         }
       },
-      "checkConstraint": {}
-    },
-    "verification": {
-      "name": "verification",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "identifier": {
-          "name": "identifier",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "value": {
-          "name": "value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "verification_id": {
-          "name": "verification_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
       "checkConstraint": {}
     },
     "subscriptions": {

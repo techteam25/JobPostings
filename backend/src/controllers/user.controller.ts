@@ -31,6 +31,8 @@ import {
 } from "@/validations/userProfile.validation";
 import { GetJobSchema } from "@/validations/job.validation";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
+import { AuditService } from "@/services/audit.service";
+import logger from "@/logger";
 import {
   CreateJobAlert,
   GetJobAlert,
@@ -40,12 +42,14 @@ import {
   DeleteJobAlert,
   TogglePauseJobAlert,
 } from "@/validations/jobAlerts.validation";
+import { CandidateSearchParams } from "@/validations/candidateSearch.validation";
 
 /**
  * Controller class for handling user-related API endpoints.
  */
 export class UserController extends BaseController {
   private userService: UserService;
+  private auditService: AuditService;
   private organizationService: OrganizationService;
 
   /**
@@ -54,6 +58,7 @@ export class UserController extends BaseController {
   constructor() {
     super();
     this.userService = new UserService();
+    this.auditService = new AuditService();
     this.organizationService = new OrganizationService();
   }
 
@@ -120,15 +125,48 @@ export class UserController extends BaseController {
     const id = Number(req.params.id);
 
     const updateData = req.body;
+
+    // Get old values before update
+    const oldUser = await this.userService.getUserById(id);
     const user = await this.userService.updateUser(id, updateData);
 
     if (user.isSuccess) {
+      // Log the audit event
+      try {
+        await this.auditService.logFromRequest(req, "user.update", {
+          resourceType: "user",
+          resourceId: id,
+          oldValues: oldUser.isSuccess ? {
+            fullName: oldUser.value.fullName,
+            email: oldUser.value.email,
+          } : undefined,
+          newValues: {
+            fullName: updateData.fullName,
+            email: updateData.email,
+          },
+          description: `User profile updated for user ID ${id}`,
+        });
+      } catch (err) {
+        logger.error({ err, userId: id }, "Failed to write audit log for user update");
+      }
       return this.sendSuccess<User>(
         res,
         user.value,
         "User updated successfully",
       );
     } else {
+      // Log failed attempt
+      try {
+        await this.auditService.logFromRequest(req, "user.update", {
+          resourceType: "user",
+          resourceId: id,
+          success: "false",
+          errorMessage: user.error.message,
+          description: `Failed to update user ID ${id}`,
+        });
+      } catch (err) {
+        logger.error({ err, userId: id }, "Failed to write audit log for failed user update");
+      }
       return this.handleControllerError(res, user.error);
     }
   };
@@ -345,23 +383,49 @@ export class UserController extends BaseController {
    * @param res The Express response object.
    */
   deleteSelf = async (
-    req: Request<{}, {}, DeleteSelfSchema["body"]>,
-    res: Response,
-  ) => {
-    const { currentPassword } = req.body;
+  req: Request<{}, {}, DeleteSelfSchema["body"]>,
+  res: Response,
+) => {
+  const { currentPassword } = req.body;
 
-    const result = await this.userService.deleteSelf(
-      req.userId!,
-      currentPassword,
-    ); // Todo: replace currentPassword with actual confirmation token
+  const result = await this.userService.deleteSelf(
+    req.userId!,
+    currentPassword,
+  );
 
-    if (result.isSuccess) {
-      return this.sendSuccess(res, null, "Account deleted successfully", 204);
-    } else {
+  if (result.isSuccess) {
+    // Log the deletion
+    try {
+      await this.auditService.logFromRequest(req, "user.delete", {
+        resourceType: "user",
+        resourceId: req.userId!,
+        severity: "warning",
+        description: `User self-deleted account`,
+      });
+    } catch (err) {
+      console.error("Failed to write audit log for user.delete (self, success)", err);
+    }
+    return this.sendSuccess(res, null, "Account deleted successfully", 204);
+  } else {
+    // Log failed deletion attempt
+    try {
+      await this.auditService.logFromRequest(req, "user.delete", {
+        resourceType: "user",
+        resourceId: req.userId!,
+        severity: "warning",
+        success: "false",
+        errorMessage: result.error.message,
+        description: `Failed to delete account`,
+      });
+    } catch (err) {
+
+        // Audit logging failure should not impact error response
+        logger.error({ err, userId: req.userId }, "Failed to write audit log for failed deletion");
+      }
       return this.handleControllerError(res, result.error);
     }
   };
-
+      
   /**
    * Deletes a user account (admin action).
    * @param req The Express request object with user ID parameters and deletion token.
@@ -713,6 +777,37 @@ export class UserController extends BaseController {
     } else {
       return this.handleControllerError(res, result.error);
     }
+  };
+
+  /**
+   * Searches for candidates (job seekers) based on various criteria.
+   * @param req The Express request object with query parameters.
+   * @param res The Express response object.
+   */
+  searchCandidates = async (
+    req: Request<{}, {}, {}, CandidateSearchParams>,
+    res: Response,
+  ) => {
+    const userId = req.userId!;
+
+    const result = await this.userService.searchCandidates(req.query, userId);
+
+    if (result.isSuccess) {
+      const pagination = {
+        ...result.value.pagination,
+        hasNext: result.value.pagination.page < result.value.pagination.totalPages,
+        hasPrevious: result.value.pagination.page > 1,
+        nextPage: result.value.pagination.page < result.value.pagination.totalPages ? result.value.pagination.page + 1 : null,
+        previousPage: result.value.pagination.page > 1 ? result.value.pagination.page - 1 : null,
+      };
+      return this.sendPaginatedResponse(
+        res,
+        result.value.items,
+        pagination,
+        "Candidates retrieved successfully",
+      );
+    }
+    return this.handleControllerError(res, result.error);
   };
 
   /**

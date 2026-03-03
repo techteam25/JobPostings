@@ -15,6 +15,8 @@ import { userOnBoarding } from "@/db/schema";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
 import logger from "@/logger";
 import { eq } from "drizzle-orm";
+import { OrganizationService } from "@/services/organization.service";
+import { authHooks } from "./audit-auth-hooks";
 import { queueService, QUEUE_NAMES } from "@/infrastructure/queue.service";
 
 const emailService = new EmailService();
@@ -100,7 +102,7 @@ export const auth = betterAuth({
   },
   advanced: {
     database: {
-      useNumberId: true,
+      generateId: "serial",
     },
     defaultCookieAttributes: {
       domain: isProduction ? ".getinvolved.team" : undefined,
@@ -111,6 +113,7 @@ export const auth = betterAuth({
     },
   },
   hooks: {
+    ...authHooks,
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path === "/sign-up/email") {
         return;

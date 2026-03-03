@@ -48,7 +48,7 @@ export const updateUserSchema = insertUserSchema.partial().omit({
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
-});
+} as const);
 
 export const updateUserProfileSchema = insertUserProfileSchema
   .omit({ userId: true })

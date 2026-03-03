@@ -24,6 +24,7 @@ import {
   selectUserSchema,
 } from "@/validations/userProfile.validation";
 import { getJobSchema } from "@/validations/job.validation";
+import { auditMiddleware } from "@/middleware/audit.middleware";
 import { selectOrganizationSchema } from "@/validations/organization.validation";
 import {
   cacheMiddleware,
@@ -38,6 +39,10 @@ import {
   deleteJobAlertSchema,
   togglePauseJobAlertSchema,
 } from "@/validations/jobAlerts.validation";
+import {
+  candidateSearchParams,
+  candidateSearchResult,
+} from "@/validations/candidateSearch.validation";
 
 const router = Router();
 const userController = new UserController();
@@ -357,6 +362,7 @@ router.put(
   "/me/profile",
   validate(updateUserPayloadSchema),
   invalidateCacheMiddleware(() => "users/me"),
+  auditMiddleware.logUserManagement("user.profile_update"),
   userController.updateProfile,
 );
 
@@ -1159,6 +1165,53 @@ router.get(
   userController.getJobAlertById,
 );
 
+
+
+registry.registerPath({
+  method: "get",
+  path: "/users/candidates/search",
+  tags: ["Users"],
+  summary: "Search Candidates",
+  description:
+    "Search and filter candidates (job seekers with public profiles). Requires organization membership.",
+  request: {
+    query: candidateSearchParams.shape.query,
+  },
+  responses: {
+    200: {
+      description: "Candidates retrieved successfully",
+      content: {
+        "application/json": {
+          schema: apiPaginatedResponseSchema(candidateSearchResult),
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    403: {
+      description: "Forbidden - Only organization members",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+/**
+ * Searches for candidates (job seekers) based on various criteria.
+ * This authenticated endpoint allows organizations to search for potential candidates.
+ * Requires user to be an organization member.
+ * @route GET /users/candidates/search
+ * @param {Object} req.query - various filter parameters.
+ * @param {Response} res - Express response object.
+ * @returns {Promise<void>} - Sends a JSON response with the candidates.
+ */
+router.get(
+  "/candidates/search",
+  validate(candidateSearchParams),
+  userController.searchCandidates,
+);
+
 registry.registerPath({
   method: "put",
   path: "/users/me/job-alerts/{id}",
@@ -1196,6 +1249,11 @@ registry.registerPath({
     },
     400: {
       description: "Validation error",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    401: {
+      description: "Authentication required",
+      content: { "application/json": { schema: errorResponseSchema } },
     },
     404: {
       description: "Job alert not found",
