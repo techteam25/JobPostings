@@ -27,11 +27,11 @@ import {
   userProfile,
   workExperiences,
 } from "@/db/schema";
-import { BaseRepository } from "./base.repository";
+import { BaseRepository } from "@shared/base/base.repository";
 import type { UserRepositoryPort } from "@/ports/user-repository.port";
-import { db } from "@/db/connection";
-import { DatabaseError, NotFoundError } from "@/utils/errors";
-import { withDbErrorHandling } from "@/db/dbErrorHandler";
+import { db } from "@shared/db/connection";
+import { DatabaseError, NotFoundError } from "@shared/errors";
+import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import { SecurityUtils } from "@/utils/security";
 import {
   NewUserProfile,

@@ -1,5 +1,5 @@
 import { user } from "@/db/schema";
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 
 import { OrganizationService } from "@/services/organization.service";
 

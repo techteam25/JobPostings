@@ -1,8 +1,8 @@
-import { BaseRepository } from "./base.repository";
+import { BaseRepository } from "@shared/base/base.repository";
 import { jobInsights, jobsDetails } from "@/db/schema";
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 import { and, count, eq, sql, sum } from "drizzle-orm";
-import { withDbErrorHandling } from "@/db/dbErrorHandler";
+import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import type { JobInsightsRepositoryPort } from "@/ports/job-insights-repository.port";
 
 /**

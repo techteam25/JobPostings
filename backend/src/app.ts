@@ -10,11 +10,11 @@ import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
 
 import type { Application, Request, Response, NextFunction } from "express";
 
-import logger from "@/logger";
+import logger from "@shared/logger";
 import { auth } from "@/utils/auth";
-import { env } from "@/config/env";
+import { env } from "@shared/config/env";
 
-import { checkDatabaseConnection } from "@/db/connection";
+import { checkDatabaseConnection } from "@shared/db/connection";
 import { registry } from "@/swagger/registry";
 import apiRoutes from "@/routes";
 
@@ -22,10 +22,10 @@ import { errorHandler } from "@/middleware/error.middleware";
 import { apiLimiter } from "@/middleware/rate-limit.middleware";
 import { requestLogger } from "@/middleware/request-logger.middleware";
 
-import { redisCacheService } from "@/infrastructure/redis-cache.service";
-import { redisRateLimiterService } from "@/infrastructure/redis-rate-limiter.service";
-import { queueService } from "@/infrastructure/queue.service";
-import { initializeTypesenseSchema } from "@/config/typesense-client";
+import { redisCacheService } from "@shared/infrastructure/redis-cache.service";
+import { redisRateLimiterService } from "@shared/infrastructure/redis-rate-limiter.service";
+import { queueService } from "@shared/infrastructure/queue.service";
+import { initializeTypesenseSchema } from "@shared/config/typesense-client";
 import { initializeEmailWorker } from "@/workers/send-email-worker";
 import { initializeTypesenseWorker } from "@/workers/typesense-job-indexer";
 import { initializeFileUploadWorker } from "@/workers/file-upload-worker";

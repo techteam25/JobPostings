@@ -6,8 +6,8 @@ import {
   ConnectionOptions,
   JobsOptions,
 } from "bullmq";
-import { env } from "@/config/env";
-import logger from "@/logger";
+import { env } from "@shared/config/env";
+import logger from "@shared/logger";
 
 // BullMQ connection configuration
 const connection: ConnectionOptions = {

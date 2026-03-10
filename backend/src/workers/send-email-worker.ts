@@ -1,10 +1,10 @@
 import { Job as BullMqJob, UnrecoverableError } from "bullmq";
 import { z } from "zod";
-import { EmailService } from "@/infrastructure/email.service";
+import { EmailService } from "@shared/infrastructure/email.service";
 import type { EmailServicePort } from "@/ports/email-service.port";
-import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
 
-import logger from "@/logger";
+import logger from "@shared/logger";
 
 // ============================================================================
 // Discriminated union schemas for each email job type

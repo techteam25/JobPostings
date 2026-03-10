@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { JobMatchingService } from "@/services/job-matching.service";
-import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
+import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 import type { SearchResponse } from "typesense/lib/Typesense/Documents";
 import type { JobDocumentType } from "@/validations/base.validation";
 
 // Mock dependencies
-vi.mock("@/infrastructure/typesense.service/typesense.service");
+vi.mock("@shared/infrastructure/typesense.service/typesense.service");
 vi.mock("@/repositories/job.repository");
 vi.mock("@/repositories/user.repository");
 

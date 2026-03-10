@@ -1,8 +1,8 @@
 import fs from "fs";
 
-import { bucket } from "@/config/firebase";
-import { BaseService } from "@/services/base.service";
-import logger from "@/logger";
+import { bucket } from "@shared/config/firebase";
+import { BaseService } from "@shared/base/base.service";
+import logger from "@shared/logger";
 import {
   TempFile,
   FileUploadResult,

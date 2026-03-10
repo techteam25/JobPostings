@@ -1,5 +1,5 @@
 import admin from "firebase-admin";
-import { env } from "./env";
+import { env } from "@shared/config/env";
 
 // Initialize Firebase Admin SDK
 // Uses GOOGLE_APPLICATION_CREDENTIALS environment variable for service account authentication

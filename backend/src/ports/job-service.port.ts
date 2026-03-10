@@ -1,4 +1,4 @@
-import type { Result } from "@/services/base.service";
+import type { Result } from "@shared/result";
 import type { JobService } from "@/services/job.service";
 import type {
   Job,

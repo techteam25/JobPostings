@@ -1,6 +1,7 @@
 import { UserRepository } from "@/repositories/user.repository";
-import { EmailService } from "@/infrastructure/email.service";
-import { BaseService, fail, ok } from "./base.service";
+import { EmailService } from "@shared/infrastructure/email.service";
+import { fail, ok } from "@shared/result";
+import { BaseService } from "@shared/base/base.service";
 import type { UserServicePort } from "@/ports/user-service.port";
 import type { UserRepositoryPort } from "@/ports/user-repository.port";
 import type { EmailServicePort } from "@/ports/email-service.port";
@@ -10,8 +11,8 @@ import {
   DatabaseError,
   NotFoundError,
   ValidationError,
-} from "@/utils/errors";
-import { PaginationMeta } from "@/types";
+} from "@shared/errors";
+import { PaginationMeta } from "@shared/types";
 import { SecurityUtils } from "@/utils/security";
 import { auth } from "@/utils/auth";
 import {
@@ -25,9 +26,9 @@ import {
   UpdateJobAlertInput,
 } from "@/validations/jobAlerts.validation";
 import { OrganizationRepository } from "@/repositories/organization.repository";
-import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
 import crypto from "crypto";
-import { env } from "@/config/env";
+import { env } from "@shared/config/env";
 
 /**
  * Service class for managing user-related operations, including CRUD for users and profiles.

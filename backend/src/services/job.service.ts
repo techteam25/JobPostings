@@ -1,10 +1,11 @@
-import { BaseService, Result } from "./base.service";
+import { Result, fail, ok } from "@shared/result";
+import { BaseService } from "@shared/base/base.service";
 import { JobInsightsRepository } from "@/repositories/jobInsights.repository";
 import { JobRepository } from "@/repositories/job.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
-import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
+import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 import { UserRepository } from "@/repositories/user.repository";
-import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
 import type { JobServicePort } from "@/ports/job-service.port";
 import type { JobRepositoryPort } from "@/ports/job-repository.port";
 import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
@@ -28,17 +29,16 @@ import {
   ConflictError,
   ValidationError,
   DatabaseError,
-} from "@/utils/errors";
+  AppError,
+} from "@shared/errors";
 import { SecurityUtils } from "@/utils/security";
-import { AppError } from "@/utils/errors";
 
 import { SearchParams } from "@/validations/base.validation";
 import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
 import { StorageFolder } from "@/workers/file-upload-worker";
 import { FileUploadJobData } from "@/validations/file.validation";
 
-import { fail, ok } from "./base.service";
-import logger from "@/logger";
+import logger from "@shared/logger";
 
 /**
  * Service class for managing job-related operations, including CRUD for jobs and applications.

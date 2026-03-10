@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 import {
   jobAlerts,
   jobAlertMatches,
@@ -14,14 +14,14 @@ import type { JobDocumentType } from "@/validations/base.validation";
 
 // Mock TypesenseService to control search results
 const mockSearchJobsForAlert = vi.fn();
-vi.mock("@/infrastructure/typesense.service/typesense.service", () => ({
+vi.mock("@shared/infrastructure/typesense.service/typesense.service", () => ({
   TypesenseService: vi.fn().mockImplementation(() => ({
     searchJobsForAlert: mockSearchJobsForAlert,
   })),
 }));
 
 // Mock queue service to prevent actual email sending
-vi.mock("@/infrastructure/queue.service", () => ({
+vi.mock("@shared/infrastructure/queue.service", () => ({
   queueService: {
     addJob: vi.fn().mockResolvedValue(undefined),
   },

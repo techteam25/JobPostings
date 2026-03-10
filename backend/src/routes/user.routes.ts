@@ -18,7 +18,7 @@ import {
   apiPaginatedResponseSchema,
   apiResponseSchema,
   errorResponseSchema,
-} from "@/types";
+} from "@shared/types";
 import {
   selectUserProfileSchema,
   selectUserSchema,

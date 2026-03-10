@@ -11,11 +11,11 @@ import {
   userOnBoarding,
   userEmailPreferences,
 } from "@/db/schema";
-import { BaseRepository } from "./base.repository";
-import { db } from "@/db/connection";
-import { calculatePagination } from "@/db/utils";
-import { withDbErrorHandling } from "@/db/dbErrorHandler";
-import { DatabaseError, NotFoundError } from "@/utils/errors";
+import { BaseRepository } from "@shared/base/base.repository";
+import { db } from "@shared/db/connection";
+import { calculatePagination } from "@shared/db/utils";
+import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
+import { DatabaseError, NotFoundError } from "@shared/errors";
 import {
   NewJobApplicationNote,
   NewOrganization,

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import type { OrganizationServicePort } from "@/ports/organization-service.port";
 import { OrganizationService } from "@/services/organization.service";
-import { BaseController } from "./base.controller";
+import { BaseController } from "@shared/base/base.controller";
 import {
   CreateJobApplicationNoteInputSchema,
   CreateOrganizationSchema,
@@ -21,7 +21,7 @@ import {
   AcceptOrganizationInvitationInput,
   CancelOrganizationInvitationInput,
 } from "@/validations/organization.validation";
-import { ApiResponse, PaginatedResponse } from "@/types";
+import { ApiResponse, PaginatedResponse } from "@shared/types";
 import {
   Organization,
   OrganizationMember,
@@ -29,7 +29,7 @@ import {
 import { JobApplicationWithNotes } from "@/validations/jobApplications.validation";
 import { GetUserSchema } from "@/validations/user.validation";
 import { SearchParams } from "@/validations/base.validation";
-import { AppError, ErrorCode } from "@/utils/errors";
+import { AppError, ErrorCode } from "@shared/errors";
 
 /**
  * Controller class for handling organization-related API endpoints.

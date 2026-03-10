@@ -1,6 +1,6 @@
-import type { Result } from "@/services/base.service";
+import type { Result } from "@shared/result";
 import type { UserService } from "@/services/user.service";
-import type { PaginationMeta } from "@/types";
+import type { PaginationMeta } from "@shared/types";
 import type {
   NewUserProfile,
   UpdateUser,

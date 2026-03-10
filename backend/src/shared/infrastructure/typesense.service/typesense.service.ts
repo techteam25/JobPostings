@@ -1,11 +1,11 @@
 import type { SearchResponse } from "typesense/lib/Typesense/Documents";
 
-import { JOBS_COLLECTION } from "@/infrastructure/typesense.service/constants";
+import { JOBS_COLLECTION } from "@shared/infrastructure/typesense.service/constants";
 import { JobWithSkills } from "@/validations/job.validation";
-import { typesenseClient } from "@/config/typesense-client";
+import { typesenseClient } from "@shared/config/typesense-client";
 
 import { JobDocumentType } from "@/validations/base.validation";
-import logger from "@/logger";
+import logger from "@shared/logger";
 import type { TypesenseServicePort } from "@/ports/typesense-service.port";
 
 type SortDirection = "asc" | "desc";
@@ -159,12 +159,12 @@ export class TypesenseService implements TypesenseServicePort {
     limit: number = 50,
   ): Promise<SearchResponse<JobDocumentType>> {
     const q = searchQuery || "*";
-    
+
     // Add timestamp filter to only get jobs created after lastSentAt
     let filterBy = filters;
     if (lastSentAt) {
       const timestamp = Math.floor(lastSentAt.getTime() / 1000);
-      filterBy = filterBy 
+      filterBy = filterBy
         ? `${filterBy} && createdAt:>=${timestamp}`
         : `createdAt:>=${timestamp}`;
     }

@@ -1,6 +1,6 @@
 import pino from "pino";
 import pretty from "pino-pretty";
-import { env } from "@/config/env";
+import { env } from "@shared/config/env";
 
 const stream = pretty({
   colorize: true,

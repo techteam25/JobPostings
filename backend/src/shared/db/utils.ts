@@ -1,6 +1,6 @@
 import { count, ilike, sql, or, type SQL } from "drizzle-orm";
 import { MySqlColumn, MySqlTransaction } from "drizzle-orm/mysql-core";
-import { db } from "./connection";
+import { db } from "@shared/db/connection";
 
 /**
  * Build pagination SQL with LIMIT and OFFSET

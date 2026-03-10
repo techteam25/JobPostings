@@ -21,10 +21,10 @@ Follow these steps to create and register a new background worker:
 
 ### Step 1: Add a Queue to the Queue Service
 
-First, add your queue name to the `QUEUE_NAMES` constant in `src/infrastructure/queue.service.ts`:
+First, add your queue name to the `QUEUE_NAMES` constant in `src/shared/infrastructure/queue.service.ts`:
 
 ```typescript
-// src/infrastructure/queue.service.ts
+// src/shared/infrastructure/queue.service.ts
 
 export const QUEUE_NAMES = {
   TYPESENSE_QUEUE: "jobIndexQueue",
@@ -40,7 +40,7 @@ export const QUEUE_NAMES = {
 Then, create the queue in the `initialize()` method:
 
 ```typescript
-// src/infrastructure/queue.service.ts
+// src/shared/infrastructure/queue.service.ts
 
 async initialize(): Promise<void> {
   if (this.isInitialized) {
@@ -80,8 +80,8 @@ Create a new file in the `src/workers/` directory:
 // src/workers/notification-worker.ts
 
 import { Job as BullMqJob } from "bullmq";
-import logger from "@/logger";
-import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import logger from "@shared/logger";
+import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
 
 /**
  * Type definition for notification job data
@@ -229,9 +229,9 @@ Add jobs to the queue from your service layer:
 ```typescript
 // src/services/user.service.ts
 
-import { queueService } from "@/infrastructure/queue.service";
-import { QUEUE_NAMES } from "@/infrastructure/queue.service";
-import logger from "@/logger";
+import { queueService } from "@shared/infrastructure/queue.service";
+import { QUEUE_NAMES } from "@shared/infrastructure/queue.service";
+import logger from "@shared/logger";
 
 export class UserService {
   /**
@@ -280,8 +280,8 @@ For workers that need to run on a schedule (e.g., daily cleanup, weekly reports)
 // src/workers/report-generator.ts
 
 import { Job as BullMqJob } from "bullmq";
-import logger from "@/logger";
-import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import logger from "@shared/logger";
+import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
 
 /**
  * Type definition for report job data
@@ -664,6 +664,6 @@ console.log(metrics);
 
 ## Related Documentation
 
-- [Queue Service](../infrastructure/queue.service.ts)
+- [Queue Service](../shared/infrastructure/queue.service.ts)
 - [BullMQ Documentation](https://docs.bullmq.io/)
 - [Redis Documentation](https://redis.io/docs/)

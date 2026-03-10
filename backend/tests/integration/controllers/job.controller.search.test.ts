@@ -1,17 +1,17 @@
 import { sql } from "drizzle-orm";
 
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 import { jobsDetails, jobSkills, skills } from "@/db/schema";
-import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
+import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 import { request } from "@tests/utils/testHelpers";
 import { seedAdminScenario } from "@tests/utils/seedScenarios";
 import { jobPostingFixture } from "@tests/utils/fixtures";
 import { waitForJobIndexing } from "@tests/utils/wait-for-jobIndexer";
-import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
 import { initializeTypesenseWorker } from "@/workers/typesense-job-indexer";
 
 // Override the global queue mock — this test needs real Redis queue + Typesense
-vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
+vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
   return await importOriginal();
 });
 

@@ -2,13 +2,13 @@ import fs from "fs";
 import path from "path";
 
 import nodemailer from "nodemailer";
-import { BaseService } from "@/services/base.service";
-import { env } from "@/config/env";
-import { AppError } from "@/utils/errors";
+import { BaseService } from "@shared/base/base.service";
+import { env } from "@shared/config/env";
+import { AppError } from "@shared/errors";
 import { getApplicationStatusLabel } from "@/utils/application-status";
-import { EmailType } from "@/types";
+import { EmailType } from "@shared/types";
 import { UserRepository } from "@/repositories/user.repository";
-import logger from "@/logger";
+import logger from "@shared/logger";
 import type { EmailServicePort } from "@/ports/email-service.port";
 import type { UserRepositoryPort } from "@/ports/user-repository.port";
 
@@ -143,7 +143,7 @@ export class EmailService extends BaseService implements EmailServicePort {
           !isSecurityAlert && unsubscribeLink
             ? `
         <p style="margin: 10px 0;">
-          <a href="${preferencesLink}" style="color: #0066cc; text-decoration: none;">Manage email preferences</a> | 
+          <a href="${preferencesLink}" style="color: #0066cc; text-decoration: none;">Manage email preferences</a> |
           <a href="${unsubscribeLink}" style="color: #0066cc; text-decoration: none;">Unsubscribe</a>
         </p>
         `

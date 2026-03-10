@@ -6,7 +6,7 @@
 import { eq, sql } from "drizzle-orm";
 
 import { auth } from "@/utils/auth";
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 import {
   organizations,
   jobsDetails,

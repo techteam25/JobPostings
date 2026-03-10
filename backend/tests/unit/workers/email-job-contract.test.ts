@@ -1,11 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { emailJobSchemas } from "@/workers/send-email-worker";
-import { queueService, QUEUE_NAMES } from "@/infrastructure/queue.service";
+import { queueService, QUEUE_NAMES } from "@shared/infrastructure/queue.service";
 import { JobService } from "@/services/job.service";
 import { JobRepository } from "@/repositories/job.repository";
 import { UserRepository } from "@/repositories/user.repository";
-import { OrganizationRepository } from "@/repositories/organization.repository";
-
 // Mock auth module to break circular dependency (auth.ts → UserService → auth.ts)
 vi.mock("@/utils/auth", () => ({
   auth: { api: { updateUser: vi.fn(), deleteUser: vi.fn() } },

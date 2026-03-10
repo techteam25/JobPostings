@@ -1,10 +1,11 @@
-import { BaseService, fail, ok, Result } from "./base.service";
-import { DatabaseError } from "@/utils/errors";
+import { fail, ok, Result } from "@shared/result";
+import { BaseService } from "@shared/base/base.service";
+import { DatabaseError } from "@shared/errors";
 import { Job } from "@/validations/job.validation";
-import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
+import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 import { JobAlert } from "@/validations/jobAlerts.validation";
 import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
-import logger from "@/logger";
+import logger from "@shared/logger";
 import type { JobMatchingServicePort } from "@/ports/job-matching-service.port";
 import type { TypesenseServicePort } from "@/ports/typesense-service.port";
 

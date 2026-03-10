@@ -2,11 +2,8 @@ import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { seedJobsScenario } from "@tests/utils/seedScenarios";
 import { createUser } from "@tests/utils/seedBuilders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { auth } from "@/utils/auth";
-import { JobService } from "@/services/job.service";
-import { ok } from "@/services/base.service";
 import { JobRepository } from "@/repositories/job.repository";
-import { queueService } from "@/infrastructure/queue.service";
+import { queueService } from "@shared/infrastructure/queue.service";
 
 describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
   let userCookie: string;

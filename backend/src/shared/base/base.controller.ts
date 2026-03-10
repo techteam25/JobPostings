@@ -1,8 +1,8 @@
 // controllers/base.controller.ts
 import { Response } from "express";
-import { AppError, ErrorCode } from "@/utils/errors";
-import logger from "@/logger";
-import { PaginationMeta } from "@/types";
+import { AppError, ErrorCode } from "@shared/errors";
+import logger from "@shared/logger";
+import { PaginationMeta } from "@shared/types";
 
 /**
  * Base controller class providing common response handling methods for API controllers.

@@ -1,5 +1,5 @@
 import { SearchResponse } from "typesense/lib/Typesense/Documents";
-import { PaginationMeta } from "@/types";
+import { PaginationMeta } from "@shared/types";
 
 export function buildPaginationMeta(
   searchResponse: SearchResponse<any>,

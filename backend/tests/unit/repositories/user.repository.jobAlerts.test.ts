@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 
-vi.mock("@/db/connection", () => ({
+vi.mock("@shared/db/connection", () => ({
   db: {
     select: vi.fn(),
     insert: vi.fn(),
@@ -13,9 +13,9 @@ vi.mock("@/db/connection", () => ({
   },
 }));
 
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 import { UserRepository } from "@/repositories/user.repository";
-import { DatabaseError } from "@/utils/errors";
+import { DatabaseError } from "@shared/errors";
 
 describe("UserRepository - Job Alerts", () => {
   let userRepository: UserRepository;

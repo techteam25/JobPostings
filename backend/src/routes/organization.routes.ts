@@ -24,7 +24,7 @@ import {
   apiResponseSchema,
   errorResponseSchema,
   paginationMetaSchema,
-} from "@/types";
+} from "@shared/types";
 import {
   getJobApplicationSchema,
   selectJobApplicationSchema,

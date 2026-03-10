@@ -1,5 +1,5 @@
-import type { Result } from "@/services/base.service";
-import type { DatabaseError } from "@/utils/errors";
+import type { Result } from "@shared/result";
+import type { DatabaseError } from "@shared/errors";
 import type { Job } from "@/validations/job.validation";
 import type { JobAlert } from "@/validations/jobAlerts.validation";
 

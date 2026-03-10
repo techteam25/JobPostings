@@ -1,5 +1,4 @@
-// ENHANCED ERROR HANDLING
-// src/utils/errors.ts
+// src/shared/errors/index.ts
 export enum ErrorCode {
   // Authentication & Authorization
   UNAUTHORIZED = "UNAUTHORIZED",

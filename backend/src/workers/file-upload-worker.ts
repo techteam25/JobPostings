@@ -1,9 +1,9 @@
-import logger from "@/logger";
+import logger from "@shared/logger";
 import { Job as BullMqJob } from "bullmq";
 
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 import { eq } from "drizzle-orm";
-import { firebaseUploadService } from "@/infrastructure/firebase-upload.service";
+import { firebaseUploadService } from "@shared/infrastructure/firebase-upload.service";
 import { jobApplications, organizations, userProfile } from "@/db/schema";
 
 import {
@@ -12,7 +12,7 @@ import {
   FileUploadResult,
   sanitizeFilename,
 } from "@/validations/file.validation";
-import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
 
 export enum StorageFolder {
   PROFILE_PICTURES = "profile-pictures",

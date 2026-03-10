@@ -2,7 +2,7 @@ import type { SearchResponse } from "typesense/lib/Typesense/Documents";
 
 import type { JobWithSkills } from "@/validations/job.validation";
 import type { JobDocumentType } from "@/validations/base.validation";
-import type { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
+import type { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 
 export interface TypesenseServicePort {
   /**

@@ -8,7 +8,7 @@ import nodemailer from "nodemailer";
  * We unmock EmailService for this file so we can call real methods,
  * then mock the transporter and template loading to capture the HTML output.
  */
-vi.unmock("@/infrastructure/email.service");
+vi.unmock("@shared/infrastructure/email.service");
 
 // Mock nodemailer so no real transport is created
 const sendMailMock = vi.fn().mockResolvedValue({ messageId: "test" });
@@ -16,7 +16,7 @@ vi.spyOn(nodemailer, "createTransport").mockReturnValue({
   sendMail: sendMailMock,
 } as any);
 
-import { EmailService } from "@/infrastructure/email.service";
+import { EmailService } from "@shared/infrastructure/email.service";
 import { UserRepository } from "@/repositories/user.repository";
 
 describe("EmailService HTML escaping", () => {

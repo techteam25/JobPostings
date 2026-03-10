@@ -1,6 +1,6 @@
 import { Job as BullMqJob } from "bullmq";
-import logger from "@/logger";
-import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import logger from "@shared/logger";
+import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
 import { UserRepository } from "@/repositories/user.repository";
 import type { UserRepositoryPort } from "@/ports/user-repository.port";
 

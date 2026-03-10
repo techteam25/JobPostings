@@ -31,7 +31,7 @@ import {
   errorResponseSchema,
   paginatedResponseSchema,
   paginationMetaSchema,
-} from "@/types";
+} from "@shared/types";
 import {
   cacheMiddleware,
   invalidateCacheMiddleware,

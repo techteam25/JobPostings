@@ -38,7 +38,7 @@ const {
   mockScheduleInvitationExpiration: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/infrastructure/queue.service", () => ({
+vi.mock("@shared/infrastructure/queue.service", () => ({
   queueService: { initialize: mockQueueInit },
 }));
 vi.mock("@/workers/send-email-worker", () => ({
@@ -70,13 +70,13 @@ vi.mock("@/workers/invitation-expiration-worker", () => ({
 }));
 
 // Stub non-critical infra so initializeInfrastructure doesn't hit real services
-vi.mock("@/config/typesense-client", () => ({
+vi.mock("@shared/config/typesense-client", () => ({
   initializeTypesenseSchema: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock("@/infrastructure/redis-cache.service", () => ({
+vi.mock("@shared/infrastructure/redis-cache.service", () => ({
   redisCacheService: { connect: vi.fn().mockResolvedValue(undefined) },
 }));
-vi.mock("@/infrastructure/redis-rate-limiter.service", () => ({
+vi.mock("@shared/infrastructure/redis-rate-limiter.service", () => ({
   redisRateLimiterService: { connect: vi.fn().mockResolvedValue(undefined) },
 }));
 

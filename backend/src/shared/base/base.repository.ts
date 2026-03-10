@@ -1,10 +1,10 @@
 import { eq, desc } from "drizzle-orm";
 import { MySqlTable, MySqlColumn } from "drizzle-orm/mysql-core";
-import { db } from "@/db/connection";
-import { DatabaseError, NotFoundError } from "@/utils/errors";
-import { calculatePagination } from "@/db/utils";
-import { PaginationMeta } from "@/types";
-import { withDbErrorHandling } from "@/db/dbErrorHandler";
+import { db } from "@shared/db/connection";
+import { DatabaseError, NotFoundError } from "@shared/errors";
+import { calculatePagination } from "@shared/db/utils";
+import { PaginationMeta } from "@shared/types";
+import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 
 type TableWithId<T extends MySqlTable> = T & {
   id: MySqlColumn;

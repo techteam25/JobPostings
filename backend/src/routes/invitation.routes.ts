@@ -8,7 +8,7 @@ import {
   acceptOrganizationInvitationSchema,
 } from "@/validations/organization.validation";
 import { registry, z } from "@/swagger/registry";
-import { apiResponseSchema, errorResponseSchema } from "@/types";
+import { apiResponseSchema, errorResponseSchema } from "@shared/types";
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
 
 const router = Router();

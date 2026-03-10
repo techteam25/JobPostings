@@ -21,7 +21,7 @@ const { mockIsReady, mockGetClient, mockRateLimit, MockRedisStore } = vi.hoisted
 vi.mock("express-rate-limit", () => ({ default: mockRateLimit }));
 vi.mock("rate-limit-redis", () => ({ RedisStore: MockRedisStore }));
 
-vi.mock("@/infrastructure/redis-rate-limiter.service", () => ({
+vi.mock("@shared/infrastructure/redis-rate-limiter.service", () => ({
   redisRateLimiterService: {
     isReady: mockIsReady,
     getClient: mockGetClient,

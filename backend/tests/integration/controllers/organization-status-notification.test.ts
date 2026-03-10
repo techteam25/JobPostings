@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 import {
   user,
   jobsDetails,
@@ -15,7 +15,7 @@ import {
   beforeAll,
   afterAll,
 } from "vitest";
-import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
 import { auth } from "@/utils/auth";
 import { seedUserWithRoleScenario } from "@tests/utils/seedScenarios";
 import { createJobApplication } from "@tests/utils/seedBuilders";

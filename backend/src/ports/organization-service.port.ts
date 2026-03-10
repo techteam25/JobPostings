@@ -1,6 +1,6 @@
-import type { Result } from "@/services/base.service";
+import type { Result } from "@shared/result";
 import type { OrganizationService } from "@/services/organization.service";
-import type { AppError } from "@/utils/errors";
+import type { AppError } from "@shared/errors";
 import type {
   NewOrganization,
   OrganizationJobApplicationsResponse,

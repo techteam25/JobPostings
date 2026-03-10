@@ -1,6 +1,6 @@
 import { createClient, RedisClientType } from "redis";
-import logger from "@/logger";
-import { env } from "@/config/env";
+import logger from "@shared/logger";
+import { env } from "@shared/config/env";
 
 class RedisCacheService {
   private client: RedisClientType | null = null;

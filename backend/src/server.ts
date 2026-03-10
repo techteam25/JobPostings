@@ -1,15 +1,15 @@
 import type { Server } from "http";
 import app, { initializeInfrastructure } from "./app";
-import { env, isDevelopment } from "./config/env";
+import { env, isDevelopment } from "@shared/config/env";
 import {
   checkDatabaseConnection,
   closeDatabaseConnection,
-} from "./db/connection";
+} from "@shared/db/connection";
 
-import { redisCacheService } from "@/infrastructure/redis-cache.service";
-import { redisRateLimiterService } from "@/infrastructure/redis-rate-limiter.service";
-import logger from "@/logger";
-import { queueService } from "@/infrastructure/queue.service";
+import { redisCacheService } from "@shared/infrastructure/redis-cache.service";
+import { redisRateLimiterService } from "@shared/infrastructure/redis-rate-limiter.service";
+import logger from "@shared/logger";
+import { queueService } from "@shared/infrastructure/queue.service";
 
 let server: Server | null = null;
 

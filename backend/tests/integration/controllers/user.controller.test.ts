@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { eq } from "drizzle-orm";
 
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 
 import {
   userEmailPreferences,
@@ -32,7 +32,7 @@ const {
   mockSendAccountDeletionConfirmation: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/infrastructure/email.service", () => {
+vi.mock("@shared/infrastructure/email.service", () => {
   // noinspection JSUnusedGlobalSymbols
   return {
     EmailService: class {
@@ -43,8 +43,8 @@ vi.mock("@/infrastructure/email.service", () => {
   };
 });
 
-vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/infrastructure/queue.service")>();
+vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@shared/infrastructure/queue.service")>();
   return {
     ...original,
     queueService: {

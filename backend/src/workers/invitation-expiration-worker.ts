@@ -1,9 +1,9 @@
 import { Job as BullMqJob } from "bullmq";
 import { eq, and, lt } from "drizzle-orm";
-import logger from "@/logger";
+import logger from "@shared/logger";
 
-import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
-import { db } from "@/db/connection";
+import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import { db } from "@shared/db/connection";
 import { organizationInvitations } from "@/db/schema";
 
 /**

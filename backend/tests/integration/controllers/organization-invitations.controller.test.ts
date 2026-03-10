@@ -1,5 +1,5 @@
 import { eq, and } from "drizzle-orm";
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 import {
   organizationInvitations,
   organizationMembers,
@@ -11,7 +11,7 @@ import { seedUserWithRoleScenario } from "@tests/utils/seedScenarios";
 import { expect, beforeEach, describe, it, beforeAll, afterAll, vi } from "vitest";
 import { auth } from "@/utils/auth";
 import { randomUUID } from "crypto";
-import { queueService } from "@/infrastructure/queue.service";
+import { queueService } from "@shared/infrastructure/queue.service";
 
 describe("Organization Invitations Controller Integration Tests", async () => {
   const { faker } = await import("@faker-js/faker");

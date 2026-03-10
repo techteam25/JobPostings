@@ -1,7 +1,8 @@
-import { BaseService, fail, ok, Result } from "./base.service";
+import { fail, ok, Result } from "@shared/result";
+import { BaseService } from "@shared/base/base.service";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { UserRepository } from "@/repositories/user.repository";
-import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
 import { randomUUID } from "crypto";
 import { JobRepository } from "@/repositories/job.repository";
 import type { OrganizationServicePort } from "@/ports/organization-service.port";
@@ -24,7 +25,7 @@ import {
   ForbiddenError,
   NotFoundError,
   ValidationError,
-} from "@/utils/errors";
+} from "@shared/errors";
 import { StorageFolder } from "@/workers/file-upload-worker";
 import { FileUploadJobData } from "@/validations/file.validation";
 

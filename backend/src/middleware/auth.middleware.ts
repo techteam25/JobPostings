@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { fromNodeHeaders } from "better-auth/node";
 
-import { ApiResponse } from "@/types";
+import { ApiResponse } from "@shared/types";
 import type { OrganizationServicePort } from "@/ports/organization-service.port";
 import type { UserServicePort } from "@/ports/user-service.port";
 import type { JobRepositoryPort } from "@/ports/job-repository.port";
@@ -9,7 +9,7 @@ import type { OrganizationRepositoryPort } from "@/ports/organization-repository
 import type { JobServicePort } from "@/ports/job-service.port";
 import { UserService } from "@/services/user.service";
 
-import logger from "@/logger";
+import logger from "@shared/logger";
 import { auth } from "@/utils/auth";
 import { OrganizationService } from "@/services/organization.service";
 import { GetOrganizationSchema } from "@/validations/organization.validation";
@@ -18,7 +18,7 @@ import { JobRepository } from "@/repositories/job.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { GetJobApplicationSchema } from "@/validations/jobApplications.validation";
 import { GetJobSchema } from "@/validations/job.validation";
-import { NotFoundError } from "@/utils/errors";
+import { NotFoundError } from "@shared/errors";
 import { JobService } from "@/services/job.service";
 
 /**

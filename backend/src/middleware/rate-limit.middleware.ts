@@ -2,9 +2,9 @@ import rateLimit, { type RateLimitRequestHandler } from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
 import { Request, Response, NextFunction } from "express";
 
-import { redisRateLimiterService } from "@/infrastructure/redis-rate-limiter.service";
-import logger from "@/logger";
-import { isTest } from "@/config/env";
+import { redisRateLimiterService } from "@shared/infrastructure/redis-rate-limiter.service";
+import logger from "@shared/logger";
+import { isTest } from "@shared/config/env";
 
 /**
  * Get Redis store for rate limiting

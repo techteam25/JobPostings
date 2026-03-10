@@ -1,4 +1,4 @@
-import { PaginationMeta } from "@/types";
+import { PaginationMeta } from "@shared/types";
 
 export interface BaseRepositoryPort<TSelect, TInsert> {
   create(data: TInsert): Promise<number>;

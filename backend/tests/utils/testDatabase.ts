@@ -1,7 +1,7 @@
 import { Pool } from "mysql2/promise";
 import { drizzle, MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { env } from "@/config/env";
+import { env } from "@shared/config/env";
 import * as schema from "@/db/schema";
 
 let testConnection: mysql.Pool | null = null;

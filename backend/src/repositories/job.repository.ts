@@ -9,10 +9,10 @@ import {
   skills,
   user,
 } from "@/db/schema";
-import { BaseRepository } from "./base.repository";
-import { db } from "@/db/connection";
-import { calculatePagination, countRecords } from "@/db/utils";
-import { withDbErrorHandling } from "@/db/dbErrorHandler";
+import { BaseRepository } from "@shared/base/base.repository";
+import { db } from "@shared/db/connection";
+import { calculatePagination, countRecords } from "@shared/db/utils";
+import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import {
   JobSkills,
   JobWithSkills,
@@ -21,7 +21,7 @@ import {
   UpdateJob,
   UpdateJobApplication,
 } from "@/validations/job.validation";
-import { DatabaseError, NotFoundError } from "@/utils/errors";
+import { DatabaseError, NotFoundError } from "@shared/errors";
 import type { JobRepositoryPort } from "@/ports/job-repository.port";
 
 /**

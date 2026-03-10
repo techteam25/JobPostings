@@ -1,5 +1,5 @@
-import logger from "@/logger";
-import { AppError, DatabaseError } from "@/utils/errors";
+import logger from "@shared/logger";
+import { AppError, DatabaseError } from "@shared/errors";
 
 /**
  * Common MySQL error codes mapped to user-friendly messages.

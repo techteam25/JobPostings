@@ -1,5 +1,5 @@
 import { redisCacheService } from "./redis-cache.service";
-import logger from "@/logger";
+import logger from "@shared/logger";
 
 export interface CacheOptions {
   ttl?: number; // Time to live in seconds

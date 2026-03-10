@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { AppError, createErrorResponse, ValidationError } from "@/utils/errors";
-import { env } from "@/config/env";
+import { AppError, createErrorResponse, ValidationError } from "@shared/errors";
+import { env } from "@shared/config/env";
 import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 
 /**

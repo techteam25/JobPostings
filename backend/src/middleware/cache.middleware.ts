@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { CacheService, CacheOptions } from "@/infrastructure/cache.service";
-import logger from "@/logger";
+import { CacheService, CacheOptions } from "@shared/infrastructure/cache.service";
+import logger from "@shared/logger";
 
 export interface CacheMiddlewareOptions extends CacheOptions {
   keyGenerator?: (req: Request) => string;

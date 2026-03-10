@@ -5,7 +5,7 @@ import {
   ValidationError,
   DatabaseError,
   NotFoundError,
-} from "@/utils/errors";
+} from "@shared/errors";
 
 vi.mock("@/repositories/user.repository", () => ({
   UserRepository: vi.fn().mockImplementation(() => ({
@@ -20,10 +20,10 @@ vi.mock("@/repositories/user.repository", () => ({
 vi.mock("@/repositories/organization.repository", () => ({
   OrganizationRepository: vi.fn().mockImplementation(() => ({})),
 }));
-vi.mock("@/infrastructure/email.service", () => ({
+vi.mock("@shared/infrastructure/email.service", () => ({
   EmailService: vi.fn().mockImplementation(() => ({})),
 }));
-vi.mock("@/infrastructure/queue.service", () => ({
+vi.mock("@shared/infrastructure/queue.service", () => ({
   queueService: {},
   QUEUE_NAMES: {},
 }));

@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 
 import type { JobServicePort } from "@/ports/job-service.port";
 import { JobService } from "@/services/job.service";
-import { BaseController } from "./base.controller";
-import { ForbiddenError } from "@/utils/errors";
+import { BaseController } from "@shared/base/base.controller";
+import { ForbiddenError } from "@shared/errors";
 import {
   CreateJobSchema,
   DeleteJobSchema,
@@ -20,7 +20,7 @@ import {
   ApplyForJobSchema,
   GetJobApplicationSchema,
 } from "@/validations/jobApplications.validation";
-import { ApiResponse, PaginatedResponse } from "@/types";
+import { ApiResponse, PaginatedResponse } from "@shared/types";
 import { buildPaginationMeta } from "@/utils/build-search-pagination";
 
 /**

@@ -1,12 +1,12 @@
 import { Mock, vi } from "vitest";
 
-vi.mock("@/db/connection", () => ({
+vi.mock("@shared/db/connection", () => ({
   db: {
     transaction: vi.fn(),
   },
 }));
 
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 import { UserRepository } from "@/repositories/user.repository";
 
 describe("UserRepository.saveJobForUser - saved jobs limit", () => {

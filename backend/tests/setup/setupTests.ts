@@ -1,15 +1,15 @@
 import { beforeEach, vi } from "vitest";
 import { cleanAll } from "../utils/cleanAll";
-import logger from "@/logger";
+import logger from "@shared/logger";
 
 // Ensure NODE_ENV is "test" in worker processes (globalSetup only sets it in its own process)
 process.env.NODE_ENV = "test";
 
 // Global mock for queue service — prevents tests from requiring a live Redis connection.
 // Test files that need custom queue behavior can override with their own vi.mock.
-vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
+vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
   const original =
-    await importOriginal<typeof import("@/infrastructure/queue.service")>();
+    await importOriginal<typeof import("@shared/infrastructure/queue.service")>();
   return {
     ...original,
     queueService: {
@@ -23,7 +23,7 @@ vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
 
 // Global mock for EmailService — prevents tests from hitting the real SMTP server.
 // Test files that need custom email behavior can override with their own vi.mock.
-vi.mock("@/infrastructure/email.service", () => {
+vi.mock("@shared/infrastructure/email.service", () => {
   return {
     EmailService: vi.fn().mockImplementation(() =>
       new Proxy(

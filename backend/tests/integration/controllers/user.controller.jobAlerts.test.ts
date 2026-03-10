@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { request } from "@tests/utils/testHelpers";
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 import { jobAlerts, user } from "@/db/schema";
 import { seedUserScenario } from "@tests/utils/seedScenarios";
 import { createUser } from "@tests/utils/seedBuilders";

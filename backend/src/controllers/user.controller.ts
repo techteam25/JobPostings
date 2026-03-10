@@ -3,7 +3,7 @@ import type { UserServicePort } from "@/ports/user-service.port";
 import type { OrganizationServicePort } from "@/ports/organization-service.port";
 import { UserService } from "@/services/user.service";
 import { OrganizationService } from "@/services/organization.service";
-import { BaseController } from "./base.controller";
+import { BaseController } from "@shared/base/base.controller";
 import {
   ChangePasswordSchema,
   CreateUserProfile,
@@ -20,8 +20,8 @@ import {
   UpdateGranularPreference,
   GetUnsubscribeLandingPage,
 } from "@/validations/user.validation";
-import { ApiResponse } from "@/types";
-import { ValidationError } from "@/utils/errors";
+import { ApiResponse } from "@shared/types";
+import { ValidationError } from "@shared/errors";
 import { auth } from "@/utils/auth";
 import {
   UpdateProfileVisibilityInput,

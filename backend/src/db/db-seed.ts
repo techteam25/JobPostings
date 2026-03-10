@@ -7,9 +7,9 @@ import * as schema from "./schema";
 import { userProfile, userEmailPreferences } from "@/db/schema";
 import { organizations, organizationMembers } from "@/db/schema";
 import { jobsDetails } from "@/db/schema";
-import { env } from "@/config/env";
+import { env } from "@shared/config/env";
 import { auth } from "@/utils/auth";
-import logger from "@/logger";
+import logger from "@shared/logger";
 import { userOnBoarding } from "./schema";
 
 const connection = mysql.createPool({
