@@ -22,11 +22,12 @@ import {
   UpdateJobApplication,
 } from "@/validations/job.validation";
 import { DatabaseError, NotFoundError } from "@/utils/errors";
+import type { JobRepositoryPort } from "@/ports/job-repository.port";
 
 /**
  * Repository class for managing job-related database operations, including jobs and applications.
  */
-export class JobRepository extends BaseRepository<typeof jobsDetails> {
+export class JobRepository extends BaseRepository<typeof jobsDetails> implements JobRepositoryPort {
   /**
    * Creates an instance of JobRepository.
    */

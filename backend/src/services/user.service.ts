@@ -1,6 +1,10 @@
 import { UserRepository } from "@/repositories/user.repository";
 import { EmailService } from "@/infrastructure/email.service";
 import { BaseService, fail, ok } from "./base.service";
+import type { UserServicePort } from "@/ports/user-service.port";
+import type { UserRepositoryPort } from "@/ports/user-repository.port";
+import type { EmailServicePort } from "@/ports/email-service.port";
+import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
 import {
   AppError,
   DatabaseError,
@@ -28,19 +32,16 @@ import { env } from "@/config/env";
 /**
  * Service class for managing user-related operations, including CRUD for users and profiles.
  */
-export class UserService extends BaseService {
-  private userRepository: UserRepository;
-  private emailService: EmailService;
-  private organizationRepository: OrganizationRepository;
-
+export class UserService extends BaseService implements UserServicePort {
   /**
    * Creates an instance of UserService and initializes repositories and services.
    */
-  constructor() {
+  constructor(
+    private userRepository: UserRepositoryPort = new UserRepository(),
+    private emailService: EmailServicePort = new EmailService(),
+    private organizationRepository: OrganizationRepositoryPort = new OrganizationRepository(),
+  ) {
     super();
-    this.userRepository = new UserRepository();
-    this.emailService = new EmailService();
-    this.organizationRepository = new OrganizationRepository();
   }
 
   /**

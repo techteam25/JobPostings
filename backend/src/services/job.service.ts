@@ -5,6 +5,12 @@ import { OrganizationRepository } from "@/repositories/organization.repository";
 import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
 import { UserRepository } from "@/repositories/user.repository";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import type { JobServicePort } from "@/ports/job-service.port";
+import type { JobRepositoryPort } from "@/ports/job-repository.port";
+import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
+import type { JobInsightsRepositoryPort } from "@/ports/job-insights-repository.port";
+import type { TypesenseServicePort } from "@/ports/typesense-service.port";
+import type { UserRepositoryPort } from "@/ports/user-repository.port";
 
 import {
   NewJobApplication,
@@ -37,23 +43,18 @@ import logger from "@/logger";
 /**
  * Service class for managing job-related operations, including CRUD for jobs and applications.
  */
-export class JobService extends BaseService {
-  private jobRepository: JobRepository;
-  private organizationRepository: OrganizationRepository;
-  private jobInsightsRepository: JobInsightsRepository;
-  private typesenseService: TypesenseService;
-  private userRepository: UserRepository;
-
+export class JobService extends BaseService implements JobServicePort {
   /**
    * Creates an instance of JobService and initializes repositories and services.
    */
-  constructor() {
+  constructor(
+    private jobRepository: JobRepositoryPort = new JobRepository(),
+    private organizationRepository: OrganizationRepositoryPort = new OrganizationRepository(),
+    private jobInsightsRepository: JobInsightsRepositoryPort = new JobInsightsRepository(),
+    private typesenseService: TypesenseServicePort = new TypesenseService(),
+    private userRepository: UserRepositoryPort = new UserRepository(),
+  ) {
     super();
-    this.jobRepository = new JobRepository();
-    this.organizationRepository = new OrganizationRepository();
-    this.jobInsightsRepository = new JobInsightsRepository();
-    this.typesenseService = new TypesenseService();
-    this.userRepository = new UserRepository();
   }
 
   /**

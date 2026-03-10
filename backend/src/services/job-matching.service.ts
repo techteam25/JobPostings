@@ -5,13 +5,14 @@ import { TypesenseService } from "@/infrastructure/typesense.service/typesense.s
 import { JobAlert } from "@/validations/jobAlerts.validation";
 import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
 import logger from "@/logger";
+import type { JobMatchingServicePort } from "@/ports/job-matching-service.port";
+import type { TypesenseServicePort } from "@/ports/typesense-service.port";
 
-export class JobMatchingService extends BaseService {
-  private typesenseService: TypesenseService;
-
-  constructor() {
+export class JobMatchingService extends BaseService implements JobMatchingServicePort {
+  constructor(
+    private typesenseService: TypesenseServicePort = new TypesenseService(),
+  ) {
     super();
-    this.typesenseService = new TypesenseService();
   }
 
   /**

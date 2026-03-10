@@ -3,11 +3,12 @@ import { jobInsights, jobsDetails } from "@/db/schema";
 import { db } from "@/db/connection";
 import { and, count, eq, sql, sum } from "drizzle-orm";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
+import type { JobInsightsRepositoryPort } from "@/ports/job-insights-repository.port";
 
 /**
  * Repository class for managing job insights data, including views and applications.
  */
-export class JobInsightsRepository extends BaseRepository<typeof jobInsights> {
+export class JobInsightsRepository extends BaseRepository<typeof jobInsights> implements JobInsightsRepositoryPort {
   /**
    * Creates an instance of JobInsightsRepository.
    */

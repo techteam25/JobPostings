@@ -9,7 +9,9 @@ import { db } from "@/db/connection";
 import { env, isProduction } from "@/config/env";
 
 import { UserService } from "@/services/user.service";
+import type { UserServicePort } from "@/ports/user-service.port";
 import { EmailService } from "@/infrastructure/email.service";
+import type { EmailServicePort } from "@/ports/email-service.port";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 import { userOnBoarding } from "@/db/schema";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
@@ -17,8 +19,8 @@ import logger from "@/logger";
 import { eq } from "drizzle-orm";
 import { queueService, QUEUE_NAMES } from "@/infrastructure/queue.service";
 
-const emailService = new EmailService();
-const userService = new UserService();
+const emailService: EmailServicePort = new EmailService();
+const userService: UserServicePort = new UserService();
 
 type UserRegistrationPayload = {
   name: string;

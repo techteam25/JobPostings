@@ -1,6 +1,7 @@
 import { Job as BullMqJob, UnrecoverableError } from "bullmq";
 import { z } from "zod";
 import { EmailService } from "@/infrastructure/email.service";
+import type { EmailServicePort } from "@/ports/email-service.port";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 
 import logger from "@/logger";
@@ -100,7 +101,7 @@ export type EmailJobPayload<T extends EmailJobName> = z.infer<
 // Generic job data type for BullMQ registration
 type EmailJobData = Record<string, unknown>;
 
-const emailService = new EmailService();
+const emailService: EmailServicePort = new EmailService();
 
 export async function processEmailJob(
   job: BullMqJob<EmailJobData>,

@@ -2,7 +2,9 @@ import { Job as BullMqJob } from "bullmq";
 import logger from "@/logger";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 import { UserRepository } from "@/repositories/user.repository";
+import type { UserRepositoryPort } from "@/ports/user-repository.port";
 import { JobMatchingService } from "@/services/job-matching.service";
+import type { JobMatchingServicePort } from "@/ports/job-matching-service.port";
 
 /**
  * Worker function to process job alerts and find matches.
@@ -10,8 +12,8 @@ import { JobMatchingService } from "@/services/job-matching.service";
  */
 export async function processJobAlerts(job: BullMqJob<{ frequency: "daily" | "weekly" | "monthly" }>) {
   const { frequency } = job.data;
-  const userRepository = new UserRepository();
-  const jobMatchingService = new JobMatchingService();
+  const userRepository: UserRepositoryPort = new UserRepository();
+  const jobMatchingService: JobMatchingServicePort = new JobMatchingService();
 
   logger.info(`Starting ${frequency} job alert processing`);
 

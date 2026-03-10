@@ -2,6 +2,11 @@ import type { NextFunction, Request, Response } from "express";
 import { fromNodeHeaders } from "better-auth/node";
 
 import { ApiResponse } from "@/types";
+import type { OrganizationServicePort } from "@/ports/organization-service.port";
+import type { UserServicePort } from "@/ports/user-service.port";
+import type { JobRepositoryPort } from "@/ports/job-repository.port";
+import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
+import type { JobServicePort } from "@/ports/job-service.port";
 import { UserService } from "@/services/user.service";
 
 import logger from "@/logger";
@@ -20,22 +25,16 @@ import { JobService } from "@/services/job.service";
  * Middleware class for handling authentication and authorization in the application.
  */
 export class AuthMiddleware {
-  private readonly organizationService: OrganizationService;
-  private readonly userService: UserService;
-  private readonly jobRepository: JobRepository;
-  private readonly organizationRepository: OrganizationRepository;
-  private readonly jobService: JobService;
-
   /**
    * Creates an instance of AuthMiddleware and initializes the required services.
    */
-  constructor() {
-    this.organizationService = new OrganizationService();
-    this.userService = new UserService();
-    this.jobRepository = new JobRepository();
-    this.organizationRepository = new OrganizationRepository();
-    this.jobService = new JobService();
-  }
+  constructor(
+    private readonly organizationService: OrganizationServicePort = new OrganizationService(),
+    private readonly userService: UserServicePort = new UserService(),
+    private readonly jobRepository: JobRepositoryPort = new JobRepository(),
+    private readonly organizationRepository: OrganizationRepositoryPort = new OrganizationRepository(),
+    private readonly jobService: JobServicePort = new JobService(),
+  ) {}
 
   /**
    * Authenticates the user by checking the session and attaching user info to the request.
@@ -265,8 +264,7 @@ export class AuthMiddleware {
       }
 
       // Fetch user to check role
-      const userService = new UserService();
-      const userCanSeekJobs = await userService.canSeekJobs(req.userId);
+      const userCanSeekJobs = await this.userService.canSeekJobs(req.userId);
 
       /*
         Scenario 1: Pure Job Seeker

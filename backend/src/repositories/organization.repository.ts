@@ -20,13 +20,14 @@ import {
   NewJobApplicationNote,
   NewOrganization,
 } from "@/validations/organization.validation";
+import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
 
 /**
  * Repository class for managing organization-related database operations, including members and applications.
  */
 export class OrganizationRepository extends BaseRepository<
   typeof organizations
-> {
+> implements OrganizationRepositoryPort {
   /**
    * Creates an instance of OrganizationRepository.
    */

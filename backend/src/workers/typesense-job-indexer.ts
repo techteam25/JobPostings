@@ -1,10 +1,11 @@
 import { Job as BullMqJob } from "bullmq";
 import { JobWithSkills } from "@/validations/job.validation";
 import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
+import type { TypesenseServicePort } from "@/ports/typesense-service.port";
 import logger from "@/logger";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 
-const typesenseService = new TypesenseService();
+const typesenseService: TypesenseServicePort = new TypesenseService();
 
 export async function indexAddedJobInTypesense(
   job: BullMqJob<JobWithSkills & { correlationId: string }>,

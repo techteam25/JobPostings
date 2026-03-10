@@ -1,4 +1,6 @@
 import { Request, Response } from "express";
+import type { UserServicePort } from "@/ports/user-service.port";
+import type { OrganizationServicePort } from "@/ports/organization-service.port";
 import { UserService } from "@/services/user.service";
 import { OrganizationService } from "@/services/organization.service";
 import { BaseController } from "./base.controller";
@@ -45,16 +47,14 @@ import {
  * Controller class for handling user-related API endpoints.
  */
 export class UserController extends BaseController {
-  private userService: UserService;
-  private organizationService: OrganizationService;
-
   /**
    * Creates an instance of UserController and initializes the required services.
    */
-  constructor() {
+  constructor(
+    private userService: UserServicePort = new UserService(),
+    private organizationService: OrganizationServicePort = new OrganizationService(),
+  ) {
     super();
-    this.userService = new UserService();
-    this.organizationService = new OrganizationService();
   }
 
   /**

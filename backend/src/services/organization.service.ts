@@ -4,6 +4,10 @@ import { UserRepository } from "@/repositories/user.repository";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 import { randomUUID } from "crypto";
 import { JobRepository } from "@/repositories/job.repository";
+import type { OrganizationServicePort } from "@/ports/organization-service.port";
+import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
+import type { UserRepositoryPort } from "@/ports/user-repository.port";
+import type { JobRepositoryPort } from "@/ports/job-repository.port";
 
 import { statusRegressionGuard } from "@/utils/update-status-guard";
 
@@ -35,19 +39,16 @@ type OrganizationInvitationDetails = {
 /**
  * Service class for managing organization-related operations, including CRUD for organizations and their members.
  */
-export class OrganizationService extends BaseService {
-  private organizationRepository: OrganizationRepository;
-  private userRepository: UserRepository;
-  private jobRepository: JobRepository;
-
+export class OrganizationService extends BaseService implements OrganizationServicePort {
   /**
    * Creates an instance of OrganizationService and initializes the repository.
    */
-  constructor() {
+  constructor(
+    private organizationRepository: OrganizationRepositoryPort = new OrganizationRepository(),
+    private userRepository: UserRepositoryPort = new UserRepository(),
+    private jobRepository: JobRepositoryPort = new JobRepository(),
+  ) {
     super();
-    this.organizationRepository = new OrganizationRepository();
-    this.userRepository = new UserRepository();
-    this.jobRepository = new JobRepository();
   }
 
   /**

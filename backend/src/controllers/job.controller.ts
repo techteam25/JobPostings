@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 
+import type { JobServicePort } from "@/ports/job-service.port";
 import { JobService } from "@/services/job.service";
 import { BaseController } from "./base.controller";
 import { ForbiddenError } from "@/utils/errors";
@@ -26,14 +27,13 @@ import { buildPaginationMeta } from "@/utils/build-search-pagination";
  * Controller class for handling job-related API endpoints.
  */
 export class JobController extends BaseController {
-  private jobService: JobService;
-
   /**
    * Creates an instance of JobController and initializes the required services.
    */
-  constructor() {
+  constructor(
+    private jobService: JobServicePort = new JobService(),
+  ) {
     super();
-    this.jobService = new JobService();
   }
 
   /**

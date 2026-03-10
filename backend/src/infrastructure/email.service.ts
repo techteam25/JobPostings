@@ -9,18 +9,21 @@ import { getApplicationStatusLabel } from "@/utils/application-status";
 import { EmailType } from "@/types";
 import { UserRepository } from "@/repositories/user.repository";
 import logger from "@/logger";
+import type { EmailServicePort } from "@/ports/email-service.port";
+import type { UserRepositoryPort } from "@/ports/user-repository.port";
 
 /**
  * Service for handling email operations, including sending various types of emails.
  */
-export class EmailService extends BaseService {
+export class EmailService extends BaseService implements EmailServicePort {
   private transporter: nodemailer.Transporter;
-  private userRepository: UserRepository;
 
   /**
    * Creates an instance of EmailService and initializes the email transporter.
    */
-  constructor() {
+  constructor(
+    private userRepository: UserRepositoryPort = new UserRepository(),
+  ) {
     super();
     this.transporter = nodemailer.createTransport({
       host: env.SMTP_HOST,
@@ -36,7 +39,6 @@ export class EmailService extends BaseService {
       //   privateKey: privateKey, // Private key string
       // },
     });
-    this.userRepository = new UserRepository();
   }
 
   /**

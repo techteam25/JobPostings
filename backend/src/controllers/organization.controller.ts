@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import type { OrganizationServicePort } from "@/ports/organization-service.port";
 import { OrganizationService } from "@/services/organization.service";
 import { BaseController } from "./base.controller";
 import {
@@ -34,14 +35,13 @@ import { AppError, ErrorCode } from "@/utils/errors";
  * Controller class for handling organization-related API endpoints.
  */
 export class OrganizationController extends BaseController {
-  private organizationService: OrganizationService;
-
   /**
    * Creates an instance of OrganizationController and initializes the required services.
    */
-  constructor() {
+  constructor(
+    private organizationService: OrganizationServicePort = new OrganizationService(),
+  ) {
     super();
-    this.organizationService = new OrganizationService();
   }
 
   /**

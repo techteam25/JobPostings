@@ -2,6 +2,7 @@ import { Job as BullMqJob } from "bullmq";
 import logger from "@/logger";
 import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
 import { UserRepository } from "@/repositories/user.repository";
+import type { UserRepositoryPort } from "@/ports/user-repository.port";
 
 /**
  * Worker function to pause job alerts for inactive users.
@@ -9,7 +10,7 @@ import { UserRepository } from "@/repositories/user.repository";
  * @param _job The BullMQ job.
  */
 export async function pauseInactiveUserAlerts(_job: BullMqJob) {
-  const userRepository = new UserRepository();
+  const userRepository: UserRepositoryPort = new UserRepository();
 
   logger.info("Starting inactive user alert pausing (deactivated users)");
 

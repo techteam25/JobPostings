@@ -28,6 +28,7 @@ import {
   workExperiences,
 } from "@/db/schema";
 import { BaseRepository } from "./base.repository";
+import type { UserRepositoryPort } from "@/ports/user-repository.port";
 import { db } from "@/db/connection";
 import { DatabaseError, NotFoundError } from "@/utils/errors";
 import { withDbErrorHandling } from "@/db/dbErrorHandler";
@@ -42,7 +43,7 @@ import { InsertJobAlert, JobAlert } from "@/validations/jobAlerts.validation";
 /**
  * Repository class for managing user-related database operations, including profiles and saved jobs.
  */
-export class UserRepository extends BaseRepository<typeof user> {
+export class UserRepository extends BaseRepository<typeof user> implements UserRepositoryPort {
   /**
    * Creates an instance of UserRepository.
    */

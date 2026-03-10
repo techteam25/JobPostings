@@ -108,3 +108,39 @@ All API routes mounted at `/api` via `src/routes/index.ts`:
 - `/api/auth/*` — Better-Auth routes (mounted directly in app.ts)
 - `/health` — Health check endpoint
 - `/docs` — Swagger UI
+
+## Architecture Roadmap: Modular Monolith Refactoring
+
+> **Full details**: `docs/ADR-0001-architecture-audit-and-modular-monolith-evaluation.md`
+
+An architecture audit (2026-03-10) identified that the codebase uses **manual constructor instantiation** (not true DI), has **no domain boundary enforcement**, and suffers from **cross-domain coupling** and **God-class services**. The decision is to incrementally refactor toward a Modular Monolith.
+
+### Current Status: Started — Phase 1 is next
+
+### Execution Order (Azure Boards IDs)
+
+| Phase | User Story ID | Title | Priority | Est. |
+|-------|---------------|-------|----------|------|
+| 0 | **955** | Introduce interfaces/ports for repositories and services | P1 | 3-4d |
+| 1 | **956** | Extract shared kernel (Result type, errors, base classes, config) | P1 | 2-3d |
+| 2 | **957** | Split UserService into identity, user-profile, and notifications modules | P2 | 4-5d |
+| 3 | **958** | Split JobService into job-board and applications modules | P2 | 3-4d |
+| 4 | **959** | Extract organizations and invitations into separate modules | P2 | 2-3d |
+| 5 | **960** | Refactor AuthMiddleware — separate authentication from authorization | P1 | 3-4d |
+| 6 | **961** | Introduce composition roots per module and remove manual instantiation | P3 | 2-3d |
+| 7 | **962** | Add module-level public APIs (facades) and enforce import boundaries | P3 | 2-3d |
+| 8 | **963** | Migrate workers to module-owned background processors | P3 | 2-3d |
+| 9 | **964** | Update all tests to use injected dependencies | P2 | 3-4d |
+
+Each user story has child tasks in Azure Boards with detailed descriptions and acceptance criteria.
+
+### Key Context for New Sessions
+
+- **34 `new` calls** across the codebase create domain objects inside constructors — the core problem
+- **Zero interfaces/ports** exist today — services and repositories are all concrete classes
+- **AuthMiddleware** (798 lines, `src/middleware/auth.middleware.ts`) instantiates 5 dependencies across all 3 domains — the worst coupling hotspot
+- **God classes**: `UserService` (1,365 lines), `OrganizationService` (1,045 lines), `UserRepository` (1,515 lines)
+- **Cross-domain coupling**: every service imports repositories from at least one other domain
+- **Target module structure**: `src/modules/{identity, user-profile, job-board, applications, organizations, invitations, notifications}` + `src/shared/`
+- **Approach**: Incremental Strangler Fig — one module at a time, starting with most isolated
+- **Azure DevOps**: `tech-team.job-board` project at `https://dev.azure.com/rumbani` — use `az boards` CLI to query/update work items
