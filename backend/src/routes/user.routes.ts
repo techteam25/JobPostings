@@ -1,14 +1,10 @@
 import { Router } from "express";
-import { UserController } from "@/controllers/user.controller";
 import { AuthMiddleware } from "@/middleware/auth.middleware";
 import { z } from "zod";
-import validate from "@/middleware/validation.middleware";
 import {
-  getUserSchema,
   updateUserPayloadSchema,
   createUserPayloadSchema,
   deleteSelfSchema,
-  getUserSavedJobsQuerySchema,
   savedJobsSchema,
   getUserEmailPreferencesSchema,
   updateUserEmailPreferencesSchema,
@@ -23,24 +19,18 @@ import {
   selectUserProfileSchema,
   selectUserSchema,
 } from "@/validations/userProfile.validation";
-import { getJobSchema } from "@/validations/job.validation";
 import { selectOrganizationSchema } from "@/validations/organization.validation";
 import {
-  cacheMiddleware,
-  invalidateCacheMiddleware,
-} from "@/middleware/cache.middleware";
-import {
   createJobAlertSchema,
-  getUserJobAlertsQuerySchema,
-  getJobAlertSchema,
   selectJobAlertSchema,
   updateJobAlertSchema,
-  deleteJobAlertSchema,
   togglePauseJobAlertSchema,
 } from "@/validations/jobAlerts.validation";
+import { createIdentityRoutes } from "@/modules/identity/routes/identity.routes";
+import { createProfileRoutes } from "@/modules/user-profile/routes/profile.routes";
+import { createNotificationsRoutes } from "@/modules/notifications/routes/notifications.routes";
 
 const router = Router();
-const userController = new UserController();
 const authMiddleware = new AuthMiddleware();
 
 const userResponseSchema = apiResponseSchema(
@@ -49,10 +39,7 @@ const userResponseSchema = apiResponseSchema(
   }),
 );
 
-// All user routes require authentication
-router.use(authMiddleware.authenticate);
-
-// Current user routes
+// ─── OpenAPI Registry (documentation only) ──────────────────────────
 
 registry.registerPath({
   method: "get",
@@ -79,16 +66,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Retrieves the authenticated user's profile information.
- * This authenticated endpoint fetches the current user's details, including profile.
- * Includes caching for performance optimization.
- * @route GET /users/me
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the user details.
- */
-router.get("/me", cacheMiddleware({ ttl: 600 }), userController.getCurrentUser);
 
 registry.registerPath({
   method: "get",
@@ -119,15 +96,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Retrieves the profile completion status for the authenticated user.
- * This authenticated endpoint checks if the user's profile is complete based on required fields.
- * @route GET /users/me/status
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the profile completion status.
- */
-router.get("/me/status", userController.getUserProfileStatus);
 
 registry.registerPath({
   method: "patch",
@@ -174,17 +142,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Changes the profile visibility for the authenticated user.
- * This authenticated endpoint allows users to set their profile as public or private.
- * Invalidates cache for current user data.
- * @route PATCH /users/me/visibility
- * @param {Object} req.body - Request body with visibility status.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the updated profile.
- */
-router.patch("/me/visibility", userController.changeProfileVisibility);
 
 registry.registerPath({
   method: "get",
@@ -233,19 +190,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Retrieves the onboarding intent for the authenticated user.
- * This authenticated endpoint fetches the user's intent (job seeker or employer) and status.
- * @route GET /users/me/intent
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the user's intent and status.
- */
-router.get(
-  "/me/intent",
-  cacheMiddleware({ ttl: 300 }),
-  userController.getCurrentUserIntent,
-);
-
 registry.registerPath({
   method: "get",
   path: "/users/me/organizations",
@@ -285,20 +229,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Retrieves all organizations the authenticated user belongs to.
- * This authenticated endpoint fetches the user's organization memberships with organization details.
- * Includes caching for performance optimization.
- * @route GET /users/me/organizations
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the user's organizations.
- */
-router.get(
-  "/me/organizations",
-  cacheMiddleware({ ttl: 300 }),
-  userController.getUserOrganizations,
-);
 
 registry.registerPath({
   method: "put",
@@ -344,22 +274,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Updates the authenticated user's profile.
- * This authenticated endpoint allows users to modify their profile information.
- * Invalidates cache for current user data.
- * @route PUT /users/me/profile
- * @param {Object} req.body - Request body with updated profile details.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the updated profile.
- */
-router.put(
-  "/me/profile",
-  validate(updateUserPayloadSchema),
-  invalidateCacheMiddleware(() => "users/me"),
-  userController.updateProfile,
-);
-
 registry.registerPath({
   method: "post",
   path: "/users/me/profile",
@@ -403,22 +317,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Creates a user profile for the authenticated user.
- * This authenticated endpoint allows users to create their profile with education, work experience, etc.
- * Invalidates cache for current user data.
- * @route POST /users/me/profile
- * @param {Object} req.body - Request body with profile details.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the created profile.
- */
-router.post(
-  "/me/profile",
-  validate(createUserPayloadSchema),
-  invalidateCacheMiddleware(() => "users/me"),
-  userController.createProfile,
-);
-
 registry.registerPath({
   method: "patch",
   path: "/users/me/deactivate",
@@ -453,20 +351,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Deactivates the authenticated user's account.
- * This authenticated endpoint allows users to deactivate their own account.
- * Invalidates cache for current user data.
- * @route PATCH /users/me/deactivate
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response confirming account deactivation.
- */
-router.patch(
-  "/me/deactivate",
-  invalidateCacheMiddleware(() => "users/me"),
-  userController.deactivateSelf,
-);
-
 registry.registerPath({
   method: "delete",
   path: "/users/me",
@@ -500,22 +384,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Deletes the authenticated user's account.
- * This authenticated endpoint allows users to permanently delete their own account.
- * Invalidates cache for current user data.
- * @route DELETE /users/me
- * @param {Object} req.body - Request body with password confirmation.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response confirming account deletion.
- */
-router.delete(
-  "/me/delete",
-  validate(deleteSelfSchema),
-  invalidateCacheMiddleware(() => "users/me"),
-  userController.deleteSelf,
-);
-
 registry.registerPath({
   method: "get",
   path: "/users/me/saved-jobs",
@@ -542,24 +410,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Retrieves saved jobs for the authenticated user with pagination.
- * This authenticated endpoint fetches the user's saved jobs list.
- * Requires user authentication and job seeker role.
- * Includes caching for performance optimization.
- * @route GET /users/me/saved-jobs
- * @param {Object} req.query - Query parameters for pagination.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the paginated list of saved jobs.
- */
-router.get(
-  "/me/saved-jobs",
-  authMiddleware.requireUserRole,
-  validate(getUserSavedJobsQuerySchema),
-  cacheMiddleware({ ttl: 300 }),
-  userController.getSavedJobsForCurrentUser,
-);
 
 registry.registerPath({
   method: "get",
@@ -609,22 +459,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Checks if a job is saved by the authenticated user.
- * This authenticated endpoint verifies if a specific job is in the user's saved jobs list.
- * Requires user authentication and job seeker role.
- * @route GET /users/me/saved-jobs/:jobId/check
- * @param {Object} req.params - Route parameters including the jobId.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the saved status.
- */
-router.get(
-  "/me/saved-jobs/:jobId/check",
-  authMiddleware.requireUserRole,
-  validate(getJobSchema),
-  userController.checkIfJobIsSaved,
-);
-
 registry.registerPath({
   method: "post",
   path: "/users/me/saved-jobs/{jobId}",
@@ -667,24 +501,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Saves a job for the authenticated user.
- * This authenticated endpoint adds a job to the user's saved jobs list.
- * Requires user authentication and job seeker role.
- * Invalidates cache for saved jobs list.
- * @route POST /users/me/saved-jobs/:jobId
- * @param {Object} req.params - Route parameters including the jobId.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response confirming the job was saved.
- */
-router.post(
-  "/me/saved-jobs/:jobId",
-  authMiddleware.requireUserRole,
-  validate(getJobSchema),
-  invalidateCacheMiddleware(() => "users/me/saved-jobs"),
-  userController.saveJobForCurrentUser,
-);
 
 registry.registerPath({
   method: "delete",
@@ -730,26 +546,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Unsaves a job for the authenticated user.
- * This authenticated endpoint removes a job from the user's saved jobs list.
- * Requires user authentication and job seeker role.
- * Invalidates cache for saved jobs list.
- * @route DELETE /users/me/saved-jobs/:jobId
- * @param {Object} req.params - Route parameters including the jobId.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response confirming the job was unsaved.
- */
-router.delete(
-  "/me/saved-jobs/:jobId",
-  authMiddleware.requireUserRole,
-  validate(getJobSchema),
-  invalidateCacheMiddleware(() => "users/me/saved-jobs"),
-  userController.unsaveJobForCurrentUser,
-);
-
-// Email preferences routes
-
 registry.registerPath({
   method: "get",
   path: "/users/me/email-preferences",
@@ -784,20 +580,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Retrieves email preferences for the authenticated user.
- * This authenticated endpoint fetches the user's email notification preferences.
- * Includes caching for performance optimization.
- * @route GET /users/me/email-preferences
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the email preferences.
- */
-router.get(
-  "/me/email-preferences",
-  cacheMiddleware({ ttl: 300 }),
-  userController.getEmailPreferences,
-);
 
 registry.registerPath({
   method: "put",
@@ -850,23 +632,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Updates email preferences for the authenticated user.
- * This authenticated endpoint allows users to modify their email notification preferences.
- * Note: Security alerts cannot be disabled.
- * Invalidates cache for email preferences.
- * @route PUT /users/me/email-preferences
- * @param {Object} req.body - Request body with updated preferences.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the updated preferences.
- */
-router.put(
-  "/me/email-preferences",
-  validate(updateUserEmailPreferencesSchema),
-  invalidateCacheMiddleware(() => "users/me/email-preferences"),
-  userController.updateEmailPreferences,
-);
 
 registry.registerPath({
   method: "post",
@@ -928,22 +693,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Unsubscribes a user from email notifications using a token.
- * This public endpoint allows users to unsubscribe via a link in their email.
- * No authentication required - token-based access.
- * @route POST /users/me/email-preferences/unsubscribe/:token
- * @param {Object} req.params - Route parameters including the token.
- * @param {Object} req.body - Optional partial preferences to selectively unsubscribe.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response confirming unsubscription.
- */
-router.post(
-  "/me/email-preferences/unsubscribe/:token",
-  invalidateCacheMiddleware(() => "users/me/email-preferences"),
-  userController.unsubscribeByToken,
-);
-
 registry.registerPath({
   method: "post",
   path: "/users/me/email-preferences/resubscribe",
@@ -978,22 +727,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Re-enables all email notifications for the authenticated user.
- * This authenticated endpoint resets all preferences to enabled and generates a new token.
- * Invalidates cache for email preferences.
- * @route POST /users/me/email-preferences/resubscribe
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the updated preferences.
- */
-router.post(
-  "/me/email-preferences/resubscribe",
-  invalidateCacheMiddleware(() => "users/me/email-preferences"),
-  userController.resubscribeEmailNotifications,
-);
-
-// Job Alerts routes
 
 registry.registerPath({
   method: "post",
@@ -1030,25 +763,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Creates a new job alert for the authenticated user.
- * This authenticated endpoint allows users to create job alerts based on search criteria.
- * Validates that user has fewer than 10 active alerts.
- * Requires user authentication and job seeker role.
- * Invalidates cache for job alerts list.
- * @route POST /users/me/job-alerts
- * @param {Object} req.body - Request body with job alert details.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the created job alert.
- */
-router.post(
-  "/me/job-alerts",
-  authMiddleware.requireUserRole,
-  validate(createJobAlertSchema),
-  invalidateCacheMiddleware(() => "users/me/job-alerts"),
-  userController.createJobAlert,
-);
 
 registry.registerPath({
   method: "get",
@@ -1087,24 +801,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Retrieves all job alerts for the authenticated user with pagination.
- * This authenticated endpoint fetches the user's job alerts list.
- * Requires user authentication and job seeker role.
- * Includes caching for performance optimization.
- * @route GET /users/me/job-alerts
- * @param {Object} req.query - Query parameters for pagination.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the paginated list of job alerts.
- */
-router.get(
-  "/me/job-alerts",
-  authMiddleware.requireUserRole,
-  validate(getUserJobAlertsQuerySchema),
-  cacheMiddleware({ ttl: 300 }),
-  userController.getUserJobAlerts,
-);
-
 registry.registerPath({
   method: "get",
   path: "/users/me/job-alerts/{id}",
@@ -1140,24 +836,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Retrieves a specific job alert by ID for the authenticated user.
- * This authenticated endpoint fetches details of a single job alert.
- * Requires user authentication and job seeker role.
- * Includes caching for performance optimization.
- * @route GET /users/me/job-alerts/:id
- * @param {Object} req.params - Route parameters including the alert ID.
- * @param {Response} res - Express response object.
- * @returns {Promise<ApiResponse<JobAlert>>} - Sends a JSON response with the job alert details.
- */
-router.get(
-  "/me/job-alerts/:id",
-  authMiddleware.requireUserRole,
-  validate(getJobAlertSchema),
-  cacheMiddleware({ ttl: 300 }),
-  userController.getJobAlertById,
-);
 
 registry.registerPath({
   method: "put",
@@ -1203,25 +881,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Updates an existing job alert for the authenticated user.
- * All fields are optional - only provided fields will be updated.
- * Requires user authentication and job seeker role.
- * Invalidates cache for job alerts.
- * @route PUT /users/me/job-alerts/:id
- * @param {Object} req.params - Route parameters including the alert ID.
- * @param {Object} req.body - Request body with fields to update.
- * @param {Response} res - Express response object.
- * @returns {Promise<ApiResponse<JobAlert>>} - Updated job alert.
- */
-router.put(
-  "/me/job-alerts/:id",
-  authMiddleware.requireUserRole,
-  validate(updateJobAlertSchema),
-  invalidateCacheMiddleware(() => "users/me/job-alerts"),
-  userController.updateJobAlert,
-);
-
 registry.registerPath({
   method: "patch",
   path: "/users/me/job-alerts/{id}/pause",
@@ -1266,25 +925,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Toggles the pause state of a job alert for the authenticated user.
- * Paused alerts remain active but won't trigger notifications.
- * Requires user authentication and job seeker role.
- * Invalidates cache for job alerts.
- * @route PATCH /users/me/job-alerts/:id/pause
- * @param {Object} req.params - Route parameters including the alert ID.
- * @param {Object} req.body - Request body with isPaused boolean.
- * @param {Response} res - Express response object.
- * @returns {Promise<ApiResponse<JobAlert>>} - Updated job alert.
- */
-router.patch(
-  "/me/job-alerts/:id/pause",
-  authMiddleware.requireUserRole,
-  validate(togglePauseJobAlertSchema),
-  invalidateCacheMiddleware(() => "users/me/job-alerts"),
-  userController.togglePauseJobAlert,
-);
-
 registry.registerPath({
   method: "delete",
   path: "/users/me/job-alerts/{id}",
@@ -1323,188 +963,13 @@ registry.registerPath({
   },
 });
 
-/**
- * Deletes a job alert for the authenticated user.
- * Permanently removes the job alert and associated data.
- * Requires user authentication and job seeker role.
- * Invalidates cache for job alerts.
- * @route DELETE /users/me/job-alerts/:id
- * @param {Object} req.params - Route parameters including the alert ID.
- * @param {Response} res - Express response object.
- * @returns {Promise<ApiResponse<null>>} - Success message.
- */
-router.delete(
-  "/me/job-alerts/:id",
-  authMiddleware.requireUserRole,
-  validate(deleteJobAlertSchema),
-  invalidateCacheMiddleware(() => "users/me/job-alerts"),
-  userController.deleteJobAlert,
-);
+// ─── Route Mounting ─────────────────────────────────────────────────
+// All user routes require authentication
+router.use(authMiddleware.authenticate);
 
-// Admin only routes for user management
-
-/**
- * Retrieves all users with pagination and search.
- * This authenticated endpoint fetches a list of users, with support for search and pagination.
- * Requires admin or owner role.
- * @route GET /users
- * @param {Object} req.query - Query parameters for pagination and search term.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with a paginated list of users.
- */
-router.get(
-  "/",
-  authMiddleware.requireAdminOrOwnerRole(["admin", "owner"]),
-  userController.getAllUsers,
-);
-
-// router.get(
-//   "/stats",
-//   authMiddleware.requireRole(["admin"]),
-//   userController.getUserStats,
-// );
-
-// User management routes (admin or self)
-
-/**
- * Retrieves a user by their ID.
- * This authenticated endpoint fetches details of a specific user.
- * Requires admin/owner role or access to own account.
- * @route GET /users/:id
- * @param {Object} req.params - Route parameters including the user id.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the user details.
- */
-router.get(
-  "/:id",
-  authMiddleware.requireOwnAccount,
-  validate(getUserSchema),
-  userController.getUserById,
-);
-
-/**
- * Updates a user's basic information.
- * This authenticated endpoint allows updating user details like name and email.
- * Requires admin/owner role or access to own account.
- * @route PUT /users/:id
- * @param {Object} req.params - Route parameters including the user id.
- * @param {Object} req.body - Request body with updated user details.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the updated user.
- */
-router.put(
-  "/:id",
-  authMiddleware.requireOwnAccount,
-  validate(updateUserPayloadSchema),
-  userController.updateUser,
-);
-
-// Admin-only user activation/deactivation
-
-/**
- * Deactivates another user's account.
- * This authenticated endpoint allows deactivating another user's account (admin action).
- * Requires admin or owner role.
- * @route PATCH /users/:id/deactivate
- * @param {Object} req.params - Route parameters including the user id.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response confirming account deactivation.
- */
-router.patch(
-  "/:id/deactivate",
-  validate(getUserSchema),
-  authMiddleware.requireAdminOrOwnerRole(["admin", "owner"]),
-  userController.deactivateUser,
-);
-
-/**
- * Activates a user's account.
- * This authenticated endpoint allows activating a deactivated user account.
- * Requires admin or owner role.
- * @route PATCH /users/:id/activate
- * @param {Object} req.params - Route parameters including the user id.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response confirming account activation.
- */
-router.patch(
-  "/:id/activate",
-  validate(getUserSchema),
-  authMiddleware.requireAdminOrOwnerRole(["admin", "owner"]),
-  userController.activateUser,
-);
-
-/**
- * Deletes a user account.
- * This authenticated endpoint allows deleting another user's account (admin action).
- * Requires owner role.
- * @route DELETE /users/:id
- * @param {Object} req.params - Route parameters including the user id.
- * @param {Object} req.body - Request body with deletion token.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response confirming user deletion.
- */
-router.delete(
-  "/:id",
-  validate(getUserSchema),
-  authMiddleware.requireAdminOrOwnerRole(["owner"]),
-  userController.deleteUser,
-);
-
-/**
- * Get unsubscribe landing page data by token (public endpoint).
- * No authentication required - token-based access.
- * @route GET /users/me/email-preferences/unsubscribe/:token/info
- * @param {Object} req.params - Route parameters including the token.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends user and preference data for unsubscribe page.
- */
-router.get(
-  "/me/email-preferences/unsubscribe/:token/info",
-  userController.getUnsubscribeLandingPageData,
-);
-
-/**
- * Unsubscribes user from specific context (job_seeker/employer/global).
- * Authenticated endpoint.
- * @route POST /users/me/email-preferences/unsubscribe-context
- * @param {Object} req.body - Request body with context.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends updated email preferences.
- */
-router.post(
-  "/me/email-preferences/unsubscribe-context",
-  invalidateCacheMiddleware(() => "users/me/email-preferences"),
-  authMiddleware.authenticate,
-  userController.unsubscribeByContext,
-);
-
-/**
- * Re-subscribes user to specific context.
- * Authenticated endpoint.
- * @route POST /users/me/email-preferences/resubscribe-context
- * @param {Object} req.body - Request body with context.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends updated email preferences.
- */
-router.post(
-  "/me/email-preferences/resubscribe-context",
-  authMiddleware.authenticate,
-  userController.resubscribeByContext,
-);
-
-/**
- * Updates a granular email preference.
- * Authenticated endpoint.
- * @route PATCH /users/me/email-preferences/granular
- * @param {Object} req.body - Request body with preferenceType, enabled, and context.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends updated email preferences.
- */
-router.patch(
-  "/me/email-preferences/granular",
-  invalidateCacheMiddleware(() => "users/me/email-preferences"),
-  authMiddleware.authenticate,
-  userController.updateGranularEmailPreference,
-);
+// Delegate to module-specific routers
+router.use(createProfileRoutes());
+router.use(createIdentityRoutes());
+router.use(createNotificationsRoutes());
 
 export default router;

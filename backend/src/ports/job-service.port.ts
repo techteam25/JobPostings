@@ -10,6 +10,7 @@ import type {
   NewJobApplication,
 } from "@/validations/job.validation";
 import type { SearchParams } from "@/validations/base.validation";
+import type { PaginationMeta } from "@shared/types";
 
 /**
  * Port interface for JobService.
@@ -18,7 +19,7 @@ import type { SearchParams } from "@/validations/base.validation";
 export interface JobServicePort {
   getAllActiveJobs(
     userId: number | undefined,
-    options?: { page?: number; limit?: number },
+    options?: Partial<Pick<PaginationMeta, "limit" | "page">>,
   ): Promise<Awaited<ReturnType<JobService["getAllActiveJobs"]>>>;
 
   getActiveJobsByOrganization(
@@ -93,9 +94,7 @@ export interface JobServicePort {
     userId: number,
   ): Promise<Result<{ message: string }, Error>>;
 
-  deleteJobApplicationsByUserId(
-    userId: number,
-  ): Promise<Result<null, Error>>;
+  deleteJobApplicationsByUserId(userId: number): Promise<Result<null, Error>>;
 
   getEmployerJobStats(
     organizationId: number,

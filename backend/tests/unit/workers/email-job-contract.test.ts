@@ -4,6 +4,7 @@ import { queueService, QUEUE_NAMES } from "@shared/infrastructure/queue.service"
 import { JobService } from "@/services/job.service";
 import { JobRepository } from "@/repositories/job.repository";
 import { UserRepository } from "@/repositories/user.repository";
+import { IdentityRepository } from "@/modules/identity/repositories/identity.repository";
 // Mock auth module to break circular dependency (auth.ts → UserService → auth.ts)
 vi.mock("@/utils/auth", () => ({
   auth: { api: { updateUser: vi.fn(), deleteUser: vi.fn() } },
@@ -147,20 +148,21 @@ describe("Email Job Contract Tests", () => {
 
   describe("UserService email dispatches", () => {
     it("deactivateUser sends sendAccountDeactivationConfirmation (not Deletion)", async () => {
-      vi.spyOn(UserRepository.prototype, "findById").mockResolvedValue({
+      vi.spyOn(IdentityRepository.prototype, "findById").mockResolvedValue({
         id: 5,
         email: "user@test.com",
         fullName: "Test User",
         status: "active",
       } as any);
-      vi.spyOn(UserRepository.prototype, "update").mockResolvedValue(true);
+      vi.spyOn(IdentityRepository.prototype, "update").mockResolvedValue(true);
       vi.spyOn(
-        UserRepository.prototype,
-        "findByIdWithProfile",
+        IdentityRepository.prototype,
+        "findUserById",
       ).mockResolvedValue({
         id: 5,
         email: "user@test.com",
         fullName: "Test User",
+        image: null,
         status: "deactivated",
       } as any);
 

@@ -1,21 +1,53 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { UserService } from "@/services/user.service";
-import { UserRepository } from "@/repositories/user.repository";
 import {
   ValidationError,
   DatabaseError,
   NotFoundError,
 } from "@shared/errors";
 
-vi.mock("@/repositories/user.repository", () => ({
-  UserRepository: vi.fn().mockImplementation(() => ({
-    canCreateJobAlert: vi.fn(),
-    createJobAlert: vi.fn(),
-    getUserJobAlerts: vi.fn(),
-    getJobAlertById: vi.fn(),
-    deleteJobAlert: vi.fn(),
-    updateJobAlert: vi.fn(),
+// Mock module repositories that the facade constructs internally
+const mockNotificationsRepository = {
+  canCreateJobAlert: vi.fn(),
+  createJobAlert: vi.fn(),
+  getUserJobAlerts: vi.fn(),
+  getJobAlertById: vi.fn(),
+  deleteJobAlert: vi.fn(),
+  updateJobAlert: vi.fn(),
+  updateJobAlertPauseState: vi.fn(),
+  findEmailPreferencesByUserId: vi.fn(),
+  findEmailPreferencesByToken: vi.fn(),
+  createEmailPreferences: vi.fn(),
+  updateEmailPreferences: vi.fn(),
+  refreshUnsubscribeToken: vi.fn(),
+  canSendEmailType: vi.fn(),
+  logPreferenceChange: vi.fn(),
+  getUserAuditHistory: vi.fn(),
+  setEmployerEmailPreferences: vi.fn(),
+  unsubscribeByContext: vi.fn(),
+  resubscribeByContext: vi.fn(),
+  getAlertsForProcessing: vi.fn(),
+  updateAlertLastSentAt: vi.fn(),
+  saveAlertMatches: vi.fn(),
+  getUnsentMatches: vi.fn(),
+  markMatchesAsSent: vi.fn(),
+  getUnsentMatchCount: vi.fn(),
+  pauseAlertsForInactiveUsers: vi.fn(),
+};
+
+vi.mock("@/modules/notifications/repositories/notifications.repository", () => ({
+  NotificationsRepository: vi.fn().mockImplementation(() => mockNotificationsRepository),
+}));
+vi.mock("@/modules/identity/repositories/identity.repository", () => ({
+  IdentityRepository: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock("@/modules/user-profile/repositories/profile.repository", () => ({
+  ProfileRepository: vi.fn().mockImplementation(() => ({
+    findByIdWithProfile: vi.fn(),
   })),
+}));
+vi.mock("@/repositories/user.repository", () => ({
+  UserRepository: vi.fn().mockImplementation(() => ({})),
 }));
 vi.mock("@/repositories/organization.repository", () => ({
   OrganizationRepository: vi.fn().mockImplementation(() => ({})),
@@ -24,8 +56,8 @@ vi.mock("@shared/infrastructure/email.service", () => ({
   EmailService: vi.fn().mockImplementation(() => ({})),
 }));
 vi.mock("@shared/infrastructure/queue.service", () => ({
-  queueService: {},
-  QUEUE_NAMES: {},
+  queueService: { addJob: vi.fn() },
+  QUEUE_NAMES: { EMAIL_QUEUE: "email-queue" },
 }));
 vi.mock("@/utils/auth", () => ({
   auth: {
@@ -37,18 +69,12 @@ vi.mock("@/utils/auth", () => ({
   },
 }));
 
-describe("UserService - Job Alerts", () => {
+describe("UserService - Job Alerts (facade)", () => {
   let userService: UserService;
-  let mockUserRepository: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    // Create new UserService instance - this will use the mocked UserRepository
     userService = new UserService();
-    
-    // Get the mock instance that was created
-    mockUserRepository = (UserRepository as any).mock.results[0]?.value;
   });
 
   describe("createJobAlert", () => {
@@ -63,7 +89,7 @@ describe("UserService - Job Alerts", () => {
     };
 
     it("should create job alert when user has less than 10 alerts", async () => {
-      mockUserRepository.canCreateJobAlert = vi.fn().mockResolvedValue({
+      mockNotificationsRepository.canCreateJobAlert.mockResolvedValue({
         canCreate: true,
         currentCount: 5,
         maxAllowed: 10,
@@ -82,7 +108,7 @@ describe("UserService - Job Alerts", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      mockUserRepository.createJobAlert = vi.fn().mockResolvedValue(mockAlert);
+      mockNotificationsRepository.createJobAlert.mockResolvedValue(mockAlert);
 
       const result = await userService.createJobAlert(1, alertData);
 
@@ -90,15 +116,15 @@ describe("UserService - Job Alerts", () => {
       if (result.isSuccess) {
         expect(result.value).toEqual(mockAlert);
       }
-      expect(mockUserRepository.canCreateJobAlert).toHaveBeenCalledWith(1);
-      expect(mockUserRepository.createJobAlert).toHaveBeenCalledWith(
+      expect(mockNotificationsRepository.canCreateJobAlert).toHaveBeenCalledWith(1);
+      expect(mockNotificationsRepository.createJobAlert).toHaveBeenCalledWith(
         1,
         alertData,
       );
     });
 
     it("should fail when user has reached alert limit", async () => {
-      mockUserRepository.canCreateJobAlert = vi.fn().mockResolvedValue({
+      mockNotificationsRepository.canCreateJobAlert.mockResolvedValue({
         canCreate: false,
         currentCount: 10,
         maxAllowed: 10,
@@ -111,18 +137,18 @@ describe("UserService - Job Alerts", () => {
         expect(result.error).toBeInstanceOf(ValidationError);
         expect(result.error.message).toContain("Maximum active job alerts");
       }
-      expect(mockUserRepository.createJobAlert).not.toHaveBeenCalled();
+      expect(mockNotificationsRepository.createJobAlert).not.toHaveBeenCalled();
     });
 
     it("should handle database errors", async () => {
-      mockUserRepository.canCreateJobAlert = vi.fn().mockResolvedValue({
+      mockNotificationsRepository.canCreateJobAlert.mockResolvedValue({
         canCreate: true,
         currentCount: 5,
         maxAllowed: 10,
       });
-      mockUserRepository.createJobAlert = vi
-        .fn()
-        .mockRejectedValue(new Error("DB Error"));
+      mockNotificationsRepository.createJobAlert.mockRejectedValue(
+        new Error("DB Error"),
+      );
 
       const result = await userService.createJobAlert(1, alertData);
 
@@ -156,28 +182,9 @@ describe("UserService - Job Alerts", () => {
             createdAt: new Date(),
             updatedAt: new Date(),
           },
-          {
-            id: 2,
-            name: "Alert 2",
-            userId: 1,
-            description: "Test",
-            searchQuery: "test",
-            state: null,
-            city: null,
-            jobType: null,
-            skills: null,
-            experienceLevel: null,
-            isActive: true,
-            isPaused: false,
-            includeRemote: true,
-            frequency: "weekly",
-            lastSentAt: null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
         ],
         pagination: {
-          total: 2,
+          total: 1,
           page: 1,
           limit: 10,
           totalPages: 1,
@@ -188,9 +195,7 @@ describe("UserService - Job Alerts", () => {
         },
       };
 
-      mockUserRepository.getUserJobAlerts = vi
-        .fn()
-        .mockResolvedValue(mockResult);
+      mockNotificationsRepository.getUserJobAlerts.mockResolvedValue(mockResult);
 
       const result = await userService.getUserJobAlerts(1, 1, 10);
 
@@ -198,16 +203,16 @@ describe("UserService - Job Alerts", () => {
       if (result.isSuccess) {
         expect(result.value).toEqual(mockResult);
       }
-      expect(mockUserRepository.getUserJobAlerts).toHaveBeenCalledWith(1, {
+      expect(mockNotificationsRepository.getUserJobAlerts).toHaveBeenCalledWith(1, {
         page: 1,
         limit: 10,
       });
     });
 
     it("should handle database errors", async () => {
-      mockUserRepository.getUserJobAlerts = vi
-        .fn()
-        .mockRejectedValue(new Error("DB Error"));
+      mockNotificationsRepository.getUserJobAlerts.mockRejectedValue(
+        new Error("DB Error"),
+      );
 
       const result = await userService.getUserJobAlerts(1, 1, 10);
 
@@ -239,7 +244,7 @@ describe("UserService - Job Alerts", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      mockUserRepository.getJobAlertById = vi.fn().mockResolvedValue(mockAlert);
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(mockAlert);
 
       const result = await userService.getJobAlertById(1, 1);
 
@@ -247,11 +252,11 @@ describe("UserService - Job Alerts", () => {
       if (result.isSuccess) {
         expect(result.value).toEqual(mockAlert);
       }
-      expect(mockUserRepository.getJobAlertById).toHaveBeenCalledWith(1, 1);
+      expect(mockNotificationsRepository.getJobAlertById).toHaveBeenCalledWith(1, 1);
     });
 
     it("should fail when alert not found", async () => {
-      mockUserRepository.getJobAlertById = vi.fn().mockResolvedValue(undefined);
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(undefined);
 
       const result = await userService.getJobAlertById(1, 999);
 
@@ -262,9 +267,9 @@ describe("UserService - Job Alerts", () => {
     });
 
     it("should handle database errors", async () => {
-      mockUserRepository.getJobAlertById = vi
-        .fn()
-        .mockRejectedValue(new Error("DB Error"));
+      mockNotificationsRepository.getJobAlertById.mockRejectedValue(
+        new Error("DB Error"),
+      );
 
       const result = await userService.getJobAlertById(1, 1);
 
@@ -296,11 +301,9 @@ describe("UserService - Job Alerts", () => {
       updatedAt: new Date(),
     };
 
-    it("should set lastSentAt to null when switching to more frequent (weekly → daily)", async () => {
-      mockUserRepository.getJobAlertById = vi
-        .fn()
-        .mockResolvedValue(baseAlert);
-      mockUserRepository.updateJobAlert = vi.fn().mockResolvedValue({
+    it("should set lastSentAt to null when switching to more frequent (weekly -> daily)", async () => {
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(baseAlert);
+      mockNotificationsRepository.updateJobAlert.mockResolvedValue({
         ...baseAlert,
         frequency: "daily",
         lastSentAt: null,
@@ -308,19 +311,17 @@ describe("UserService - Job Alerts", () => {
 
       await userService.updateJobAlert(1, 1, { frequency: "daily" });
 
-      expect(mockUserRepository.updateJobAlert).toHaveBeenCalledWith(
+      expect(mockNotificationsRepository.updateJobAlert).toHaveBeenCalledWith(
         1,
         1,
         expect.objectContaining({ frequency: "daily", lastSentAt: null }),
       );
     });
 
-    it("should set lastSentAt to null when switching monthly → daily", async () => {
+    it("should set lastSentAt to null when switching monthly -> daily", async () => {
       const monthlyAlert = { ...baseAlert, frequency: "monthly" as const };
-      mockUserRepository.getJobAlertById = vi
-        .fn()
-        .mockResolvedValue(monthlyAlert);
-      mockUserRepository.updateJobAlert = vi.fn().mockResolvedValue({
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(monthlyAlert);
+      mockNotificationsRepository.updateJobAlert.mockResolvedValue({
         ...monthlyAlert,
         frequency: "daily",
         lastSentAt: null,
@@ -328,19 +329,17 @@ describe("UserService - Job Alerts", () => {
 
       await userService.updateJobAlert(1, 1, { frequency: "daily" });
 
-      expect(mockUserRepository.updateJobAlert).toHaveBeenCalledWith(
+      expect(mockNotificationsRepository.updateJobAlert).toHaveBeenCalledWith(
         1,
         1,
         expect.objectContaining({ frequency: "daily", lastSentAt: null }),
       );
     });
 
-    it("should set lastSentAt to null when switching monthly → weekly", async () => {
+    it("should set lastSentAt to null when switching monthly -> weekly", async () => {
       const monthlyAlert = { ...baseAlert, frequency: "monthly" as const };
-      mockUserRepository.getJobAlertById = vi
-        .fn()
-        .mockResolvedValue(monthlyAlert);
-      mockUserRepository.updateJobAlert = vi.fn().mockResolvedValue({
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(monthlyAlert);
+      mockNotificationsRepository.updateJobAlert.mockResolvedValue({
         ...monthlyAlert,
         frequency: "weekly",
         lastSentAt: null,
@@ -348,19 +347,17 @@ describe("UserService - Job Alerts", () => {
 
       await userService.updateJobAlert(1, 1, { frequency: "weekly" });
 
-      expect(mockUserRepository.updateJobAlert).toHaveBeenCalledWith(
+      expect(mockNotificationsRepository.updateJobAlert).toHaveBeenCalledWith(
         1,
         1,
         expect.objectContaining({ frequency: "weekly", lastSentAt: null }),
       );
     });
 
-    it("should set lastSentAt to now when switching to less frequent (daily → weekly)", async () => {
+    it("should set lastSentAt to now when switching to less frequent (daily -> weekly)", async () => {
       const dailyAlert = { ...baseAlert, frequency: "daily" as const };
-      mockUserRepository.getJobAlertById = vi
-        .fn()
-        .mockResolvedValue(dailyAlert);
-      mockUserRepository.updateJobAlert = vi.fn().mockResolvedValue({
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(dailyAlert);
+      mockNotificationsRepository.updateJobAlert.mockResolvedValue({
         ...dailyAlert,
         frequency: "weekly",
       });
@@ -369,7 +366,8 @@ describe("UserService - Job Alerts", () => {
       await userService.updateJobAlert(1, 1, { frequency: "weekly" });
       const after = new Date();
 
-      const callArgs = mockUserRepository.updateJobAlert.mock.calls[0][2];
+      const callArgs =
+        mockNotificationsRepository.updateJobAlert.mock.calls[0][2];
       expect(callArgs.frequency).toBe("weekly");
       expect(callArgs.lastSentAt).toBeInstanceOf(Date);
       expect(callArgs.lastSentAt.getTime()).toBeGreaterThanOrEqual(
@@ -380,12 +378,10 @@ describe("UserService - Job Alerts", () => {
       );
     });
 
-    it("should set lastSentAt to now when switching daily → monthly", async () => {
+    it("should set lastSentAt to now when switching daily -> monthly", async () => {
       const dailyAlert = { ...baseAlert, frequency: "daily" as const };
-      mockUserRepository.getJobAlertById = vi
-        .fn()
-        .mockResolvedValue(dailyAlert);
-      mockUserRepository.updateJobAlert = vi.fn().mockResolvedValue({
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(dailyAlert);
+      mockNotificationsRepository.updateJobAlert.mockResolvedValue({
         ...dailyAlert,
         frequency: "monthly",
       });
@@ -394,7 +390,8 @@ describe("UserService - Job Alerts", () => {
       await userService.updateJobAlert(1, 1, { frequency: "monthly" });
       const after = new Date();
 
-      const callArgs = mockUserRepository.updateJobAlert.mock.calls[0][2];
+      const callArgs =
+        mockNotificationsRepository.updateJobAlert.mock.calls[0][2];
       expect(callArgs.frequency).toBe("monthly");
       expect(callArgs.lastSentAt).toBeInstanceOf(Date);
       expect(callArgs.lastSentAt.getTime()).toBeGreaterThanOrEqual(
@@ -405,11 +402,9 @@ describe("UserService - Job Alerts", () => {
       );
     });
 
-    it("should set lastSentAt to now when switching weekly → monthly", async () => {
-      mockUserRepository.getJobAlertById = vi
-        .fn()
-        .mockResolvedValue(baseAlert);
-      mockUserRepository.updateJobAlert = vi.fn().mockResolvedValue({
+    it("should set lastSentAt to now when switching weekly -> monthly", async () => {
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(baseAlert);
+      mockNotificationsRepository.updateJobAlert.mockResolvedValue({
         ...baseAlert,
         frequency: "monthly",
       });
@@ -418,7 +413,8 @@ describe("UserService - Job Alerts", () => {
       await userService.updateJobAlert(1, 1, { frequency: "monthly" });
       const after = new Date();
 
-      const callArgs = mockUserRepository.updateJobAlert.mock.calls[0][2];
+      const callArgs =
+        mockNotificationsRepository.updateJobAlert.mock.calls[0][2];
       expect(callArgs.frequency).toBe("monthly");
       expect(callArgs.lastSentAt).toBeInstanceOf(Date);
       expect(callArgs.lastSentAt.getTime()).toBeGreaterThanOrEqual(
@@ -430,29 +426,27 @@ describe("UserService - Job Alerts", () => {
     });
 
     it("should not modify lastSentAt when frequency is unchanged", async () => {
-      mockUserRepository.getJobAlertById = vi
-        .fn()
-        .mockResolvedValue(baseAlert);
-      mockUserRepository.updateJobAlert = vi.fn().mockResolvedValue({
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(baseAlert);
+      mockNotificationsRepository.updateJobAlert.mockResolvedValue({
         ...baseAlert,
         name: "Updated Name",
       });
 
       await userService.updateJobAlert(1, 1, { name: "Updated Name" });
 
-      const callArgs = mockUserRepository.updateJobAlert.mock.calls[0][2];
+      const callArgs =
+        mockNotificationsRepository.updateJobAlert.mock.calls[0][2];
       expect(callArgs.lastSentAt).toBeUndefined();
     });
 
     it("should not modify lastSentAt when updating same frequency", async () => {
-      mockUserRepository.getJobAlertById = vi
-        .fn()
-        .mockResolvedValue(baseAlert);
-      mockUserRepository.updateJobAlert = vi.fn().mockResolvedValue(baseAlert);
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(baseAlert);
+      mockNotificationsRepository.updateJobAlert.mockResolvedValue(baseAlert);
 
       await userService.updateJobAlert(1, 1, { frequency: "weekly" });
 
-      const callArgs = mockUserRepository.updateJobAlert.mock.calls[0][2];
+      const callArgs =
+        mockNotificationsRepository.updateJobAlert.mock.calls[0][2];
       expect(callArgs.lastSentAt).toBeUndefined();
     });
   });

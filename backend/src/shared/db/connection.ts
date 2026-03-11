@@ -49,7 +49,7 @@ export async function closeDatabaseConnection(): Promise<void> {
     return;
   }
   try {
-    await connection.end();
+    connection.end();
     isDbClosed = true;
     logger.info("📊 Database connection closed");
   } catch (error) {

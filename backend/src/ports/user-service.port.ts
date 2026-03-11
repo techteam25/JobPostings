@@ -1,6 +1,4 @@
-import type { Result } from "@shared/result";
 import type { UserService } from "@/services/user.service";
-import type { PaginationMeta } from "@shared/types";
 import type {
   NewUserProfile,
   UpdateUser,
@@ -49,9 +47,7 @@ export interface UserServicePort {
   changeUserProfileVisibility(
     userId: number,
     isPublic?: boolean | undefined,
-  ): Promise<
-    Awaited<ReturnType<UserService["changeUserProfileVisibility"]>>
-  >;
+  ): Promise<Awaited<ReturnType<UserService["changeUserProfileVisibility"]>>>;
 
   changePassword(
     userId: number,
@@ -109,9 +105,7 @@ export interface UserServicePort {
 
   getAuthenticatedUserIntent(
     userId: number,
-  ): Promise<
-    Awaited<ReturnType<UserService["getAuthenticatedUserIntent"]>>
-  >;
+  ): Promise<Awaited<ReturnType<UserService["getAuthenticatedUserIntent"]>>>;
 
   getEmailPreferences(
     userId: number,
@@ -119,9 +113,7 @@ export interface UserServicePort {
 
   createDefaultEmailPreferences(
     userId: number,
-  ): Promise<
-    Awaited<ReturnType<UserService["createDefaultEmailPreferences"]>>
-  >;
+  ): Promise<Awaited<ReturnType<UserService["createDefaultEmailPreferences"]>>>;
 
   updateEmailPreferences(
     userId: number,
@@ -150,9 +142,7 @@ export interface UserServicePort {
 
   resubscribeEmailNotifications(
     userId: number,
-  ): Promise<
-    Awaited<ReturnType<UserService["resubscribeEmailNotifications"]>>
-  >;
+  ): Promise<Awaited<ReturnType<UserService["resubscribeEmailNotifications"]>>>;
 
   canSendEmailType(
     userId: number,
@@ -215,9 +205,7 @@ export interface UserServicePort {
 
   findEmailPreferencesByToken(
     token: string,
-  ): Promise<
-    Awaited<ReturnType<UserService["findEmailPreferencesByToken"]>>
-  >;
+  ): Promise<Awaited<ReturnType<UserService["findEmailPreferencesByToken"]>>>;
 
   resubscribeByContext(
     userId: number,

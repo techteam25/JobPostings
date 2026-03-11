@@ -14,7 +14,6 @@ export enum ErrorCode {
 
   // Database
   DATABASE_ERROR = "DATABASE_ERROR",
-  FOREIGN_KEY_CONSTRAINT = "FOREIGN_KEY_CONSTRAINT",
 
   // System
   INTERNAL_ERROR = "INTERNAL_ERROR",
@@ -64,12 +63,6 @@ export class NotFoundError extends AppError {
       // Otherwise, treat first param as a direct message
       super(messageOrResource, 404, ErrorCode.NOT_FOUND);
     }
-  }
-}
-
-export class UnauthorizedError extends AppError {
-  constructor(message: string = "Authentication required") {
-    super(message, 401, ErrorCode.UNAUTHORIZED);
   }
 }
 

@@ -1,14 +1,17 @@
 import { BaseRepository } from "@shared/base/base.repository";
 import { jobInsights, jobsDetails } from "@/db/schema";
 import { db } from "@shared/db/connection";
-import { and, count, eq, sql, sum } from "drizzle-orm";
+import { count, eq, sql, sum } from "drizzle-orm";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import type { JobInsightsRepositoryPort } from "@/ports/job-insights-repository.port";
 
 /**
  * Repository class for managing job insights data, including views and applications.
  */
-export class JobInsightsRepository extends BaseRepository<typeof jobInsights> implements JobInsightsRepositoryPort {
+export class JobInsightsRepository
+  extends BaseRepository<typeof jobInsights>
+  implements JobInsightsRepositoryPort
+{
   /**
    * Creates an instance of JobInsightsRepository.
    */
@@ -63,14 +66,16 @@ export class JobInsightsRepository extends BaseRepository<typeof jobInsights> im
       const [result] = await db
         .select({
           total: count(),
-          active:
-            sql<number>`SUM(CASE WHEN ${jobsDetails.isActive} = true THEN 1 ELSE 0 END)`.mapWith(
-              Number,
-            ),
-          inactive:
-            sql<number>`SUM(CASE WHEN ${jobsDetails.isActive} = false THEN 1 ELSE 0 END)`.mapWith(
-              Number,
-            ),
+          active: sql
+            .raw(
+              `SUM(CASE WHEN ${jobsDetails.isActive} = true THEN 1 ELSE 0 END)`,
+            )
+            .mapWith(Number),
+          inactive: sql
+            .raw(
+              `SUM(CASE WHEN ${jobsDetails.isActive} = false THEN 1 ELSE 0 END)`,
+            )
+            .mapWith(Number),
           totalViews: sum(jobInsights.viewCount).mapWith(Number),
           totalApplications: sum(jobInsights.applicationCount).mapWith(Number),
         })

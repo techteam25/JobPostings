@@ -123,7 +123,7 @@ export class UserController extends BaseController {
     const user = await this.userService.updateUser(id, updateData);
 
     if (user.isSuccess) {
-      return this.sendSuccess<User>(
+      return this.sendSuccess(
         res,
         user.value,
         "User updated successfully",
@@ -305,7 +305,7 @@ export class UserController extends BaseController {
     const result = await this.userService.deactivateUser(id, req.userId!);
 
     if (result.isSuccess) {
-      return this.sendSuccess<UserWithProfile>(
+      return this.sendSuccess(
         res,
         result.value,
         "User deactivated successfully",
@@ -329,7 +329,7 @@ export class UserController extends BaseController {
     const result = await this.userService.activateUser(id);
 
     if (result.isSuccess) {
-      return this.sendSuccess<UserWithProfile>(
+      return this.sendSuccess(
         res,
         result.value,
         "User activated successfully",
