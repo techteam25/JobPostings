@@ -8,13 +8,13 @@ import { eq, sql } from "drizzle-orm";
 import { auth } from "@/utils/auth";
 import { db } from "@shared/db/connection";
 import {
-  organizations,
-  jobsDetails,
-  user,
-  userProfile,
-  userEmailPreferences,
-  organizationMembers,
   jobApplications,
+  jobsDetails,
+  organizationMembers,
+  organizations,
+  user,
+  userEmailPreferences,
+  userProfile,
 } from "@/db/schema";
 import { userProfileFixture } from "@tests/utils/fixtures";
 
@@ -84,12 +84,10 @@ export async function createUsers(count: number = 5): Promise<CreatedUser[]> {
   await db.insert(user).values(values);
 
   // Fetch inserted users to get their IDs
-  const inserted = await db
+  return db
     .select({ id: user.id, email: user.email })
     .from(user)
     .orderBy(user.id);
-
-  return inserted;
 }
 
 // ─── Organization Builders ───────────────────────────────────────────

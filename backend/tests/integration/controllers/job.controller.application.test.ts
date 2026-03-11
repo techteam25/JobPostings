@@ -10,8 +10,6 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
   let jobId: number;
 
   beforeEach(async () => {
-    const { faker } = await import("@faker-js/faker");
-
     await seedJobsScenario();
     await createUser({ email: "normal.user@example.com" });
 
@@ -30,7 +28,8 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
   describe("Success Cases", () => {
     it("should successfully submit application with valid data", async () => {
       const applicationData = {
-        customAnswers: "I have 5 years of experience with TypeScript and Node.js.",
+        customAnswers:
+          "I have 5 years of experience with TypeScript and Node.js.",
         notes: "Available to start immediately.",
       };
 
@@ -252,8 +251,6 @@ describe("Withdraw Job Application Integration Tests", () => {
   });
 
   beforeEach(async () => {
-    const { faker } = await import("@faker-js/faker");
-
     await seedJobsScenario();
 
     // Create first test user

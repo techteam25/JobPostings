@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
-import type { NotificationsServicePort } from "../ports/notifications-service.port";
+import type { NotificationsServicePort } from "@/modules/notifications";
 import type { ProfileServicePort } from "@/modules/user-profile/ports/profile-service.port";
 import type {
   UserEmailPreferencesSchema,

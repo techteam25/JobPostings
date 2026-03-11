@@ -11,7 +11,7 @@ import {
   workExperiences,
 } from "@/db/schema";
 import { BaseRepository } from "@shared/base/base.repository";
-import type { ProfileRepositoryPort } from "../ports/profile-repository.port";
+import type { ProfileRepositoryPort } from "@/modules/user-profile";
 import { db } from "@shared/db/connection";
 import { DatabaseError, NotFoundError } from "@shared/errors";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";

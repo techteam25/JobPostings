@@ -4,7 +4,7 @@ import { reset, seed } from "drizzle-seed";
 import { eq, sql } from "drizzle-orm";
 
 import * as schema from "./schema";
-import { userProfile, userEmailPreferences } from "@/db/schema";
+import { userProfile } from "@/db/schema";
 import { organizations, organizationMembers } from "@/db/schema";
 import { jobsDetails } from "@/db/schema";
 import { env } from "@shared/config/env";

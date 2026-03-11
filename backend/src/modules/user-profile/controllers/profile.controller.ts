@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
-import type { ProfileServicePort } from "../ports/profile-service.port";
+import type { ProfileServicePort } from "@/modules/user-profile";
 import type { OrganizationServicePort } from "@/ports/organization-service.port";
 import type {
   CreateUserProfile,

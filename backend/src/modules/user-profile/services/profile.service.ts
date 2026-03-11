@@ -1,13 +1,9 @@
 import { fail, ok } from "@shared/result";
 import { BaseService } from "@shared/base/base.service";
-import type { ProfileServicePort } from "../ports/profile-service.port";
-import type { ProfileRepositoryPort } from "../ports/profile-repository.port";
+import type { ProfileServicePort } from "@/modules/user-profile";
+import type { ProfileRepositoryPort } from "@/modules/user-profile";
 import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
-import {
-  AppError,
-  DatabaseError,
-  NotFoundError,
-} from "@shared/errors";
+import { AppError, DatabaseError, NotFoundError } from "@shared/errors";
 import type { PaginationMeta } from "@shared/types";
 import { SecurityUtils } from "@/utils/security";
 import type {

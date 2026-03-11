@@ -123,11 +123,7 @@ export class UserController extends BaseController {
     const user = await this.userService.updateUser(id, updateData);
 
     if (user.isSuccess) {
-      return this.sendSuccess(
-        res,
-        user.value,
-        "User updated successfully",
-      );
+      return this.sendSuccess(res, user.value, "User updated successfully");
     } else {
       return this.handleControllerError(res, user.error);
     }
@@ -329,11 +325,7 @@ export class UserController extends BaseController {
     const result = await this.userService.activateUser(id);
 
     if (result.isSuccess) {
-      return this.sendSuccess(
-        res,
-        result.value,
-        "User activated successfully",
-      );
+      return this.sendSuccess(res, result.value, "User activated successfully");
     } else {
       return this.handleControllerError(res, result.error);
     }
@@ -377,7 +369,7 @@ export class UserController extends BaseController {
     //  This is an admin only action, can admins delete user?
     //  How would this be different with deleteSelf?
 
-    const result = await auth.api.deleteUser({
+    await auth.api.deleteUser({
       body: {
         token,
       },

@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { ProfileController } from "../controllers/profile.controller";
-import { ProfileRepository } from "../repositories/profile.repository";
-import { ProfileService } from "../services/profile.service";
+import { ProfileController } from "@/modules/user-profile";
+import { ProfileRepository } from "@/modules/user-profile";
+import { ProfileService } from "@/modules/user-profile";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { OrganizationService } from "@/services/organization.service";
 import { AuthMiddleware } from "@/middleware/auth.middleware";

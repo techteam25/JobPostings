@@ -2,7 +2,10 @@ import { fail, ok, Result } from "@shared/result";
 import { BaseService } from "@shared/base/base.service";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { UserRepository } from "@/repositories/user.repository";
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 import { randomUUID } from "crypto";
 import { JobRepository } from "@/repositories/job.repository";
 import type { OrganizationServicePort } from "@/ports/organization-service.port";
@@ -40,7 +43,10 @@ type OrganizationInvitationDetails = {
 /**
  * Service class for managing organization-related operations, including CRUD for organizations and their members.
  */
-export class OrganizationService extends BaseService implements OrganizationServicePort {
+export class OrganizationService
+  extends BaseService
+  implements OrganizationServicePort
+{
   /**
    * Creates an instance of OrganizationService and initializes the repository.
    */
@@ -820,6 +826,7 @@ export class OrganizationService extends BaseService implements OrganizationServ
   /**
    * Gets invitation details by token (public endpoint).
    * @param token The invitation token.
+   * @param organizationId The ID of the organization (to verify invitation belongs to this org).
    * @returns The invitation details with organization and inviter info.
    */
   async getInvitationDetails(
@@ -941,7 +948,11 @@ export class OrganizationService extends BaseService implements OrganizationServ
         // User is not a member of any organization, which is fine
         // Continue with invitation acceptance
         if (!(error instanceof NotFoundError)) {
-          throw error;
+          return fail(
+            new DatabaseError(
+              "Failed to verify existing organization membership",
+            ),
+          );
         }
       }
 

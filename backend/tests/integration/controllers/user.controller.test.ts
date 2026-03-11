@@ -1,14 +1,20 @@
 // noinspection DuplicatedCode
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { eq } from "drizzle-orm";
 
 import { db } from "@shared/db/connection";
 
-import {
-  userEmailPreferences,
-} from "@/db/schema";
+import { userEmailPreferences } from "@/db/schema";
 
 import {
   seedJobsScenario,
@@ -44,7 +50,10 @@ vi.mock("@shared/infrastructure/email.service", () => {
 });
 
 vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@shared/infrastructure/queue.service")>();
+  const original =
+    await importOriginal<
+      typeof import("@shared/infrastructure/queue.service")
+    >();
   return {
     ...original,
     queueService: {
@@ -55,7 +64,9 @@ vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
 
 describe("User Controller Integration Tests", () => {
   beforeAll(() => {
-    vi.spyOn(auth.api, "deleteUser").mockResolvedValue({ success: true } as any);
+    vi.spyOn(auth.api, "deleteUser").mockResolvedValue({
+      success: true,
+    } as any);
   });
 
   afterAll(() => {
@@ -177,7 +188,10 @@ describe("User Controller Integration Tests", () => {
 
       it("should update user profile returning 200", async () => {
         // User already created by beforeEach(seedUserScenario); just add profile + prefs
-        const { createUserProfile: createProfile, createEmailPreferences: createPrefs } = await import("@tests/utils/seedBuilders");
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
         await createProfile(1);
         await createPrefs(1);
 
@@ -295,7 +309,6 @@ describe("User Controller Integration Tests", () => {
 
   describe("GET users/me/saved-jobs/:jobId/check", () => {
     beforeEach(async () => {
-      const { jobs } = await seedJobsScenario();
       const user = await createUser({ email: "normal.user@example.com" });
       await createUserProfile(user.id);
     });

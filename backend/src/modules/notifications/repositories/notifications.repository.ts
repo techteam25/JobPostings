@@ -16,7 +16,7 @@ import {
   user,
   userEmailPreferences,
 } from "@/db/schema";
-import type { NotificationsRepositoryPort } from "../ports/notifications-repository.port";
+import type { NotificationsRepositoryPort } from "@/modules/notifications";
 import { db } from "@shared/db/connection";
 import { DatabaseError } from "@shared/errors";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";

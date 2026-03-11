@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { NotificationsController } from "../controllers/notifications.controller";
-import { NotificationsRepository } from "../repositories/notifications.repository";
-import { NotificationsService } from "../services/notifications.service";
+import { NotificationsController } from "@/modules/notifications";
+import { NotificationsRepository } from "@/modules/notifications";
+import { NotificationsService } from "@/modules/notifications";
 import { ProfileRepository } from "@/modules/user-profile/repositories/profile.repository";
 import { ProfileService } from "@/modules/user-profile/services/profile.service";
 import { OrganizationRepository } from "@/repositories/organization.repository";

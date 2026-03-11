@@ -1,7 +1,7 @@
 import { fail, ok } from "@shared/result";
 import { BaseService } from "@shared/base/base.service";
-import type { NotificationsServicePort } from "../ports/notifications-service.port";
-import type { NotificationsRepositoryPort } from "../ports/notifications-repository.port";
+import type { NotificationsServicePort } from "@/modules/notifications";
+import type { NotificationsRepositoryPort } from "@/modules/notifications";
 import type { EmailServicePort } from "@/ports/email-service.port";
 import {
   AppError,
@@ -331,8 +331,10 @@ export class NotificationsService
     updateData: UpdateJobAlertInput,
   ) {
     try {
-      const existingAlert =
-        await this.notificationsRepository.getJobAlertById(userId, alertId);
+      const existingAlert = await this.notificationsRepository.getJobAlertById(
+        userId,
+        alertId,
+      );
 
       if (!existingAlert) {
         return fail(new NotFoundError("Job alert", alertId));
@@ -414,8 +416,10 @@ export class NotificationsService
 
   async deleteJobAlert(userId: number, alertId: number) {
     try {
-      const existingAlert =
-        await this.notificationsRepository.getJobAlertById(userId, alertId);
+      const existingAlert = await this.notificationsRepository.getJobAlertById(
+        userId,
+        alertId,
+      );
 
       if (!existingAlert) {
         return fail(new NotFoundError("Job alert", alertId));
@@ -438,8 +442,10 @@ export class NotificationsService
     isPaused: boolean,
   ) {
     try {
-      const existingAlert =
-        await this.notificationsRepository.getJobAlertById(userId, alertId);
+      const existingAlert = await this.notificationsRepository.getJobAlertById(
+        userId,
+        alertId,
+      );
 
       if (!existingAlert) {
         return fail(new NotFoundError("Job alert", alertId));
@@ -601,11 +607,10 @@ export class NotificationsService
       ] as boolean;
 
       const updateData = { [preferenceType]: newValue };
-      const updated =
-        await this.notificationsRepository.updateEmailPreferences(
-          userId,
-          updateData,
-        );
+      const updated = await this.notificationsRepository.updateEmailPreferences(
+        userId,
+        updateData,
+      );
 
       if (!updated) {
         return fail(new DatabaseError("Failed to update preference"));
