@@ -18,12 +18,18 @@ import {
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
 
-export function createProfileRoutes(): Router {
+export function createProfileRoutes({
+  authMiddleware,
+  organizationRepository,
+  organizationService,
+}: {
+  authMiddleware: AuthMiddleware;
+  organizationRepository: OrganizationRepository;
+  organizationService: OrganizationService;
+}): Router {
   const router = Router();
 
   const profileRepository = new ProfileRepository();
-  const organizationRepository = new OrganizationRepository();
-  const organizationService = new OrganizationService();
   const profileService = new ProfileService(
     profileRepository,
     organizationRepository,
@@ -32,7 +38,6 @@ export function createProfileRoutes(): Router {
     profileService,
     organizationService,
   );
-  const authMiddleware = new AuthMiddleware();
 
   // Current user profile routes (authenticated via parent router)
 

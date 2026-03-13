@@ -13,7 +13,6 @@ import {
   JobApplicationsResponseSchema,
   OrganizationJobApplications,
   OrganizationJobApplicationsResponse,
-  OrganizationWithMembers,
   UpdateJobStatusInputSchema,
   UpdateOrganizationSchema,
   UploadOrganizationLogoSchema,
@@ -88,7 +87,7 @@ export class OrganizationController extends BaseController {
     const organization = await this.organizationService.getOrganizationById(id);
 
     if (organization.isSuccess) {
-      return this.sendSuccess<OrganizationWithMembers>(
+      return this.sendSuccess(
         res,
         organization.value,
         "Organization retrieved successfully",

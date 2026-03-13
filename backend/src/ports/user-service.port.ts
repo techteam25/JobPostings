@@ -1,14 +1,24 @@
-import type { UserService } from "@/services/user.service";
-import type {
+import {
   NewUserProfile,
   UpdateUser,
   UpdateUserProfile,
+  User,
+  type UserProfile,
+  type UserWithProfile,
 } from "@/validations/userProfile.validation";
 import type {
   CreateJobAlertInput,
   JobAlert,
   UpdateJobAlertInput,
 } from "@/validations/jobAlerts.validation";
+import type { Result } from "@shared/result";
+import {
+  SavedJobs,
+  UserEmailPreferencesSchema,
+} from "@/validations/user.validation";
+import type { AppError } from "@shared/errors";
+import type { PaginationMeta } from "@shared/types";
+import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 
 /**
  * Port interface for UserService.
@@ -19,101 +29,100 @@ export interface UserServicePort {
     searchTerm: string | undefined,
     page: number,
     limit: number,
-  ): Promise<Awaited<ReturnType<UserService["getAllUsers"]>>>;
+  ): Promise<Result<{ items: User[]; pagination: PaginationMeta }, AppError>>;
 
-  getUserById(
-    id: number,
-  ): Promise<Awaited<ReturnType<UserService["getUserById"]>>>;
+  getUserById(id: number): Promise<Result<UserWithProfile, AppError>>;
 
   getUserProfileStatus(
     id: number,
-  ): Promise<Awaited<ReturnType<UserService["getUserProfileStatus"]>>>;
+  ): Promise<Result<{ complete: boolean }, AppError>>;
 
   createUserProfile(
     userId: number,
     profileData: Omit<NewUserProfile, "userId">,
-  ): Promise<Awaited<ReturnType<UserService["createUserProfile"]>>>;
+  ): Promise<Result<UserWithProfile["profile"], AppError>>;
 
   updateUser(
     id: number,
     updateData: UpdateUser,
-  ): Promise<Awaited<ReturnType<UserService["updateUser"]>>>;
+  ): Promise<Result<User, AppError>>;
 
   updateUserProfile(
     userId: number,
     profileData: UpdateUserProfile,
-  ): Promise<Awaited<ReturnType<UserService["updateUserProfile"]>>>;
+  ): Promise<Result<UserWithProfile, AppError>>;
 
   changeUserProfileVisibility(
     userId: number,
     isPublic?: boolean | undefined,
-  ): Promise<Awaited<ReturnType<UserService["changeUserProfileVisibility"]>>>;
+  ): Promise<Result<UserProfile, AppError>>;
 
   changePassword(
     userId: number,
     currentPassword: string,
     newPassword: string,
-  ): Promise<Awaited<ReturnType<UserService["changePassword"]>>>;
+  ): Promise<
+    Result<{ message: string; data: BetterAuthSuccessResponseSchema }, AppError>
+  >;
 
-  deactivateSelf(
-    userId: number,
-  ): Promise<Awaited<ReturnType<UserService["deactivateSelf"]>>>;
+  deactivateSelf(userId: number): Promise<Result<User, AppError>>;
 
   deactivateUser(
     id: number,
     requestingUserId: number,
-  ): Promise<Awaited<ReturnType<UserService["deactivateUser"]>>>;
+  ): Promise<Result<User, AppError>>;
 
-  activateUser(
-    id: number,
-  ): Promise<Awaited<ReturnType<UserService["activateUser"]>>>;
+  activateUser(id: number): Promise<Result<User | undefined, AppError>>;
 
-  canSeekJobs(
-    sessionUserId: number,
-  ): Promise<Awaited<ReturnType<UserService["canSeekJobs"]>>>;
+  canSeekJobs(sessionUserId: number): Promise<Result<boolean, AppError>>;
 
   hasPrerequisiteRoles(
     sessionUserId: number,
     roles: ("owner" | "admin" | "recruiter" | "member")[],
-  ): Promise<Awaited<ReturnType<UserService["hasPrerequisiteRoles"]>>>;
+  ): Promise<Result<boolean, AppError>>;
 
-  deleteSelf(
-    userId: number,
-    token: string,
-  ): Promise<Awaited<ReturnType<UserService["deleteSelf"]>>>;
+  deleteSelf(userId: number, token: string): Promise<Result<null, AppError>>;
 
   getSavedJobsForUser(
     userId: number,
     page?: number,
     limit?: number,
-  ): Promise<Awaited<ReturnType<UserService["getSavedJobsForUser"]>>>;
+  ): Promise<
+    Result<{ items: SavedJobs[]; pagination: PaginationMeta }, AppError>
+  >;
 
   saveJobForCurrentUser(
     userId: number,
     jobId: number,
-  ): Promise<Awaited<ReturnType<UserService["saveJobForCurrentUser"]>>>;
+  ): Promise<Result<{ success: boolean }, AppError>>;
 
   isJobSavedByUser(
     userId: number,
     jobId: number,
-  ): Promise<Awaited<ReturnType<UserService["isJobSavedByUser"]>>>;
+  ): Promise<Result<boolean, AppError>>;
 
   unsaveJobForCurrentUser(
     userId: number,
     jobId: number,
-  ): Promise<Awaited<ReturnType<UserService["unsaveJobForCurrentUser"]>>>;
+  ): Promise<Result<{ success: boolean }, AppError>>;
 
-  getAuthenticatedUserIntent(
-    userId: number,
-  ): Promise<Awaited<ReturnType<UserService["getAuthenticatedUserIntent"]>>>;
+  getAuthenticatedUserIntent(userId: number): Promise<
+    Result<
+      {
+        status: "completed" | "pending";
+        intent: "employer" | "seeker";
+      },
+      AppError
+    >
+  >;
 
   getEmailPreferences(
     userId: number,
-  ): Promise<Awaited<ReturnType<UserService["getEmailPreferences"]>>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   createDefaultEmailPreferences(
     userId: number,
-  ): Promise<Awaited<ReturnType<UserService["createDefaultEmailPreferences"]>>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   updateEmailPreferences(
     userId: number,
@@ -126,7 +135,7 @@ export interface UserServicePort {
       marketingEmails: boolean;
       globalUnsubscribe: boolean;
     }>,
-  ): Promise<Awaited<ReturnType<UserService["updateEmailPreferences"]>>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   unsubscribeByToken(
     token: string,
@@ -138,11 +147,11 @@ export interface UserServicePort {
       monthlyNewsletter: boolean;
       marketingEmails: boolean;
     }>,
-  ): Promise<Awaited<ReturnType<UserService["unsubscribeByToken"]>>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   resubscribeEmailNotifications(
     userId: number,
-  ): Promise<Awaited<ReturnType<UserService["resubscribeEmailNotifications"]>>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   canSendEmailType(
     userId: number,
@@ -154,31 +163,33 @@ export interface UserServicePort {
       | "monthlyNewsletter"
       | "marketingEmails"
       | "accountSecurityAlerts",
-  ): Promise<Awaited<ReturnType<UserService["canSendEmailType"]>>>;
+  ): Promise<Result<boolean, AppError>>;
 
   generateUnsubscribeLink(userId: number): Promise<string | null>;
 
   createJobAlert(
     userId: number,
     alertData: CreateJobAlertInput,
-  ): Promise<Awaited<ReturnType<UserService["createJobAlert"]>>>;
+  ): Promise<Result<JobAlert, AppError>>;
 
   getUserJobAlerts(
     userId: number,
     page: number,
     limit: number,
-  ): Promise<Awaited<ReturnType<UserService["getUserJobAlerts"]>>>;
+  ): Promise<
+    Result<{ items: JobAlert[]; pagination: PaginationMeta }, AppError>
+  >;
 
   getJobAlertById(
     userId: number,
     alertId: number,
-  ): Promise<Awaited<ReturnType<UserService["getJobAlertById"]>>>;
+  ): Promise<Result<JobAlert, AppError>>;
 
   updateJobAlert(
     userId: number,
     alertId: number,
     updateData: UpdateJobAlertInput,
-  ): Promise<Awaited<ReturnType<UserService["updateJobAlert"]>>>;
+  ): Promise<Result<JobAlert, AppError>>;
 
   applyFrequencyChangeSchedule(
     existingAlert: JobAlert,
@@ -188,30 +199,30 @@ export interface UserServicePort {
   deleteJobAlert(
     userId: number,
     alertId: number,
-  ): Promise<Awaited<ReturnType<UserService["deleteJobAlert"]>>>;
+  ): Promise<Result<null, AppError>>;
 
   togglePauseJobAlert(
     userId: number,
     alertId: number,
     isPaused: boolean,
-  ): Promise<Awaited<ReturnType<UserService["togglePauseJobAlert"]>>>;
+  ): Promise<Result<JobAlert, AppError>>;
 
   unsubscribeByContext(
     userId: number,
     context: "job_seeker" | "employer" | "global",
     changeSource: "account_settings" | "email_link",
     metadata?: { ipAddress?: string; userAgent?: string },
-  ): Promise<Awaited<ReturnType<UserService["unsubscribeByContext"]>>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   findEmailPreferencesByToken(
     token: string,
-  ): Promise<Awaited<ReturnType<UserService["findEmailPreferencesByToken"]>>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   resubscribeByContext(
     userId: number,
     context: "job_seeker" | "employer" | "global",
     metadata?: { ipAddress?: string; userAgent?: string },
-  ): Promise<Awaited<ReturnType<UserService["resubscribeByContext"]>>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   updateEmailPreferenceWithAudit(
     userId: number,
@@ -220,7 +231,5 @@ export interface UserServicePort {
     context: "job_seeker" | "employer" | "global",
     changeSource: "account_settings" | "email_link",
     metadata?: { ipAddress?: string; userAgent?: string },
-  ): Promise<
-    Awaited<ReturnType<UserService["updateEmailPreferenceWithAudit"]>>
-  >;
+  ): Promise<Result<UserEmailPreferencesSchema, Error>>;
 }

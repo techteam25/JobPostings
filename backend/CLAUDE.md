@@ -52,7 +52,7 @@ Each domain (users, jobs, organizations) follows this stack with base classes:
 - **Validation**: Zod schemas in `src/validations/`, applied via `validate()` middleware which validates `{ body, query, params }` together
 - **API docs**: OpenAPI generated from Zod schemas using `@asteasolutions/zod-to-openapi` registry (`src/swagger/registry.ts`), served at `/docs`
 - **Environment**: All env vars validated with Zod at startup (`src/config/env.ts`). Test mode uses lenient fallbacks.
-- **Error hierarchy**: Custom error classes in `src/utils/errors.ts` — `AppError`, `NotFoundError`, `ConflictError`, `UnauthorizedError`, `ForbiddenError`, `DatabaseError`, `ValidationError`
+- **Error hierarchy**: Custom error classes in `src/utils/errors.ts` — `AppError`, `NotFoundError`, `ConflictError`, `ForbiddenError`, `DatabaseError`, `ValidationError`
 - **Logging**: Pino logger (`src/logger/index.ts`)
 
 ### Background Workers (BullMQ)

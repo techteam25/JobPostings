@@ -88,6 +88,10 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         profileData,
       );
 
+      if (!profile) {
+        return fail(new DatabaseError("Failed to create user profile"));
+      }
+
       return ok(profile);
     } catch (error) {
       if (error instanceof AppError) {

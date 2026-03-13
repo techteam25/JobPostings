@@ -2,8 +2,7 @@ import { Router } from "express";
 import { NotificationsController } from "@/modules/notifications";
 import { NotificationsRepository } from "@/modules/notifications";
 import { NotificationsService } from "@/modules/notifications";
-import { ProfileRepository } from "@/modules/user-profile/repositories/profile.repository";
-import { ProfileService } from "@/modules/user-profile/services/profile.service";
+import { ProfileRepository, ProfileService } from "@/modules/user-profile";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { EmailService } from "@shared/infrastructure/email.service";
 import { AuthMiddleware } from "@/middleware/auth.middleware";
@@ -25,13 +24,19 @@ import {
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
 
-export function createNotificationsRoutes(): Router {
+export function createNotificationsRoutes({
+  authMiddleware,
+  emailService,
+  organizationRepository,
+}: {
+  authMiddleware: AuthMiddleware;
+  emailService: EmailService;
+  organizationRepository: OrganizationRepository;
+}): Router {
   const router = Router();
 
   const notificationsRepository = new NotificationsRepository();
   const profileRepository = new ProfileRepository();
-  const organizationRepository = new OrganizationRepository();
-  const emailService = new EmailService();
   const profileService = new ProfileService(
     profileRepository,
     organizationRepository,
@@ -54,7 +59,6 @@ export function createNotificationsRoutes(): Router {
     notificationsService,
     profileService,
   );
-  const authMiddleware = new AuthMiddleware();
 
   // Email preferences routes (authenticated via parent router)
 
@@ -98,14 +102,12 @@ export function createNotificationsRoutes(): Router {
   router.post(
     "/me/email-preferences/unsubscribe-context",
     invalidateCacheMiddleware(() => "users/me/email-preferences"),
-    authMiddleware.authenticate,
     notificationsController.unsubscribeByContext,
   );
 
   // POST /users/me/email-preferences/resubscribe-context
   router.post(
     "/me/email-preferences/resubscribe-context",
-    authMiddleware.authenticate,
     notificationsController.resubscribeByContext,
   );
 
@@ -113,7 +115,6 @@ export function createNotificationsRoutes(): Router {
   router.patch(
     "/me/email-preferences/granular",
     invalidateCacheMiddleware(() => "users/me/email-preferences"),
-    authMiddleware.authenticate,
     notificationsController.updateGranularEmailPreference,
   );
 

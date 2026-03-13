@@ -1,10 +1,13 @@
-import type { SearchResponse } from "typesense/lib/Typesense/Documents";
+import type {
+  DeleteResponse,
+  SearchResponse,
+} from "typesense/lib/Typesense/Documents";
 
 import { JOBS_COLLECTION } from "@shared/infrastructure/typesense.service/constants";
 import { JobWithSkills } from "@/validations/job.validation";
 import { typesenseClient } from "@shared/config/typesense-client";
 
-import { JobDocumentType } from "@/validations/base.validation";
+import type { JobDocumentType } from "@/validations/base.validation";
 import logger from "@shared/logger";
 import type { TypesenseServicePort } from "@/ports/typesense-service.port";
 
@@ -26,8 +29,8 @@ export class TypesenseService implements TypesenseServicePort {
    * @param doc The job document to index.
    * @returns The result of the indexing operation.
    */
-  async indexJobDocument(doc: JobWithSkills) {
-    return await typesenseClient
+  async indexJobDocument(doc: JobWithSkills): Promise<JobWithSkills> {
+    await typesenseClient
       .collections(JOBS_COLLECTION)
       .documents()
       .create({
@@ -43,9 +46,14 @@ export class TypesenseService implements TypesenseServicePort {
         isActive: doc.isActive,
         experience: doc.experience,
         jobType: doc.jobType,
-        skills: ["skill"],
+        skills: doc.skills,
         createdAt: Number(Date.parse(`${doc.createdAt}`)),
       });
+
+    return typesenseClient
+      .collections<JobWithSkills>(JOBS_COLLECTION)
+      .documents(doc.id.toString())
+      .retrieve();
   }
 
   /**
@@ -55,7 +63,7 @@ export class TypesenseService implements TypesenseServicePort {
    */
   async indexManyJobDocuments(docs: JobWithSkills[]) {
     return await typesenseClient
-      .collections(JOBS_COLLECTION)
+      .collections<JobWithSkills>(JOBS_COLLECTION)
       .documents()
       .import(docs);
   }
@@ -67,7 +75,7 @@ export class TypesenseService implements TypesenseServicePort {
    */
   async retrieveJobDocumentById(jobId: string) {
     return await typesenseClient
-      .collections(JOBS_COLLECTION)
+      .collections<JobWithSkills>(JOBS_COLLECTION)
       .documents(jobId)
       .retrieve();
   }
@@ -83,7 +91,7 @@ export class TypesenseService implements TypesenseServicePort {
     updatedFields: Partial<JobWithSkills>,
   ) {
     return await typesenseClient
-      .collections(JOBS_COLLECTION)
+      .collections<JobWithSkills>(JOBS_COLLECTION)
       .documents(jobId)
       .update(updatedFields);
   }
@@ -95,7 +103,7 @@ export class TypesenseService implements TypesenseServicePort {
    */
   async deleteJobDocumentById(jobId: string) {
     return await typesenseClient
-      .collections(JOBS_COLLECTION)
+      .collections<DeleteResponse<JobWithSkills>>(JOBS_COLLECTION)
       .documents(jobId)
       .delete();
   }
@@ -107,7 +115,7 @@ export class TypesenseService implements TypesenseServicePort {
    */
   async deleteJobDocumentByTitle(jobTitle: string) {
     return await typesenseClient
-      .collections(JOBS_COLLECTION)
+      .collections<JobWithSkills>(JOBS_COLLECTION)
       .documents()
       .delete({ filter_by: `title:${jobTitle}` });
   }
@@ -170,9 +178,7 @@ export class TypesenseService implements TypesenseServicePort {
     }
 
     // Always filter to only active jobs
-    filterBy = filterBy
-      ? `${filterBy} && isActive:true`
-      : "isActive:true";
+    filterBy = filterBy ? `${filterBy} && isActive:true` : "isActive:true";
 
     logger.info("Searching jobs for alert", { q, filterBy, limit });
 

@@ -12,14 +12,18 @@ import {
 } from "@/validations/user.validation";
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
 
-export function createIdentityRoutes(): Router {
+export function createIdentityRoutes({
+  authMiddleware,
+  emailService,
+}: {
+  authMiddleware: AuthMiddleware;
+  emailService: EmailService;
+}): Router {
   const router = Router();
 
   const identityRepository = new IdentityRepository();
-  const emailService = new EmailService();
   const identityService = new IdentityService(identityRepository, emailService);
   const identityController = new IdentityController(identityService);
-  const authMiddleware = new AuthMiddleware();
 
   // Current user identity routes (authenticated via parent router)
 

@@ -1,4 +1,4 @@
-import { fail, ok } from "@shared/result";
+import { fail, ok, Result } from "@shared/result";
 import { BaseService } from "@shared/base/base.service";
 import type { IdentityServicePort } from "@/modules/identity";
 import type { IdentityRepositoryPort } from "@/modules/identity";
@@ -234,6 +234,17 @@ export class IdentityService
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to delete account"));
+    }
+  }
+
+  async deleteUser(token: string): Promise<Result<null, AppError>> {
+    try {
+      await auth.api.deleteUser({
+        body: { token },
+      });
+      return ok(null);
+    } catch (error) {
+      return fail(new DatabaseError("Failed to deactivate user"));
     }
   }
 }

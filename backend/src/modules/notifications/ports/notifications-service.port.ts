@@ -6,13 +6,16 @@ import type {
   JobAlert,
   UpdateJobAlertInput,
 } from "@/validations/jobAlerts.validation";
+import { UserEmailPreferencesSchema } from "@/validations/user.validation";
 
 export interface NotificationsServicePort {
-  getEmailPreferences(userId: number): Promise<Result<any, AppError>>;
+  getEmailPreferences(
+    userId: number,
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   createDefaultEmailPreferences(
     userId: number,
-  ): Promise<Result<any, AppError>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   updateEmailPreferences(
     userId: number,
@@ -25,7 +28,7 @@ export interface NotificationsServicePort {
       marketingEmails: boolean;
       globalUnsubscribe: boolean;
     }>,
-  ): Promise<Result<any, AppError>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   unsubscribeByToken(
     token: string,
@@ -37,11 +40,11 @@ export interface NotificationsServicePort {
       monthlyNewsletter: boolean;
       marketingEmails: boolean;
     }>,
-  ): Promise<Result<any, AppError>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   resubscribeEmailNotifications(
     userId: number,
-  ): Promise<Result<any, AppError>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   canSendEmailType(
     userId: number,
@@ -102,17 +105,17 @@ export interface NotificationsServicePort {
     context: "job_seeker" | "employer" | "global",
     changeSource: "account_settings" | "email_link",
     metadata?: { ipAddress?: string; userAgent?: string },
-  ): Promise<Result<any, AppError>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   findEmailPreferencesByToken(
     token: string,
-  ): Promise<Result<any, AppError>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   resubscribeByContext(
     userId: number,
     context: "job_seeker" | "employer" | "global",
     metadata?: { ipAddress?: string; userAgent?: string },
-  ): Promise<Result<any, AppError>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
   updateEmailPreferenceWithAudit(
     userId: number,
@@ -121,5 +124,5 @@ export interface NotificationsServicePort {
     context: "job_seeker" | "employer" | "global",
     changeSource: "account_settings" | "email_link",
     metadata?: { ipAddress?: string; userAgent?: string },
-  ): Promise<Result<any, AppError>>;
+  ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 }

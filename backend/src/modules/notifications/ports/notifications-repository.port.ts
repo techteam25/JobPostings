@@ -1,15 +1,23 @@
-import type {
+import {
+  EmailPreferenceAuditLog,
   InsertJobAlert,
   JobAlert,
 } from "@/validations/jobAlerts.validation";
+import { UserEmailPreferencesSchema } from "@/validations/user.validation";
+import { PaginationMeta } from "@shared/types";
+import { UnsentMatchesSchema } from "@/validations/job.validation";
 
 export interface NotificationsRepositoryPort {
-  findEmailPreferencesByUserId(userId: number): Promise<any>;
-  findEmailPreferencesByToken(token: string): Promise<any>;
+  findEmailPreferencesByUserId(
+    userId: number,
+  ): Promise<UserEmailPreferencesSchema | undefined>;
+  findEmailPreferencesByToken(
+    token: string,
+  ): Promise<UserEmailPreferencesSchema | undefined>;
   createEmailPreferences(
     userId: number,
     unsubscribeToken: string,
-  ): Promise<any>;
+  ): Promise<UserEmailPreferencesSchema | undefined>;
   updateEmailPreferences(
     userId: number,
     preferences: Partial<{
@@ -21,8 +29,11 @@ export interface NotificationsRepositoryPort {
       marketingEmails: boolean;
       globalUnsubscribe: boolean;
     }>,
-  ): Promise<any>;
-  refreshUnsubscribeToken(userId: number, newToken: string): Promise<any>;
+  ): Promise<UserEmailPreferencesSchema | undefined>;
+  refreshUnsubscribeToken(
+    userId: number,
+    newToken: string,
+  ): Promise<UserEmailPreferencesSchema | undefined>;
   canSendEmailType(
     userId: number,
     emailType:
@@ -46,7 +57,7 @@ export interface NotificationsRepositoryPort {
   getUserJobAlerts(
     userId: number,
     pagination: { page: number; limit: number },
-  ): Promise<any>;
+  ): Promise<{ items: JobAlert[]; pagination: PaginationMeta }>;
   getJobAlertById(
     userId: number,
     alertId: number,
@@ -74,7 +85,10 @@ export interface NotificationsRepositoryPort {
       matchScore: number;
     }>,
   ): Promise<void>;
-  getUnsentMatches(alertId: number, limit?: number): Promise<any>;
+  getUnsentMatches(
+    alertId: number,
+    limit?: number,
+  ): Promise<UnsentMatchesSchema[]>;
   markMatchesAsSent(matchIds: number[]): Promise<void>;
   getUnsentMatchCount(alertId: number): Promise<number>;
   pauseAlertsForInactiveUsers(): Promise<{
@@ -90,15 +104,20 @@ export interface NotificationsRepositoryPort {
     changeSource: "account_settings" | "email_link";
     ipAddress?: string;
     userAgent?: string;
-  }): Promise<any>;
-  getUserAuditHistory(userId: number, limit?: number): Promise<any>;
-  setEmployerEmailPreferences(userId: number): Promise<any>;
+  }): Promise<number>;
+  getUserAuditHistory(
+    userId: number,
+    limit?: number,
+  ): Promise<EmailPreferenceAuditLog[]>;
+  setEmployerEmailPreferences(
+    userId: number,
+  ): Promise<UserEmailPreferencesSchema | undefined>;
   unsubscribeByContext(
     userId: number,
     context: "job_seeker" | "employer" | "global",
-  ): Promise<any>;
+  ): Promise<UserEmailPreferencesSchema | undefined>;
   resubscribeByContext(
     userId: number,
     context: "job_seeker" | "employer" | "global",
-  ): Promise<any>;
+  ): Promise<UserEmailPreferencesSchema | undefined>;
 }

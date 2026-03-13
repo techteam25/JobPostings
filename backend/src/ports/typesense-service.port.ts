@@ -1,46 +1,29 @@
-import type { SearchResponse } from "typesense/lib/Typesense/Documents";
+import type {
+  DeleteResponse,
+  ImportResponse,
+  SearchResponse,
+} from "typesense/lib/Typesense/Documents";
 
 import type { JobWithSkills } from "@/validations/job.validation";
 import type { JobDocumentType } from "@/validations/base.validation";
-import type { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 
 export interface TypesenseServicePort {
   /**
    * Indexes a single job document in Typesense.
    */
-  indexJobDocument(
-    doc: JobWithSkills,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof TypesenseService>["indexJobDocument"]>
-    >
-  >;
+  indexJobDocument(doc: JobWithSkills): Promise<JobWithSkills>;
 
   /**
    * Indexes multiple job documents in Typesense.
    */
   indexManyJobDocuments(
     docs: JobWithSkills[],
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof TypesenseService>["indexManyJobDocuments"]
-      >
-    >
-  >;
+  ): Promise<ImportResponse<JobWithSkills>[]>;
 
   /**
    * Retrieves a job document by its ID from Typesense.
    */
-  retrieveJobDocumentById(
-    jobId: string,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof TypesenseService>["retrieveJobDocumentById"]
-      >
-    >
-  >;
+  retrieveJobDocumentById(jobId: string): Promise<JobWithSkills>;
 
   /**
    * Updates a job document by its ID in Typesense.
@@ -48,39 +31,19 @@ export interface TypesenseServicePort {
   updateJobDocumentById(
     jobId: string,
     updatedFields: Partial<JobWithSkills>,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof TypesenseService>["updateJobDocumentById"]
-      >
-    >
-  >;
+  ): Promise<JobWithSkills>;
 
   /**
    * Deletes a job document by its ID from Typesense.
    */
-  deleteJobDocumentById(
-    jobId: string,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof TypesenseService>["deleteJobDocumentById"]
-      >
-    >
-  >;
+  deleteJobDocumentById(jobId: string): Promise<DeleteResponse<JobWithSkills>>;
 
   /**
    * Deletes job documents by title from Typesense.
    */
   deleteJobDocumentByTitle(
     jobTitle: string,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof TypesenseService>["deleteJobDocumentByTitle"]
-      >
-    >
-  >;
+  ): Promise<DeleteResponse<JobWithSkills>>;
 
   /**
    * Searches the jobs collection in Typesense.

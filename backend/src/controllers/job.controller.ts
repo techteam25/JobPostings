@@ -17,6 +17,7 @@ import {
 import { GetOrganizationSchema } from "@/validations/organization.validation";
 import { SearchParams } from "@/validations/base.validation";
 import {
+  type ApplicationQueryParams,
   ApplyForJobSchema,
   GetJobApplicationSchema,
 } from "@/validations/jobApplications.validation";
@@ -93,7 +94,6 @@ export class JobController extends BaseController {
       includeRemote,
       isActive,
       order,
-      status,
     } = req.query;
 
     const result = await this.jobService.searchJobs({
@@ -111,7 +111,6 @@ export class JobController extends BaseController {
       includeRemote,
       isActive,
       order,
-      status,
     });
 
     if (result.isSuccess) {
@@ -399,7 +398,7 @@ export class JobController extends BaseController {
    * @param res The Express response object.
    */
   getJobApplications = async (
-    req: Request<GetJobSchema["params"], {}, {}, SearchParams["query"]>,
+    req: Request<GetJobSchema["params"], {}, {}, ApplicationQueryParams>,
     res: Response,
   ) => {
     const jobId = Number(req.params.jobId);
@@ -434,7 +433,7 @@ export class JobController extends BaseController {
    * @param res The Express response object.
    */
   getUserApplications = async (
-    req: Request<{}, {}, {}, SearchParams["query"]>,
+    req: Request<{}, {}, {}, ApplicationQueryParams>,
     res: Response,
   ) => {
     const userId = req.userId!;

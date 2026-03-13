@@ -1,7 +1,6 @@
 // src/shared/errors/index.ts
 export enum ErrorCode {
   // Authentication & Authorization
-  UNAUTHORIZED = "UNAUTHORIZED",
   FORBIDDEN = "FORBIDDEN",
 
   // Validation

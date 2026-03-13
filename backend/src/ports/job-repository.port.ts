@@ -1,20 +1,31 @@
 import type { BaseRepositoryPort } from "./base-repository.port";
 import type { jobsDetails } from "@/db/schema";
 import type {
+  Job,
   JobSkills,
+  JobWithEmployer,
   JobWithSkills,
   NewJob,
   NewJobApplication,
   UpdateJob,
   UpdateJobApplication,
 } from "@/validations/job.validation";
-import type { JobRepository } from "@/repositories/job.repository";
+import { PaginationMeta } from "@shared/types";
+import { Organization } from "@/validations/organization.validation";
+import {
+  Application,
+  ApplicationsByJobInterface,
+  ApplicationsByUserInterface,
+  JobApplication,
+} from "@/validations/jobApplications.validation";
 
 type JobSelect = typeof jobsDetails.$inferSelect;
 type JobInsert = typeof jobsDetails.$inferInsert;
 
-export interface JobRepositoryPort
-  extends BaseRepositoryPort<JobSelect, JobInsert> {
+export interface JobRepositoryPort extends BaseRepositoryPort<
+  JobSelect,
+  JobInsert
+> {
   /**
    * Creates a new job with associated skills.
    */
@@ -30,20 +41,18 @@ export interface JobRepositoryPort
   /**
    * Finds a job by its ID, including employer details.
    */
-  findJobById(
-    id: number,
-  ): Promise<
-    Awaited<ReturnType<InstanceType<typeof JobRepository>["findJobById"]>>
-  >;
+  findJobById(id: number): Promise<{
+    job: Job;
+    employer: JobWithEmployer["employer"];
+  }>;
 
   /**
    * Finds active jobs with pagination.
    */
-  findActiveJobs(
-    options?: { page?: number; limit?: number },
-  ): Promise<
-    Awaited<ReturnType<InstanceType<typeof JobRepository>["findActiveJobs"]>>
-  >;
+  findActiveJobs(options?: { page?: number; limit?: number }): Promise<{
+    items: Omit<JobWithEmployer, "hasApplied">[];
+    pagination: PaginationMeta;
+  }>;
 
   /**
    * Finds jobs by employer with optional filters and pagination.
@@ -57,21 +66,18 @@ export interface JobRepositoryPort
       q?: string;
       order?: string;
     },
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof JobRepository>["findJobsByEmployer"]>
-    >
-  >;
+  ): Promise<{ items: Job[]; pagination: PaginationMeta }>;
 
   /**
    * Finds a job with its applications and employer details.
    */
-  findJobWithApplications(
-    jobId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof JobRepository>["findJobWithApplications"]>
-    >
+  findJobWithApplications(jobId: number): Promise<
+    {
+      job: Job;
+      employer: Organization | null;
+      applications: Application | null;
+      applicant: { id: number; fullName: string; email: string } | null;
+    }[]
   >;
 
   /**
@@ -79,11 +85,7 @@ export interface JobRepositoryPort
    */
   createApplication(
     applicationData: NewJobApplication,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof JobRepository>["createApplication"]>
-    >
-  >;
+  ): Promise<number | undefined>;
 
   /**
    * Finds applications for a specific job with pagination and optional status filter.
@@ -91,11 +93,7 @@ export interface JobRepositoryPort
   findApplicationsByJob(
     jobId: number,
     options?: { page?: number; limit?: number; status?: string },
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof JobRepository>["findApplicationsByJob"]>
-    >
-  >;
+  ): Promise<ApplicationsByJobInterface>;
 
   /**
    * Finds applications submitted by a specific user with pagination and optional status filter.
@@ -115,11 +113,7 @@ export interface JobRepositoryPort
         | "hired"
         | "withdrawn";
     },
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof JobRepository>["findApplicationsByUser"]>
-    >
-  >;
+  ): Promise<ApplicationsByUserInterface>;
 
   /**
    * Updates the status of a job application.
@@ -132,13 +126,7 @@ export interface JobRepositoryPort
   /**
    * Finds a job application by its ID, including job and applicant details.
    */
-  findApplicationById(
-    applicationId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof JobRepository>["findApplicationById"]>
-    >
-  >;
+  findApplicationById(applicationId: number): Promise<JobApplication | null>;
 
   /**
    * Checks if a user has applied to a specific job.
@@ -153,11 +141,10 @@ export interface JobRepositoryPort
   /**
    * Finds a job by its ID, including associated skills.
    */
-  findJobByIdWithSkills(
-    jobId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof JobRepository>["findJobByIdWithSkills"]>
-    >
+  findJobByIdWithSkills(jobId: number): Promise<
+    | (Job & {
+        skills: JobSkills["name"][];
+      })
+    | null
   >;
 }

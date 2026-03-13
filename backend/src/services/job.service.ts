@@ -34,6 +34,7 @@ import {
 import { SecurityUtils } from "@/utils/security";
 
 import { SearchParams } from "@/validations/base.validation";
+import type { ApplicationQueryParams } from "@/validations/jobApplications.validation";
 import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
 import { StorageFolder } from "@/workers/file-upload-worker";
 import { FileUploadJobData } from "@/validations/file.validation";
@@ -164,7 +165,6 @@ export class JobService extends BaseService implements JobServicePort {
         .addLocationFilters({ city, state, country, zipcode }, includeRemote)
         .addSkillFilters(skillsArray, true) // AND logic
         .addArrayFilter("jobType", jobTypeArray, true) // OR logic
-        .addSingleFilter("status", rest.status)
         .addSingleFilter("isActive", rest.isActive)
         .addSingleFilter("experience", rest.experience);
 
@@ -615,7 +615,7 @@ export class JobService extends BaseService implements JobServicePort {
    */
   async getJobApplications(
     jobId: number,
-    { page, limit, status }: SearchParams["query"],
+    { page, limit, status }: ApplicationQueryParams,
     requesterId: number,
   ) {
     try {
@@ -665,7 +665,7 @@ export class JobService extends BaseService implements JobServicePort {
    */
   async getUserApplications(
     userId: number,
-    { page, limit, status }: SearchParams["query"],
+    { page, limit, status }: ApplicationQueryParams,
   ) {
     try {
       const userApplications = await this.jobRepository.findApplicationsByUser(

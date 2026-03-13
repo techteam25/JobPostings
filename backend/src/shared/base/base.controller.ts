@@ -115,7 +115,7 @@ export class BaseController {
     defaultMessage: string,
     defaultStatusCode: number,
   ): AppError {
-    // All error subclasses (NotFoundError, UnauthorizedError, etc.) extend AppError
+    // All error subclasses extend AppError
     if (error instanceof AppError) return error;
 
     // Catch-all fallback

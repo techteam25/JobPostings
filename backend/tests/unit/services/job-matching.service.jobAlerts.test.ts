@@ -324,7 +324,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
               company: "Test Company",
               description: "Test description",
               isRemote: false,
-              status: "open",
+
               jobType: "full-time",
               skills: ["test"],
               createdAt: nowTimestamp - 86400, // 1 day old
@@ -397,7 +397,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
               company: "Company 1",
               description: "Description 1",
               isRemote: false,
-              status: "open",
+
               jobType: "full-time",
               skills: ["test"],
               createdAt: nowTimestamp - 86400,
@@ -419,7 +419,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
               company: "Company 2",
               description: "Description 2",
               isRemote: false,
-              status: "open",
+
               jobType: "full-time",
               skills: ["test"],
               createdAt: nowTimestamp - 86400,
@@ -441,7 +441,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
               company: "Company 3",
               description: "Description 3",
               isRemote: false,
-              status: "open",
+
               jobType: "full-time",
               skills: ["test"],
               createdAt: nowTimestamp - 86400,

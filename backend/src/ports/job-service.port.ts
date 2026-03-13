@@ -1,6 +1,5 @@
 import type { Result } from "@shared/result";
-import type { JobService } from "@/services/job.service";
-import type {
+import {
   Job,
   UpdateJob,
   UpdateJobApplication,
@@ -8,9 +7,16 @@ import type {
   JobWithEmployer,
   CreateJobSchema,
   NewJobApplication,
+  OrganizationJobInsightInterface,
 } from "@/validations/job.validation";
-import type { SearchParams } from "@/validations/base.validation";
+import { JobDocumentType, SearchParams } from "@/validations/base.validation";
 import type { PaginationMeta } from "@shared/types";
+import { SearchResponse } from "typesense/lib/Typesense/Documents";
+import {
+  type ApplicationQueryParams,
+  ApplicationsByJobInterface,
+  ApplicationsByUserInterface,
+} from "@/validations/jobApplications.validation";
 
 /**
  * Port interface for JobService.
@@ -20,7 +26,15 @@ export interface JobServicePort {
   getAllActiveJobs(
     userId: number | undefined,
     options?: Partial<Pick<PaginationMeta, "limit" | "page">>,
-  ): Promise<Awaited<ReturnType<JobService["getAllActiveJobs"]>>>;
+  ): Promise<
+    Result<
+      {
+        items: JobWithEmployer[];
+        pagination: PaginationMeta;
+      },
+      Error
+    >
+  >;
 
   getActiveJobsByOrganization(
     organizationId: number,
@@ -28,7 +42,7 @@ export interface JobServicePort {
 
   searchJobs(
     filters: SearchParams["query"],
-  ): Promise<Awaited<ReturnType<JobService["searchJobs"]>>>;
+  ): Promise<Result<SearchResponse<JobDocumentType>, Error>>;
 
   getJobById(
     id: number,
@@ -46,7 +60,7 @@ export interface JobServicePort {
       q?: string;
       order?: string;
     },
-  ): Promise<Awaited<ReturnType<JobService["getJobsByEmployer"]>>>;
+  ): Promise<Result<{ items: Job[]; pagination: PaginationMeta }, Error>>;
 
   createJob(
     jobData: CreateJobSchema["body"] & { employerId: number },
@@ -74,14 +88,14 @@ export interface JobServicePort {
 
   getJobApplications(
     jobId: number,
-    query: SearchParams["query"],
+    query: ApplicationQueryParams,
     requesterId: number,
-  ): Promise<Awaited<ReturnType<JobService["getJobApplications"]>>>;
+  ): Promise<Result<ApplicationsByJobInterface, Error>>;
 
   getUserApplications(
     userId: number,
-    query: SearchParams["query"],
-  ): Promise<Awaited<ReturnType<JobService["getUserApplications"]>>>;
+    query: ApplicationQueryParams,
+  ): Promise<Result<ApplicationsByUserInterface, Error>>;
 
   updateApplicationStatus(
     applicationId: number,
@@ -98,5 +112,5 @@ export interface JobServicePort {
 
   getEmployerJobStats(
     organizationId: number,
-  ): Promise<Awaited<ReturnType<JobService["getEmployerJobStats"]>>>;
+  ): Promise<Result<OrganizationJobInsightInterface, Error>>;
 }

@@ -3,19 +3,21 @@ import type { AppError } from "@shared/errors";
 import type {
   NewUserProfile,
   UpdateUserProfile,
+  User,
+  UserProfile,
+  UserWithProfile,
 } from "@/validations/userProfile.validation";
 import type { PaginationMeta } from "@shared/types";
+import { SavedJobs } from "@/validations/user.validation";
 
 export interface ProfileServicePort {
   getAllUsers(
     searchTerm: string | undefined,
     page: number,
     limit: number,
-  ): Promise<
-    Result<{ items: any[]; pagination: PaginationMeta }, AppError>
-  >;
+  ): Promise<Result<{ items: User[]; pagination: PaginationMeta }, AppError>>;
 
-  getUserById(id: number): Promise<Result<any, AppError>>;
+  getUserById(id: number): Promise<Result<UserWithProfile, AppError>>;
 
   getUserProfileStatus(
     id: number,
@@ -24,17 +26,17 @@ export interface ProfileServicePort {
   createUserProfile(
     userId: number,
     profileData: Omit<NewUserProfile, "userId">,
-  ): Promise<Result<any, AppError>>;
+  ): Promise<Result<UserWithProfile["profile"], AppError>>;
 
   updateUserProfile(
     userId: number,
     profileData: UpdateUserProfile,
-  ): Promise<Result<any, AppError>>;
+  ): Promise<Result<UserWithProfile, AppError>>;
 
   changeUserProfileVisibility(
     userId: number,
     isPublic?: boolean,
-  ): Promise<Result<any, AppError>>;
+  ): Promise<Result<UserProfile, AppError>>;
 
   canSeekJobs(sessionUserId: number): Promise<Result<boolean, AppError>>;
 
@@ -43,13 +45,23 @@ export interface ProfileServicePort {
     roles: ("owner" | "admin" | "recruiter" | "member")[],
   ): Promise<Result<boolean, AppError>>;
 
-  getAuthenticatedUserIntent(userId: number): Promise<Result<any, AppError>>;
+  getAuthenticatedUserIntent(userId: number): Promise<
+    Result<
+      {
+        status: "completed" | "pending";
+        intent: "employer" | "seeker";
+      },
+      AppError
+    >
+  >;
 
   getSavedJobsForUser(
     userId: number,
     page?: number,
     limit?: number,
-  ): Promise<Result<any, AppError>>;
+  ): Promise<
+    Result<{ items: SavedJobs[]; pagination: PaginationMeta }, AppError>
+  >;
 
   saveJobForCurrentUser(
     userId: number,

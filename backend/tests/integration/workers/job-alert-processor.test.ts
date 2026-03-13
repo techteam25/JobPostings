@@ -103,7 +103,7 @@ describe("Job Alert Processing Integration Tests", () => {
               state: "Washington",
               country: "USA",
               isRemote: false,
-              status: "open",
+
               jobType: "full-time",
               experience: "mid",
               skills: ["JavaScript"],

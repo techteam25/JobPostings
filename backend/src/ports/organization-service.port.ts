@@ -1,11 +1,19 @@
 import type { Result } from "@shared/result";
-import type { OrganizationService } from "@/services/organization.service";
 import type { AppError } from "@shared/errors";
-import type {
+import {
   NewOrganization,
   OrganizationJobApplicationsResponse,
   CreateJobApplicationNoteInputSchema,
+  OrganizationSearchResultInterface,
+  OrganizationWithMembersInterface,
+  OrganizationWithMembers,
+  OrganizationMemberInterface,
+  OrganizationMember,
+  UserOrganizationInterface,
+  JobApplicationsForOrganizationInterface,
+  ApplicationsForOrganizationInterface,
 } from "@/validations/organization.validation";
+import { JobApplicationWithNotes } from "@/validations/jobApplications.validation";
 
 /**
  * Type for invitation details response.
@@ -23,92 +31,60 @@ export type OrganizationInvitationDetails = {
  * Defines the public contract for organization-related operations.
  */
 export interface OrganizationServicePort {
-  getAllOrganizations(
-    options?: { page?: number; limit?: number; searchTerm?: string },
-  ): Promise<
-    Awaited<ReturnType<OrganizationService["getAllOrganizations"]>>
-  >;
+  getAllOrganizations(options?: {
+    page?: number;
+    limit?: number;
+    searchTerm?: string;
+  }): Promise<Result<OrganizationSearchResultInterface, Error>>;
 
   getOrganizationById(
     id: number,
-  ): Promise<
-    Awaited<ReturnType<OrganizationService["getOrganizationById"]>>
-  >;
+  ): Promise<Result<OrganizationWithMembersInterface, Error>>;
 
   createOrganization(
     organizationData: NewOrganization,
     sessionUserId: number,
     correlationId: string,
-  ): Promise<
-    Awaited<ReturnType<OrganizationService["createOrganization"]>>
-  >;
+  ): Promise<Result<OrganizationWithMembersInterface, Error>>;
 
   uploadOrganizationLogo(
     userId: number,
     organizationId: number,
     logoFile: Express.Multer.File,
     correlationId: string,
-  ): Promise<
-    Awaited<ReturnType<OrganizationService["uploadOrganizationLogo"]>>
-  >;
+  ): Promise<Result<{ message: string }, Error>>;
 
   updateOrganization(
     id: number,
     updateData: Partial<NewOrganization>,
-  ): Promise<
-    Awaited<ReturnType<OrganizationService["updateOrganization"]>>
-  >;
+  ): Promise<Result<OrganizationWithMembersInterface, Error>>;
 
-  deleteOrganization(
-    id: number,
-  ): Promise<
-    Awaited<ReturnType<OrganizationService["deleteOrganization"]>>
-  >;
+  deleteOrganization(id: number): Promise<Result<{ message: string }, Error>>;
 
-  isRolePermitted(
-    userId: number,
-  ): Promise<
-    Awaited<ReturnType<OrganizationService["isRolePermitted"]>>
-  >;
+  isRolePermitted(userId: number): Promise<Result<boolean, Error>>;
 
   isRolePermittedToRejectApplications(
     userId: number,
     organizationId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<OrganizationService["isRolePermittedToRejectApplications"]>
-    >
-  >;
+  ): Promise<Result<boolean, Error>>;
 
   getOrganizationMembersByRole(
     organizationId: number,
     role: "owner" | "admin" | "recruiter",
-  ): Promise<
-    Awaited<
-      ReturnType<OrganizationService["getOrganizationMembersByRole"]>
-    >
-  >;
+  ): Promise<Result<OrganizationWithMembers, Error>>;
 
   getOrganizationMember(
     sessionUserId: number,
     organizationId: number,
-  ): Promise<
-    Awaited<ReturnType<OrganizationService["getOrganizationMember"]>>
-  >;
+  ): Promise<Result<OrganizationMemberInterface, Error>>;
 
   getFirstOrganizationForUser(
     userId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<OrganizationService["getFirstOrganizationForUser"]>
-    >
-  >;
+  ): Promise<Result<OrganizationMember, Error>>;
 
   getUserOrganizations(
     userId: number,
-  ): Promise<
-    Awaited<ReturnType<OrganizationService["getUserOrganizations"]>>
-  >;
+  ): Promise<Result<UserOrganizationInterface[], Error>>;
 
   getJobApplicationForOrganization(
     organizationId: number,
@@ -128,56 +104,31 @@ export interface OrganizationServicePort {
       | "rejected"
       | "hired"
       | "withdrawn",
-  ): Promise<
-    Awaited<
-      ReturnType<OrganizationService["updateJobApplicationStatus"]>
-    >
-  >;
+  ): Promise<Result<OrganizationJobApplicationsResponse, Error>>;
 
   createJobApplicationNote(
     applicationId: number,
     userId: number,
     body: CreateJobApplicationNoteInputSchema["body"],
-  ): Promise<
-    Awaited<
-      ReturnType<OrganizationService["createJobApplicationNote"]>
-    >
-  >;
+  ): Promise<Result<JobApplicationWithNotes, Error>>;
 
   getNotesForJobApplication(
     organizationId: number,
     jobId: number,
     applicationId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<OrganizationService["getNotesForJobApplication"]>
-    >
-  >;
+  ): Promise<Result<{ note: string; createdAt: Date }[], Error>>;
 
   getJobApplicationsForOrganization(
     organizationId: number,
     jobId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        OrganizationService["getJobApplicationsForOrganization"]
-      >
-    >
-  >;
+  ): Promise<Result<JobApplicationsForOrganizationInterface[], Error>>;
 
   getApplicationsForOrganization(
     organizationId: number,
     options: { page?: number; limit?: number },
-  ): Promise<
-    Awaited<
-      ReturnType<OrganizationService["getApplicationsForOrganization"]>
-    >
-  >;
+  ): Promise<Result<ApplicationsForOrganizationInterface, Error>>;
 
-  hasDeletePermission(
-    userId: number,
-    organizationId: number,
-  ): Promise<boolean>;
+  hasDeletePermission(userId: number, organizationId: number): Promise<boolean>;
 
   sendInvitation(
     organizationId: number,

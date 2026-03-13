@@ -1,12 +1,17 @@
 import type { BaseRepositoryPort } from "./base-repository.port";
 import type { jobInsights } from "@/db/schema";
-import type { JobInsightsRepository } from "@/repositories/jobInsights.repository";
+import {
+  JobInsight,
+  OrganizationJobInsightInterface,
+} from "@/validations/job.validation";
 
 type JobInsightsSelect = typeof jobInsights.$inferSelect;
 type JobInsightsInsert = typeof jobInsights.$inferInsert;
 
-export interface JobInsightsRepositoryPort
-  extends BaseRepositoryPort<JobInsightsSelect, JobInsightsInsert> {
+export interface JobInsightsRepositoryPort extends BaseRepositoryPort<
+  JobInsightsSelect,
+  JobInsightsInsert
+> {
   /**
    * Placeholder method for getting job insights.
    */
@@ -27,24 +32,10 @@ export interface JobInsightsRepositoryPort
    */
   getJobInsightByOrganizationId(
     organizationId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof JobInsightsRepository>["getJobInsightByOrganizationId"]
-      >
-    >
-  >;
+  ): Promise<OrganizationJobInsightInterface>;
 
   /**
    * Retrieves job insights for a specific job by its ID.
    */
-  getJobInsightByJobId(
-    jobId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof JobInsightsRepository>["getJobInsightByJobId"]
-      >
-    >
-  >;
+  getJobInsightByJobId(jobId: number): Promise<JobInsight | undefined>;
 }

@@ -2,16 +2,23 @@ import type {
   NewUserProfile,
   UpdateUserProfile,
   User,
+  UserProfile,
+  UserWithProfile,
 } from "@/validations/userProfile.validation";
+import { SavedJobs } from "@/validations/user.validation";
+import { PaginationMeta } from "@shared/types";
 
 export interface ProfileRepositoryPort {
-  findByIdWithProfile(id: number): Promise<any>;
+  findByIdWithProfile(id: number): Promise<UserWithProfile | undefined>;
   getUserProfileStatus(userId: number): Promise<{ complete: boolean }>;
   createProfile(
     userId: number,
     profileData: Omit<NewUserProfile, "userId">,
-  ): Promise<any>;
-  updateProfile(userId: number, profileData: UpdateUserProfile): Promise<any>;
+  ): Promise<UserWithProfile["profile"] | undefined>;
+  updateProfile(
+    userId: number,
+    profileData: UpdateUserProfile,
+  ): Promise<UserWithProfile | undefined>;
   searchUsers(
     searchTerm: string,
     options?: { page?: number; limit?: number },
@@ -24,19 +31,28 @@ export interface ProfileRepositoryPort {
       totalPages: number;
     };
   }>;
-  findActiveUsersIncludingProfile(): Promise<any>;
+  findActiveUsersIncludingProfile(): Promise<UserWithProfile[] | undefined>;
   canSeekJobs(userId: number): Promise<boolean>;
   getSavedJobsForUser(
     userId: number,
     page: number,
     limit: number,
-  ): Promise<any>;
+  ): Promise<{ items: SavedJobs[]; pagination: PaginationMeta }>;
   saveJobForUser(userId: number, jobId: number): Promise<{ success: boolean }>;
   isJobSavedByUser(userId: number, jobId: number): Promise<boolean>;
   unsaveJobForUser(
     userId: number,
     jobId: number,
   ): Promise<{ success: boolean }>;
-  getUserIntent(userId: number): Promise<any>;
-  updateProfileVisibility(userId: number, isPublic: boolean): Promise<any>;
+  getUserIntent(userId: number): Promise<
+    | {
+        status: "completed" | "pending";
+        intent: "employer" | "seeker";
+      }
+    | undefined
+  >;
+  updateProfileVisibility(
+    userId: number,
+    isPublic: boolean,
+  ): Promise<UserProfile | undefined>;
 }

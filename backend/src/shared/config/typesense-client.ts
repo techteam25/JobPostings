@@ -19,32 +19,20 @@ export const typesenseClient = new Typesense.Client({
   timeoutSeconds: 10,
 });
 
-// Explicit initialization function
+/**
+ * Verify the Typesense schema exists at startup.
+ * Does NOT create or modify the collection — use `bun run typesense:migrate` for that.
+ */
 export async function initializeTypesenseSchema() {
   const collections = await typesenseClient.collections().retrieve();
   const exists = collections.some((c) => c.name === JOBS_COLLECTION);
 
   if (!exists) {
-    await typesenseClient.collections().create({
-      name: JOBS_COLLECTION,
-      fields: [
-        { name: "id", type: "string" },
-        { name: "title", type: "string", sort: true },
-        { name: "company", type: "string" },
-        { name: "description", type: "string" },
-        { name: "city", type: "string", optional: true, facet: true },
-        { name: "state", type: "string", optional: true, facet: true },
-        { name: "country", type: "string", optional: true, facet: true },
-        { name: "zipcode", type: "string", optional: true, facet: true },
-        { name: "isRemote", type: "bool", facet: true },
-        { name: "isActive", type: "bool", facet: true },
-        { name: "experience", type: "string", optional: true, facet: true },
-        { name: "jobType", type: "string", facet: true },
-        { name: "skills", type: "string[]", facet: true },
-        { name: "createdAt", type: "int64" },
-      ],
-      default_sorting_field: "createdAt",
-    });
-    logger.info("✅ Typesense collection created");
+    logger.warn(
+      `Typesense collection '${JOBS_COLLECTION}' does not exist. Run 'bun run typesense:migrate' to create it.`,
+    );
+    return;
   }
+
+  logger.info("Typesense schema verified");
 }

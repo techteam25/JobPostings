@@ -1,39 +1,41 @@
 import type { BaseRepositoryPort } from "./base-repository.port";
 import type { organizations } from "@/db/schema";
-import type {
+import {
   NewOrganization,
   NewJobApplicationNote,
+  Organization,
+  OrganizationWithMembersInterface,
+  OrganizationSearchResultInterface,
+  OrganizationMemberInterface,
+  UserOrganizationInterface,
+  OrganizationWithMembers,
+  OrganizationJobApplicationsResponse,
+  JobApplicationsForOrganizationInterface,
+  ApplicationsForOrganizationInterface,
+  OrganizationMember,
+  OrganizationInvitationDetailsInterface,
+  OrganizationInvitation,
 } from "@/validations/organization.validation";
-import type { OrganizationRepository } from "@/repositories/organization.repository";
+import { JobApplicationWithNotes } from "@/validations/jobApplications.validation";
 
 type OrganizationSelect = typeof organizations.$inferSelect;
 type OrganizationInsert = typeof organizations.$inferInsert;
 
-export interface OrganizationRepositoryPort
-  extends BaseRepositoryPort<OrganizationSelect, OrganizationInsert> {
+export interface OrganizationRepositoryPort extends BaseRepositoryPort<
+  OrganizationSelect,
+  OrganizationInsert
+> {
   /**
    * Finds an organization by its name.
    */
-  findByName(
-    name: string,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof OrganizationRepository>["findByName"]>
-    >
-  >;
+  findByName(name: string): Promise<Organization | undefined>;
 
   /**
    * Finds an organization by its ID, including members with user details.
    */
   findByIdIncludingMembers(
     organizationId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof OrganizationRepository>["findByIdIncludingMembers"]
-      >
-    >
-  >;
+  ): Promise<OrganizationWithMembersInterface>;
 
   /**
    * Searches organizations by name, city, or state with pagination.
@@ -41,13 +43,7 @@ export interface OrganizationRepositoryPort
   searchOrganizations(
     searchTerm: string,
     options?: { page?: number; limit?: number },
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof OrganizationRepository>["searchOrganizations"]
-      >
-    >
-  >;
+  ): Promise<OrganizationSearchResultInterface>;
 
   /**
    * Creates a new organization and adds the creator as the owner.
@@ -55,13 +51,7 @@ export interface OrganizationRepositoryPort
   createOrganization(
     data: NewOrganization,
     sessionUserId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof OrganizationRepository>["createOrganization"]
-      >
-    >
-  >;
+  ): Promise<OrganizationWithMembersInterface>;
 
   /**
    * Finds an organization member by contact (user) ID.
@@ -69,13 +59,7 @@ export interface OrganizationRepositoryPort
   findByContact(
     contactId: number,
     organizationId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof OrganizationRepository>["findByContact"]
-      >
-    >
-  >;
+  ): Promise<OrganizationMemberInterface>;
 
   /**
    * Checks if a user can post jobs based on their organization memberships.
@@ -101,15 +85,7 @@ export interface OrganizationRepositoryPort
   /**
    * Retrieves all active organizations for a user.
    */
-  getUserOrganizations(
-    userId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof OrganizationRepository>["getUserOrganizations"]
-      >
-    >
-  >;
+  getUserOrganizations(userId: number): Promise<UserOrganizationInterface[]>;
 
   /**
    * Retrieves organization members by their role.
@@ -117,15 +93,7 @@ export interface OrganizationRepositoryPort
   getOrganizationMembersByRole(
     organizationId: number,
     role: "owner" | "admin" | "recruiter",
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<
-          typeof OrganizationRepository
-        >["getOrganizationMembersByRole"]
-      >
-    >
-  >;
+  ): Promise<OrganizationWithMembers>;
 
   /**
    * Retrieves a specific job application for an organization.
@@ -134,15 +102,7 @@ export interface OrganizationRepositoryPort
     organizationId: number,
     jobId: number,
     applicationId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<
-          typeof OrganizationRepository
-        >["getJobApplicationForOrganization"]
-      >
-    >
-  >;
+  ): Promise<OrganizationJobApplicationsResponse>;
 
   /**
    * Updates the status of a job application.
@@ -159,30 +119,14 @@ export interface OrganizationRepositoryPort
       | "rejected"
       | "hired"
       | "withdrawn",
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<
-          typeof OrganizationRepository
-        >["updateJobApplicationStatus"]
-      >
-    >
-  >;
+  ): Promise<OrganizationJobApplicationsResponse>;
 
   /**
    * Creates a note for a job application.
    */
   createJobApplicationNote(
     data: NewJobApplicationNote,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<
-          typeof OrganizationRepository
-        >["createJobApplicationNote"]
-      >
-    >
-  >;
+  ): Promise<JobApplicationWithNotes>;
 
   /**
    * Retrieves notes for a specific job application.
@@ -191,15 +135,7 @@ export interface OrganizationRepositoryPort
     organizationId: number,
     jobId: number,
     applicationId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<
-          typeof OrganizationRepository
-        >["getNotesForJobApplication"]
-      >
-    >
-  >;
+  ): Promise<{ note: string; createdAt: Date }[]>;
 
   /**
    * Retrieves job applications for a specific job in an organization.
@@ -207,15 +143,7 @@ export interface OrganizationRepositoryPort
   getJobApplicationsForOrganization(
     organizationId: number,
     jobId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<
-          typeof OrganizationRepository
-        >["getJobApplicationsForOrganization"]
-      >
-    >
-  >;
+  ): Promise<JobApplicationsForOrganizationInterface[]>;
 
   /**
    * Retrieves all applications for an organization with pagination.
@@ -223,28 +151,12 @@ export interface OrganizationRepositoryPort
   getApplicationsForOrganization(
     organizationId: number,
     options: { page?: number; limit?: number },
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<
-          typeof OrganizationRepository
-        >["getApplicationsForOrganization"]
-      >
-    >
-  >;
+  ): Promise<ApplicationsForOrganizationInterface>;
 
   /**
    * Finds an organization member by user ID.
    */
-  findMemberByUserId(
-    userId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof OrganizationRepository>["findMemberByUserId"]
-      >
-    >
-  >;
+  findMemberByUserId(userId: number): Promise<OrganizationMember | null>;
 
   /**
    * Validates if an organization exists.
@@ -261,13 +173,7 @@ export interface OrganizationRepositoryPort
    */
   findInvitationByToken(
     token: string,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof OrganizationRepository>["findInvitationByToken"]
-      >
-    >
-  >;
+  ): Promise<OrganizationInvitationDetailsInterface | undefined>;
 
   /**
    * Finds an invitation by email and organization ID.
@@ -275,15 +181,7 @@ export interface OrganizationRepositoryPort
   findInvitationByEmailAndOrg(
     email: string,
     organizationId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<
-          typeof OrganizationRepository
-        >["findInvitationByEmailAndOrg"]
-      >
-    >
-  >;
+  ): Promise<OrganizationInvitation | undefined>;
 
   /**
    * Creates a new invitation.
@@ -295,13 +193,7 @@ export interface OrganizationRepositoryPort
     token: string;
     invitedBy: number;
     expiresAt: Date;
-  }): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof OrganizationRepository>["createInvitation"]
-      >
-    >
-  >;
+  }): Promise<OrganizationInvitation | undefined>;
 
   /**
    * Updates an invitation (for resend/reactivation).
@@ -313,13 +205,7 @@ export interface OrganizationRepositoryPort
       expiresAt: Date;
       status?: "pending" | "accepted" | "expired" | "cancelled";
     },
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof OrganizationRepository>["updateInvitation"]
-      >
-    >
-  >;
+  ): Promise<OrganizationInvitation | undefined>;
 
   /**
    * Updates invitation status.
@@ -333,42 +219,19 @@ export interface OrganizationRepositoryPort
       cancelledBy?: number;
       expiredAt?: Date;
     },
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<
-          typeof OrganizationRepository
-        >["updateInvitationStatus"]
-      >
-    >
-  >;
+  ): Promise<OrganizationInvitation | undefined>;
 
   /**
    * Finds an invitation by ID.
    */
   findInvitationById(
     invitationId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof OrganizationRepository>["findInvitationById"]
-      >
-    >
-  >;
+  ): Promise<OrganizationInvitation | undefined>;
 
   /**
    * Checks if an email is already an active member of an organization.
    */
-  isEmailActiveMember(
-    email: string,
-    organizationId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof OrganizationRepository>["isEmailActiveMember"]
-      >
-    >
-  >;
+  isEmailActiveMember(email: string, organizationId: number): Promise<boolean>;
 
   /**
    * Creates an organization member record.
@@ -377,11 +240,5 @@ export interface OrganizationRepositoryPort
     userId: number;
     organizationId: number;
     role: "owner" | "admin" | "recruiter" | "member";
-  }): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof OrganizationRepository>["createMember"]
-      >
-    >
-  >;
+  }): Promise<OrganizationMember | undefined>;
 }

@@ -9,7 +9,6 @@ import type {
 } from "@/validations/user.validation";
 import type { UpdateUser, User } from "@/validations/userProfile.validation";
 import type { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
-import { auth } from "@/utils/auth";
 
 export class IdentityController extends BaseController {
   constructor(private identityService: IdentityServicePort) {
@@ -129,9 +128,7 @@ export class IdentityController extends BaseController {
   ) => {
     const { token } = req.body;
 
-    await auth.api.deleteUser({
-      body: { token },
-    });
+    await this.identityService.deleteUser(token);
     return this.sendSuccess(res, null, "User deleted successfully", 200);
   };
 }

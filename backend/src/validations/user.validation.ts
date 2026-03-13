@@ -201,6 +201,7 @@ export type CreateUserEmailPreferences = z.infer<
 export type UpdateUserEmailPreferences = z.infer<
   typeof updateUserEmailPreferencesSchema
 >;
+
 export type UnsubscribeEmailPreferences = z.infer<
   typeof unsubscribeEmailPreferencesSchema
 >;

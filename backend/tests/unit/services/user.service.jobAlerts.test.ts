@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { UserService } from "@/services/user.service";
-import {
-  ValidationError,
-  DatabaseError,
-  NotFoundError,
-} from "@shared/errors";
+import { ValidationError, DatabaseError, NotFoundError } from "@shared/errors";
 
 // Mock module repositories that the facade constructs internally
 const mockNotificationsRepository = {
@@ -35,9 +31,14 @@ const mockNotificationsRepository = {
   pauseAlertsForInactiveUsers: vi.fn(),
 };
 
-vi.mock("@/modules/notifications/repositories/notifications.repository", () => ({
-  NotificationsRepository: vi.fn().mockImplementation(() => mockNotificationsRepository),
-}));
+vi.mock(
+  "@/modules/notifications/repositories/notifications.repository",
+  () => ({
+    NotificationsRepository: vi
+      .fn()
+      .mockImplementation(() => mockNotificationsRepository),
+  }),
+);
 vi.mock("@/modules/identity/repositories/identity.repository", () => ({
   IdentityRepository: vi.fn().mockImplementation(() => ({})),
 }));
@@ -116,7 +117,9 @@ describe("UserService - Job Alerts (facade)", () => {
       if (result.isSuccess) {
         expect(result.value).toEqual(mockAlert);
       }
-      expect(mockNotificationsRepository.canCreateJobAlert).toHaveBeenCalledWith(1);
+      expect(
+        mockNotificationsRepository.canCreateJobAlert,
+      ).toHaveBeenCalledWith(1);
       expect(mockNotificationsRepository.createJobAlert).toHaveBeenCalledWith(
         1,
         alertData,
@@ -195,7 +198,9 @@ describe("UserService - Job Alerts (facade)", () => {
         },
       };
 
-      mockNotificationsRepository.getUserJobAlerts.mockResolvedValue(mockResult);
+      mockNotificationsRepository.getUserJobAlerts.mockResolvedValue(
+        mockResult,
+      );
 
       const result = await userService.getUserJobAlerts(1, 1, 10);
 
@@ -203,10 +208,13 @@ describe("UserService - Job Alerts (facade)", () => {
       if (result.isSuccess) {
         expect(result.value).toEqual(mockResult);
       }
-      expect(mockNotificationsRepository.getUserJobAlerts).toHaveBeenCalledWith(1, {
-        page: 1,
-        limit: 10,
-      });
+      expect(mockNotificationsRepository.getUserJobAlerts).toHaveBeenCalledWith(
+        1,
+        {
+          page: 1,
+          limit: 10,
+        },
+      );
     });
 
     it("should handle database errors", async () => {
@@ -252,7 +260,10 @@ describe("UserService - Job Alerts (facade)", () => {
       if (result.isSuccess) {
         expect(result.value).toEqual(mockAlert);
       }
-      expect(mockNotificationsRepository.getJobAlertById).toHaveBeenCalledWith(1, 1);
+      expect(mockNotificationsRepository.getJobAlertById).toHaveBeenCalledWith(
+        1,
+        1,
+      );
     });
 
     it("should fail when alert not found", async () => {
@@ -320,7 +331,9 @@ describe("UserService - Job Alerts (facade)", () => {
 
     it("should set lastSentAt to null when switching monthly -> daily", async () => {
       const monthlyAlert = { ...baseAlert, frequency: "monthly" as const };
-      mockNotificationsRepository.getJobAlertById.mockResolvedValue(monthlyAlert);
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(
+        monthlyAlert,
+      );
       mockNotificationsRepository.updateJobAlert.mockResolvedValue({
         ...monthlyAlert,
         frequency: "daily",
@@ -338,7 +351,9 @@ describe("UserService - Job Alerts (facade)", () => {
 
     it("should set lastSentAt to null when switching monthly -> weekly", async () => {
       const monthlyAlert = { ...baseAlert, frequency: "monthly" as const };
-      mockNotificationsRepository.getJobAlertById.mockResolvedValue(monthlyAlert);
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(
+        monthlyAlert,
+      );
       mockNotificationsRepository.updateJobAlert.mockResolvedValue({
         ...monthlyAlert,
         frequency: "weekly",
@@ -367,7 +382,8 @@ describe("UserService - Job Alerts (facade)", () => {
       const after = new Date();
 
       const callArgs =
-        mockNotificationsRepository.updateJobAlert.mock.calls[0][2];
+        mockNotificationsRepository.updateJobAlert.mock.calls[0]![2];
+
       expect(callArgs.frequency).toBe("weekly");
       expect(callArgs.lastSentAt).toBeInstanceOf(Date);
       expect(callArgs.lastSentAt.getTime()).toBeGreaterThanOrEqual(
@@ -391,7 +407,7 @@ describe("UserService - Job Alerts (facade)", () => {
       const after = new Date();
 
       const callArgs =
-        mockNotificationsRepository.updateJobAlert.mock.calls[0][2];
+        mockNotificationsRepository.updateJobAlert.mock.calls[0]![2];
       expect(callArgs.frequency).toBe("monthly");
       expect(callArgs.lastSentAt).toBeInstanceOf(Date);
       expect(callArgs.lastSentAt.getTime()).toBeGreaterThanOrEqual(
@@ -414,7 +430,7 @@ describe("UserService - Job Alerts (facade)", () => {
       const after = new Date();
 
       const callArgs =
-        mockNotificationsRepository.updateJobAlert.mock.calls[0][2];
+        mockNotificationsRepository.updateJobAlert.mock.calls[0]![2];
       expect(callArgs.frequency).toBe("monthly");
       expect(callArgs.lastSentAt).toBeInstanceOf(Date);
       expect(callArgs.lastSentAt.getTime()).toBeGreaterThanOrEqual(
@@ -435,7 +451,7 @@ describe("UserService - Job Alerts (facade)", () => {
       await userService.updateJobAlert(1, 1, { name: "Updated Name" });
 
       const callArgs =
-        mockNotificationsRepository.updateJobAlert.mock.calls[0][2];
+        mockNotificationsRepository.updateJobAlert.mock.calls[0]![2];
       expect(callArgs.lastSentAt).toBeUndefined();
     });
 
@@ -446,7 +462,7 @@ describe("UserService - Job Alerts (facade)", () => {
       await userService.updateJobAlert(1, 1, { frequency: "weekly" });
 
       const callArgs =
-        mockNotificationsRepository.updateJobAlert.mock.calls[0][2];
+        mockNotificationsRepository.updateJobAlert.mock.calls[0]![2];
       expect(callArgs.lastSentAt).toBeUndefined();
     });
   });

@@ -4,15 +4,28 @@ import type {
   NewUserProfile,
   UpdateUserProfile,
   User,
+  UserProfile,
+  UserWithProfile,
 } from "@/validations/userProfile.validation";
-import type { InsertJobAlert, JobAlert } from "@/validations/jobAlerts.validation";
-import type { UserRepository } from "@/repositories/user.repository";
+import {
+  EmailPreferenceAuditLog,
+  InsertJobAlert,
+  JobAlert,
+} from "@/validations/jobAlerts.validation";
+import {
+  SavedJobs,
+  UserEmailPreferencesSchema,
+} from "@/validations/user.validation";
+import { PaginationMeta } from "@shared/types";
+import { UnsentMatchesSchema } from "@/validations/job.validation";
 
 type UserSelect = typeof user.$inferSelect;
 type UserInsert = typeof user.$inferInsert;
 
-export interface UserRepositoryPort
-  extends BaseRepositoryPort<UserSelect, UserInsert> {
+export interface UserRepositoryPort extends BaseRepositoryPort<
+  UserSelect,
+  UserInsert
+> {
   /**
    * Finds a user by their email address, excluding deleted users.
    */
@@ -21,24 +34,12 @@ export interface UserRepositoryPort
   /**
    * Finds a user by their ID, including profile information with related data.
    */
-  findByIdWithProfile(
-    id: number,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof UserRepository>["findByIdWithProfile"]>
-    >
-  >;
+  findByIdWithProfile(id: number): Promise<UserWithProfile | undefined>;
 
   /**
    * Retrieves the profile completion status for a user.
    */
-  getUserProfileStatus(
-    userId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof UserRepository>["getUserProfileStatus"]>
-    >
-  >;
+  getUserProfileStatus(userId: number): Promise<{ complete: boolean }>;
 
   /**
    * Finds a user by their ID, including password information.
@@ -48,13 +49,7 @@ export interface UserRepositoryPort
   /**
    * Finds a user by their ID without profile information.
    */
-  findUserById(
-    id: number,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof UserRepository>["findUserById"]>
-    >
-  >;
+  findUserById(id: number): Promise<User | undefined>;
 
   /**
    * Creates a user profile for an existing user.
@@ -62,11 +57,7 @@ export interface UserRepositoryPort
   createProfile(
     userId: number,
     profileData: Omit<NewUserProfile, "userId">,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof UserRepository>["createProfile"]>
-    >
-  >;
+  ): Promise<UserWithProfile["profile"] | undefined>;
 
   /**
    * Updates a user's profile, including education, work experiences, and certifications.
@@ -74,11 +65,7 @@ export interface UserRepositoryPort
   updateProfile(
     userId: number,
     profileData: UpdateUserProfile,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof UserRepository>["updateProfile"]>
-    >
-  >;
+  ): Promise<UserWithProfile | undefined>;
 
   /**
    * Searches users by name or email with pagination.
@@ -99,13 +86,7 @@ export interface UserRepositoryPort
   /**
    * Finds all active users including their profiles.
    */
-  findActiveUsersIncludingProfile(): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof UserRepository>["findActiveUsersIncludingProfile"]
-      >
-    >
-  >;
+  findActiveUsersIncludingProfile(): Promise<UserWithProfile[] | undefined>;
 
   /**
    * Deactivates or activates a user account.
@@ -113,13 +94,7 @@ export interface UserRepositoryPort
   deactivateUserAccount(
     id: number,
     data: { status: "active" | "deactivated" | "deleted" },
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof UserRepository>["deactivateUserAccount"]
-      >
-    >
-  >;
+  ): Promise<User | undefined>;
 
   /**
    * Checks if a user can seek jobs by verifying if they have a profile.
@@ -133,35 +108,17 @@ export interface UserRepositoryPort
     userId: number,
     page: number,
     limit: number,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof UserRepository>["getSavedJobsForUser"]>
-    >
-  >;
+  ): Promise<{ items: SavedJobs[]; pagination: PaginationMeta }>;
 
   /**
    * Saves a job for a user, with a limit of 50 saved jobs.
    */
-  saveJobForUser(
-    userId: number,
-    jobId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof UserRepository>["saveJobForUser"]>
-    >
-  >;
+  saveJobForUser(userId: number, jobId: number): Promise<{ success: boolean }>;
 
   /**
    * Checks if a job is saved by a user.
    */
-  isJobSavedByUser(
-    userId: number,
-    jobId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof UserRepository>["isJobSavedByUser"]>
-    >
-  >;
+  isJobSavedByUser(userId: number, jobId: number): Promise<boolean>;
 
   /**
    * Unsaves a job for a user.
@@ -169,21 +126,17 @@ export interface UserRepositoryPort
   unsaveJobForUser(
     userId: number,
     jobId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof UserRepository>["unsaveJobForUser"]>
-    >
-  >;
+  ): Promise<{ success: boolean }>;
 
   /**
    * Retrieves the onboarding intent for a user.
    */
-  getUserIntent(
-    userId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof UserRepository>["getUserIntent"]>
-    >
+  getUserIntent(userId: number): Promise<
+    | {
+        status: "completed" | "pending";
+        intent: "employer" | "seeker";
+      }
+    | undefined
   >;
 
   /**
@@ -192,39 +145,21 @@ export interface UserRepositoryPort
   updateProfileVisibility(
     userId: number,
     isPublic: boolean,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof UserRepository>["updateProfileVisibility"]
-      >
-    >
-  >;
+  ): Promise<UserProfile | undefined>;
 
   /**
    * Finds email preferences by user ID.
    */
   findEmailPreferencesByUserId(
     userId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof UserRepository>["findEmailPreferencesByUserId"]
-      >
-    >
-  >;
+  ): Promise<UserEmailPreferencesSchema | undefined>;
 
   /**
    * Finds email preferences by unsubscribe token.
    */
   findEmailPreferencesByToken(
     token: string,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof UserRepository>["findEmailPreferencesByToken"]
-      >
-    >
-  >;
+  ): Promise<UserEmailPreferencesSchema | undefined>;
 
   /**
    * Creates default email preferences for a user.
@@ -232,13 +167,7 @@ export interface UserRepositoryPort
   createEmailPreferences(
     userId: number,
     unsubscribeToken: string,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof UserRepository>["createEmailPreferences"]
-      >
-    >
-  >;
+  ): Promise<UserEmailPreferencesSchema | undefined>;
 
   /**
    * Updates email preferences for a user.
@@ -254,13 +183,7 @@ export interface UserRepositoryPort
       marketingEmails: boolean;
       globalUnsubscribe: boolean;
     }>,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof UserRepository>["updateEmailPreferences"]
-      >
-    >
-  >;
+  ): Promise<UserEmailPreferencesSchema | undefined>;
 
   /**
    * Generates and updates a new unsubscribe token for a user.
@@ -268,13 +191,7 @@ export interface UserRepositoryPort
   refreshUnsubscribeToken(
     userId: number,
     newToken: string,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof UserRepository>["refreshUnsubscribeToken"]
-      >
-    >
-  >;
+  ): Promise<UserEmailPreferencesSchema | undefined>;
 
   /**
    * Checks if a user can receive a specific type of email based on preferences.
@@ -314,11 +231,7 @@ export interface UserRepositoryPort
   getUserJobAlerts(
     userId: number,
     pagination: { page: number; limit: number },
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof UserRepository>["getUserJobAlerts"]>
-    >
-  >;
+  ): Promise<{ items: JobAlert[]; pagination: PaginationMeta }>;
 
   /**
    * Retrieves a specific job alert by ID for a user.
@@ -381,11 +294,7 @@ export interface UserRepositoryPort
   getUnsentMatches(
     alertId: number,
     limit?: number,
-  ): Promise<
-    Awaited<
-      ReturnType<InstanceType<typeof UserRepository>["getUnsentMatches"]>
-    >
-  >;
+  ): Promise<UnsentMatchesSchema[]>;
 
   /**
    * Marks job alert matches as sent.
@@ -417,13 +326,7 @@ export interface UserRepositoryPort
     changeSource: "account_settings" | "email_link";
     ipAddress?: string;
     userAgent?: string;
-  }): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof UserRepository>["logPreferenceChange"]
-      >
-    >
-  >;
+  }): Promise<number>;
 
   /**
    * Gets audit history for a user's email preferences.
@@ -431,26 +334,14 @@ export interface UserRepositoryPort
   getUserAuditHistory(
     userId: number,
     limit?: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof UserRepository>["getUserAuditHistory"]
-      >
-    >
-  >;
+  ): Promise<EmailPreferenceAuditLog[]>;
 
   /**
    * Set default employer email preferences when user joins organization.
    */
   setEmployerEmailPreferences(
     userId: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof UserRepository>["setEmployerEmailPreferences"]
-      >
-    >
-  >;
+  ): Promise<UserEmailPreferencesSchema | undefined>;
 
   /**
    * Unsubscribe from specific context (job_seeker/employer/global).
@@ -458,13 +349,7 @@ export interface UserRepositoryPort
   unsubscribeByContext(
     userId: number,
     context: "job_seeker" | "employer" | "global",
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof UserRepository>["unsubscribeByContext"]
-      >
-    >
-  >;
+  ): Promise<UserEmailPreferencesSchema | undefined>;
 
   /**
    * Re-subscribe to specific context (job_seeker/employer/global).
@@ -472,11 +357,5 @@ export interface UserRepositoryPort
   resubscribeByContext(
     userId: number,
     context: "job_seeker" | "employer" | "global",
-  ): Promise<
-    Awaited<
-      ReturnType<
-        InstanceType<typeof UserRepository>["resubscribeByContext"]
-      >
-    >
-  >;
+  ): Promise<UserEmailPreferencesSchema | undefined>;
 }

@@ -29,9 +29,9 @@ import {
 import { createIdentityRoutes } from "@/modules/identity/routes/identity.routes";
 import { createProfileRoutes } from "@/modules/user-profile/routes/profile.routes";
 import { createNotificationsRoutes } from "@/modules/notifications/routes/notifications.routes";
-
-const router = Router();
-const authMiddleware = new AuthMiddleware();
+import { EmailService } from "@shared/infrastructure/email.service";
+import { OrganizationRepository } from "@/repositories/organization.repository";
+import { OrganizationService } from "@/services/organization.service";
 
 const userResponseSchema = apiResponseSchema(
   selectUserSchema.extend({
@@ -964,12 +964,31 @@ registry.registerPath({
 });
 
 // ─── Route Mounting ─────────────────────────────────────────────────
+
+const router = Router();
+const authMiddleware = new AuthMiddleware();
+const emailService = new EmailService();
+const organizationRepository = new OrganizationRepository();
+const organizationService = new OrganizationService();
+
 // All user routes require authentication
 router.use(authMiddleware.authenticate);
 
 // Delegate to module-specific routers
-router.use(createProfileRoutes());
-router.use(createIdentityRoutes());
-router.use(createNotificationsRoutes());
+router.use(
+  createProfileRoutes({
+    authMiddleware,
+    organizationRepository,
+    organizationService,
+  }),
+);
+router.use(createIdentityRoutes({ authMiddleware, emailService }));
+router.use(
+  createNotificationsRoutes({
+    authMiddleware,
+    emailService,
+    organizationRepository,
+  }),
+);
 
 export default router;

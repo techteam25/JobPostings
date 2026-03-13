@@ -1,6 +1,10 @@
 import { z } from "@/swagger/registry";
-import { user, userProfile } from "@/db/schema";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { educations, user, userProfile, workExperiences } from "@/db/schema";
+import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-zod";
 import {
   Certification,
   insertCertificationsSchema,
