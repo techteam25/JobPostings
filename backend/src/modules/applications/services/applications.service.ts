@@ -12,18 +12,20 @@ import {
 import { SecurityUtils } from "@shared/utils/security";
 import { StorageFolder } from "@/workers/file-upload-worker";
 import logger from "@shared/logger";
+import { statusRegressionGuard } from "@/utils/update-status-guard";
 
 import type { ApplicationsServicePort } from "@/modules/applications";
 import type { ApplicationsRepositoryPort } from "@/modules/applications";
 import type { JobDetailsQueryPort } from "@/modules/applications/ports/job-details-query.port";
-import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
-import type { UserRepositoryPort } from "@/ports/user-repository.port";
+import type { OrgMembershipQueryPort } from "@/modules/applications/ports/org-membership-query.port";
+import type { ApplicantQueryPort } from "@/modules/applications/ports/applicant-query.port";
 import type { EventBusPort } from "@shared/events";
 import { createApplicationSubmittedEvent } from "@/modules/applications/events/application-submitted.event";
 
 import type { NewJobApplication, UpdateJobApplication } from "@/validations/job.validation";
 import type { ApplicationQueryParams } from "@/validations/jobApplications.validation";
 import type { FileUploadJobData } from "@/validations/file.validation";
+import type { CreateJobApplicationNoteInputSchema } from "@/validations/organization.validation";
 
 export class ApplicationsService
   extends BaseService
@@ -32,8 +34,8 @@ export class ApplicationsService
   constructor(
     private applicationsRepository: ApplicationsRepositoryPort,
     private jobDetailsQuery: JobDetailsQueryPort,
-    private organizationRepository: OrganizationRepositoryPort,
-    private userRepository: UserRepositoryPort,
+    private orgMembershipQuery: OrgMembershipQueryPort,
+    private applicantQuery: ApplicantQueryPort,
     private eventBus: EventBusPort,
   ) {
     super();
@@ -150,7 +152,7 @@ export class ApplicationsService
         );
       }
 
-      const applicant = await this.userRepository.findById(
+      const applicant = await this.applicantQuery.findById(
         applicationData.applicantId,
       );
 
@@ -193,7 +195,7 @@ export class ApplicationsService
         return fail(new NotFoundError("Job", jobId));
       }
 
-      const organization = await this.organizationRepository.findByContact(
+      const organization = await this.orgMembershipQuery.findByContact(
         requesterId,
         jobData.employerId,
       );
@@ -261,7 +263,7 @@ export class ApplicationsService
         return fail(new NotFoundError("Job", application.job.id));
       }
 
-      const organization = await this.organizationRepository.findByContact(
+      const organization = await this.orgMembershipQuery.findByContact(
         requesterId,
         jobData.employerId,
       );
@@ -323,7 +325,7 @@ export class ApplicationsService
         return fail(new DatabaseError("Failed to withdraw application"));
       }
 
-      const applicant = await this.userRepository.findById(userId);
+      const applicant = await this.applicantQuery.findById(userId);
 
       if (applicant) {
         await queueService.addJob(
@@ -355,6 +357,232 @@ export class ApplicationsService
     } catch {
       return fail(
         new DatabaseError("Failed to delete job applications"),
+      );
+    }
+  }
+
+  // ─── Employer/Organization-scoped application methods ─────────────
+
+  async getJobApplicationForOrganization(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+  ) {
+    try {
+      const jobApplications =
+        await this.applicationsRepository.getJobApplicationForOrganization(
+          organizationId,
+          jobId,
+          applicationId,
+        );
+
+      if (!jobApplications) {
+        return fail(new NotFoundError("Job application not found"));
+      }
+
+      return ok(jobApplications);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to fetch job application"));
+    }
+  }
+
+  async updateOrgJobApplicationStatus(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+    status:
+      | "pending"
+      | "reviewed"
+      | "shortlisted"
+      | "interviewing"
+      | "rejected"
+      | "hired"
+      | "withdrawn",
+  ) {
+    try {
+      const application = await this.getJobApplicationForOrganization(
+        organizationId,
+        jobId,
+        applicationId,
+      );
+
+      if (application.isFailure) {
+        return this.handleError(application.error);
+      }
+
+      const updateStatus = statusRegressionGuard(
+        application.value.status,
+        status,
+      );
+
+      const updatedApplication =
+        await this.applicationsRepository.updateOrgJobApplicationStatus(
+          organizationId,
+          jobId,
+          applicationId,
+          updateStatus,
+        );
+
+      if (!updatedApplication) {
+        return fail(
+          new DatabaseError("Failed to update job application status"),
+        );
+      }
+
+      // Notify applicant of status change via email queue
+      await this.notifyApplicantOfStatusChange(
+        applicationId,
+        application.value.status,
+        updateStatus,
+        updatedApplication.jobTitle,
+      );
+
+      return ok(updatedApplication);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update job application status"));
+    }
+  }
+
+  private async notifyApplicantOfStatusChange(
+    applicationId: number,
+    oldStatus: string,
+    newStatus: string,
+    jobTitle: string,
+  ): Promise<void> {
+    try {
+      const applicationWithApplicant =
+        await this.applicationsRepository.findApplicationById(applicationId);
+
+      if (!applicationWithApplicant?.applicant) {
+        return;
+      }
+
+      if (oldStatus === newStatus) {
+        return;
+      }
+
+      await queueService.addJob(
+        QUEUE_NAMES.EMAIL_QUEUE,
+        "sendApplicationStatusUpdate",
+        {
+          email: applicationWithApplicant.applicant.email,
+          fullName: applicationWithApplicant.applicant.fullName,
+          jobTitle,
+          oldStatus,
+          newStatus,
+          applicationId,
+        },
+      );
+    } catch (error) {
+      // Log error but don't fail the status update if notification fails
+    }
+  }
+
+  async createJobApplicationNote(
+    applicationId: number,
+    userId: number,
+    body: CreateJobApplicationNoteInputSchema["body"],
+  ) {
+    try {
+      const { note } = body;
+      const applicationWithNotes =
+        await this.applicationsRepository.createJobApplicationNote({
+          applicationId,
+          userId,
+          note,
+        });
+
+      if (!applicationWithNotes) {
+        return fail(new DatabaseError("Failed to create job application note"));
+      }
+      return ok(applicationWithNotes);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to create job application note"));
+    }
+  }
+
+  async getNotesForJobApplication(
+    organizationId: number,
+    jobId: number,
+    applicationId: number,
+  ) {
+    try {
+      const notesForApplications =
+        await this.applicationsRepository.getNotesForJobApplication(
+          organizationId,
+          jobId,
+          applicationId,
+        );
+
+      if (!notesForApplications) {
+        return fail(new NotFoundError("No notes found for job application"));
+      }
+      return ok(notesForApplications);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to fetch notes for job application"),
+      );
+    }
+  }
+
+  async getJobApplicationsForOrganization(
+    organizationId: number,
+    jobId: number,
+  ) {
+    try {
+      const applications =
+        await this.applicationsRepository.getJobApplicationsForOrganization(
+          organizationId,
+          jobId,
+        );
+      if (!applications) {
+        return fail(new NotFoundError("No applications found for this job"));
+      }
+      return ok(applications);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to fetch applications for this job"),
+      );
+    }
+  }
+
+  async getApplicationsForOrganization(
+    organizationId: number,
+    options: { page?: number; limit?: number },
+  ) {
+    try {
+      const applications =
+        await this.applicationsRepository.getApplicationsForOrganization(
+          organizationId,
+          options,
+        );
+      if (!applications) {
+        return fail(
+          new NotFoundError("No applications found for this organization"),
+        );
+      }
+      return ok(applications);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to fetch applications for this organization"),
       );
     }
   }

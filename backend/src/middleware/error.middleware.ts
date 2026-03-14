@@ -55,31 +55,6 @@ export const errorHandler = (
     });
   }
 
-  // Handle Multer file upload errors
-  // if (err instanceof MulterError) {
-  //   let message = "File upload error";
-  //   let statusCode = 400;
-  //
-  //   switch ((err as any).code) {
-  //     case "LIMIT_FILE_SIZE":
-  //       message = "File size too large";
-  //       break;
-  //     case "LIMIT_UNEXPECTED_FILE":
-  //       message = "Unexpected file field";
-  //       break;
-  //     case "LIMIT_FILE_COUNT":
-  //       message = "Too many files uploaded";
-  //       break;
-  //   }
-  //
-  //   return res.status(statusCode).json({
-  //     status: "error",
-  //     message,
-  //     errorCode: "FILE_UPLOAD_ERROR",
-  //     timestamp: new Date().toISOString(),
-  //   });
-  // }
-
   // Default error response for unknown errors
   const statusCode = 500;
   const message =

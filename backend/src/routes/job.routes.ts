@@ -5,13 +5,20 @@ import { UserRepository } from "@/repositories/user.repository";
 import {
   JobBoardRepository,
   JobInsightsRepository,
+  createJobBoardGuards,
 } from "@/modules/job-board";
-import { ApplicationsRepository } from "@/modules/applications";
+import { ApplicationsRepository, createApplicationsGuards } from "@/modules/applications";
+import { OrganizationsRepository, createOrganizationsGuards } from "@/modules/organizations";
+import { IdentityRepository } from "@/modules/identity";
+import { ProfileRepository, createProfileGuards } from "@/modules/user-profile";
 import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 import { BullMqEventBus } from "@shared/events";
 import {
   ApplicationsToJobBoardAdapter,
   JobBoardToApplicationsAdapter,
+  OrganizationsToApplicationsAdapter,
+  OrganizationsToJobBoardAdapter,
+  IdentityToApplicationsAdapter,
 } from "@shared/adapters";
 import { createJobBoardRoutes } from "@/modules/job-board/routes/job-board.routes";
 import { createApplicationsRoutes } from "@/modules/applications/routes/applications.routes";
@@ -498,21 +505,36 @@ registry.registerPath({
 const router = Router();
 const authMiddleware = new AuthMiddleware();
 
-// Shared cross-module dependencies
-const organizationRepository = new OrganizationRepository();
-const userRepository = new UserRepository();
-
 // Module-owned dependencies
 const jobBoardRepository = new JobBoardRepository();
 const jobInsightsRepository = new JobInsightsRepository();
 const typesenseService = new TypesenseService();
 const applicationsRepository = new ApplicationsRepository();
+const organizationsRepository = new OrganizationsRepository();
+const identityRepository = new IdentityRepository();
+const profileRepository = new ProfileRepository();
+
+// Old facade repos still needed by job-board routes (uses old port types)
+const organizationRepository = new OrganizationRepository();
+const userRepository = new UserRepository();
 
 // Cross-module adapters (ACLs)
 const applicationStatusQuery = new ApplicationsToJobBoardAdapter(
   applicationsRepository,
 );
 const jobDetailsQuery = new JobBoardToApplicationsAdapter(jobBoardRepository);
+const orgMembershipQuery = new OrganizationsToApplicationsAdapter(organizationsRepository);
+const applicantQuery = new IdentityToApplicationsAdapter(identityRepository);
+const orgMembershipForJob = new OrganizationsToJobBoardAdapter(organizationsRepository);
+
+// Module-owned guards
+const orgGuards = createOrganizationsGuards({ organizationsRepository });
+const jobBoardGuards = createJobBoardGuards({
+  jobBoardRepository,
+  orgMembershipQuery: orgMembershipForJob,
+});
+const appGuards = createApplicationsGuards({ applicationsRepository });
+const profileGuards = createProfileGuards({ profileRepository });
 
 // Event bus (shared infrastructure)
 const eventBus = new BullMqEventBus();
@@ -521,10 +543,13 @@ const eventBus = new BullMqEventBus();
 // so /me/applications is registered before /:jobId
 router.use(
   createApplicationsRoutes({
-    authMiddleware,
+    authenticate: authMiddleware.authenticate,
+    profileGuards,
+    orgGuards,
+    appGuards,
     applicationsRepository,
-    organizationRepository,
-    userRepository,
+    orgMembershipQuery,
+    applicantQuery,
     jobDetailsQuery,
     eventBus,
   }),
@@ -532,7 +557,9 @@ router.use(
 
 router.use(
   createJobBoardRoutes({
-    authMiddleware,
+    authenticate: authMiddleware.authenticate,
+    orgGuards,
+    jobBoardGuards,
     jobBoardRepository,
     jobInsightsRepository,
     typesenseService,

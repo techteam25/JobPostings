@@ -1,452 +1,201 @@
-import { fail, ok, Result } from "@shared/result";
+import { Result } from "@shared/result";
 import { BaseService } from "@shared/base/base.service";
+import { OrganizationsService } from "@/modules/organizations/services/organizations.service";
+import { OrganizationsRepository } from "@/modules/organizations/repositories/organizations.repository";
+import { InvitationsService } from "@/modules/invitations/services/invitations.service";
+import { InvitationsRepository } from "@/modules/invitations/repositories/invitations.repository";
+import { ApplicationsService } from "@/modules/applications/services/applications.service";
+import { ApplicationsRepository } from "@/modules/applications/repositories/applications.repository";
+import { IdentityRepository } from "@/modules/identity/repositories/identity.repository";
+import { OrganizationsToInvitationsAdapter } from "@shared/adapters/organizations-to-invitations.adapter";
+import { IdentityToInvitationsAdapter } from "@shared/adapters/identity-to-invitations.adapter";
+import { JobBoardToApplicationsAdapter } from "@shared/adapters/job-board-to-applications.adapter";
+import { JobBoardRepository } from "@/modules/job-board/repositories/job-board.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { UserRepository } from "@/repositories/user.repository";
-import {
-  QUEUE_NAMES,
-  queueService,
-} from "@shared/infrastructure/queue.service";
-import { randomUUID } from "crypto";
-import { JobRepository } from "@/repositories/job.repository";
+import { EmailService } from "@shared/infrastructure/email.service";
+import { BullMqEventBus } from "@shared/events";
 import type { OrganizationServicePort } from "@/ports/organization-service.port";
-import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
-import type { UserRepositoryPort } from "@/ports/user-repository.port";
-import type { JobRepositoryPort } from "@/ports/job-repository.port";
-
-import { statusRegressionGuard } from "@/utils/update-status-guard";
-
-import {
+import type {
   CreateJobApplicationNoteInputSchema,
   NewOrganization,
   OrganizationJobApplicationsResponse,
 } from "@/validations/organization.validation";
-
-import {
-  AppError,
-  ConflictError,
-  DatabaseError,
-  ForbiddenError,
-  NotFoundError,
-  ValidationError,
-} from "@shared/errors";
-import { StorageFolder } from "@/workers/file-upload-worker";
-import { FileUploadJobData } from "@/validations/file.validation";
-
-// Type for invitation details response
-type OrganizationInvitationDetails = {
-  organizationName: string;
-  role: "owner" | "admin" | "recruiter" | "member";
-  inviterName: string;
-  expiresAt: Date;
-};
+import type { AppError } from "@shared/errors";
+import type { JobApplicationWithNotes } from "@/validations/jobApplications.validation";
 
 /**
- * Service class for managing organization-related operations, including CRUD for organizations and their members.
+ * Facade service that delegates to module-specific services.
+ * Maintains backward compatibility with OrganizationServicePort while the codebase
+ * is incrementally migrated to use module services directly.
+ *
+ * @deprecated Consumers should migrate to module-specific services:
+ *   - OrganizationsService for org CRUD and membership operations
+ *   - InvitationsService for invitation operations
+ *   - ApplicationsService for employer-scoped application management
  */
 export class OrganizationService
   extends BaseService
   implements OrganizationServicePort
 {
-  /**
-   * Creates an instance of OrganizationService and initializes the repository.
-   */
-  constructor(
-    private organizationRepository: OrganizationRepositoryPort = new OrganizationRepository(),
-    private userRepository: UserRepositoryPort = new UserRepository(),
-    private jobRepository: JobRepositoryPort = new JobRepository(),
-  ) {
+  private organizationsService: OrganizationsService;
+  private invitationsService: InvitationsService;
+  private applicationsService: ApplicationsService;
+
+  constructor() {
     super();
+
+    // Organizations module
+    const organizationsRepository = new OrganizationsRepository();
+    this.organizationsService = new OrganizationsService(
+      organizationsRepository,
+    );
+
+    // Invitations module (with cross-module adapters)
+    const invitationsRepository = new InvitationsRepository();
+    const orgMembershipAdapter = new OrganizationsToInvitationsAdapter(
+      organizationsRepository,
+    );
+    const identityRepository = new IdentityRepository();
+    const userEmailQueryAdapter = new IdentityToInvitationsAdapter(
+      identityRepository,
+    );
+    const emailService = new EmailService();
+    this.invitationsService = new InvitationsService(
+      invitationsRepository,
+      orgMembershipAdapter,
+      userEmailQueryAdapter,
+      emailService,
+    );
+
+    // Applications module (for employer-scoped methods)
+    // Uses the old OrganizationRepository facade since ApplicationsService
+    // expects OrganizationRepositoryPort (the old monolith port)
+    const applicationsRepository = new ApplicationsRepository();
+    const jobBoardRepository = new JobBoardRepository();
+    const jobDetailsAdapter = new JobBoardToApplicationsAdapter(
+      jobBoardRepository,
+    );
+    const orgRepoFacade = new OrganizationRepository();
+    const userRepository = new UserRepository();
+    this.applicationsService = new ApplicationsService(
+      applicationsRepository,
+      jobDetailsAdapter,
+      orgRepoFacade,
+      userRepository,
+      new BullMqEventBus(),
+    );
   }
 
-  /**
-   * Retrieves all organizations with optional pagination and search.
-   * @param options Pagination and search options including page, limit, and searchTerm.
-   * @returns A Result containing the organizations or an error.
-   */
+  // ─── Organization CRUD (delegate to OrganizationsService) ─────────
+
   async getAllOrganizations(
     options: { page?: number; limit?: number; searchTerm?: string } = {},
   ) {
-    try {
-      const { searchTerm = "", ...paginationOptions } = options;
-
-      const results = await this.organizationRepository.searchOrganizations(
-        searchTerm,
-        paginationOptions,
-      );
-
-      return ok(results);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to fetch organizations"));
-    }
+    return this.organizationsService.getAllOrganizations(options);
   }
 
-  /**
-   * Retrieves an organization by its ID, including members.
-   * @param id The ID of the organization.
-   * @returns A Result containing the organization or an error.
-   */
   async getOrganizationById(id: number) {
-    try {
-      const organization =
-        await this.organizationRepository.findByIdIncludingMembers(id);
-      if (!organization) {
-        return fail(new NotFoundError("Organization not found"));
-      }
-
-      return ok(organization);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to fetch organization"));
-    }
+    return this.organizationsService.getOrganizationById(id);
   }
 
-  /**
-   * Creates a new organization.
-   * @param organizationData The data for the new organization.
-   * @param sessionUserId The ID of the user creating the organization.
-   * @param correlationId A correlation ID for tracking.
-   * @returns A Result containing the created organization or an error.
-   */
   async createOrganization(
     organizationData: NewOrganization,
     sessionUserId: number,
     correlationId: string,
   ) {
-    try {
-      // Check if organization with same name exists
-      const existingOrg = await this.organizationRepository.findByName(
-        organizationData.name,
-      );
-      if (existingOrg) {
-        return fail(
-          new ConflictError("Organization with this name already exists"),
-        );
-      }
-
-      const createdOrganization =
-        await this.organizationRepository.createOrganization(
-          organizationData,
-          sessionUserId,
-        );
-
-      if (!createdOrganization) {
-        return fail(new DatabaseError("Failed to create organization"));
-      }
-
-      // Upload logo to cloud storage if provided in organizationData
-      if (organizationData.logo) {
-        await queueService.addJob<FileUploadJobData>(
-          QUEUE_NAMES.FILE_UPLOAD_QUEUE,
-          "uploadFile",
-          {
-            entityType: "organization",
-            entityId: createdOrganization.id.toString(),
-            mergeWithExisting: false,
-            tempFiles: [
-              {
-                originalname: organizationData.logo.originalname,
-                tempPath: organizationData.logo.path,
-                size: organizationData.logo.size,
-                mimetype: organizationData.logo.mimetype,
-              },
-            ],
-            userId: sessionUserId.toString(),
-            folder: StorageFolder.ORGANIZATION_LOGOS,
-            correlationId,
-          },
-        );
-      }
-
-      return ok(createdOrganization);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to create organization"));
-    }
+    return this.organizationsService.createOrganization(
+      organizationData,
+      sessionUserId,
+      correlationId,
+    );
   }
 
-  /**   * Uploads a logo for an organization.
-   * @param userId The ID of the user uploading the logo.
-   * @param organizationId The ID of the organization.
-   * @param logoFile The logo file to upload.
-   * @param correlationId A correlation ID for tracking.
-   * @returns A Result indicating success or failure.
-   */
   async uploadOrganizationLogo(
     userId: number,
     organizationId: number,
     logoFile: Express.Multer.File,
     correlationId: string,
   ) {
-    try {
-      await queueService.addJob<FileUploadJobData>(
-        QUEUE_NAMES.FILE_UPLOAD_QUEUE,
-        "uploadFile",
-        {
-          entityType: "organization",
-          entityId: organizationId.toString(),
-          mergeWithExisting: true,
-          tempFiles: [
-            {
-              originalname: logoFile.originalname,
-              tempPath: logoFile.path,
-              size: logoFile.size,
-              mimetype: logoFile.mimetype,
-            },
-          ],
-          userId: userId.toString(),
-          folder: StorageFolder.ORGANIZATION_LOGOS,
-          correlationId,
-        },
-      );
-
-      return ok({ message: "Logo upload initiated" });
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to upload organization logo"));
-    }
+    return this.organizationsService.uploadOrganizationLogo(
+      userId,
+      organizationId,
+      logoFile,
+      correlationId,
+    );
   }
 
-  /**
-   * Updates an existing organization.
-   * @param id The ID of the organization to update.
-   * @param updateData The data to update.
-   * @returns A Result containing the updated organization or an error.
-   */
   async updateOrganization(id: number, updateData: Partial<NewOrganization>) {
-    try {
-      const success = await this.organizationRepository.update(id, updateData);
-      if (!success) {
-        return fail(new DatabaseError("Failed to update organization"));
-      }
-
-      return await this.getOrganizationById(id);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to update organization"));
-    }
+    return this.organizationsService.updateOrganization(id, updateData);
   }
 
-  /**
-   * Deletes an organization.
-   * @param id The ID of the organization to delete.
-   * @returns A Result containing a success message or an error.
-   */
   async deleteOrganization(id: number) {
-    try {
-      const success = await this.organizationRepository.delete(id);
-      if (!success) {
-        return fail(new Error("Failed to delete organization"));
-      }
-
-      return ok({ message: "Organization deleted successfully" });
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to delete organization"));
-    }
+    return this.organizationsService.deleteOrganization(id);
   }
 
-  /**
-   * Checks if a user has permission to post jobs.
-   * @param userId The ID of the user.
-   * @returns A Result containing the permission status or an error.
-   */
   async isRolePermitted(userId: number) {
-    try {
-      return ok(await this.organizationRepository.canPostJobs(userId));
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(
-        new DatabaseError("Failed to verify permission to post jobs"),
-      );
-    }
+    return this.organizationsService.isRolePermitted(userId);
   }
 
-  /**
-   * Checks if a user has permission to reject applications for an organization.
-   * @param userId The ID of the user.
-   * @param organizationId The ID of the organization.
-   * @returns A Result containing the permission status or an error.
-   */
   async isRolePermittedToRejectApplications(
     userId: number,
     organizationId: number,
   ) {
-    try {
-      const canReject =
-        await this.organizationRepository.canRejectJobApplications(
-          userId,
-          organizationId,
-        );
-
-      if (!canReject) {
-        return fail(
-          new ForbiddenError(
-            "User does not have permission to reject applications",
-          ),
-        );
-      }
-
-      return ok(canReject);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(
-        new DatabaseError("Failed to verify permission to reject applications"),
-      );
-    }
+    return this.organizationsService.isRolePermittedToRejectApplications(
+      userId,
+      organizationId,
+    );
   }
 
-  /**
-   * Retrieves organization members by their role.
-   * @param organizationId The ID of the organization.
-   * @param role The role to filter by (owner, admin, recruiter).
-   * @returns A Result containing the members or an error.
-   */
   async getOrganizationMembersByRole(
     organizationId: number,
     role: "owner" | "admin" | "recruiter",
   ) {
-    try {
-      const members =
-        await this.organizationRepository.getOrganizationMembersByRole(
-          organizationId,
-          role,
-        );
-
-      if (!members) {
-        return fail(
-          new NotFoundError("No members found with the specified role"),
-        );
-      }
-      return ok(members);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to fetch organization members"));
-    }
+    return this.organizationsService.getOrganizationMembersByRole(
+      organizationId,
+      role,
+    );
   }
 
-  /**
-   * Retrieves the organization member for a given user.
-   * @param sessionUserId The ID of the user.
-   * @param organizationId The ID of the organization.
-   * @returns A Result containing the member or an error.
-   */
   async getOrganizationMember(sessionUserId: number, organizationId: number) {
-    try {
-      const member = await this.organizationRepository.findByContact(
-        sessionUserId,
-        organizationId,
-      );
-      if (!member) {
-        return fail(new NotFoundError("Organization member not found"));
-      }
-      return ok(member);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to fetch organization member"));
-    }
+    return this.organizationsService.getOrganizationMember(
+      sessionUserId,
+      organizationId,
+    );
   }
 
-  /**
-   * Retrieves the first active organization membership for a user.
-   * @param userId The ID of the user.
-   * @returns A Result containing the member or an error.
-   */
   async getFirstOrganizationForUser(userId: number) {
-    try {
-      const member =
-        await this.organizationRepository.findMemberByUserId(userId);
-      if (!member) {
-        return fail(new NotFoundError("Organization member not found"));
-      }
-      return ok(member);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to fetch organization member"));
-    }
+    return this.organizationsService.getFirstOrganizationForUser(userId);
   }
 
-  /**
-   * Retrieves all active organizations for a user.
-   * @param userId The ID of the user.
-   * @returns A Result containing the memberships or an error.
-   */
   async getUserOrganizations(userId: number) {
-    try {
-      const memberships =
-        await this.organizationRepository.getUserOrganizations(userId);
-      return ok(memberships);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to fetch user organizations"));
-    }
+    return this.organizationsService.getUserOrganizations(userId);
   }
 
-  /**
-   * Retrieves a specific job application for an organization.
-   * @param organizationId The ID of the organization.
-   * @param jobId The ID of the job.
-   * @param applicationId The ID of the application.
-   * @returns A Result containing the job application or an error.
-   */
+  async hasDeletePermission(
+    userId: number,
+    organizationId: number,
+  ): Promise<boolean> {
+    return this.organizationsService.hasDeletePermission(
+      userId,
+      organizationId,
+    );
+  }
+
+  // ─── Employer Application Methods (delegate to ApplicationsService) ──
+
   async getJobApplicationForOrganization(
     organizationId: number,
     jobId: number,
     applicationId: number,
   ): Promise<Result<OrganizationJobApplicationsResponse, AppError>> {
-    try {
-      const jobApplications =
-        await this.organizationRepository.getJobApplicationForOrganization(
-          organizationId,
-          jobId,
-          applicationId,
-        );
-
-      if (!jobApplications) {
-        return fail(new NotFoundError("Job application not found"));
-      }
-
-      return ok(jobApplications);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to fetch job application"));
-    }
+    return this.applicationsService.getJobApplicationForOrganization(
+      organizationId,
+      jobId,
+      applicationId,
+    );
   }
 
-  /**
-   * Updates the status of a job application.
-   * @param organizationId The ID of the organization.
-   * @param jobId The ID of the job.
-   * @param applicationId The ID of the application.
-   * @param status The new status for the application.
-   * @returns A Result containing the updated application or an error.
-   */
   async updateJobApplicationStatus(
     organizationId: number,
     jobId: number,
@@ -460,599 +209,102 @@ export class OrganizationService
       | "hired"
       | "withdrawn",
   ) {
-    try {
-      const application = await this.getJobApplicationForOrganization(
-        organizationId,
-        jobId,
-        applicationId,
-      );
-
-      if (application.isFailure) {
-        return this.handleError(application.error);
-      }
-
-      const updateStatus = statusRegressionGuard(
-        application.value.status,
-        status,
-      );
-
-      const updatedApplication =
-        await this.organizationRepository.updateJobApplicationStatus(
-          organizationId,
-          jobId,
-          applicationId,
-          updateStatus,
-        );
-
-      if (!updatedApplication) {
-        return fail(
-          new DatabaseError("Failed to update job application status"),
-        );
-      }
-
-      // Notify applicant of status change via email queue
-      await this.notifyApplicantOfStatusChange(
-        applicationId,
-        application.value.status,
-        updateStatus,
-        updatedApplication.jobTitle,
-      );
-
-      return ok(updatedApplication);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to update job application status"));
-    }
+    return this.applicationsService.updateOrgJobApplicationStatus(
+      organizationId,
+      jobId,
+      applicationId,
+      status,
+    );
   }
 
-  /**
-   * Notifies the applicant of a status change via email queue.
-   * @param applicationId The ID of the application.
-   * @param oldStatus The previous status of the application.
-   * @param newStatus The new status of the application.
-   * @param jobTitle The title of the job.
-   */
-  private async notifyApplicantOfStatusChange(
-    applicationId: number,
-    oldStatus: string,
-    newStatus: string,
-    jobTitle: string,
-  ): Promise<void> {
-    try {
-      // Fetch applicant information
-      const applicationWithApplicant =
-        await this.jobRepository.findApplicationById(applicationId);
-
-      if (!applicationWithApplicant?.applicant) {
-        // Log warning but don't fail the status update
-        return;
-      }
-
-      // Only send notification if status actually changed
-      if (oldStatus === newStatus) {
-        return;
-      }
-
-      // Enqueue email notification
-      await queueService.addJob(
-        QUEUE_NAMES.EMAIL_QUEUE,
-        "sendApplicationStatusUpdate",
-        {
-          email: applicationWithApplicant.applicant.email,
-          fullName: applicationWithApplicant.applicant.fullName,
-          jobTitle,
-          oldStatus,
-          newStatus,
-          applicationId,
-        },
-      );
-    } catch (error) {
-      // Log error but don't fail the status update if notification fails
-      // This ensures the status update succeeds even if email notification fails
-    }
-  }
-
-  /**
-   * Creates a note for a job application.
-   * @param applicationId The ID of the application.
-   * @param userId The ID of the user creating the note.
-   * @param body The body containing the note.
-   * @returns A Result containing the application with notes or an error.
-   */
   async createJobApplicationNote(
     applicationId: number,
     userId: number,
     body: CreateJobApplicationNoteInputSchema["body"],
-  ) {
-    try {
-      const { note } = body;
-      const applicationWithNotes =
-        await this.organizationRepository.createJobApplicationNote({
-          applicationId,
-          userId,
-          note,
-        });
-
-      if (!applicationWithNotes) {
-        return fail(new DatabaseError("Failed to create job application note"));
-      }
-      return ok(applicationWithNotes);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to create job application note"));
-    }
+  ): Promise<Result<JobApplicationWithNotes, Error>> {
+    return this.applicationsService.createJobApplicationNote(
+      applicationId,
+      userId,
+      body,
+    );
   }
 
-  /**
-   * Retrieves notes for a specific job application.
-   * @param organizationId The ID of the organization.
-   * @param jobId The ID of the job.
-   * @param applicationId The ID of the application.
-   * @returns A Result containing the notes or an error.
-   */
   async getNotesForJobApplication(
     organizationId: number,
     jobId: number,
     applicationId: number,
   ) {
-    try {
-      const notesForApplications =
-        await this.organizationRepository.getNotesForJobApplication(
-          organizationId,
-          jobId,
-          applicationId,
-        );
-
-      if (!notesForApplications) {
-        return fail(new NotFoundError("No notes found for job application"));
-      }
-      return ok(notesForApplications);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(
-        new DatabaseError("Failed to fetch notes for job application"),
-      );
-    }
+    return this.applicationsService.getNotesForJobApplication(
+      organizationId,
+      jobId,
+      applicationId,
+    );
   }
 
-  /**
-   * Retrieves job applications for a specific job in an organization.
-   * @param organizationId The ID of the organization.
-   * @param jobId The ID of the job.
-   * @returns A Result containing the applications or an error.
-   */
   async getJobApplicationsForOrganization(
     organizationId: number,
     jobId: number,
   ) {
-    try {
-      const applications =
-        await this.organizationRepository.getJobApplicationsForOrganization(
-          organizationId,
-          jobId,
-        );
-      if (!applications) {
-        return fail(new NotFoundError("No applications found for this job"));
-      }
-      return ok(applications);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(
-        new DatabaseError("Failed to fetch applications for this job"),
-      );
-    }
+    return this.applicationsService.getJobApplicationsForOrganization(
+      organizationId,
+      jobId,
+    );
   }
 
-  /**
-   * Retrieves all applications for an organization with pagination.
-   * @param organizationId The ID of the organization.
-   * @param options Pagination options including page and limit.
-   * @returns A Result containing the applications or an error.
-   */
   async getApplicationsForOrganization(
     organizationId: number,
     options: { page?: number; limit?: number },
   ) {
-    try {
-      const applications =
-        await this.organizationRepository.getApplicationsForOrganization(
-          organizationId,
-          options,
-        );
-      if (!applications) {
-        return fail(
-          new NotFoundError("No applications found for this organization"),
-        );
-      }
-      return ok(applications);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(
-        new DatabaseError("Failed to fetch applications for this organization"),
-      );
-    }
+    return this.applicationsService.getApplicationsForOrganization(
+      organizationId,
+      options,
+    );
   }
 
-  /**
-   * Checks if a user has delete permission for an organization.
-   * @param userId The ID of the user.
-   * @param organizationId The ID of the organization.
-   * @returns A boolean indicating if the user has delete permission.
-   */
-  async hasDeletePermission(
-    userId: number,
-    organizationId: number,
-  ): Promise<boolean> {
-    try {
-      return await this.organizationRepository.hasDeletePermission(
-        userId,
-        organizationId,
-      );
-    } catch (error) {
-      return false;
-    }
-  }
+  // ─── Invitation Methods (delegate to InvitationsService) ──────────
 
-  // Organization Invitation Methods (AI-generated)
-
-  /**
-   * Sends an invitation to join an organization.
-   * @param organizationId The ID of the organization.
-   * @param email The email address of the invitee.
-   * @param role The role to assign.
-   * @param requesterId The ID of the user sending the invitation.
-   * @returns A Result containing the invitation or an error.
-   */
   async sendInvitation(
     organizationId: number,
     email: string,
     role: "owner" | "admin" | "recruiter" | "member",
     requesterId: number,
   ): Promise<Result<{ invitationId: number; message: string }, Error>> {
-    try {
-      // Note: Authentication, authorization (owner/admin), organization membership,
-      // and role assignment permissions are validated by middleware before this method is called.
-
-      // 1. Validate email is not already an active member
-      const isActiveMember =
-        await this.organizationRepository.isEmailActiveMember(
-          email,
-          organizationId,
-        );
-
-      if (isActiveMember) {
-        return fail(
-          new ConflictError(
-            "This email is already a member of the organization",
-          ),
-        );
-      }
-
-      // 2. Check for existing invitation
-      const existingInvitation =
-        await this.organizationRepository.findInvitationByEmailAndOrg(
-          email,
-          organizationId,
-        );
-
-      const token = randomUUID();
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
-      let invitation;
-
-      if (existingInvitation) {
-        // Reactivate existing invitation (pending, cancelled, or expired)
-        invitation = await this.organizationRepository.updateInvitation(
-          existingInvitation.id,
-          {
-            token,
-            expiresAt,
-            status: "pending",
-          },
-        );
-      } else {
-        // Create new invitation
-        invitation = await this.organizationRepository.createInvitation({
-          organizationId,
-          email: email, // Email is already normalized to lowercase by Zod validation
-          role,
-          token,
-          invitedBy: requesterId,
-          expiresAt,
-        });
-      }
-
-      if (!invitation) {
-        return fail(new DatabaseError("Failed to create invitation"));
-      }
-
-      // Queue invitation email
-      const organization =
-        await this.organizationRepository.findById(organizationId);
-      const inviter = await this.userRepository.findById(requesterId);
-
-      if (organization && inviter) {
-        const expirationDate = new Date(expiresAt);
-        const formattedExpirationDate = expirationDate.toLocaleDateString(
-          "en-US",
-          {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          },
-        );
-
-        // Format role for display (capitalize first letter)
-        const roleDisplay =
-          role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
-
-        await queueService.addJob(
-          QUEUE_NAMES.EMAIL_QUEUE,
-          "sendOrganizationInvitation",
-          {
-            userId: requesterId,
-            email: email, // Email is already normalized to lowercase by Zod validation
-            organizationName: organization.name,
-            inviterName: inviter.fullName,
-            role: roleDisplay,
-            token,
-            expirationDate: formattedExpirationDate,
-          },
-        );
-      }
-
-      return ok({
-        invitationId: invitation.id,
-        message: "Invitation sent successfully",
-      });
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to send invitation"));
-    }
+    return this.invitationsService.sendInvitation(
+      organizationId,
+      email,
+      role,
+      requesterId,
+    );
   }
 
-  /**
-   * Gets invitation details by token (public endpoint).
-   * @param token The invitation token.
-   * @param organizationId The ID of the organization (to verify invitation belongs to this org).
-   * @returns The invitation details with organization and inviter info.
-   */
-  async getInvitationDetails(
-    token: string,
-    organizationId: number,
-  ): Promise<Result<OrganizationInvitationDetails, Error>> {
-    try {
-      const invitation =
-        await this.organizationRepository.findInvitationByToken(token);
-
-      if (!invitation) {
-        return fail(new NotFoundError("Invitation not found"));
-      }
-
-      // Verify the invitation belongs to the specified organization
-      if (invitation.organizationId !== organizationId) {
-        return fail(new NotFoundError("Invitation not found"));
-      }
-
-      // Check if invitation is expired
-      if (new Date() > new Date(invitation.expiresAt)) {
-        return fail(new ValidationError("This invitation has expired"));
-      }
-
-      // Check if invitation is already accepted
-      if (invitation.status !== "pending") {
-        return fail(
-          new ValidationError(`This invitation has been ${invitation.status}`),
-        );
-      }
-
-      return ok({
-        organizationName: invitation.organization.name,
-        role: invitation.role,
-        inviterName: invitation.inviter.fullName,
-        expiresAt: invitation.expiresAt,
-      });
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to fetch invitation details"));
-    }
+  async getInvitationDetails(token: string, organizationId: number) {
+    return this.invitationsService.getInvitationDetails(
+      token,
+      organizationId,
+    );
   }
 
-  /**
-   * Accepts an organization invitation.
-   * @param token The invitation token.
-   * @param userId The ID of the user accepting the invitation.
-   * @param organizationId The ID of the organization.
-   * @returns Success message.
-   */
   async acceptInvitation(
     token: string,
     userId: number,
     organizationId: number,
   ): Promise<Result<{ message: string }, Error>> {
-    try {
-      // 1. Find invitation by token
-      const invitation =
-        await this.organizationRepository.findInvitationByToken(token);
-
-      if (!invitation) {
-        return fail(new NotFoundError("Invitation not found"));
-      }
-
-      // 1b. Verify the invitation belongs to the specified organization
-      if (invitation.organizationId !== organizationId) {
-        return fail(new NotFoundError("Invitation not found"));
-      }
-
-      // 2. Validate invitation status
-      if (invitation.status !== "pending") {
-        return fail(
-          new ValidationError(`This invitation has been ${invitation.status}`),
-        );
-      }
-
-      // 3. Check if invitation is expired
-      if (new Date() > new Date(invitation.expiresAt)) {
-        return fail(new ValidationError("This invitation has expired"));
-      }
-
-      // 4. Get user to verify email matches
-      const user = await this.userRepository.findById(userId);
-      if (!user) {
-        return fail(new NotFoundError("User not found"));
-      }
-
-      // 5. Verify user's email matches invitation email
-      // TODO: Review if toLowerCase() is still needed here. If all emails are normalized
-      // on database writes (via Zod validation), this comparison could be simplified to
-      // direct string comparison. Currently kept for safety with potentially non-normalized
-      // existing user data.
-      if (user.email.toLowerCase() !== invitation.email.toLowerCase()) {
-        return fail(
-          new ValidationError(
-            "This invitation was sent to a different email address. Please sign in with the email address that received the invitation.",
-          ),
-        );
-      }
-
-      // 6. Check if user is already a member of this organization
-      try {
-        const existingMember = await this.organizationRepository.findByContact(
-          userId,
-          organizationId,
-        );
-        if (
-          existingMember &&
-          existingMember.organizationId === invitation.organizationId &&
-          existingMember.isActive
-        ) {
-          return fail(
-            new ConflictError("You are already a member of this organization"),
-          );
-        }
-      } catch (error) {
-        // User is not a member of any organization, which is fine
-        // Continue with invitation acceptance
-        if (!(error instanceof NotFoundError)) {
-          return fail(
-            new DatabaseError(
-              "Failed to verify existing organization membership",
-            ),
-          );
-        }
-      }
-
-      // 7. Create organization member record
-      await this.organizationRepository.createMember({
-        userId,
-        organizationId: invitation.organizationId,
-        role: invitation.role,
-      });
-
-      // 8. Update invitation status to accepted
-      await this.organizationRepository.updateInvitationStatus(invitation.id, {
-        status: "accepted",
-        acceptedAt: new Date(),
-      });
-
-      // 9. Queue welcome email
-      const organization = await this.organizationRepository.findById(
-        invitation.organizationId,
-      );
-      if (organization) {
-        // Format role for display
-        const roleDisplay =
-          invitation.role.charAt(0).toUpperCase() +
-          invitation.role.slice(1).toLowerCase();
-
-        await queueService.addJob(
-          QUEUE_NAMES.EMAIL_QUEUE,
-          "sendOrganizationWelcome",
-          {
-            userId,
-            email: user.email,
-            name: user.fullName,
-            organizationName: organization.name,
-            role: roleDisplay,
-          },
-        );
-      }
-
-      return ok({
-        message: "Invitation accepted successfully",
-      });
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to accept invitation"));
-    }
+    return this.invitationsService.acceptInvitation(
+      token,
+      userId,
+      organizationId,
+    );
   }
 
-  /**
-   * Cancels an organization invitation (soft delete).
-   * @param organizationId The organization ID.
-   * @param invitationId The invitation ID.
-   * @param requesterId The ID of the user canceling the invitation.
-   * @returns Success message.
-   */
   async cancelInvitation(
     organizationId: number,
     invitationId: number,
     requesterId: number,
   ): Promise<Result<{ message: string }, Error>> {
-    try {
-      // Note: Authentication, authorization (owner/admin), organization membership,
-      // and invitation ownership are validated by middleware before this method is called.
-
-      // 1. Find invitation
-      const invitation =
-        await this.organizationRepository.findInvitationById(invitationId);
-
-      if (!invitation) {
-        return fail(new NotFoundError("Invitation not found"));
-      }
-
-      // 2. Check if invitation can be cancelled
-      if (invitation.status === "accepted") {
-        return fail(
-          new ValidationError("Cannot cancel an already accepted invitation"),
-        );
-      }
-
-      if (invitation.status === "cancelled") {
-        return fail(new ValidationError("Invitation is already cancelled"));
-      }
-
-      // 3. Update invitation status to cancelled
-      await this.organizationRepository.updateInvitationStatus(invitationId, {
-        status: "cancelled",
-        cancelledAt: new Date(),
-        cancelledBy: requesterId,
-      });
-
-      return ok({
-        message: "Invitation cancelled successfully",
-      });
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to cancel invitation"));
-    }
+    return this.invitationsService.cancelInvitation(
+      organizationId,
+      invitationId,
+      requesterId,
+    );
   }
 }

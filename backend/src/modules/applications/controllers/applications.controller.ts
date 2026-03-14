@@ -9,7 +9,18 @@ import type {
   ApplicationQueryParams,
   ApplyForJobSchema,
   GetJobApplicationSchema,
+  JobApplicationWithNotes,
 } from "@/validations/jobApplications.validation";
+import type {
+  CreateJobApplicationNoteInputSchema,
+  GetOrganizationSchema,
+  JobApplicationManagementSchema,
+  JobApplicationsManagementSchema,
+  OrganizationJobApplicationsResponse,
+  UpdateJobStatusInputSchema,
+} from "@/validations/organization.validation";
+import type { ApiResponse, PaginatedResponse } from "@shared/types";
+import { AppError, ErrorCode } from "@shared/errors";
 
 export class ApplicationsController extends BaseController {
   constructor(private applicationsService: ApplicationsServicePort) {
@@ -166,6 +177,177 @@ export class ApplicationsController extends BaseController {
         result.error,
         "Failed to withdraw application",
       );
+    }
+  };
+
+  // ─── Employer/Organization-scoped application methods ─────────────
+
+  getJobApplicationForOrganization = async (
+    req: Request<JobApplicationManagementSchema["params"]>,
+    res: Response<ApiResponse<OrganizationJobApplicationsResponse>>,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const applicationId = parseInt(req.params.applicationId);
+    const jobId = parseInt(req.params.jobId);
+
+    const application =
+      await this.applicationsService.getJobApplicationForOrganization(
+        organizationId,
+        jobId,
+        applicationId,
+      );
+
+    if (application.isSuccess) {
+      return this.sendSuccess<OrganizationJobApplicationsResponse>(
+        res,
+        application.value,
+        "Job application retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, application.error);
+    }
+  };
+
+  updateOrgJobApplicationStatus = async (
+    req: Request<
+      JobApplicationManagementSchema["params"],
+      {},
+      UpdateJobStatusInputSchema["body"]
+    >,
+    res: Response<ApiResponse<OrganizationJobApplicationsResponse>>,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const applicationId = parseInt(req.params.applicationId);
+    const jobId = parseInt(req.params.jobId);
+
+    const application =
+      await this.applicationsService.updateOrgJobApplicationStatus(
+        organizationId,
+        jobId,
+        applicationId,
+        req.body.status,
+      );
+
+    if (application.isSuccess) {
+      return this.sendSuccess<OrganizationJobApplicationsResponse>(
+        res,
+        application.value,
+        "Job application status updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, application.error);
+    }
+  };
+
+  attachNoteToJobApplication = async (
+    req: Request<
+      JobApplicationManagementSchema["params"],
+      {},
+      CreateJobApplicationNoteInputSchema["body"]
+    >,
+    res: Response<ApiResponse<JobApplicationWithNotes>>,
+  ) => {
+    const applicationId = parseInt(req.params.applicationId);
+    const jobId = parseInt(req.params.jobId);
+
+    const note = req.body;
+
+    const result = await this.applicationsService.createJobApplicationNote(
+      applicationId,
+      jobId,
+      note,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<JobApplicationWithNotes>(
+        res,
+        result.value,
+        "Note added to job application successfully",
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  getNotesForJobApplication = async (
+    req: Request<JobApplicationManagementSchema["params"]>,
+    res: Response<ApiResponse<{ note: string; createdAt: Date }[]>>,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const applicationId = parseInt(req.params.applicationId);
+    const jobId = parseInt(req.params.jobId);
+
+    const applicationNotes =
+      await this.applicationsService.getNotesForJobApplication(
+        organizationId,
+        jobId,
+        applicationId,
+      );
+
+    if (applicationNotes.isSuccess) {
+      return this.sendSuccess<{ note: string; createdAt: Date }[]>(
+        res,
+        applicationNotes.value,
+        "Job application notes retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, applicationNotes.error);
+    }
+  };
+
+  getJobApplicationsForOrganization = async (
+    req: Request<JobApplicationsManagementSchema["params"]>,
+    res: Response,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const jobId = parseInt(req.params.jobId);
+
+    const applications =
+      await this.applicationsService.getJobApplicationsForOrganization(
+        organizationId,
+        jobId,
+      );
+
+    if (applications.isSuccess) {
+      return this.sendSuccess(
+        res,
+        applications.value,
+        "Job applications retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, applications.error);
+    }
+  };
+
+  getApplicationsForOrganization = async (
+    req: Request<
+      GetOrganizationSchema["params"],
+      {},
+      {},
+      GetOrganizationSchema["query"]
+    >,
+    res: Response,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const { page, limit } = req.query;
+
+    const applications =
+      await this.applicationsService.getApplicationsForOrganization(
+        organizationId,
+        { page, limit },
+      );
+
+    if (applications.isSuccess) {
+      const { items, pagination } = applications.value;
+      return this.sendPaginatedResponse(
+        res,
+        items,
+        pagination,
+        "Job applications retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, applications.error);
     }
   };
 }

@@ -1,6 +1,5 @@
 import { Router } from "express";
 
-import { OrganizationController } from "@/controllers/organization.controller";
 import { AuthMiddleware } from "@/middleware/auth.middleware";
 import validate from "../middleware/validation.middleware";
 import {
@@ -11,9 +10,17 @@ import { registry, z } from "@/swagger/registry";
 import { apiResponseSchema, errorResponseSchema } from "@shared/types";
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
 
-const router = Router();
-const organizationController = new OrganizationController();
-const authMiddleware = new AuthMiddleware();
+// Module imports
+import { InvitationsRepository, InvitationsService, InvitationsController } from "@/modules/invitations";
+import { OrganizationsRepository } from "@/modules/organizations";
+import { IdentityRepository } from "@/modules/identity";
+import {
+  OrganizationsToInvitationsAdapter,
+  IdentityToInvitationsAdapter,
+} from "@shared/adapters";
+import { EmailService } from "@shared/infrastructure/email.service";
+
+// ─── OpenAPI Registry (documentation only) ──────────────────────────
 
 // Public route - Get invitation details
 registry.registerPath({
@@ -66,22 +73,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Gets invitation details by token (public endpoint).
- * This endpoint allows anyone with a valid invitation token to view invitation details
- * without authentication, enabling users to see what organization they're being invited to
- * before signing up or signing in.
- * @route GET /api/invitations/:organizationId/:token/details
- * @param {Object} req.params - Route parameters including organizationId and the invitation token.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with invitation details.
- */
-router.get(
-  "/:organizationId/:token/details",
-  validate(getOrganizationInvitationDetailsSchema),
-  organizationController.getInvitationDetails,
-);
 
 // Authenticated route - Accept invitation
 registry.registerPath({
@@ -148,25 +139,52 @@ registry.registerPath({
   },
 });
 
+// ─── Route Mounting (Composition Root) ──────────────────────────────
+
+const router = Router();
+const authMiddleware = new AuthMiddleware();
+
+// Module-owned dependencies
+const organizationsRepository = new OrganizationsRepository();
+const identityRepository = new IdentityRepository();
+const invitationsRepository = new InvitationsRepository();
+
+// Cross-module adapters (ACLs)
+const orgMembership = new OrganizationsToInvitationsAdapter(organizationsRepository);
+const userEmailQuery = new IdentityToInvitationsAdapter(identityRepository);
+
+// Shared infrastructure
+const emailService = new EmailService();
+
+// Invitations service + controller
+const invitationsService = new InvitationsService(
+  invitationsRepository,
+  orgMembership,
+  userEmailQuery,
+  emailService,
+);
+const invitationsController = new InvitationsController(invitationsService);
+
+/**
+ * Gets invitation details by token (public endpoint).
+ * @route GET /invitations/:organizationId/:token/details
+ */
+router.get(
+  "/:organizationId/:token/details",
+  validate(getOrganizationInvitationDetailsSchema),
+  invitationsController.getInvitationDetails,
+);
+
 /**
  * Accepts an organization invitation (authenticated endpoint).
- * This endpoint requires authentication and validates that:
- * - The invitation token is valid and not expired
- * - The invitation status is 'pending'
- * - The authenticated user's email matches the invitation email
- * - The user is not already a member of the organization
- * On success, creates an organization member record and updates the invitation status.
- * @route POST /api/invitations/:organizationId/:token/accept
- * @param {Object} req.params - Route parameters including organizationId and the invitation token.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with success message.
+ * @route POST /invitations/:organizationId/:token/accept
  */
 router.post(
   "/:organizationId/:token/accept",
   authMiddleware.authenticate,
   validate(acceptOrganizationInvitationSchema),
   invalidateCacheMiddleware((req) => `organizations/members/${req.userId}`),
-  organizationController.acceptInvitation,
+  invitationsController.acceptInvitation,
 );
 
 export default router;

@@ -1,3 +1,8 @@
 export { ApplicationsToJobBoardAdapter } from "./applications-to-job-board.adapter";
 export { JobBoardToApplicationsAdapter } from "./job-board-to-applications.adapter";
 export { IdentityToNotificationsAdapter } from "./identity-to-notifications.adapter";
+export { OrganizationsToInvitationsAdapter } from "./organizations-to-invitations.adapter";
+export { IdentityToInvitationsAdapter } from "./identity-to-invitations.adapter";
+export { OrganizationsToApplicationsAdapter } from "./organizations-to-applications.adapter";
+export { IdentityToApplicationsAdapter } from "./identity-to-applications.adapter";
+export { OrganizationsToJobBoardAdapter } from "./organizations-to-job-board.adapter";

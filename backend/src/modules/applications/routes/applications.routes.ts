@@ -1,7 +1,9 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 import { ApplicationsController } from "@/modules/applications";
 import { ApplicationsService } from "@/modules/applications";
-import { AuthMiddleware } from "@/middleware/auth.middleware";
+import type { ApplicationsGuards } from "@/modules/applications";
+import type { ProfileGuards } from "@/modules/user-profile";
+import type { OrganizationsGuards } from "@/modules/organizations";
 import validate from "@/middleware/validation.middleware";
 import { getJobSchema } from "@/validations/job.validation";
 import {
@@ -15,23 +17,29 @@ import {
 } from "@/middleware/cache.middleware";
 import { uploadMiddleware } from "@/middleware/multer.middleware";
 import type { ApplicationsRepositoryPort } from "@/modules/applications";
-import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
-import type { UserRepositoryPort } from "@/ports/user-repository.port";
+import type { OrgMembershipQueryPort } from "@/modules/applications/ports/org-membership-query.port";
+import type { ApplicantQueryPort } from "@/modules/applications/ports/applicant-query.port";
 import type { JobDetailsQueryPort } from "@/modules/applications/ports/job-details-query.port";
 import type { EventBusPort } from "@shared/events";
 
 export function createApplicationsRoutes({
-  authMiddleware,
+  authenticate,
+  profileGuards,
+  orgGuards,
+  appGuards,
   applicationsRepository,
-  organizationRepository,
-  userRepository,
+  orgMembershipQuery,
+  applicantQuery,
   jobDetailsQuery,
   eventBus,
 }: {
-  authMiddleware: AuthMiddleware;
+  authenticate: RequestHandler;
+  profileGuards: Pick<ProfileGuards, "requireUserRole">;
+  orgGuards: Pick<OrganizationsGuards, "requireJobPostingRole">;
+  appGuards: ApplicationsGuards;
   applicationsRepository: ApplicationsRepositoryPort;
-  organizationRepository: OrganizationRepositoryPort;
-  userRepository: UserRepositoryPort;
+  orgMembershipQuery: OrgMembershipQueryPort;
+  applicantQuery: ApplicantQueryPort;
   jobDetailsQuery: JobDetailsQueryPort;
   eventBus: EventBusPort;
 }): Router {
@@ -40,8 +48,8 @@ export function createApplicationsRoutes({
   const applicationsService = new ApplicationsService(
     applicationsRepository,
     jobDetailsQuery,
-    organizationRepository,
-    userRepository,
+    orgMembershipQuery,
+    applicantQuery,
     eventBus,
   );
   const applicationsController = new ApplicationsController(
@@ -53,8 +61,8 @@ export function createApplicationsRoutes({
   // GET /jobs/me/applications — must be registered before /:jobId routes
   router.get(
     "/me/applications",
-    authMiddleware.authenticate,
-    authMiddleware.requireUserRole,
+    authenticate,
+    profileGuards.requireUserRole,
     cacheMiddleware({ ttl: 300 }),
     applicationsController.getUserApplications,
   );
@@ -62,8 +70,8 @@ export function createApplicationsRoutes({
   // POST /jobs/:jobId/apply
   router.post(
     "/:jobId/apply",
-    authMiddleware.authenticate,
-    authMiddleware.requireUserRole,
+    authenticate,
+    profileGuards.requireUserRole,
     uploadMiddleware.jobApplication,
     validate(applyForJobSchema),
     applicationsController.applyForJob,
@@ -72,10 +80,10 @@ export function createApplicationsRoutes({
   // PATCH /jobs/applications/:applicationId/withdraw
   router.patch(
     "/applications/:applicationId/withdraw",
-    authMiddleware.authenticate,
+    authenticate,
     validate(getJobApplicationSchema),
-    authMiddleware.requireUserRole,
-    authMiddleware.ensureApplicationOwnership,
+    profileGuards.requireUserRole,
+    appGuards.ensureApplicationOwnership,
     applicationsController.withdrawApplication,
   );
 
@@ -84,8 +92,8 @@ export function createApplicationsRoutes({
   // GET /jobs/:jobId/applications
   router.get(
     "/:jobId/applications",
-    authMiddleware.authenticate,
-    authMiddleware.requireJobPostingRole(),
+    authenticate,
+    orgGuards.requireJobPostingRole(),
     validate(getJobSchema),
     cacheMiddleware({ ttl: 300 }),
     applicationsController.getJobApplications,
@@ -94,8 +102,8 @@ export function createApplicationsRoutes({
   // PATCH /jobs/applications/:applicationId/status
   router.patch(
     "/applications/:applicationId/status",
-    authMiddleware.authenticate,
-    authMiddleware.requireJobPostingRole(),
+    authenticate,
+    orgGuards.requireJobPostingRole(),
     validate(updateApplicationStatusSchema),
     invalidateCacheMiddleware((_req) => `/api/jobs/me/applications`),
     applicationsController.updateApplicationStatus,

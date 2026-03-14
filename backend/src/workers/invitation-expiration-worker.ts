@@ -1,14 +1,14 @@
 import { Job as BullMqJob } from "bullmq";
-import { eq, and, lt } from "drizzle-orm";
 import logger from "@shared/logger";
 
 import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
-import { db } from "@shared/db/connection";
-import { organizationInvitations } from "@/db/schema";
+import { InvitationsRepository } from "@/modules/invitations/repositories/invitations.repository";
+
+const invitationsRepository = new InvitationsRepository();
 
 /**
  * Worker function to expire pending invitations that have passed their expiration date.
- * Updates invitation status to 'expired' and sets expiredAt timestamp.
+ * Delegates to InvitationsRepository.expirePendingInvitations() for the actual DB operation.
  */
 export async function expireInvitationsWorker(_job: BullMqJob): Promise<{
   expired: number;
@@ -16,24 +16,8 @@ export async function expireInvitationsWorker(_job: BullMqJob): Promise<{
   logger.info("Starting invitation expiration job");
 
   try {
-    const now = new Date();
-
-    // Atomically update all expired pending invitations in a single query
-    const result = await db
-      .update(organizationInvitations)
-      .set({
-        status: "expired",
-        expiredAt: now,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(organizationInvitations.status, "pending"),
-          lt(organizationInvitations.expiresAt, now),
-        ),
-      );
-
-    const expiredCount = result[0].affectedRows;
+    const expiredCount =
+      await invitationsRepository.expirePendingInvitations();
 
     logger.info({ expiredCount }, "Invitation expiration job completed");
     return { expired: expiredCount };

@@ -1,6 +1,11 @@
 export { ApplicationsService } from "./services/applications.service";
 export { ApplicationsController } from "./controllers/applications.controller";
 export { ApplicationsRepository } from "./repositories/applications.repository";
+export { createOrgApplicationsRoutes } from "./routes/org-applications.routes";
 export type { ApplicationsServicePort } from "./ports/applications-service.port";
 export type { ApplicationsRepositoryPort } from "./ports/applications-repository.port";
 export type { JobDetailsQueryPort } from "./ports/job-details-query.port";
+export type { OrgMembershipQueryPort } from "./ports/org-membership-query.port";
+export type { ApplicantQueryPort } from "./ports/applicant-query.port";
+export { createApplicationsGuards } from "./guards/applications.guards";
+export type { ApplicationsGuards } from "./guards/applications.guards";

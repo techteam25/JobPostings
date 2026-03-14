@@ -5,7 +5,7 @@ import { NotificationsService } from "@/modules/notifications";
 import { ProfileRepository, ProfileService } from "@/modules/user-profile";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { EmailService } from "@shared/infrastructure/email.service";
-import { AuthMiddleware } from "@/middleware/auth.middleware";
+import type { ProfileGuards } from "@/modules/user-profile";
 import validate from "@/middleware/validation.middleware";
 import {
   getUserEmailPreferencesSchema,
@@ -25,11 +25,11 @@ import {
 } from "@/middleware/cache.middleware";
 
 export function createNotificationsRoutes({
-  authMiddleware,
+  profileGuards,
   emailService,
   organizationRepository,
 }: {
-  authMiddleware: AuthMiddleware;
+  profileGuards: Pick<ProfileGuards, "requireUserRole">;
   emailService: EmailService;
   organizationRepository: OrganizationRepository;
 }): Router {
@@ -123,7 +123,7 @@ export function createNotificationsRoutes({
   // POST /users/me/job-alerts
   router.post(
     "/me/job-alerts",
-    authMiddleware.requireUserRole,
+    profileGuards.requireUserRole,
     validate(createJobAlertSchema),
     invalidateCacheMiddleware(() => "users/me/job-alerts"),
     notificationsController.createJobAlert,
@@ -132,7 +132,7 @@ export function createNotificationsRoutes({
   // GET /users/me/job-alerts
   router.get(
     "/me/job-alerts",
-    authMiddleware.requireUserRole,
+    profileGuards.requireUserRole,
     validate(getUserJobAlertsQuerySchema),
     cacheMiddleware({ ttl: 300 }),
     notificationsController.getUserJobAlerts,
@@ -141,7 +141,7 @@ export function createNotificationsRoutes({
   // GET /users/me/job-alerts/:id
   router.get(
     "/me/job-alerts/:id",
-    authMiddleware.requireUserRole,
+    profileGuards.requireUserRole,
     validate(getJobAlertSchema),
     cacheMiddleware({ ttl: 300 }),
     notificationsController.getJobAlertById,
@@ -150,7 +150,7 @@ export function createNotificationsRoutes({
   // PUT /users/me/job-alerts/:id
   router.put(
     "/me/job-alerts/:id",
-    authMiddleware.requireUserRole,
+    profileGuards.requireUserRole,
     validate(updateJobAlertSchema),
     invalidateCacheMiddleware(() => "users/me/job-alerts"),
     notificationsController.updateJobAlert,
@@ -159,7 +159,7 @@ export function createNotificationsRoutes({
   // PATCH /users/me/job-alerts/:id/pause
   router.patch(
     "/me/job-alerts/:id/pause",
-    authMiddleware.requireUserRole,
+    profileGuards.requireUserRole,
     validate(togglePauseJobAlertSchema),
     invalidateCacheMiddleware(() => "users/me/job-alerts"),
     notificationsController.togglePauseJobAlert,
@@ -168,7 +168,7 @@ export function createNotificationsRoutes({
   // DELETE /users/me/job-alerts/:id
   router.delete(
     "/me/job-alerts/:id",
-    authMiddleware.requireUserRole,
+    profileGuards.requireUserRole,
     validate(deleteJobAlertSchema),
     invalidateCacheMiddleware(() => "users/me/job-alerts"),
     notificationsController.deleteJobAlert,

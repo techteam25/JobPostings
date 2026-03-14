@@ -1,7 +1,8 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 import { JobBoardController } from "@/modules/job-board";
 import { JobBoardService } from "@/modules/job-board";
-import { AuthMiddleware } from "@/middleware/auth.middleware";
+import type { JobBoardGuards } from "@/modules/job-board";
+import type { OrganizationsGuards } from "@/modules/organizations";
 import validate from "@/middleware/validation.middleware";
 import {
   createJobSchema,
@@ -23,7 +24,9 @@ import type { TypesenseServicePort } from "@/ports/typesense-service.port";
 import type { ApplicationStatusQueryPort } from "@/modules/job-board/ports/application-status-query.port";
 
 export function createJobBoardRoutes({
-  authMiddleware,
+  authenticate,
+  orgGuards,
+  jobBoardGuards,
   jobBoardRepository,
   jobInsightsRepository,
   typesenseService,
@@ -31,7 +34,9 @@ export function createJobBoardRoutes({
   userRepository,
   applicationStatusQuery,
 }: {
-  authMiddleware: AuthMiddleware;
+  authenticate: RequestHandler;
+  orgGuards: Pick<OrganizationsGuards, "requireJobPostingRole" | "ensureIsOrganizationMember" | "requireDeleteJobPermission">;
+  jobBoardGuards: JobBoardGuards;
   jobBoardRepository: JobBoardRepositoryPort;
   jobInsightsRepository: JobInsightsRepositoryPort;
   typesenseService: TypesenseServicePort;
@@ -82,8 +87,8 @@ export function createJobBoardRoutes({
   // GET /jobs/my/posted
   router.get(
     "/my/posted",
-    authMiddleware.authenticate,
-    authMiddleware.requireJobPostingRole(),
+    authenticate,
+    orgGuards.requireJobPostingRole(),
     cacheMiddleware({ ttl: 300 }),
     jobBoardController.getMyJobs,
   );
@@ -91,8 +96,8 @@ export function createJobBoardRoutes({
   // POST /jobs
   router.post(
     "/",
-    authMiddleware.authenticate,
-    authMiddleware.requireJobPostingRole(),
+    authenticate,
+    orgGuards.requireJobPostingRole(),
     validate(createJobSchema),
     invalidateCacheMiddleware((_req) => `/api/jobs`),
     jobBoardController.createJob,
@@ -101,8 +106,8 @@ export function createJobBoardRoutes({
   // PUT /jobs/:jobId
   router.put(
     "/:jobId",
-    authMiddleware.authenticate,
-    authMiddleware.requireJobPostingRole(),
+    authenticate,
+    orgGuards.requireJobPostingRole(),
     validate(updateJobSchema),
     invalidateCacheMiddleware((_req) => `/api/jobs`),
     jobBoardController.updateJob,
@@ -111,9 +116,9 @@ export function createJobBoardRoutes({
   // DELETE /jobs/:jobId
   router.delete(
     "/:jobId",
-    authMiddleware.authenticate,
-    authMiddleware.ensureJobOwnership,
-    authMiddleware.requireDeleteJobPermission(),
+    authenticate,
+    jobBoardGuards.ensureJobOwnership,
+    orgGuards.requireDeleteJobPermission(),
     validate(deleteJobSchema),
     invalidateCacheMiddleware((_req) => `/api/jobs`),
     invalidateCacheMiddleware((req) => `/api/jobs/${req.params.jobId}`),
@@ -123,9 +128,9 @@ export function createJobBoardRoutes({
   // GET /jobs/employer/:organizationId/jobs
   router.get(
     "/employer/:organizationId/jobs",
-    authMiddleware.authenticate,
-    authMiddleware.requireJobPostingRole(),
-    authMiddleware.ensureIsOrganizationMember,
+    authenticate,
+    orgGuards.requireJobPostingRole(),
+    orgGuards.ensureIsOrganizationMember,
     validate(getOrganizationSchema),
     cacheMiddleware({ ttl: 300 }),
     jobBoardController.getJobsByEmployer,
@@ -134,9 +139,9 @@ export function createJobBoardRoutes({
   // GET /jobs/employer/:organizationId/jobs/stats
   router.get(
     "/employer/:organizationId/jobs/stats",
-    authMiddleware.authenticate,
-    authMiddleware.requireJobPostingRole(),
-    authMiddleware.ensureIsOrganizationMember,
+    authenticate,
+    orgGuards.requireJobPostingRole(),
+    orgGuards.ensureIsOrganizationMember,
     validate(getOrganizationSchema),
     jobBoardController.getOrganizationJobsStats,
   );

@@ -32,6 +32,9 @@ import { createNotificationsRoutes } from "@/modules/notifications/routes/notifi
 import { EmailService } from "@shared/infrastructure/email.service";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { OrganizationService } from "@/services/organization.service";
+import { OrganizationsRepository, createOrganizationsGuards } from "@/modules/organizations";
+import { createIdentityGuards } from "@/modules/identity";
+import { ProfileRepository, createProfileGuards } from "@/modules/user-profile";
 
 const userResponseSchema = apiResponseSchema(
   selectUserSchema.extend({
@@ -963,7 +966,9 @@ registry.registerPath({
   },
 });
 
-// ─── Route Mounting ─────────────────────────────────────────────────
+// ─── Route Mounting (Composition Root) ──────────────────────────────
+//
+// All dependencies are instantiated here and passed to factory functions.
 
 const router = Router();
 const authMiddleware = new AuthMiddleware();
@@ -971,21 +976,30 @@ const emailService = new EmailService();
 const organizationRepository = new OrganizationRepository();
 const organizationService = new OrganizationService();
 
+// Module-owned guards
+const organizationsRepository = new OrganizationsRepository();
+const orgGuards = createOrganizationsGuards({ organizationsRepository });
+const identityGuards = createIdentityGuards();
+const profileRepository = new ProfileRepository();
+const profileGuards = createProfileGuards({ profileRepository });
+
 // All user routes require authentication
 router.use(authMiddleware.authenticate);
 
 // Delegate to module-specific routers
 router.use(
   createProfileRoutes({
-    authMiddleware,
+    profileGuards,
+    identityGuards,
+    orgGuards,
     organizationRepository,
     organizationService,
   }),
 );
-router.use(createIdentityRoutes({ authMiddleware, emailService }));
+router.use(createIdentityRoutes({ identityGuards, orgGuards, emailService }));
 router.use(
   createNotificationsRoutes({
-    authMiddleware,
+    profileGuards,
     emailService,
     organizationRepository,
   }),

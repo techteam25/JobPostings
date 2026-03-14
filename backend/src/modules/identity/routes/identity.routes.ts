@@ -4,7 +4,8 @@ import { IdentityRepository } from "@/modules/identity";
 import { IdentityService } from "@/modules/identity";
 import { EmailService } from "@shared/infrastructure/email.service";
 import { BullMqEventBus } from "@shared/events";
-import { AuthMiddleware } from "@/middleware/auth.middleware";
+import type { IdentityGuards } from "@/modules/identity";
+import type { OrganizationsGuards } from "@/modules/organizations";
 import validate from "@/middleware/validation.middleware";
 import {
   getUserSchema,
@@ -14,10 +15,12 @@ import {
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
 
 export function createIdentityRoutes({
-  authMiddleware,
+  identityGuards,
+  orgGuards,
   emailService,
 }: {
-  authMiddleware: AuthMiddleware;
+  identityGuards: IdentityGuards;
+  orgGuards: Pick<OrganizationsGuards, "requireAdminOrOwnerRole">;
   emailService: EmailService;
 }): Router {
   const router = Router();
@@ -49,7 +52,7 @@ export function createIdentityRoutes({
   // PUT /users/:id
   router.put(
     "/:id",
-    authMiddleware.requireOwnAccount,
+    identityGuards.requireOwnAccount,
     validate(updateUserPayloadSchema),
     identityController.updateUser,
   );
@@ -58,7 +61,7 @@ export function createIdentityRoutes({
   router.patch(
     "/:id/deactivate",
     validate(getUserSchema),
-    authMiddleware.requireAdminOrOwnerRole(["admin", "owner"]),
+    orgGuards.requireAdminOrOwnerRole(["admin", "owner"]),
     identityController.deactivateUser,
   );
 
@@ -66,7 +69,7 @@ export function createIdentityRoutes({
   router.patch(
     "/:id/activate",
     validate(getUserSchema),
-    authMiddleware.requireAdminOrOwnerRole(["admin", "owner"]),
+    orgGuards.requireAdminOrOwnerRole(["admin", "owner"]),
     identityController.activateUser,
   );
 
@@ -74,7 +77,7 @@ export function createIdentityRoutes({
   router.delete(
     "/:id",
     validate(getUserSchema),
-    authMiddleware.requireAdminOrOwnerRole(["owner"]),
+    orgGuards.requireAdminOrOwnerRole(["owner"]),
     identityController.deleteUser,
   );
 

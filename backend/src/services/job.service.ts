@@ -1,6 +1,6 @@
 import { Result, fail, ok } from "@shared/result";
 import { BaseService } from "@shared/base/base.service";
-import { JobInsightsRepository } from "@/repositories/jobInsights.repository";
+import { JobInsightsRepository } from "@/modules/job-board";
 import { JobRepository } from "@/repositories/job.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";

@@ -4,7 +4,9 @@ import { ProfileRepository } from "@/modules/user-profile";
 import { ProfileService } from "@/modules/user-profile";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 import { OrganizationService } from "@/services/organization.service";
-import { AuthMiddleware } from "@/middleware/auth.middleware";
+import type { ProfileGuards } from "@/modules/user-profile";
+import type { IdentityGuards } from "@/modules/identity";
+import type { OrganizationsGuards } from "@/modules/organizations";
 import validate from "@/middleware/validation.middleware";
 import {
   getUserSchema,
@@ -19,11 +21,15 @@ import {
 } from "@/middleware/cache.middleware";
 
 export function createProfileRoutes({
-  authMiddleware,
+  profileGuards,
+  identityGuards,
+  orgGuards,
   organizationRepository,
   organizationService,
 }: {
-  authMiddleware: AuthMiddleware;
+  profileGuards: ProfileGuards;
+  identityGuards: Pick<IdentityGuards, "requireOwnAccount">;
+  orgGuards: Pick<OrganizationsGuards, "requireAdminOrOwnerRole">;
   organizationRepository: OrganizationRepository;
   organizationService: OrganizationService;
 }): Router {
@@ -89,7 +95,7 @@ export function createProfileRoutes({
   // GET /users/me/saved-jobs
   router.get(
     "/me/saved-jobs",
-    authMiddleware.requireUserRole,
+    profileGuards.requireUserRole,
     validate(getUserSavedJobsQuerySchema),
     cacheMiddleware({ ttl: 300 }),
     profileController.getSavedJobsForCurrentUser,
@@ -98,7 +104,7 @@ export function createProfileRoutes({
   // GET /users/me/saved-jobs/:jobId/check
   router.get(
     "/me/saved-jobs/:jobId/check",
-    authMiddleware.requireUserRole,
+    profileGuards.requireUserRole,
     validate(getJobSchema),
     profileController.checkIfJobIsSaved,
   );
@@ -106,7 +112,7 @@ export function createProfileRoutes({
   // POST /users/me/saved-jobs/:jobId
   router.post(
     "/me/saved-jobs/:jobId",
-    authMiddleware.requireUserRole,
+    profileGuards.requireUserRole,
     validate(getJobSchema),
     invalidateCacheMiddleware(() => "users/me/saved-jobs"),
     profileController.saveJobForCurrentUser,
@@ -115,7 +121,7 @@ export function createProfileRoutes({
   // DELETE /users/me/saved-jobs/:jobId
   router.delete(
     "/me/saved-jobs/:jobId",
-    authMiddleware.requireUserRole,
+    profileGuards.requireUserRole,
     validate(getJobSchema),
     invalidateCacheMiddleware(() => "users/me/saved-jobs"),
     profileController.unsaveJobForCurrentUser,
@@ -126,14 +132,14 @@ export function createProfileRoutes({
   // GET /users (all users - admin)
   router.get(
     "/",
-    authMiddleware.requireAdminOrOwnerRole(["admin", "owner"]),
+    orgGuards.requireAdminOrOwnerRole(["admin", "owner"]),
     profileController.getAllUsers,
   );
 
   // GET /users/:id
   router.get(
     "/:id",
-    authMiddleware.requireOwnAccount,
+    identityGuards.requireOwnAccount,
     validate(getUserSchema),
     profileController.getUserById,
   );

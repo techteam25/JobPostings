@@ -1,6 +1,6 @@
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { seedJobsScenario } from "@tests/utils/seedScenarios";
-import { createUser } from "@tests/utils/seedBuilders";
+import { createUser, createUserProfile } from "@tests/utils/seedBuilders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JobBoardRepository } from "@/modules/job-board";
 import { JobRepository } from "@/repositories/job.repository";
@@ -12,9 +12,10 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
 
   beforeEach(async () => {
     await seedJobsScenario();
-    await createUser({ email: "normal.user@example.com" });
+    const normalUser = await createUser({ email: "normal.user@example.com" });
+    await createUserProfile(normalUser.id);
 
-    // Login as org member (email from seed: org.member@example.com)
+    // Login as normal user (job seeker with profile)
     const loginResponse = await request
       .post("/api/auth/sign-in/email")
       .send({ email: "normal.user@example.com", password: "Password@123" });
@@ -254,11 +255,13 @@ describe("Withdraw Job Application Integration Tests", () => {
   beforeEach(async () => {
     await seedJobsScenario();
 
-    // Create first test user
-    await createUser({ email: "test.user1@example.com" });
+    // Create first test user (with profile for job-seeking)
+    const user1 = await createUser({ email: "test.user1@example.com" });
+    await createUserProfile(user1.id);
 
-    // Create second test user
-    await createUser({ email: "test.user2@example.com" });
+    // Create second test user (with profile for job-seeking)
+    const user2 = await createUser({ email: "test.user2@example.com" });
+    await createUserProfile(user2.id);
 
     // Login first user
     const loginResponse1 = await request

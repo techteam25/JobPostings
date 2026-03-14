@@ -3,7 +3,7 @@ import { request } from "@tests/utils/testHelpers";
 import { db } from "@shared/db/connection";
 import { jobAlerts, user } from "@/db/schema";
 import { seedUserScenario } from "@tests/utils/seedScenarios";
-import { createUser } from "@tests/utils/seedBuilders";
+import { createUser, createUserProfile } from "@tests/utils/seedBuilders";
 import { eq } from "drizzle-orm";
 
 describe("Job Alerts API Integration Tests", () => {
@@ -11,8 +11,9 @@ describe("Job Alerts API Integration Tests", () => {
   let userId: number;
 
   beforeEach(async () => {
-    // Seed a test user
-    await seedUserScenario();
+    // Seed a test user and create profile (required for job-seeking capability)
+    const { user: seededUser } = await seedUserScenario();
+    await createUserProfile(seededUser.id);
 
     // Login to get auth cookie and user ID
     const loginResponse = await request.post("/api/auth/sign-in/email").send({
@@ -21,15 +22,7 @@ describe("Job Alerts API Integration Tests", () => {
     });
 
     authCookie = (loginResponse.headers["set-cookie"] || []) as string[];
-
-    // Get the user ID from the database
-    const foundUser = await db.query.user.findFirst({
-      where: eq(user.email, "normal.user@example.com"),
-    });
-
-    if (foundUser) {
-      userId = foundUser.id;
-    }
+    userId = seededUser.id;
   });
 
   describe("POST /api/users/me/job-alerts", () => {
@@ -249,8 +242,9 @@ describe("Job Alerts API Integration Tests", () => {
     });
 
     it("should not return alerts from other users", async () => {
-      // Create and login as other user
-      await createUser({ email: "other.user@example.com" });
+      // Create and login as other user (with profile for job-seeking)
+      const otherUser = await createUser({ email: "other.user@example.com" });
+      await createUserProfile(otherUser.id);
       const loginRes = await request.post("/api/auth/sign-in/email").send({
         email: "other.user@example.com",
         password: "Password@123",
