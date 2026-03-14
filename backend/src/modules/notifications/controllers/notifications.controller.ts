@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
 import type { NotificationsServicePort } from "@/modules/notifications";
-import type { ProfileServicePort } from "@/modules/user-profile";
 import type {
   UserEmailPreferencesSchema,
   UpdateUserEmailPreferences,
@@ -25,7 +24,6 @@ import type {
 export class NotificationsController extends BaseController {
   constructor(
     private notificationsService: NotificationsServicePort,
-    private profileService: ProfileServicePort,
   ) {
     super();
   }
@@ -366,29 +364,13 @@ export class NotificationsController extends BaseController {
   ) => {
     const { token } = req.params;
 
-    const prefsResult =
-      await this.notificationsService.findEmailPreferencesByToken(token);
+    const result =
+      await this.notificationsService.getUnsubscribeLandingPageData(token);
 
-    if (prefsResult.isSuccess && prefsResult.value) {
-      const userResult = await this.profileService.getUserById(
-        prefsResult.value.userId,
-      );
-
-      if (userResult.isSuccess && userResult.value) {
-        return this.sendSuccess(res, {
-          user: {
-            name: userResult.value.fullName,
-            email: userResult.value.email,
-          },
-          preferences: prefsResult.value,
-          token,
-        });
-      }
+    if (result.isSuccess) {
+      return this.sendSuccess(res, result.value);
     }
 
-    return this.handleControllerError(
-      res,
-      new Error("Invalid or expired unsubscribe token"),
-    );
+    return this.handleControllerError(res, result.error);
   };
 }

@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { emailJobSchemas } from "@/workers/send-email-worker";
 import { queueService, QUEUE_NAMES } from "@shared/infrastructure/queue.service";
 import { JobService } from "@/services/job.service";
-import { JobRepository } from "@/repositories/job.repository";
+import { JobBoardRepository } from "@/modules/job-board/repositories/job-board.repository";
+import { ApplicationsRepository } from "@/modules/applications/repositories/applications.repository";
 import { UserRepository } from "@/repositories/user.repository";
 import { IdentityRepository } from "@/modules/identity/repositories/identity.repository";
 // Mock auth module to break circular dependency (auth.ts → UserService → auth.ts)
@@ -66,15 +67,15 @@ describe("Email Job Contract Tests", () => {
 
   describe("JobService email dispatches", () => {
     it("deleteJob sends a valid sendJobDeletionEmail payload", async () => {
-      vi.spyOn(JobRepository.prototype, "findJobById").mockResolvedValue({
+      vi.spyOn(JobBoardRepository.prototype, "findJobById").mockResolvedValue({
         job: { id: 1, title: "Test Job", employerId: 10 },
         employer: { id: 10, name: "Acme" },
       } as any);
-      vi.spyOn(JobRepository.prototype, "findApplicationsByJob").mockResolvedValue({
+      vi.spyOn(ApplicationsRepository.prototype, "findApplicationsByJob").mockResolvedValue({
         items: [],
         pagination: { total: 0, page: 1, limit: 10, totalPages: 0, hasNext: false, hasPrevious: false, nextPage: null, previousPage: null },
       });
-      vi.spyOn(JobRepository.prototype, "delete").mockResolvedValue(true);
+      vi.spyOn(JobBoardRepository.prototype, "delete").mockResolvedValue(true);
       vi.spyOn(UserRepository.prototype, "findById").mockResolvedValue({
         id: 5,
         email: "user@test.com",
@@ -88,7 +89,11 @@ describe("Email Job Contract Tests", () => {
     });
 
     it("applyForJob sends a valid sendJobApplicationConfirmation payload", async () => {
-      vi.spyOn(JobRepository.prototype, "findJobById").mockResolvedValue({
+      // JobService facade delegates to ApplicationsService which uses:
+      // - JobBoardToApplicationsAdapter → JobBoardRepository for job lookup
+      // - ApplicationsRepository for application operations
+      // - IdentityToApplicationsAdapter → IdentityRepository for applicant info
+      vi.spyOn(JobBoardRepository.prototype, "findJobById").mockResolvedValue({
         job: {
           id: 1,
           title: "Test Job",
@@ -99,14 +104,14 @@ describe("Email Job Contract Tests", () => {
         employer: { id: 10, name: "Acme" },
       } as any);
       vi.spyOn(
-        JobRepository.prototype,
+        ApplicationsRepository.prototype,
         "hasUserAppliedToJob",
       ).mockResolvedValue(false);
       vi.spyOn(
-        JobRepository.prototype,
+        ApplicationsRepository.prototype,
         "createApplication",
       ).mockResolvedValue(100);
-      vi.spyOn(UserRepository.prototype, "findById").mockResolvedValue({
+      vi.spyOn(IdentityRepository.prototype, "findById").mockResolvedValue({
         id: 5,
         email: "applicant@test.com",
         fullName: "Test Applicant",
@@ -122,18 +127,21 @@ describe("Email Job Contract Tests", () => {
     });
 
     it("withdrawApplication sends a valid sendApplicationWithdrawalConfirmation payload", async () => {
+      // JobService facade delegates to ApplicationsService which uses:
+      // - ApplicationsRepository for application lookup and status update
+      // - IdentityToApplicationsAdapter → IdentityRepository for applicant info
       vi.spyOn(
-        JobRepository.prototype,
+        ApplicationsRepository.prototype,
         "findApplicationById",
       ).mockResolvedValue({
         application: { id: 100, jobId: 1, applicantId: 5, status: "pending" },
         job: { title: "Test Job" },
       } as any);
       vi.spyOn(
-        JobRepository.prototype,
+        ApplicationsRepository.prototype,
         "updateApplicationStatus",
       ).mockResolvedValue(true);
-      vi.spyOn(UserRepository.prototype, "findById").mockResolvedValue({
+      vi.spyOn(IdentityRepository.prototype, "findById").mockResolvedValue({
         id: 5,
         email: "user@test.com",
         fullName: "Test User",

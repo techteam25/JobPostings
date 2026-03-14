@@ -2,8 +2,6 @@ import { Router } from "express";
 import { NotificationsController } from "@/modules/notifications";
 import { NotificationsRepository } from "@/modules/notifications";
 import { NotificationsService } from "@/modules/notifications";
-import { ProfileRepository, ProfileService } from "@/modules/user-profile";
-import { OrganizationRepository } from "@/repositories/organization.repository";
 import { EmailService } from "@shared/infrastructure/email.service";
 import type { ProfileGuards } from "@/modules/user-profile";
 import validate from "@/middleware/validation.middleware";
@@ -27,37 +25,24 @@ import {
 export function createNotificationsRoutes({
   profileGuards,
   emailService,
-  organizationRepository,
+  getUserContactInfo,
 }: {
   profileGuards: Pick<ProfileGuards, "requireUserRole">;
   emailService: EmailService;
-  organizationRepository: OrganizationRepository;
+  getUserContactInfo: (
+    userId: number,
+  ) => Promise<{ email: string; fullName: string } | null>;
 }): Router {
   const router = Router();
 
   const notificationsRepository = new NotificationsRepository();
-  const profileRepository = new ProfileRepository();
-  const profileService = new ProfileService(
-    profileRepository,
-    organizationRepository,
-  );
   const notificationsService = new NotificationsService(
     notificationsRepository,
     emailService,
-    async (userId: number) => {
-      const result = await profileService.getUserById(userId);
-      if (result.isSuccess && result.value) {
-        return {
-          email: result.value.email,
-          fullName: result.value.fullName,
-        };
-      }
-      return null;
-    },
+    getUserContactInfo,
   );
   const notificationsController = new NotificationsController(
     notificationsService,
-    profileService,
   );
 
   // Email preferences routes (authenticated via parent router)

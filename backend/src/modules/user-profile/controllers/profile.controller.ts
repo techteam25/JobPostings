@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
 import type { ProfileServicePort } from "@/modules/user-profile";
-import type { OrganizationServicePort } from "@/ports/organization-service.port";
+import type { UserOrganizationsQueryPort } from "@/modules/user-profile/ports/org-query.port";
 import type {
   CreateUserProfile,
   GetUserSchema,
@@ -22,7 +22,7 @@ import type {
 export class ProfileController extends BaseController {
   constructor(
     private profileService: ProfileServicePort,
-    private organizationService: OrganizationServicePort,
+    private userOrgsQuery: UserOrganizationsQueryPort,
   ) {
     super();
   }
@@ -180,7 +180,7 @@ export class ProfileController extends BaseController {
   };
 
   getUserOrganizations = async (req: Request, res: Response) => {
-    const result = await this.organizationService.getUserOrganizations(
+    const result = await this.userOrgsQuery.getUserOrganizations(
       req.userId!,
     );
 

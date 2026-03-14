@@ -635,4 +635,37 @@ export class NotificationsService
       return fail(new DatabaseError("Failed to update preference"));
     }
   }
+
+  async getUnsubscribeLandingPageData(token: string) {
+    try {
+      const prefsResult =
+        await this.notificationsRepository.findEmailPreferencesByToken(token);
+
+      if (!prefsResult) {
+        return fail(new NotFoundError("Invalid or expired unsubscribe token"));
+      }
+
+      const userInfo = await this.getUserById(prefsResult.userId);
+
+      if (!userInfo) {
+        return fail(new NotFoundError("User not found"));
+      }
+
+      return ok({
+        user: {
+          name: userInfo.fullName,
+          email: userInfo.email,
+        },
+        preferences: prefsResult,
+        token,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to retrieve unsubscribe landing page data"),
+      );
+    }
+  }
 }

@@ -30,11 +30,10 @@ import { createIdentityRoutes } from "@/modules/identity/routes/identity.routes"
 import { createProfileRoutes } from "@/modules/user-profile/routes/profile.routes";
 import { createNotificationsRoutes } from "@/modules/notifications/routes/notifications.routes";
 import { EmailService } from "@shared/infrastructure/email.service";
-import { OrganizationRepository } from "@/repositories/organization.repository";
-import { OrganizationService } from "@/services/organization.service";
-import { OrganizationsRepository, createOrganizationsGuards } from "@/modules/organizations";
-import { createIdentityGuards } from "@/modules/identity";
+import { OrganizationsRepository, OrganizationsService, createOrganizationsGuards } from "@/modules/organizations";
+import { createIdentityGuards, IdentityRepository } from "@/modules/identity";
 import { ProfileRepository, createProfileGuards } from "@/modules/user-profile";
+import { IdentityToNotificationsAdapter, OrganizationsToProfileAdapter } from "@shared/adapters";
 
 const userResponseSchema = apiResponseSchema(
   selectUserSchema.extend({
@@ -973,15 +972,20 @@ registry.registerPath({
 const router = Router();
 const authMiddleware = new AuthMiddleware();
 const emailService = new EmailService();
-const organizationRepository = new OrganizationRepository();
-const organizationService = new OrganizationService();
 
-// Module-owned guards
+// Module-owned dependencies
 const organizationsRepository = new OrganizationsRepository();
+const organizationsService = new OrganizationsService(organizationsRepository);
 const orgGuards = createOrganizationsGuards({ organizationsRepository });
 const identityGuards = createIdentityGuards();
 const profileRepository = new ProfileRepository();
 const profileGuards = createProfileGuards({ profileRepository });
+
+// Cross-module adapter: organizations → user-profile
+const orgsToProfileAdapter = new OrganizationsToProfileAdapter(
+  organizationsRepository,
+  organizationsService,
+);
 
 // All user routes require authentication
 router.use(authMiddleware.authenticate);
@@ -992,16 +996,23 @@ router.use(
     profileGuards,
     identityGuards,
     orgGuards,
-    organizationRepository,
-    organizationService,
+    orgRoleQuery: orgsToProfileAdapter,
+    userOrgsQuery: orgsToProfileAdapter,
   }),
 );
 router.use(createIdentityRoutes({ identityGuards, orgGuards, emailService }));
+// Wire getUserContactInfo via adapter (notifications needs user email/name for unsubscribe)
+const identityRepository = new IdentityRepository();
+const identityToNotificationsAdapter = new IdentityToNotificationsAdapter(
+  identityRepository,
+);
+
 router.use(
   createNotificationsRoutes({
     profileGuards,
     emailService,
-    organizationRepository,
+    getUserContactInfo: (userId: number) =>
+      identityToNotificationsAdapter.getUserContactInfo(userId),
   }),
 );
 

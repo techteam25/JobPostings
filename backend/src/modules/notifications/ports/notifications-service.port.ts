@@ -125,4 +125,17 @@ export interface NotificationsServicePort {
     changeSource: "account_settings" | "email_link",
     metadata?: { ipAddress?: string; userAgent?: string },
   ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
+
+  getUnsubscribeLandingPageData(
+    token: string,
+  ): Promise<
+    Result<
+      {
+        user: { name: string; email: string };
+        preferences: UserEmailPreferencesSchema;
+        token: string;
+      },
+      AppError
+    >
+  >;
 }

@@ -4,7 +4,7 @@ import { DatabaseError } from "@shared/errors";
 import { Job } from "@/validations/job.validation";
 import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 import { JobAlert } from "@/validations/jobAlerts.validation";
-import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
+import { TypesenseQueryBuilder } from "@shared/infrastructure/typesense.service/typesense-queryBuilder";
 import logger from "@shared/logger";
 import type { JobMatchingServicePort } from "@/ports/job-matching-service.port";
 import type { TypesenseServicePort } from "@/ports/typesense-service.port";

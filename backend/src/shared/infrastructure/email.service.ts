@@ -5,7 +5,7 @@ import nodemailer from "nodemailer";
 import { BaseService } from "@shared/base/base.service";
 import { env } from "@shared/config/env";
 import { AppError } from "@shared/errors";
-import { getApplicationStatusLabel } from "@/utils/application-status";
+import { getApplicationStatusLabel } from "@shared/utils/application-status";
 import { EmailType } from "@shared/types";
 import { UserRepository } from "@/repositories/user.repository";
 import logger from "@shared/logger";

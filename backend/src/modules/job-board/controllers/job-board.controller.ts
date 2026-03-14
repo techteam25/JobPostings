@@ -14,7 +14,7 @@ import type {
 import type { GetOrganizationSchema } from "@/validations/organization.validation";
 import type { SearchParams } from "@/validations/base.validation";
 import type { ApiResponse, PaginatedResponse } from "@shared/types";
-import { buildPaginationMeta } from "@/utils/build-search-pagination";
+import { buildPaginationMeta } from "@shared/infrastructure/typesense.service/build-search-pagination";
 
 export class JobBoardController extends BaseController {
   constructor(private jobBoardService: JobBoardServicePort) {

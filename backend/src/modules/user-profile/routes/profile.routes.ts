@@ -2,11 +2,10 @@ import { Router } from "express";
 import { ProfileController } from "@/modules/user-profile";
 import { ProfileRepository } from "@/modules/user-profile";
 import { ProfileService } from "@/modules/user-profile";
-import { OrganizationRepository } from "@/repositories/organization.repository";
-import { OrganizationService } from "@/services/organization.service";
 import type { ProfileGuards } from "@/modules/user-profile";
 import type { IdentityGuards } from "@/modules/identity";
 import type { OrganizationsGuards } from "@/modules/organizations";
+import type { OrgRoleQueryPort, UserOrganizationsQueryPort } from "@/modules/user-profile/ports/org-query.port";
 import validate from "@/middleware/validation.middleware";
 import {
   getUserSchema,
@@ -24,25 +23,25 @@ export function createProfileRoutes({
   profileGuards,
   identityGuards,
   orgGuards,
-  organizationRepository,
-  organizationService,
+  orgRoleQuery,
+  userOrgsQuery,
 }: {
   profileGuards: ProfileGuards;
   identityGuards: Pick<IdentityGuards, "requireOwnAccount">;
   orgGuards: Pick<OrganizationsGuards, "requireAdminOrOwnerRole">;
-  organizationRepository: OrganizationRepository;
-  organizationService: OrganizationService;
+  orgRoleQuery: OrgRoleQueryPort;
+  userOrgsQuery: UserOrganizationsQueryPort;
 }): Router {
   const router = Router();
 
   const profileRepository = new ProfileRepository();
   const profileService = new ProfileService(
     profileRepository,
-    organizationRepository,
+    orgRoleQuery,
   );
   const profileController = new ProfileController(
     profileService,
-    organizationService,
+    userOrgsQuery,
   );
 
   // Current user profile routes (authenticated via parent router)

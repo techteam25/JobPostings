@@ -8,7 +8,7 @@ import {
   AppError,
 } from "@shared/errors";
 import { SecurityUtils } from "@shared/utils/security";
-import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
+import { TypesenseQueryBuilder } from "@shared/infrastructure/typesense.service/typesense-queryBuilder";
 import logger from "@shared/logger";
 
 import type { JobBoardServicePort } from "@/modules/job-board";
