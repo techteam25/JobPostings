@@ -10,4 +10,5 @@ export interface IdentityRepositoryPort {
   ): Promise<User | undefined>;
   update(id: number, data: UpdateUser): Promise<boolean>;
   findById(id: number): Promise<User | undefined>;
+  findDeactivatedUserIds(): Promise<number[]>;
 }

@@ -262,8 +262,10 @@ export class UserRepository
     return this.notificationsRepository.getUnsentMatchCount(alertId);
   }
 
-  async pauseAlertsForInactiveUsers() {
-    return this.notificationsRepository.pauseAlertsForInactiveUsers();
+  async pauseAlertsForInactiveUsers(inactiveUserIds: number[]) {
+    return this.notificationsRepository.pauseAlertsForInactiveUsers(
+      inactiveUserIds,
+    );
   }
 
   async logPreferenceChange(data: {

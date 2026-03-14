@@ -3,6 +3,8 @@ import { BaseService } from "@shared/base/base.service";
 import type { IdentityServicePort } from "@/modules/identity";
 import type { IdentityRepositoryPort } from "@/modules/identity";
 import type { EmailServicePort } from "@/ports/email-service.port";
+import type { EventBusPort } from "@shared/events";
+import { createUserDeactivatedEvent } from "@/modules/identity/events/user-deactivated.event";
 import {
   AppError,
   DatabaseError,
@@ -23,6 +25,7 @@ export class IdentityService
   constructor(
     private identityRepository: IdentityRepositoryPort,
     private emailService: EmailServicePort,
+    private eventBus: EventBusPort,
   ) {
     super();
   }
@@ -121,6 +124,15 @@ export class IdentityService
         deactivatedUser.fullName,
       );
 
+      // Publish domain event — notifications module will pause alerts asynchronously
+      await this.eventBus.publish(
+        createUserDeactivatedEvent({
+          userId,
+          email: deactivatedUser.email,
+          deactivatedAt: new Date().toISOString(),
+        }),
+      );
+
       return ok(deactivatedUser);
     } catch (error) {
       if (error instanceof AppError) {
@@ -162,6 +174,15 @@ export class IdentityService
           email: user.email,
           fullName: user.fullName,
         },
+      );
+
+      // Publish domain event — notifications module will pause alerts asynchronously
+      await this.eventBus.publish(
+        createUserDeactivatedEvent({
+          userId: id,
+          email: user.email,
+          deactivatedAt: new Date().toISOString(),
+        }),
       );
 
       const updatedUser = await this.identityRepository.findUserById(id);

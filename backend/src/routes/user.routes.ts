@@ -6,7 +6,7 @@ import {
   createUserPayloadSchema,
   deleteSelfSchema,
   savedJobsSchema,
-  getUserEmailPreferencesSchema,
+  selectUserEmailPreferencesSchema,
   updateUserEmailPreferencesSchema,
 } from "@/validations/user.validation";
 import { registry } from "@/swagger/registry";
@@ -558,7 +558,7 @@ registry.registerPath({
       description: "Email preferences retrieved successfully",
       content: {
         "application/json": {
-          schema: apiResponseSchema(getUserEmailPreferencesSchema),
+          schema: apiResponseSchema(selectUserEmailPreferencesSchema),
         },
       },
     },
@@ -602,7 +602,7 @@ registry.registerPath({
       description: "Email preferences updated successfully",
       content: {
         "application/json": {
-          schema: apiResponseSchema(getUserEmailPreferencesSchema),
+          schema: apiResponseSchema(selectUserEmailPreferencesSchema),
         },
       },
     },
@@ -670,7 +670,7 @@ registry.registerPath({
       description: "Successfully unsubscribed from email notifications",
       content: {
         "application/json": {
-          schema: apiResponseSchema(getUserEmailPreferencesSchema),
+          schema: apiResponseSchema(selectUserEmailPreferencesSchema),
         },
       },
     },
@@ -705,7 +705,7 @@ registry.registerPath({
       description: "Successfully resubscribed to email notifications",
       content: {
         "application/json": {
-          schema: apiResponseSchema(getUserEmailPreferencesSchema),
+          schema: apiResponseSchema(selectUserEmailPreferencesSchema),
         },
       },
     },

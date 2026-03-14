@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, inArray } from "drizzle-orm";
 import { user } from "@/db/schema";
 import { BaseRepository } from "@shared/base/base.repository";
 import type { IdentityRepositoryPort } from "@/modules/identity";
@@ -82,6 +82,16 @@ export class IdentityRepository
           },
         }),
     );
+  }
+
+  async findDeactivatedUserIds(): Promise<number[]> {
+    return await withDbErrorHandling(async () => {
+      const rows = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(inArray(user.status, ["deactivated", "deleted"]));
+      return rows.map((row) => row.id);
+    });
   }
 
   async deactivateUserAccount(

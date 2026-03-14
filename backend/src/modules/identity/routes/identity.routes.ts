@@ -3,6 +3,7 @@ import { IdentityController } from "@/modules/identity";
 import { IdentityRepository } from "@/modules/identity";
 import { IdentityService } from "@/modules/identity";
 import { EmailService } from "@shared/infrastructure/email.service";
+import { BullMqEventBus } from "@shared/events";
 import { AuthMiddleware } from "@/middleware/auth.middleware";
 import validate from "@/middleware/validation.middleware";
 import {
@@ -22,7 +23,8 @@ export function createIdentityRoutes({
   const router = Router();
 
   const identityRepository = new IdentityRepository();
-  const identityService = new IdentityService(identityRepository, emailService);
+  const eventBus = new BullMqEventBus();
+  const identityService = new IdentityService(identityRepository, emailService, eventBus);
   const identityController = new IdentityController(identityService);
 
   // Current user identity routes (authenticated via parent router)

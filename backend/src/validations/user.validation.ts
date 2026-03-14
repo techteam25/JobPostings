@@ -120,8 +120,14 @@ export const unsubscribeEmailPreferencesSchema = z.object({
   query: z.object({}).strict(),
 });
 
-export const getUserEmailPreferencesSchema =
+export const selectUserEmailPreferencesSchema =
   createSelectSchema(userEmailPreferences);
+
+export const getUserEmailPreferencesSchema = z.object({
+  body: z.object({}).strict(),
+  params: z.object({}).strict(),
+  query: z.object({}).strict(),
+});
 
 export const getUserSchema = z.object({
   body: z.object({}).strict(),
@@ -193,7 +199,7 @@ export type GetUserSchema = z.infer<typeof getUserSchema>;
 export type ChangePasswordSchema = z.infer<typeof changeUserPasswordSchema>;
 export type UserEmailSchema = z.infer<typeof userEmailPayloadSchema>;
 export type UserEmailPreferencesSchema = z.infer<
-  typeof getUserEmailPreferencesSchema
+  typeof selectUserEmailPreferencesSchema
 >;
 export type CreateUserEmailPreferences = z.infer<
   typeof createUserEmailPreferencesSchema

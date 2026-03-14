@@ -5,7 +5,7 @@ import type { ProfileRepositoryPort } from "@/modules/user-profile";
 import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
 import { AppError, DatabaseError, NotFoundError } from "@shared/errors";
 import type { PaginationMeta } from "@shared/types";
-import { SecurityUtils } from "@/utils/security";
+import { SecurityUtils } from "@shared/utils/security";
 import type {
   NewUserProfile,
   UpdateUserProfile,

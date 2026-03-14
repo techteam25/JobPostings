@@ -445,33 +445,34 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     });
   }
 
-  async pauseAlertsForInactiveUsers(): Promise<{
+  async pauseAlertsForUser(userId: number): Promise<number> {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(jobAlerts)
+        .set({
+          isPaused: true,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(jobAlerts.userId, userId),
+            eq(jobAlerts.isActive, true),
+            eq(jobAlerts.isPaused, false),
+          ),
+        );
+
+      return result.affectedRows ?? 0;
+    });
+  }
+
+  async pauseAlertsForInactiveUsers(inactiveUserIds: number[]): Promise<{
     alertsPaused: number;
     usersAffected: number;
   }> {
     return await withDbErrorHandling(async () => {
-      const inactiveUsersWithAlerts = await db
-        .select({
-          userId: user.id,
-          userEmail: user.email,
-          status: user.status,
-        })
-        .from(user)
-        .innerJoin(jobAlerts, eq(user.id, jobAlerts.userId))
-        .where(
-          and(
-            eq(user.status, "deactivated"),
-            eq(jobAlerts.isActive, true),
-            eq(jobAlerts.isPaused, false),
-          ),
-        )
-        .groupBy(user.id, user.email, user.status);
-
-      if (inactiveUsersWithAlerts.length === 0) {
+      if (inactiveUserIds.length === 0) {
         return { alertsPaused: 0, usersAffected: 0 };
       }
-
-      const inactiveUserIds = inactiveUsersWithAlerts.map((u) => u.userId);
 
       await db
         .update(jobAlerts)
@@ -501,7 +502,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
 
       return {
         alertsPaused,
-        usersAffected: inactiveUsersWithAlerts.length,
+        usersAffected: inactiveUserIds.length,
       };
     });
   }

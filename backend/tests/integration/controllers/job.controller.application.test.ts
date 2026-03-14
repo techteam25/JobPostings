@@ -2,6 +2,7 @@ import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { seedJobsScenario } from "@tests/utils/seedScenarios";
 import { createUser } from "@tests/utils/seedBuilders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { JobBoardRepository } from "@/modules/job-board";
 import { JobRepository } from "@/repositories/job.repository";
 import { queueService } from "@shared/infrastructure/queue.service";
 
@@ -149,7 +150,7 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
 
       // Spy on findJobById to return an inactive job
       const getJobByIdSpy = vi
-        .spyOn(JobRepository.prototype, "findJobById")
+        .spyOn(JobBoardRepository.prototype, "findJobById")
         .mockResolvedValue({
           job: {
             id: inactiveJobId,

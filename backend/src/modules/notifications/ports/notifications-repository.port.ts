@@ -91,7 +91,8 @@ export interface NotificationsRepositoryPort {
   ): Promise<UnsentMatchesSchema[]>;
   markMatchesAsSent(matchIds: number[]): Promise<void>;
   getUnsentMatchCount(alertId: number): Promise<number>;
-  pauseAlertsForInactiveUsers(): Promise<{
+  pauseAlertsForUser(userId: number): Promise<number>;
+  pauseAlertsForInactiveUsers(inactiveUserIds: number[]): Promise<{
     alertsPaused: number;
     usersAffected: number;
   }>;

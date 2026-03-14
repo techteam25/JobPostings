@@ -307,9 +307,9 @@ export interface UserRepositoryPort extends BaseRepositoryPort<
   getUnsentMatchCount(alertId: number): Promise<number>;
 
   /**
-   * Pauses job alerts for inactive users (users with status "deactivated").
+   * Pauses job alerts for inactive users by their IDs.
    */
-  pauseAlertsForInactiveUsers(): Promise<{
+  pauseAlertsForInactiveUsers(inactiveUserIds: number[]): Promise<{
     alertsPaused: number;
     usersAffected: number;
   }>;

@@ -3,3 +3,4 @@ export { NotificationsController } from "./controllers/notifications.controller"
 export { NotificationsRepository } from "./repositories/notifications.repository";
 export type { NotificationsServicePort } from "./ports/notifications-service.port";
 export type { NotificationsRepositoryPort } from "./ports/notifications-repository.port";
+export type { UserActivityQueryPort } from "./ports/user-activity-query.port";

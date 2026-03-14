@@ -47,6 +47,10 @@ import {
   initializeInvitationExpirationWorker,
   scheduleInvitationExpirationJob,
 } from "@/workers/invitation-expiration-worker";
+import { initializeDomainEventWorker } from "@/workers/domain-event-worker";
+import { IdentityToNotificationsAdapter } from "@shared/adapters";
+import { IdentityRepository } from "@/modules/identity";
+import { NotificationsRepository } from "@/modules/notifications";
 
 /**
  * Initialize all infrastructure services.
@@ -104,8 +108,12 @@ export async function initializeInfrastructure(): Promise<void> {
       initializeEmailWorker();
       initializeFileCleanupWorker();
       initializeJobAlertWorker();
-      initializeInactiveUserAlertWorker();
+      const identityRepo = new IdentityRepository();
+      const notificationsRepo = new NotificationsRepository();
+      const userActivityQuery = new IdentityToNotificationsAdapter(identityRepo);
+      initializeInactiveUserAlertWorker(userActivityQuery, notificationsRepo);
       initializeInvitationExpirationWorker();
+      initializeDomainEventWorker();
       logger.info("Workers initialized");
     } catch (error) {
       logger.warn("Worker initialization failed", {

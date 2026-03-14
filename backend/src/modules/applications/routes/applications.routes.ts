@@ -1,0 +1,105 @@
+import { Router } from "express";
+import { ApplicationsController } from "@/modules/applications";
+import { ApplicationsService } from "@/modules/applications";
+import { AuthMiddleware } from "@/middleware/auth.middleware";
+import validate from "@/middleware/validation.middleware";
+import { getJobSchema } from "@/validations/job.validation";
+import {
+  applyForJobSchema,
+  updateApplicationStatusSchema,
+  getJobApplicationSchema,
+} from "@/validations/jobApplications.validation";
+import {
+  cacheMiddleware,
+  invalidateCacheMiddleware,
+} from "@/middleware/cache.middleware";
+import { uploadMiddleware } from "@/middleware/multer.middleware";
+import type { ApplicationsRepositoryPort } from "@/modules/applications";
+import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
+import type { UserRepositoryPort } from "@/ports/user-repository.port";
+import type { JobDetailsQueryPort } from "@/modules/applications/ports/job-details-query.port";
+import type { EventBusPort } from "@shared/events";
+
+export function createApplicationsRoutes({
+  authMiddleware,
+  applicationsRepository,
+  organizationRepository,
+  userRepository,
+  jobDetailsQuery,
+  eventBus,
+}: {
+  authMiddleware: AuthMiddleware;
+  applicationsRepository: ApplicationsRepositoryPort;
+  organizationRepository: OrganizationRepositoryPort;
+  userRepository: UserRepositoryPort;
+  jobDetailsQuery: JobDetailsQueryPort;
+  eventBus: EventBusPort;
+}): Router {
+  const router = Router();
+
+  const applicationsService = new ApplicationsService(
+    applicationsRepository,
+    jobDetailsQuery,
+    organizationRepository,
+    userRepository,
+    eventBus,
+  );
+  const applicationsController = new ApplicationsController(
+    applicationsService,
+  );
+
+  // User routes (require authentication)
+
+  // GET /jobs/me/applications — must be registered before /:jobId routes
+  router.get(
+    "/me/applications",
+    authMiddleware.authenticate,
+    authMiddleware.requireUserRole,
+    cacheMiddleware({ ttl: 300 }),
+    applicationsController.getUserApplications,
+  );
+
+  // POST /jobs/:jobId/apply
+  router.post(
+    "/:jobId/apply",
+    authMiddleware.authenticate,
+    authMiddleware.requireUserRole,
+    uploadMiddleware.jobApplication,
+    validate(applyForJobSchema),
+    applicationsController.applyForJob,
+  );
+
+  // PATCH /jobs/applications/:applicationId/withdraw
+  router.patch(
+    "/applications/:applicationId/withdraw",
+    authMiddleware.authenticate,
+    validate(getJobApplicationSchema),
+    authMiddleware.requireUserRole,
+    authMiddleware.ensureApplicationOwnership,
+    applicationsController.withdrawApplication,
+  );
+
+  // Employer routes (require authentication + job posting role)
+
+  // GET /jobs/:jobId/applications
+  router.get(
+    "/:jobId/applications",
+    authMiddleware.authenticate,
+    authMiddleware.requireJobPostingRole(),
+    validate(getJobSchema),
+    cacheMiddleware({ ttl: 300 }),
+    applicationsController.getJobApplications,
+  );
+
+  // PATCH /jobs/applications/:applicationId/status
+  router.patch(
+    "/applications/:applicationId/status",
+    authMiddleware.authenticate,
+    authMiddleware.requireJobPostingRole(),
+    validate(updateApplicationStatusSchema),
+    invalidateCacheMiddleware((_req) => `/api/jobs/me/applications`),
+    applicationsController.updateApplicationStatus,
+  );
+
+  return router;
+}

@@ -22,6 +22,7 @@ import { ProfileService } from "@/modules/user-profile/services/profile.service"
 import { ProfileRepository } from "@/modules/user-profile/repositories/profile.repository";
 import { NotificationsService } from "@/modules/notifications/services/notifications.service";
 import { NotificationsRepository } from "@/modules/notifications/repositories/notifications.repository";
+import { BullMqEventBus } from "@shared/events";
 
 /**
  * Facade service that delegates to module-specific services.
@@ -52,6 +53,7 @@ export class UserService extends BaseService implements UserServicePort {
     this.identityService = new IdentityService(
       identityRepository,
       this.emailService,
+      new BullMqEventBus(),
     );
 
     this.profileService = new ProfileService(

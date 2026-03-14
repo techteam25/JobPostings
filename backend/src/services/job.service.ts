@@ -31,7 +31,7 @@ import {
   DatabaseError,
   AppError,
 } from "@shared/errors";
-import { SecurityUtils } from "@/utils/security";
+import { SecurityUtils } from "@shared/utils/security";
 
 import { SearchParams } from "@/validations/base.validation";
 import type { ApplicationQueryParams } from "@/validations/jobApplications.validation";
@@ -43,6 +43,10 @@ import logger from "@shared/logger";
 
 /**
  * Service class for managing job-related operations, including CRUD for jobs and applications.
+ *
+ * @deprecated Use `JobBoardService` from `@/modules/job-board` and `ApplicationsService` from
+ * `@/modules/applications` instead. This monolithic class will be removed once all consumers
+ * have migrated to the new modular services.
  */
 export class JobService extends BaseService implements JobServicePort {
   /**

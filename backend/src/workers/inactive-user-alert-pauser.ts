@@ -1,51 +1,74 @@
 import { Job as BullMqJob } from "bullmq";
 import logger from "@shared/logger";
 import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
-import { UserRepository } from "@/repositories/user.repository";
-import type { UserRepositoryPort } from "@/ports/user-repository.port";
+import type { NotificationsRepositoryPort } from "@/modules/notifications/ports/notifications-repository.port";
+import type { UserActivityQueryPort } from "@/modules/notifications/ports/user-activity-query.port";
 
 /**
- * Worker function to pause job alerts for inactive users.
- * Runs weekly to clean up alerts for users with "deactivated" status.
- * @param _job The BullMQ job.
+ * Creates a worker function to pause job alerts for inactive users.
+ * Uses UserActivityQueryPort (ACL) to get deactivated user IDs, then passes them
+ * to the notifications repository. This is the safety-net reconciliation sweep
+ * that catches any events missed by the real-time UserDeactivated event handler.
  */
-export async function pauseInactiveUserAlerts(_job: BullMqJob) {
-  const userRepository: UserRepositoryPort = new UserRepository();
+export function createPauseInactiveUserAlerts(
+  userActivityQuery: UserActivityQueryPort,
+  notificationsRepository: NotificationsRepositoryPort,
+) {
+  return async function pauseInactiveUserAlerts(_job: BullMqJob) {
+    logger.info("Starting inactive user alert pausing (deactivated users)");
 
-  logger.info("Starting inactive user alert pausing (deactivated users)");
+    try {
+      // Use ACL to query identity module for deactivated user IDs
+      const inactiveUserIds = await userActivityQuery.getInactiveUserIds();
 
-  try {
-    // Pause alerts for users with status "deactivated"
-    const result = await userRepository.pauseAlertsForInactiveUsers();
+      if (inactiveUserIds.length === 0) {
+        logger.info("No inactive users found — skipping alert pausing");
+        return { alertsPaused: 0, usersAffected: 0 };
+      }
 
-    logger.info("Inactive user alert pausing completed", {
-      alertsPaused: result.alertsPaused,
-      usersAffected: result.usersAffected,
-    });
+      // Pass IDs to notifications repository (no cross-module JOIN)
+      const result =
+        await notificationsRepository.pauseAlertsForInactiveUsers(
+          inactiveUserIds,
+        );
 
-    return {
-      alertsPaused: result.alertsPaused,
-      usersAffected: result.usersAffected,
-    };
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    logger.error("Inactive user alert pausing failed", { error: errorMessage });
-    throw error;
-  }
+      logger.info("Inactive user alert pausing completed", {
+        alertsPaused: result.alertsPaused,
+        usersAffected: result.usersAffected,
+      });
+
+      return {
+        alertsPaused: result.alertsPaused,
+        usersAffected: result.usersAffected,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      logger.error("Inactive user alert pausing failed", { error: errorMessage });
+      throw error;
+    }
+  };
 }
 
 /**
  * Initialize the inactive user alert pausing worker.
  */
-export function initializeInactiveUserAlertWorker(): void {
+export function initializeInactiveUserAlertWorker(
+  userActivityQuery: UserActivityQueryPort,
+  notificationsRepository: NotificationsRepositoryPort,
+): void {
+  const handler = createPauseInactiveUserAlerts(
+    userActivityQuery,
+    notificationsRepository,
+  );
+
   queueService.registerWorker<
     Record<string, never>,
     {
       alertsPaused: number;
       usersAffected: number;
     }
-  >(QUEUE_NAMES.JOB_ALERT_QUEUE, pauseInactiveUserAlerts, {
+  >(QUEUE_NAMES.JOB_ALERT_QUEUE, handler, {
     concurrency: 1, // Only one cleanup job at a time
     limiter: {
       max: 1,
@@ -73,7 +96,7 @@ export async function scheduleInactiveUserAlertPausing() {
       },
     );
     logger.info(
-      "📅 Scheduled inactive user alert pausing (2:00 AM every Sunday)",
+      "Scheduled inactive user alert pausing (2:00 AM every Sunday)",
     );
   } catch (error) {
     logger.error({ error }, "Failed to schedule inactive user alert pausing");

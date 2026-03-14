@@ -30,6 +30,7 @@ import {
 } from "@tests/utils/fixtures";
 import { auth } from "@/utils/auth";
 import { UserRepository } from "@/repositories/user.repository";
+import { NotificationsRepository } from "@/modules/notifications";
 const {
   mockSendAccountDeactivationConfirmation,
   mockSendAccountDeletionConfirmation,
@@ -587,7 +588,7 @@ describe("User Controller Integration Tests", () => {
 
       it("should return 404 if preferences not found", async () => {
         const preferencesSpy = vi
-          .spyOn(UserRepository.prototype, "findEmailPreferencesByUserId")
+          .spyOn(NotificationsRepository.prototype, "findEmailPreferencesByUserId")
           .mockResolvedValue(undefined);
 
         const loginResponse = await request
@@ -909,7 +910,7 @@ describe("User Controller Integration Tests", () => {
 
         it("should return 404 if preferences not found", async () => {
           const preferencesSpy = vi
-            .spyOn(UserRepository.prototype, "findEmailPreferencesByUserId")
+            .spyOn(NotificationsRepository.prototype, "findEmailPreferencesByUserId")
             .mockResolvedValueOnce(undefined);
 
           const loginResponse = await request

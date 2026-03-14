@@ -26,6 +26,10 @@ import { buildPaginationMeta } from "@/utils/build-search-pagination";
 
 /**
  * Controller class for handling job-related API endpoints.
+ *
+ * @deprecated Use `JobBoardController` from `@/modules/job-board` and `ApplicationsController`
+ * from `@/modules/applications` instead. This monolithic class will be removed once all consumers
+ * have migrated to the new modular controllers.
  */
 export class JobController extends BaseController {
   /**

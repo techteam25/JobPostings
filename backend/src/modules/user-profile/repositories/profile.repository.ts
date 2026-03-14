@@ -15,7 +15,7 @@ import type { ProfileRepositoryPort } from "@/modules/user-profile";
 import { db } from "@shared/db/connection";
 import { DatabaseError, NotFoundError } from "@shared/errors";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
-import { SecurityUtils } from "@/utils/security";
+import { SecurityUtils } from "@shared/utils/security";
 import type {
   NewUserProfile,
   UpdateUserProfile,

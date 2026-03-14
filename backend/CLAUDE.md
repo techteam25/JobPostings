@@ -115,7 +115,7 @@ All API routes mounted at `/api` via `src/routes/index.ts`:
 
 An architecture audit (2026-03-10) identified that the codebase uses **manual constructor instantiation** (not true DI), has **no domain boundary enforcement**, and suffers from **cross-domain coupling** and **God-class services**. The decision is to incrementally refactor toward a Modular Monolith.
 
-### Current Status: Started — Phase 3 is next
+### Current Status: Started — Phase 4 is next
 
 ### Execution Order (Azure Boards IDs)
 

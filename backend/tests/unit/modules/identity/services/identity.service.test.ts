@@ -31,6 +31,7 @@ describe("IdentityService", () => {
   let identityService: IdentityService;
   let mockIdentityRepository: any;
   let mockEmailService: any;
+  let mockEventBus: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -42,6 +43,7 @@ describe("IdentityService", () => {
       findUserById: vi.fn(),
       update: vi.fn(),
       deactivateUserAccount: vi.fn(),
+      findDeactivatedUserIds: vi.fn(),
     };
 
     mockEmailService = {
@@ -49,9 +51,14 @@ describe("IdentityService", () => {
       sendAccountDeletionConfirmation: vi.fn().mockResolvedValue(undefined),
     };
 
+    mockEventBus = {
+      publish: vi.fn().mockResolvedValue(undefined),
+    };
+
     identityService = new IdentityService(
       mockIdentityRepository,
       mockEmailService,
+      mockEventBus,
     );
   });
 

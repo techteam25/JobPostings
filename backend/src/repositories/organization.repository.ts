@@ -1,5 +1,5 @@
 import { and, count, desc, eq, inArray, like, or } from "drizzle-orm";
-import { SecurityUtils } from "@/utils/security";
+import { SecurityUtils } from "@shared/utils/security";
 import {
   applicationNotes,
   jobApplications,

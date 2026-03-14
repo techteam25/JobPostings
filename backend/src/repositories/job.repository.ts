@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, inArray, like, or, sql, SQL } from "drizzle-orm";
-import { SecurityUtils } from "@/utils/security";
+import { SecurityUtils } from "@shared/utils/security";
 import {
   jobApplications,
   jobInsights,
@@ -26,6 +26,10 @@ import type { JobRepositoryPort } from "@/ports/job-repository.port";
 
 /**
  * Repository class for managing job-related database operations, including jobs and applications.
+ *
+ * @deprecated Use `JobBoardRepository` from `@/modules/job-board` and `ApplicationsRepository`
+ * from `@/modules/applications` instead. This monolithic class will be removed once all consumers
+ * have migrated to the new modular repositories.
  */
 export class JobRepository extends BaseRepository<typeof jobsDetails> implements JobRepositoryPort {
   /**
