@@ -1,7 +1,6 @@
 import { Router, type RequestHandler } from "express";
 
-import { InvitationsService } from "../services/invitations.service";
-import { InvitationsController } from "../controllers/invitations.controller";
+import type { InvitationsController } from "@/modules/invitations";
 import type { OrganizationsGuards } from "@/modules/organizations";
 import type { InvitationsGuards } from "@/modules/invitations";
 import validate from "@/middleware/validation.middleware";
@@ -12,38 +11,19 @@ import {
   acceptOrganizationInvitationSchema,
 } from "@/validations/organization.validation";
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
-import type { InvitationsRepositoryPort } from "../ports/invitations-repository.port";
-import type { OrgMembershipCommandPort } from "../ports/org-membership-command.port";
-import type { UserEmailQueryPort } from "../ports/user-email-query.port";
-import type { EmailServicePort } from "@/ports/email-service.port";
 
 export function createInvitationsRoutes({
   authenticate,
   orgGuards,
   invitationsGuards,
-  invitationsRepository,
-  orgMembership,
-  userEmailQuery,
-  emailService,
+  controller,
 }: {
   authenticate: RequestHandler;
   orgGuards: Pick<OrganizationsGuards, "requireAdminOrOwnerRole" | "ensureIsOrganizationMember" | "validateRoleAssignment">;
   invitationsGuards: InvitationsGuards;
-  invitationsRepository: InvitationsRepositoryPort;
-  orgMembership: OrgMembershipCommandPort;
-  userEmailQuery: UserEmailQueryPort;
-  emailService: EmailServicePort;
+  controller: InvitationsController;
 }): Router {
   const router = Router();
-
-  const invitationsService = new InvitationsService(
-    invitationsRepository,
-    orgMembership,
-    userEmailQuery,
-    emailService,
-  );
-
-  const invitationsController = new InvitationsController(invitationsService);
 
   /**
    * Sends an invitation to join an organization.
@@ -58,7 +38,7 @@ export function createInvitationsRoutes({
     orgGuards.ensureIsOrganizationMember,
     validate(createOrganizationInvitationSchema),
     orgGuards.validateRoleAssignment,
-    invitationsController.sendInvitation,
+    controller.sendInvitation,
   );
 
   /**
@@ -75,7 +55,7 @@ export function createInvitationsRoutes({
     orgGuards.ensureIsOrganizationMember,
     validate(cancelOrganizationInvitationSchema),
     invitationsGuards.ensureInvitationBelongsToOrganization,
-    invitationsController.cancelInvitation,
+    controller.cancelInvitation,
   );
 
   /**
@@ -87,7 +67,7 @@ export function createInvitationsRoutes({
   router.get(
     "/:organizationId/:token/details",
     validate(getOrganizationInvitationDetailsSchema),
-    invitationsController.getInvitationDetails,
+    controller.getInvitationDetails,
   );
 
   /**
@@ -102,7 +82,7 @@ export function createInvitationsRoutes({
     authenticate,
     validate(acceptOrganizationInvitationSchema),
     invalidateCacheMiddleware((req) => `organizations/members/${req.userId}`),
-    invitationsController.acceptInvitation,
+    controller.acceptInvitation,
   );
 
   return router;

@@ -1,7 +1,6 @@
 import { Router, type RequestHandler } from "express";
 
-import { OrganizationsService } from "../services/organizations.service";
-import { OrganizationsController } from "../controllers/organizations.controller";
+import type { OrganizationsController } from "@/modules/organizations";
 import type { OrganizationsGuards } from "@/modules/organizations";
 import { uploadMiddleware } from "@/middleware/multer.middleware";
 import validate from "@/middleware/validation.middleware";
@@ -17,25 +16,17 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
-import type { OrganizationsRepositoryPort } from "../ports/organizations-repository.port";
 
 export function createOrganizationsRoutes({
   authenticate,
   orgGuards,
-  organizationsRepository,
+  controller,
 }: {
   authenticate: RequestHandler;
   orgGuards: Pick<OrganizationsGuards, "requireAdminOrOwnerRole" | "ensureIsOrganizationMember">;
-  organizationsRepository: OrganizationsRepositoryPort;
+  controller: OrganizationsController;
 }): Router {
   const router = Router();
-
-  const organizationsService = new OrganizationsService(
-    organizationsRepository,
-  );
-  const organizationsController = new OrganizationsController(
-    organizationsService,
-  );
 
   // ─── Public routes ────────────────────────────────────────────────
 
@@ -46,7 +37,7 @@ export function createOrganizationsRoutes({
   router.get(
     "/",
     cacheMiddleware({ ttl: 300 }),
-    organizationsController.getAllOrganizations,
+    controller.getAllOrganizations,
   );
 
   /**
@@ -57,7 +48,7 @@ export function createOrganizationsRoutes({
     "/:organizationId",
     validate(getOrganizationSchema),
     cacheMiddleware({ ttl: 300 }),
-    organizationsController.getOrganizationById,
+    controller.getOrganizationById,
   );
 
   /**
@@ -68,7 +59,7 @@ export function createOrganizationsRoutes({
     "/members/:id",
     validate(getUserSchema),
     cacheMiddleware({ ttl: 600 }),
-    organizationsController.getOrganizationIdByMemberId,
+    controller.getOrganizationIdByMemberId,
   );
 
   // ─── Authenticated routes ─────────────────────────────────────────
@@ -85,7 +76,7 @@ export function createOrganizationsRoutes({
     validate(createOrganizationSchema),
     invalidateCacheMiddleware(() => "/organizations"),
     invalidateCacheMiddleware(() => "users/me/intent"),
-    organizationsController.createOrganization,
+    controller.createOrganization,
   );
 
   /**
@@ -102,7 +93,7 @@ export function createOrganizationsRoutes({
     invalidateCacheMiddleware(
       (req) => `/organizations/${req.params.organizationId}`,
     ),
-    organizationsController.uploadOrganizationLogo,
+    controller.uploadOrganizationLogo,
   );
 
   /**
@@ -120,7 +111,7 @@ export function createOrganizationsRoutes({
     invalidateCacheMiddleware(
       (req) => `/organizations/${req.params.organizationId}`,
     ),
-    organizationsController.updateOrganization,
+    controller.updateOrganization,
   );
 
   /**
@@ -138,7 +129,7 @@ export function createOrganizationsRoutes({
     invalidateCacheMiddleware(
       (req) => `/organizations/${req.params.organizationId}`,
     ),
-    organizationsController.deleteOrganization,
+    controller.deleteOrganization,
   );
 
   return router;

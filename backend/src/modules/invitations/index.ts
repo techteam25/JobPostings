@@ -1,3 +1,5 @@
+export { createInvitationsModule } from "./composition-root";
+export type { InvitationsModule } from "./composition-root";
 export { InvitationsService } from "./services/invitations.service";
 export { InvitationsController } from "./controllers/invitations.controller";
 export { InvitationsRepository } from "./repositories/invitations.repository";

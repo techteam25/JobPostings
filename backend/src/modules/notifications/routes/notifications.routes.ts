@@ -1,8 +1,5 @@
 import { Router } from "express";
-import { NotificationsController } from "@/modules/notifications";
-import { NotificationsRepository } from "@/modules/notifications";
-import { NotificationsService } from "@/modules/notifications";
-import { EmailService } from "@shared/infrastructure/email.service";
+import type { NotificationsController } from "@/modules/notifications";
 import type { ProfileGuards } from "@/modules/user-profile";
 import validate from "@/middleware/validation.middleware";
 import {
@@ -23,27 +20,13 @@ import {
 } from "@/middleware/cache.middleware";
 
 export function createNotificationsRoutes({
+  controller: notificationsController,
   profileGuards,
-  emailService,
-  getUserContactInfo,
 }: {
+  controller: NotificationsController;
   profileGuards: Pick<ProfileGuards, "requireUserRole">;
-  emailService: EmailService;
-  getUserContactInfo: (
-    userId: number,
-  ) => Promise<{ email: string; fullName: string } | null>;
 }): Router {
   const router = Router();
-
-  const notificationsRepository = new NotificationsRepository();
-  const notificationsService = new NotificationsService(
-    notificationsRepository,
-    emailService,
-    getUserContactInfo,
-  );
-  const notificationsController = new NotificationsController(
-    notificationsService,
-  );
 
   // Email preferences routes (authenticated via parent router)
 

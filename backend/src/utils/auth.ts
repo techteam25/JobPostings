@@ -8,9 +8,7 @@ import { z } from "zod";
 import { db } from "@shared/db/connection";
 import { env, isProduction } from "@shared/config/env";
 
-import { UserService } from "@/services/user.service";
-import type { UserServicePort } from "@/ports/user-service.port";
-import { EmailService } from "@shared/infrastructure/email.service";
+import type { NotificationsServicePort } from "@/modules/notifications";
 import type { EmailServicePort } from "@/ports/email-service.port";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 import { userOnBoarding } from "@/db/schema";
@@ -19,8 +17,25 @@ import logger from "@shared/logger";
 import { eq } from "drizzle-orm";
 import { queueService, QUEUE_NAMES } from "@shared/infrastructure/queue.service";
 
-const emailService: EmailServicePort = new EmailService();
-const userService: UserServicePort = new UserService();
+// ─── Setter-Injected Dependencies ────────────────────────────────────
+// These are set by the central composition root at startup, before
+// the server starts listening. The Better-Auth hooks read from these
+// module-level variables via closures.
+
+let notificationsService: NotificationsServicePort | null = null;
+let emailService: EmailServicePort | null = null;
+
+/**
+ * Injects dependencies into the auth module. Must be called by the
+ * composition root before the server starts accepting requests.
+ */
+export function setAuthDependencies(deps: {
+  notificationsService: NotificationsServicePort;
+  emailService: EmailServicePort;
+}) {
+  notificationsService = deps.notificationsService;
+  emailService = deps.emailService;
+}
 
 type UserRegistrationPayload = {
   name: string;
@@ -55,7 +70,7 @@ export const auth = betterAuth({
     sendOnSignUp: isProduction,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, token }) => {
-      await emailService.sendEmailVerification(user.email, user.name, token);
+      await emailService?.sendEmailVerification(user.email, user.name, token);
     },
   },
   account: {
@@ -77,7 +92,7 @@ export const auth = betterAuth({
     deleteUser: {
       enabled: isProduction,
       sendDeleteAccountVerification: async ({ user, url, token }) => {
-        await emailService.sendDeleteAccountEmailVerification(
+        await emailService?.sendDeleteAccountEmailVerification(
           user.email,
           user.name,
           url,
@@ -162,7 +177,10 @@ export const auth = betterAuth({
             );
 
             // Create default email preferences for the user
-            await userService.createDefaultEmailPreferences(
+            // notificationsService is set via setAuthDependencies() from the
+            // composition root. It may be null in test environments that
+            // create users without bootstrapping the full app.
+            await notificationsService?.createDefaultEmailPreferences(
               Number(userResult.user.id),
             );
 

@@ -53,9 +53,13 @@ vi.mock("@/repositories/user.repository", () => ({
 vi.mock("@/repositories/organization.repository", () => ({
   OrganizationRepository: vi.fn().mockImplementation(() => ({})),
 }));
-vi.mock("@shared/infrastructure/email.service", () => ({
-  EmailService: vi.fn().mockImplementation(() => ({})),
-}));
+vi.mock("@shared/infrastructure/email.service", () => {
+  const MockEmailService = vi.fn().mockImplementation(() => ({}));
+  Object.assign(MockEmailService, {
+    createDefault: vi.fn().mockReturnValue({}),
+  });
+  return { EmailService: MockEmailService };
+});
 vi.mock("@shared/infrastructure/queue.service", () => ({
   queueService: { addJob: vi.fn() },
   QUEUE_NAMES: { EMAIL_QUEUE: "email-queue" },

@@ -24,7 +24,7 @@ describe("EmailService HTML escaping", () => {
 
   beforeEach(() => {
     sendMailMock.mockClear();
-    service = new EmailService();
+    service = EmailService.createDefault();
 
     // Stub template loading — return a minimal template with the placeholders
     vi.spyOn(service as any, "loadTemplate").mockResolvedValue(

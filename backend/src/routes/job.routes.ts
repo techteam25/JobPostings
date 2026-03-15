@@ -1,27 +1,4 @@
-import { Router } from "express";
-import { AuthMiddleware } from "@/middleware/auth.middleware";
-import { OrganizationRepository } from "@/repositories/organization.repository";
-import { UserRepository } from "@/repositories/user.repository";
-import {
-  JobBoardRepository,
-  JobInsightsRepository,
-  createJobBoardGuards,
-} from "@/modules/job-board";
-import { ApplicationsRepository, createApplicationsGuards } from "@/modules/applications";
-import { OrganizationsRepository, createOrganizationsGuards } from "@/modules/organizations";
-import { IdentityRepository } from "@/modules/identity";
-import { ProfileRepository, createProfileGuards } from "@/modules/user-profile";
-import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
-import { BullMqEventBus } from "@shared/events";
-import {
-  ApplicationsToJobBoardAdapter,
-  JobBoardToApplicationsAdapter,
-  OrganizationsToApplicationsAdapter,
-  OrganizationsToJobBoardAdapter,
-  IdentityToApplicationsAdapter,
-} from "@shared/adapters";
-import { createJobBoardRoutes } from "@/modules/job-board/routes/job-board.routes";
-import { createApplicationsRoutes } from "@/modules/applications/routes/applications.routes";
+import { Router, type RequestHandler } from "express";
 
 import {
   selectJobSchema,
@@ -50,6 +27,14 @@ import {
   paginatedResponseSchema,
   paginationMetaSchema,
 } from "@shared/types";
+
+import { createJobBoardRoutes } from "@/modules/job-board/routes/job-board.routes";
+import { createApplicationsRoutes } from "@/modules/applications/routes/applications.routes";
+
+import type { JobBoardModule } from "@/modules/job-board/composition-root";
+import type { ApplicationsModule } from "@/modules/applications/composition-root";
+import type { OrganizationsModule } from "@/modules/organizations/composition-root";
+import type { UserProfileModule } from "@/modules/user-profile/composition-root";
 
 // ─── OpenAPI Registry (documentation only) ──────────────────────────
 
@@ -497,76 +482,41 @@ registry.registerPath({
   },
 });
 
-// ─── Route Mounting (Composition Root) ──────────────────────────────
+// ─── Route Mounting ──────────────────────────────────────────────────
 //
-// All dependencies are instantiated here and passed to factory functions.
-// No `new` calls should exist inside the factory functions themselves.
+// Dependencies are provided by the central composition root.
 
-const router = Router();
-const authMiddleware = new AuthMiddleware();
+interface JobRoutesDeps {
+  authenticate: RequestHandler;
+  jobBoard: JobBoardModule;
+  applications: ApplicationsModule;
+  organizations: OrganizationsModule;
+  userProfile: UserProfileModule;
+}
 
-// Module-owned dependencies
-const jobBoardRepository = new JobBoardRepository();
-const jobInsightsRepository = new JobInsightsRepository();
-const typesenseService = new TypesenseService();
-const applicationsRepository = new ApplicationsRepository();
-const organizationsRepository = new OrganizationsRepository();
-const identityRepository = new IdentityRepository();
-const profileRepository = new ProfileRepository();
+export function createJobRoutes(deps: JobRoutesDeps): Router {
+  const router = Router();
 
-// Old facade repos still needed by job-board routes (uses old port types)
-const organizationRepository = new OrganizationRepository();
-const userRepository = new UserRepository();
+  // Applications routes MUST be mounted before job-board routes
+  // so /me/applications is registered before /:jobId
+  router.use(
+    createApplicationsRoutes({
+      authenticate: deps.authenticate,
+      profileGuards: deps.userProfile.guards,
+      orgGuards: deps.organizations.guards,
+      appGuards: deps.applications.guards,
+      controller: deps.applications.controller,
+    }),
+  );
 
-// Cross-module adapters (ACLs)
-const applicationStatusQuery = new ApplicationsToJobBoardAdapter(
-  applicationsRepository,
-);
-const jobDetailsQuery = new JobBoardToApplicationsAdapter(jobBoardRepository);
-const orgMembershipQuery = new OrganizationsToApplicationsAdapter(organizationsRepository);
-const applicantQuery = new IdentityToApplicationsAdapter(identityRepository);
-const orgMembershipForJob = new OrganizationsToJobBoardAdapter(organizationsRepository);
+  router.use(
+    createJobBoardRoutes({
+      authenticate: deps.authenticate,
+      orgGuards: deps.organizations.guards,
+      jobBoardGuards: deps.jobBoard.guards,
+      controller: deps.jobBoard.controller,
+    }),
+  );
 
-// Module-owned guards
-const orgGuards = createOrganizationsGuards({ organizationsRepository });
-const jobBoardGuards = createJobBoardGuards({
-  jobBoardRepository,
-  orgMembershipQuery: orgMembershipForJob,
-});
-const appGuards = createApplicationsGuards({ applicationsRepository });
-const profileGuards = createProfileGuards({ profileRepository });
-
-// Event bus (shared infrastructure)
-const eventBus = new BullMqEventBus();
-
-// Applications routes MUST be mounted before job-board routes
-// so /me/applications is registered before /:jobId
-router.use(
-  createApplicationsRoutes({
-    authenticate: authMiddleware.authenticate,
-    profileGuards,
-    orgGuards,
-    appGuards,
-    applicationsRepository,
-    orgMembershipQuery,
-    applicantQuery,
-    jobDetailsQuery,
-    eventBus,
-  }),
-);
-
-router.use(
-  createJobBoardRoutes({
-    authenticate: authMiddleware.authenticate,
-    orgGuards,
-    jobBoardGuards,
-    jobBoardRepository,
-    jobInsightsRepository,
-    typesenseService,
-    organizationRepository,
-    userRepository,
-    applicationStatusQuery,
-  }),
-);
-
-export default router;
+  return router;
+}

@@ -41,7 +41,7 @@ export class UserService extends BaseService implements UserServicePort {
 
   constructor(
     private userRepository: UserRepositoryPort = new UserRepository(),
-    private emailService: EmailServicePort = new EmailService(),
+    private emailService: EmailServicePort = EmailService.createDefault(),
     private organizationRepository: OrganizationRepositoryPort = new OrganizationRepository(),
   ) {
     super();

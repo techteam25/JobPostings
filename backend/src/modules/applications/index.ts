@@ -1,3 +1,5 @@
+export { createApplicationsModule } from "./composition-root";
+export type { ApplicationsModule } from "./composition-root";
 export { ApplicationsService } from "./services/applications.service";
 export { ApplicationsController } from "./controllers/applications.controller";
 export { ApplicationsRepository } from "./repositories/applications.repository";

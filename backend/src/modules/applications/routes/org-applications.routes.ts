@@ -1,6 +1,5 @@
 import { Router, type RequestHandler } from "express";
-import { ApplicationsController } from "@/modules/applications";
-import { ApplicationsService } from "@/modules/applications";
+import type { ApplicationsController } from "@/modules/applications";
 import type { OrganizationsGuards } from "@/modules/organizations";
 import validate from "@/middleware/validation.middleware";
 import {
@@ -14,11 +13,6 @@ import {
   updateJobStatusInputSchema,
   createJobApplicationNoteSchema,
 } from "@/validations/organization.validation";
-import type { ApplicationsRepositoryPort } from "@/modules/applications";
-import type { JobDetailsQueryPort } from "@/modules/applications/ports/job-details-query.port";
-import type { OrgMembershipQueryPort } from "@/modules/applications/ports/org-membership-query.port";
-import type { ApplicantQueryPort } from "@/modules/applications/ports/applicant-query.port";
-import type { EventBusPort } from "@shared/events";
 
 /**
  * Creates routes for employer/organization-scoped application management.
@@ -28,32 +22,13 @@ import type { EventBusPort } from "@shared/events";
 export function createOrgApplicationsRoutes({
   authenticate,
   orgGuards,
-  applicationsRepository,
-  orgMembershipQuery,
-  applicantQuery,
-  jobDetailsQuery,
-  eventBus,
+  controller,
 }: {
   authenticate: RequestHandler;
   orgGuards: Pick<OrganizationsGuards, "requireJobPostingRole" | "ensureIsOrganizationMember">;
-  applicationsRepository: ApplicationsRepositoryPort;
-  orgMembershipQuery: OrgMembershipQueryPort;
-  applicantQuery: ApplicantQueryPort;
-  jobDetailsQuery: JobDetailsQueryPort;
-  eventBus: EventBusPort;
+  controller: ApplicationsController;
 }): Router {
   const router = Router();
-
-  const applicationsService = new ApplicationsService(
-    applicationsRepository,
-    jobDetailsQuery,
-    orgMembershipQuery,
-    applicantQuery,
-    eventBus,
-  );
-  const applicationsController = new ApplicationsController(
-    applicationsService,
-  );
 
   // GET /:organizationId/jobs/:jobId/applications
   router.get(
@@ -63,7 +38,7 @@ export function createOrgApplicationsRoutes({
     orgGuards.ensureIsOrganizationMember,
     validate(jobApplicationsManagementSchema),
     cacheMiddleware({ ttl: 300 }),
-    applicationsController.getJobApplicationsForOrganization,
+    controller.getJobApplicationsForOrganization,
   );
 
   // GET /:organizationId/jobs/:jobId/applications/:applicationId
@@ -74,7 +49,7 @@ export function createOrgApplicationsRoutes({
     orgGuards.ensureIsOrganizationMember,
     validate(jobApplicationManagementSchema),
     cacheMiddleware({ ttl: 300 }),
-    applicationsController.getJobApplicationForOrganization,
+    controller.getJobApplicationForOrganization,
   );
 
   // PATCH /:organizationId/jobs/:jobId/applications/:applicationId/status
@@ -85,7 +60,7 @@ export function createOrgApplicationsRoutes({
     orgGuards.ensureIsOrganizationMember,
     validate(updateJobStatusInputSchema),
     invalidateCacheMiddleware((_req) => `/api/jobs/me/applications`),
-    applicationsController.updateOrgJobApplicationStatus,
+    controller.updateOrgJobApplicationStatus,
   );
 
   // POST /:organizationId/jobs/:jobId/applications/:applicationId/notes
@@ -95,7 +70,7 @@ export function createOrgApplicationsRoutes({
     orgGuards.requireJobPostingRole(),
     orgGuards.ensureIsOrganizationMember,
     validate(createJobApplicationNoteSchema),
-    applicationsController.attachNoteToJobApplication,
+    controller.attachNoteToJobApplication,
   );
 
   // GET /:organizationId/jobs/:jobId/applications/:applicationId/notes
@@ -106,7 +81,7 @@ export function createOrgApplicationsRoutes({
     orgGuards.ensureIsOrganizationMember,
     validate(jobApplicationManagementSchema),
     cacheMiddleware({ ttl: 300 }),
-    applicationsController.getNotesForJobApplication,
+    controller.getNotesForJobApplication,
   );
 
   // GET /:organizationId/applications
@@ -117,7 +92,7 @@ export function createOrgApplicationsRoutes({
     orgGuards.ensureIsOrganizationMember,
     validate(getOrganizationSchema),
     cacheMiddleware({ ttl: 300 }),
-    applicationsController.getApplicationsForOrganization,
+    controller.getApplicationsForOrganization,
   );
 
   return router;

@@ -101,7 +101,7 @@ export type EmailJobPayload<T extends EmailJobName> = z.infer<
 // Generic job data type for BullMQ registration
 type EmailJobData = Record<string, unknown>;
 
-const emailService: EmailServicePort = new EmailService();
+const emailService: EmailServicePort = EmailService.createDefault();
 
 export async function processEmailJob(
   job: BullMqJob<EmailJobData>,

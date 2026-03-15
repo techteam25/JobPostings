@@ -1,3 +1,5 @@
+export { createJobBoardModule } from "./composition-root";
+export type { JobBoardModule } from "./composition-root";
 export { JobBoardService } from "./services/job-board.service";
 export { JobBoardController } from "./controllers/job-board.controller";
 export { JobBoardRepository } from "./repositories/job-board.repository";

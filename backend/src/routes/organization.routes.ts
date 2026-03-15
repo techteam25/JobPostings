@@ -1,6 +1,5 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 
-import { AuthMiddleware } from "@/middleware/auth.middleware";
 import {
   createOrganizationSchema,
   updateOrganizationInputSchema,
@@ -29,22 +28,13 @@ import {
 import { getJobSchema } from "@/validations/job.validation";
 import { getUserSchema } from "@/validations/user.validation";
 
-// Module imports
-import { OrganizationsRepository, createOrganizationsGuards, createOrganizationsRoutes } from "@/modules/organizations";
-import { ApplicationsRepository, createOrgApplicationsRoutes } from "@/modules/applications";
-import { InvitationsRepository, createInvitationsGuards } from "@/modules/invitations";
-import { JobBoardRepository } from "@/modules/job-board";
-import { IdentityRepository } from "@/modules/identity";
-import {
-  JobBoardToApplicationsAdapter,
-  OrganizationsToApplicationsAdapter,
-  IdentityToApplicationsAdapter,
-  OrganizationsToInvitationsAdapter,
-  IdentityToInvitationsAdapter,
-} from "@shared/adapters";
-import { BullMqEventBus } from "@shared/events";
-import { EmailService } from "@shared/infrastructure/email.service";
+import { createOrganizationsRoutes } from "@/modules/organizations/routes/organizations.routes";
+import { createOrgApplicationsRoutes } from "@/modules/applications/routes/org-applications.routes";
 import { createInvitationsRoutes } from "@/modules/invitations/routes/invitations.routes";
+
+import type { OrganizationsModule } from "@/modules/organizations/composition-root";
+import type { ApplicationsModule } from "@/modules/applications/composition-root";
+import type { InvitationsModule } from "@/modules/invitations/composition-root";
 
 const organizationResponse = apiResponseSchema(selectOrganizationSchema);
 const paginatedOrganizationResponse = apiResponseSchema(
@@ -897,69 +887,47 @@ registry.registerPath({
   },
 });
 
-// ─── Route Mounting (Composition Root) ──────────────────────────────
+// ─── Route Mounting ──────────────────────────────────────────────────
 //
-// All dependencies are instantiated here and passed to factory functions.
-// No `new` calls should exist inside the factory functions themselves.
+// Dependencies are provided by the central composition root.
 
-const router = Router();
-const authMiddleware = new AuthMiddleware();
+interface OrganizationRoutesDeps {
+  authenticate: RequestHandler;
+  organizations: OrganizationsModule;
+  applications: ApplicationsModule;
+  invitations: InvitationsModule;
+}
 
-// Module-owned dependencies
-const organizationsRepository = new OrganizationsRepository();
-const applicationsRepository = new ApplicationsRepository();
-const jobBoardRepository = new JobBoardRepository();
-const identityRepository = new IdentityRepository();
-const invitationsRepository = new InvitationsRepository();
+export function createOrganizationRoutes(deps: OrganizationRoutesDeps): Router {
+  const router = Router();
 
-// Cross-module adapters (ACLs)
-const jobDetailsQuery = new JobBoardToApplicationsAdapter(jobBoardRepository);
-const orgMembershipQuery = new OrganizationsToApplicationsAdapter(organizationsRepository);
-const applicantQuery = new IdentityToApplicationsAdapter(identityRepository);
-const orgMembership = new OrganizationsToInvitationsAdapter(organizationsRepository);
-const userEmailQuery = new IdentityToInvitationsAdapter(identityRepository);
+  // 1. Organization CRUD routes
+  router.use(
+    createOrganizationsRoutes({
+      authenticate: deps.authenticate,
+      orgGuards: deps.organizations.guards,
+      controller: deps.organizations.controller,
+    }),
+  );
 
-// Module-owned guards
-const orgGuards = createOrganizationsGuards({ organizationsRepository });
-const invitationsGuards = createInvitationsGuards({ invitationsRepository });
+  // 2. Employer application management routes
+  router.use(
+    createOrgApplicationsRoutes({
+      authenticate: deps.authenticate,
+      orgGuards: deps.organizations.guards,
+      controller: deps.applications.controller,
+    }),
+  );
 
-// Shared infrastructure
-const eventBus = new BullMqEventBus();
-const emailService = new EmailService();
+  // 3. Invitation management routes (send, cancel, view, accept)
+  router.use(
+    createInvitationsRoutes({
+      authenticate: deps.authenticate,
+      orgGuards: deps.organizations.guards,
+      invitationsGuards: deps.invitations.guards,
+      controller: deps.invitations.controller,
+    }),
+  );
 
-// 1. Organization CRUD routes
-router.use(
-  createOrganizationsRoutes({
-    authenticate: authMiddleware.authenticate,
-    orgGuards,
-    organizationsRepository,
-  }),
-);
-
-// 2. Employer application management routes
-router.use(
-  createOrgApplicationsRoutes({
-    authenticate: authMiddleware.authenticate,
-    orgGuards,
-    applicationsRepository,
-    orgMembershipQuery,
-    applicantQuery,
-    jobDetailsQuery,
-    eventBus,
-  }),
-);
-
-// 3. Invitation management routes (send, cancel, view, accept)
-router.use(
-  createInvitationsRoutes({
-    authenticate: authMiddleware.authenticate,
-    orgGuards,
-    invitationsGuards,
-    invitationsRepository,
-    orgMembership,
-    userEmailQuery,
-    emailService,
-  }),
-);
-
-export default router;
+  return router;
+}

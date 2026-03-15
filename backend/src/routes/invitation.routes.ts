@@ -1,6 +1,5 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 
-import { AuthMiddleware } from "@/middleware/auth.middleware";
 import validate from "../middleware/validation.middleware";
 import {
   getOrganizationInvitationDetailsSchema,
@@ -10,15 +9,7 @@ import { registry, z } from "@/swagger/registry";
 import { apiResponseSchema, errorResponseSchema } from "@shared/types";
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
 
-// Module imports
-import { InvitationsRepository, InvitationsService, InvitationsController } from "@/modules/invitations";
-import { OrganizationsRepository } from "@/modules/organizations";
-import { IdentityRepository } from "@/modules/identity";
-import {
-  OrganizationsToInvitationsAdapter,
-  IdentityToInvitationsAdapter,
-} from "@shared/adapters";
-import { EmailService } from "@shared/infrastructure/email.service";
+import type { InvitationsModule } from "@/modules/invitations/composition-root";
 
 // ─── OpenAPI Registry (documentation only) ──────────────────────────
 
@@ -139,52 +130,40 @@ registry.registerPath({
   },
 });
 
-// ─── Route Mounting (Composition Root) ──────────────────────────────
+// ─── Route Mounting ──────────────────────────────────────────────────
+//
+// Dependencies are provided by the central composition root.
 
-const router = Router();
-const authMiddleware = new AuthMiddleware();
+interface InvitationRoutesDeps {
+  authenticate: RequestHandler;
+  invitations: InvitationsModule;
+}
 
-// Module-owned dependencies
-const organizationsRepository = new OrganizationsRepository();
-const identityRepository = new IdentityRepository();
-const invitationsRepository = new InvitationsRepository();
+export function createInvitationRoutes(deps: InvitationRoutesDeps): Router {
+  const router = Router();
+  const { controller } = deps.invitations;
 
-// Cross-module adapters (ACLs)
-const orgMembership = new OrganizationsToInvitationsAdapter(organizationsRepository);
-const userEmailQuery = new IdentityToInvitationsAdapter(identityRepository);
+  /**
+   * Gets invitation details by token (public endpoint).
+   * @route GET /invitations/:organizationId/:token/details
+   */
+  router.get(
+    "/:organizationId/:token/details",
+    validate(getOrganizationInvitationDetailsSchema),
+    controller.getInvitationDetails,
+  );
 
-// Shared infrastructure
-const emailService = new EmailService();
+  /**
+   * Accepts an organization invitation (authenticated endpoint).
+   * @route POST /invitations/:organizationId/:token/accept
+   */
+  router.post(
+    "/:organizationId/:token/accept",
+    deps.authenticate,
+    validate(acceptOrganizationInvitationSchema),
+    invalidateCacheMiddleware((req) => `organizations/members/${req.userId}`),
+    controller.acceptInvitation,
+  );
 
-// Invitations service + controller
-const invitationsService = new InvitationsService(
-  invitationsRepository,
-  orgMembership,
-  userEmailQuery,
-  emailService,
-);
-const invitationsController = new InvitationsController(invitationsService);
-
-/**
- * Gets invitation details by token (public endpoint).
- * @route GET /invitations/:organizationId/:token/details
- */
-router.get(
-  "/:organizationId/:token/details",
-  validate(getOrganizationInvitationDetailsSchema),
-  invitationsController.getInvitationDetails,
-);
-
-/**
- * Accepts an organization invitation (authenticated endpoint).
- * @route POST /invitations/:organizationId/:token/accept
- */
-router.post(
-  "/:organizationId/:token/accept",
-  authMiddleware.authenticate,
-  validate(acceptOrganizationInvitationSchema),
-  invalidateCacheMiddleware((req) => `organizations/members/${req.userId}`),
-  invitationsController.acceptInvitation,
-);
-
-export default router;
+  return router;
+}

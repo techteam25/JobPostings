@@ -20,10 +20,9 @@ export class EmailService extends BaseService implements EmailServicePort {
 
   /**
    * Creates an instance of EmailService and initializes the email transporter.
+   * @param userRepository - Repository for looking up user data for email operations.
    */
-  constructor(
-    private userRepository: UserRepositoryPort = new UserRepository(),
-  ) {
+  constructor(private userRepository: UserRepositoryPort) {
     super();
     this.transporter = nodemailer.createTransport({
       host: env.SMTP_HOST,
@@ -39,6 +38,15 @@ export class EmailService extends BaseService implements EmailServicePort {
       //   privateKey: privateKey, // Private key string
       // },
     });
+  }
+
+  /**
+   * Factory method for callers that don't have a composition root (e.g. workers).
+   * @deprecated Use the composition root to inject EmailService with its dependencies.
+   * This will be removed once workers are migrated to module-owned processors (Phase 8).
+   */
+  static createDefault(): EmailService {
+    return new EmailService(new UserRepository());
   }
 
   /**

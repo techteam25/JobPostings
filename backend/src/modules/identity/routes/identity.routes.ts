@@ -1,9 +1,5 @@
 import { Router } from "express";
-import { IdentityController } from "@/modules/identity";
-import { IdentityRepository } from "@/modules/identity";
-import { IdentityService } from "@/modules/identity";
-import { EmailService } from "@shared/infrastructure/email.service";
-import { BullMqEventBus } from "@shared/events";
+import type { IdentityController } from "@/modules/identity";
 import type { IdentityGuards } from "@/modules/identity";
 import type { OrganizationsGuards } from "@/modules/organizations";
 import validate from "@/middleware/validation.middleware";
@@ -15,20 +11,15 @@ import {
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
 
 export function createIdentityRoutes({
+  controller: identityController,
   identityGuards,
   orgGuards,
-  emailService,
 }: {
+  controller: IdentityController;
   identityGuards: IdentityGuards;
   orgGuards: Pick<OrganizationsGuards, "requireAdminOrOwnerRole">;
-  emailService: EmailService;
 }): Router {
   const router = Router();
-
-  const identityRepository = new IdentityRepository();
-  const eventBus = new BullMqEventBus();
-  const identityService = new IdentityService(identityRepository, emailService, eventBus);
-  const identityController = new IdentityController(identityService);
 
   // Current user identity routes (authenticated via parent router)
 

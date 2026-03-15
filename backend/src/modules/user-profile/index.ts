@@ -1,3 +1,5 @@
+export { createUserProfileModule } from "./composition-root";
+export type { UserProfileModule } from "./composition-root";
 export { ProfileService } from "./services/profile.service";
 export { ProfileController } from "./controllers/profile.controller";
 export { ProfileRepository } from "./repositories/profile.repository";

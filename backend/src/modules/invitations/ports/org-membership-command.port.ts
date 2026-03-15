@@ -1,7 +1,7 @@
 /**
  * Cross-module port for the invitations module to create members and
  * check existing memberships without importing directly from the
- * organizations module.
+ * `organizations` module.
  */
 export interface OrgMembershipCommandPort {
   /**

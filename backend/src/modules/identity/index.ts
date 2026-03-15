@@ -1,3 +1,5 @@
+export { createIdentityModule } from "./composition-root";
+export type { IdentityModule } from "./composition-root";
 export { IdentityService } from "./services/identity.service";
 export { IdentityController } from "./controllers/identity.controller";
 export { IdentityRepository } from "./repositories/identity.repository";

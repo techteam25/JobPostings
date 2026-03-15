@@ -1,5 +1,4 @@
-import { Router } from "express";
-import { AuthMiddleware } from "@/middleware/auth.middleware";
+import { Router, type RequestHandler } from "express";
 import { z } from "zod";
 import {
   updateUserPayloadSchema,
@@ -29,11 +28,11 @@ import {
 import { createIdentityRoutes } from "@/modules/identity/routes/identity.routes";
 import { createProfileRoutes } from "@/modules/user-profile/routes/profile.routes";
 import { createNotificationsRoutes } from "@/modules/notifications/routes/notifications.routes";
-import { EmailService } from "@shared/infrastructure/email.service";
-import { OrganizationsRepository, OrganizationsService, createOrganizationsGuards } from "@/modules/organizations";
-import { createIdentityGuards, IdentityRepository } from "@/modules/identity";
-import { ProfileRepository, createProfileGuards } from "@/modules/user-profile";
-import { IdentityToNotificationsAdapter, OrganizationsToProfileAdapter } from "@shared/adapters";
+
+import type { IdentityModule } from "@/modules/identity/composition-root";
+import type { UserProfileModule } from "@/modules/user-profile/composition-root";
+import type { NotificationsModule } from "@/modules/notifications/composition-root";
+import type { OrganizationsModule } from "@/modules/organizations/composition-root";
 
 const userResponseSchema = apiResponseSchema(
   selectUserSchema.extend({
@@ -965,55 +964,46 @@ registry.registerPath({
   },
 });
 
-// ─── Route Mounting (Composition Root) ──────────────────────────────
+// ─── Route Mounting ──────────────────────────────────────────────────
 //
-// All dependencies are instantiated here and passed to factory functions.
+// Dependencies are provided by the central composition root.
 
-const router = Router();
-const authMiddleware = new AuthMiddleware();
-const emailService = new EmailService();
+interface UserRoutesDeps {
+  authenticate: RequestHandler;
+  identity: IdentityModule;
+  userProfile: UserProfileModule;
+  notifications: NotificationsModule;
+  organizations: OrganizationsModule;
+}
 
-// Module-owned dependencies
-const organizationsRepository = new OrganizationsRepository();
-const organizationsService = new OrganizationsService(organizationsRepository);
-const orgGuards = createOrganizationsGuards({ organizationsRepository });
-const identityGuards = createIdentityGuards();
-const profileRepository = new ProfileRepository();
-const profileGuards = createProfileGuards({ profileRepository });
+export function createUserRoutes(deps: UserRoutesDeps): Router {
+  const router = Router();
 
-// Cross-module adapter: organizations → user-profile
-const orgsToProfileAdapter = new OrganizationsToProfileAdapter(
-  organizationsRepository,
-  organizationsService,
-);
+  // All user routes require authentication
+  router.use(deps.authenticate);
 
-// All user routes require authentication
-router.use(authMiddleware.authenticate);
+  // Delegate to module-specific routers
+  router.use(
+    createProfileRoutes({
+      controller: deps.userProfile.controller,
+      profileGuards: deps.userProfile.guards,
+      identityGuards: deps.identity.guards,
+      orgGuards: deps.organizations.guards,
+    }),
+  );
+  router.use(
+    createIdentityRoutes({
+      controller: deps.identity.controller,
+      identityGuards: deps.identity.guards,
+      orgGuards: deps.organizations.guards,
+    }),
+  );
+  router.use(
+    createNotificationsRoutes({
+      controller: deps.notifications.controller,
+      profileGuards: deps.userProfile.guards,
+    }),
+  );
 
-// Delegate to module-specific routers
-router.use(
-  createProfileRoutes({
-    profileGuards,
-    identityGuards,
-    orgGuards,
-    orgRoleQuery: orgsToProfileAdapter,
-    userOrgsQuery: orgsToProfileAdapter,
-  }),
-);
-router.use(createIdentityRoutes({ identityGuards, orgGuards, emailService }));
-// Wire getUserContactInfo via adapter (notifications needs user email/name for unsubscribe)
-const identityRepository = new IdentityRepository();
-const identityToNotificationsAdapter = new IdentityToNotificationsAdapter(
-  identityRepository,
-);
-
-router.use(
-  createNotificationsRoutes({
-    profileGuards,
-    emailService,
-    getUserContactInfo: (userId: number) =>
-      identityToNotificationsAdapter.getUserContactInfo(userId),
-  }),
-);
-
-export default router;
+  return router;
+}

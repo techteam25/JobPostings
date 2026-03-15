@@ -41,13 +41,15 @@ const {
 
 vi.mock("@shared/infrastructure/email.service", () => {
   // noinspection JSUnusedGlobalSymbols
-  return {
-    EmailService: class {
-      sendAccountDeactivationConfirmation =
-        mockSendAccountDeactivationConfirmation;
-      sendAccountDeletionConfirmation = mockSendAccountDeletionConfirmation;
-    },
+  const MockEmailService = class {
+    sendAccountDeactivationConfirmation =
+      mockSendAccountDeactivationConfirmation;
+    sendAccountDeletionConfirmation = mockSendAccountDeletionConfirmation;
   };
+  Object.assign(MockEmailService, {
+    createDefault: vi.fn().mockReturnValue(new MockEmailService()),
+  });
+  return { EmailService: MockEmailService };
 });
 
 vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {

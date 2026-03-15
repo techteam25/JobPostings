@@ -1,3 +1,5 @@
+export { createOrganizationsModule } from "./composition-root";
+export type { OrganizationsModule } from "./composition-root";
 export { OrganizationsService } from "./services/organizations.service";
 export { OrganizationsController } from "./controllers/organizations.controller";
 export { OrganizationsRepository } from "./repositories/organizations.repository";

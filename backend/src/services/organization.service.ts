@@ -60,7 +60,7 @@ export class OrganizationService
     const userEmailQueryAdapter = new IdentityToInvitationsAdapter(
       identityRepository,
     );
-    const emailService = new EmailService();
+    const emailService = EmailService.createDefault();
     this.invitationsService = new InvitationsService(
       invitationsRepository,
       orgMembershipAdapter,
