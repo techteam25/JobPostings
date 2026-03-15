@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { ProfileController } from "../controllers/profile.controller";
-import type { ProfileGuards } from "../guards/profile.guards";
+import type { ProfileGuards } from "@/modules/user-profile";
 import type { IdentityGuards } from "@/modules/identity";
 import type { OrganizationsGuards } from "@/modules/organizations";
 import validate from "@/middleware/validation.middleware";

@@ -1,7 +1,7 @@
 import { Router, type RequestHandler } from "express";
 
 import type { OrganizationsController } from "../controllers/organizations.controller";
-import type { OrganizationsGuards } from "../guards/organizations.guards";
+import type { OrganizationsGuards } from "@/modules/organizations";
 import { uploadMiddleware } from "@/middleware/multer.middleware";
 import validate from "@/middleware/validation.middleware";
 import {

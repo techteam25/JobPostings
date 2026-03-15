@@ -2,7 +2,7 @@ import { Router, type RequestHandler } from "express";
 
 import type { InvitationsController } from "../controllers/invitations.controller";
 import type { OrganizationsGuards } from "@/modules/organizations";
-import type { InvitationsGuards } from "../guards/invitations.guards";
+import type { InvitationsGuards } from "@/modules/invitations";
 import validate from "@/middleware/validation.middleware";
 import {
   createOrganizationInvitationSchema,
