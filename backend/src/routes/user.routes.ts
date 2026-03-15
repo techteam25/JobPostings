@@ -1,4 +1,4 @@
-import { Router, type RequestHandler } from "express";
+import { Router } from "express";
 import { z } from "zod";
 import {
   updateUserPayloadSchema,
@@ -25,14 +25,11 @@ import {
   updateJobAlertSchema,
   togglePauseJobAlertSchema,
 } from "@/validations/jobAlerts.validation";
-import { createIdentityRoutes } from "@/modules/identity/routes/identity.routes";
-import { createProfileRoutes } from "@/modules/user-profile/routes/profile.routes";
-import { createNotificationsRoutes } from "@/modules/notifications/routes/notifications.routes";
+import { createIdentityRoutes } from "@/modules/identity";
+import { createProfileRoutes } from "@/modules/user-profile";
+import { createNotificationsRoutes } from "@/modules/notifications";
 
-import type { IdentityModule } from "@/modules/identity/composition-root";
-import type { UserProfileModule } from "@/modules/user-profile/composition-root";
-import type { NotificationsModule } from "@/modules/notifications/composition-root";
-import type { OrganizationsModule } from "@/modules/organizations/composition-root";
+import type { CompositionRoot } from "@/composition-root";
 
 const userResponseSchema = apiResponseSchema(
   selectUserSchema.extend({
@@ -969,11 +966,11 @@ registry.registerPath({
 // Dependencies are provided by the central composition root.
 
 interface UserRoutesDeps {
-  authenticate: RequestHandler;
-  identity: IdentityModule;
-  userProfile: UserProfileModule;
-  notifications: NotificationsModule;
-  organizations: OrganizationsModule;
+  authenticate: CompositionRoot["authenticate"];
+  identity: CompositionRoot["identity"];
+  userProfile: CompositionRoot["userProfile"];
+  notifications: CompositionRoot["notifications"];
+  organizations: CompositionRoot["organizations"];
 }
 
 export function createUserRoutes(deps: UserRoutesDeps): Router {

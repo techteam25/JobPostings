@@ -1,5 +1,5 @@
-import type { IdentityRepositoryPort } from "@/modules/identity/ports/identity-repository.port";
-import type { UserActivityQueryPort } from "@/modules/notifications/ports/user-activity-query.port";
+import type { IdentityRepositoryPort } from "@/modules/identity";
+import type { UserActivityQueryPort } from "@/modules/notifications";
 
 /**
  * Adapter bridging the identity repository into the notifications module's

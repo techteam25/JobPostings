@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { NotificationsController } from "@/modules/notifications";
+import type { NotificationsController } from "../controllers/notifications.controller";
 import type { ProfileGuards } from "@/modules/user-profile";
 import validate from "@/middleware/validation.middleware";
 import {

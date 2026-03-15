@@ -4,7 +4,7 @@ import type { ProfileRepositoryPort } from "@/modules/user-profile/ports/profile
 
 /**
  * Creates user-profile authorization guards.
- * Handles job seeker capability verification.
+ * Handles `jobseeker` capability verification.
  */
 export function createProfileGuards(deps: {
   profileRepository: ProfileRepositoryPort;
@@ -12,7 +12,7 @@ export function createProfileGuards(deps: {
   const { profileRepository } = deps;
 
   /**
-   * Checks if the user has job seeker capability (has a user profile).
+   * Checks if the user has `jobseeker` capability (has a user profile).
    * Used to gate job-seeking actions: applying, saving jobs, job alerts.
    *
    * User scenarios:
@@ -47,7 +47,7 @@ export function createProfileGuards(deps: {
       }
 
       return next();
-    } catch (error) {
+    } catch {
       return res.status(500).json({
         success: false,
         status: "error",

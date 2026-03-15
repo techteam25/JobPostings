@@ -1,8 +1,7 @@
-import { Router, type RequestHandler } from "express";
+import { Router } from "express";
 
 import {
   createOrganizationSchema,
-  updateOrganizationInputSchema,
   getOrganizationSchema,
   deleteOrganizationSchema,
   updateOrganizationSchema,
@@ -26,15 +25,12 @@ import {
   selectJobApplicationSchema,
 } from "@/validations/jobApplications.validation";
 import { getJobSchema } from "@/validations/job.validation";
-import { getUserSchema } from "@/validations/user.validation";
 
-import { createOrganizationsRoutes } from "@/modules/organizations/routes/organizations.routes";
-import { createOrgApplicationsRoutes } from "@/modules/applications/routes/org-applications.routes";
-import { createInvitationsRoutes } from "@/modules/invitations/routes/invitations.routes";
+import { createOrganizationsRoutes } from "@/modules/organizations";
+import { createOrgApplicationsRoutes } from "@/modules/applications";
+import { createInvitationsRoutes } from "@/modules/invitations";
 
-import type { OrganizationsModule } from "@/modules/organizations/composition-root";
-import type { ApplicationsModule } from "@/modules/applications/composition-root";
-import type { InvitationsModule } from "@/modules/invitations/composition-root";
+import type { CompositionRoot } from "@/composition-root";
 
 const organizationResponse = apiResponseSchema(selectOrganizationSchema);
 const paginatedOrganizationResponse = apiResponseSchema(
@@ -892,10 +888,10 @@ registry.registerPath({
 // Dependencies are provided by the central composition root.
 
 interface OrganizationRoutesDeps {
-  authenticate: RequestHandler;
-  organizations: OrganizationsModule;
-  applications: ApplicationsModule;
-  invitations: InvitationsModule;
+  authenticate: CompositionRoot["authenticate"];
+  organizations: CompositionRoot["organizations"];
+  applications: CompositionRoot["applications"];
+  invitations: CompositionRoot["invitations"];
 }
 
 export function createOrganizationRoutes(deps: OrganizationRoutesDeps): Router {

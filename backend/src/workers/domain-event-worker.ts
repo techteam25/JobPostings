@@ -1,12 +1,15 @@
 import { Job as BullMqJob } from "bullmq";
 import { DomainEventType } from "@shared/events";
 import type { DomainEvent } from "@shared/events";
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 import { JobInsightsRepository } from "@/modules/job-board";
 import { NotificationsRepository } from "@/modules/notifications";
 import logger from "@shared/logger";
-import type { ApplicationSubmittedPayload } from "@/modules/applications/events/application-submitted.event";
-import type { UserDeactivatedPayload } from "@/modules/identity/events/user-deactivated.event";
+import type { ApplicationSubmittedPayload } from "@/modules/applications";
+import type { UserDeactivatedPayload } from "@/modules/identity";
 
 const jobInsightsRepository = new JobInsightsRepository();
 const notificationsRepository = new NotificationsRepository();

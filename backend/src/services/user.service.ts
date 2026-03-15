@@ -64,15 +64,17 @@ export class UserService extends BaseService implements UserServicePort {
     this.notificationsService = new NotificationsService(
       notificationsRepository,
       this.emailService,
-      async (userId: number) => {
-        const result = await this.profileService.getUserById(userId);
-        if (result.isSuccess && result.value) {
-          return {
-            email: result.value.email,
-            fullName: result.value.fullName,
-          };
-        }
-        return null;
+      {
+        getUserContactInfo: async (userId: number) => {
+          const result = await this.profileService.getUserById(userId);
+          if (result.isSuccess && result.value) {
+            return {
+              email: result.value.email,
+              fullName: result.value.fullName,
+            };
+          }
+          return null;
+        },
       },
     );
   }

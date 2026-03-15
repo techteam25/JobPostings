@@ -1,4 +1,4 @@
-import { Router, type RequestHandler } from "express";
+import { Router } from "express";
 
 import validate from "../middleware/validation.middleware";
 import {
@@ -9,7 +9,7 @@ import { registry, z } from "@/swagger/registry";
 import { apiResponseSchema, errorResponseSchema } from "@shared/types";
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
 
-import type { InvitationsModule } from "@/modules/invitations/composition-root";
+import type { CompositionRoot } from "@/composition-root";
 
 // ─── OpenAPI Registry (documentation only) ──────────────────────────
 
@@ -135,8 +135,8 @@ registry.registerPath({
 // Dependencies are provided by the central composition root.
 
 interface InvitationRoutesDeps {
-  authenticate: RequestHandler;
-  invitations: InvitationsModule;
+  authenticate: CompositionRoot["authenticate"];
+  invitations: CompositionRoot["invitations"];
 }
 
 export function createInvitationRoutes(deps: InvitationRoutesDeps): Router {

@@ -1,6 +1,11 @@
-import type { OrganizationsRepositoryPort } from "@/modules/organizations/ports/organizations-repository.port";
-import type { OrganizationsServicePort } from "@/modules/organizations/ports/organizations-service.port";
-import type { OrgRoleQueryPort, UserOrganizationsQueryPort } from "@/modules/user-profile/ports/org-query.port";
+import type {
+  OrganizationsRepositoryPort,
+  OrganizationsServicePort,
+} from "@/modules/organizations";
+import type {
+  OrgRoleQueryPort,
+  UserOrganizationsQueryPort,
+} from "@/modules/user-profile";
 import type { Result } from "@shared/result";
 import type { UserOrganizationInterface } from "@/validations/organization.validation";
 

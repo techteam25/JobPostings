@@ -3,6 +3,7 @@ import { BaseService } from "@shared/base/base.service";
 import type { NotificationsServicePort } from "@/modules/notifications";
 import type { NotificationsRepositoryPort } from "@/modules/notifications";
 import type { EmailServicePort } from "@/ports/email-service.port";
+import type { UserActivityQueryPort } from "@/modules/notifications";
 import {
   AppError,
   DatabaseError,
@@ -25,9 +26,10 @@ export class NotificationsService
   constructor(
     private notificationsRepository: NotificationsRepositoryPort,
     private emailService: EmailServicePort,
-    private getUserById: (
-      userId: number,
-    ) => Promise<{ email: string; fullName: string } | null>,
+    private userActivityQuery: Pick<
+      UserActivityQueryPort,
+      "getUserContactInfo"
+    >,
   ) {
     super();
   }
@@ -250,7 +252,7 @@ export class NotificationsService
       }
 
       return `${env.SERVER_URL}/api/users/me/email-preferences/unsubscribe/${preferences.unsubscribeToken}`;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -507,7 +509,7 @@ export class NotificationsService
         userAgent: metadata?.userAgent,
       });
 
-      const user = await this.getUserById(userId);
+      const user = await this.userActivityQuery.getUserContactInfo(userId);
       if (user) {
         await this.emailService.sendUnsubscribeConfirmation(
           userId,
@@ -645,7 +647,9 @@ export class NotificationsService
         return fail(new NotFoundError("Invalid or expired unsubscribe token"));
       }
 
-      const userInfo = await this.getUserById(prefsResult.userId);
+      const userInfo = await this.userActivityQuery.getUserContactInfo(
+        prefsResult.userId,
+      );
 
       if (!userInfo) {
         return fail(new NotFoundError("User not found"));

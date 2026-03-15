@@ -1,14 +1,12 @@
-import type { ApplicationsRepositoryPort } from "@/modules/applications/ports/applications-repository.port";
-import type { ApplicationStatusQueryPort } from "@/modules/job-board/ports/application-status-query.port";
+import type { ApplicationsRepositoryPort } from "@/modules/applications";
+import type { ApplicationStatusQueryPort } from "@/modules/job-board";
 
 /**
  * Adapter bridging the applications repository into the job-board module's
  * ApplicationStatusQueryPort. Translates application data into the shape
  * the job-board module expects.
  */
-export class ApplicationsToJobBoardAdapter
-  implements ApplicationStatusQueryPort
-{
+export class ApplicationsToJobBoardAdapter implements ApplicationStatusQueryPort {
   constructor(
     private readonly applicationsRepository: ApplicationsRepositoryPort,
   ) {}

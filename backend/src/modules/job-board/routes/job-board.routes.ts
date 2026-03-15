@@ -1,5 +1,5 @@
 import { Router, type RequestHandler } from "express";
-import type { JobBoardController } from "@/modules/job-board";
+import type { JobBoardController } from "../controllers/job-board.controller";
 import type { JobBoardGuards } from "@/modules/job-board";
 import type { OrganizationsGuards } from "@/modules/organizations";
 import validate from "@/middleware/validation.middleware";
@@ -23,7 +23,12 @@ export function createJobBoardRoutes({
   controller,
 }: {
   authenticate: RequestHandler;
-  orgGuards: Pick<OrganizationsGuards, "requireJobPostingRole" | "ensureIsOrganizationMember" | "requireDeleteJobPermission">;
+  orgGuards: Pick<
+    OrganizationsGuards,
+    | "requireJobPostingRole"
+    | "ensureIsOrganizationMember"
+    | "requireDeleteJobPermission"
+  >;
   jobBoardGuards: JobBoardGuards;
   controller: JobBoardController;
 }): Router {
@@ -72,7 +77,7 @@ export function createJobBoardRoutes({
     authenticate,
     orgGuards.requireJobPostingRole(),
     validate(createJobSchema),
-    invalidateCacheMiddleware((_req) => `/api/jobs`),
+    invalidateCacheMiddleware(() => `/api/jobs`),
     controller.createJob,
   );
 
@@ -82,7 +87,7 @@ export function createJobBoardRoutes({
     authenticate,
     orgGuards.requireJobPostingRole(),
     validate(updateJobSchema),
-    invalidateCacheMiddleware((_req) => `/api/jobs`),
+    invalidateCacheMiddleware(() => `/api/jobs`),
     controller.updateJob,
   );
 
@@ -93,7 +98,7 @@ export function createJobBoardRoutes({
     jobBoardGuards.ensureJobOwnership,
     orgGuards.requireDeleteJobPermission(),
     validate(deleteJobSchema),
-    invalidateCacheMiddleware((_req) => `/api/jobs`),
+    invalidateCacheMiddleware(() => `/api/jobs`),
     invalidateCacheMiddleware((req) => `/api/jobs/${req.params.jobId}`),
     controller.deleteJob,
   );

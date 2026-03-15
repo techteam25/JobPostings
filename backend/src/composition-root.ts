@@ -8,13 +8,13 @@ import { UserRepository } from "@/repositories/user.repository";
 import { OrganizationRepository } from "@/repositories/organization.repository";
 
 // Module composition roots
-import { createOrganizationsModule } from "@/modules/organizations/composition-root";
-import { createIdentityModule } from "@/modules/identity/composition-root";
-import { createUserProfileModule } from "@/modules/user-profile/composition-root";
-import { createNotificationsModule } from "@/modules/notifications/composition-root";
-import { createJobBoardModule } from "@/modules/job-board/composition-root";
-import { createApplicationsModule } from "@/modules/applications/composition-root";
-import { createInvitationsModule } from "@/modules/invitations/composition-root";
+import { createOrganizationsModule } from "@/modules/organizations";
+import { createIdentityModule } from "@/modules/identity";
+import { createUserProfileModule } from "@/modules/user-profile";
+import { createNotificationsModule } from "@/modules/notifications";
+import { createJobBoardModule } from "@/modules/job-board";
+import { createApplicationsModule } from "@/modules/applications";
+import { createInvitationsModule } from "@/modules/invitations";
 
 // Repositories created centrally for circular dependency resolution
 import { JobBoardRepository } from "@/modules/job-board";
@@ -37,6 +37,32 @@ import {
 // Auth dependency injection
 import { setAuthDependencies } from "@/utils/auth";
 
+import type { RequestHandler } from "express";
+import type { IdentityModule } from "@/modules/identity";
+import type { UserProfileModule } from "@/modules/user-profile";
+import type { NotificationsModule } from "@/modules/notifications";
+import type { JobBoardModule } from "@/modules/job-board";
+import type { ApplicationsModule } from "@/modules/applications";
+import type { OrganizationsModule } from "@/modules/organizations";
+import type { InvitationsModule } from "@/modules/invitations";
+import type { EmailServicePort } from "@/ports/email-service.port";
+
+/**
+ * Public API of the composition root — only exposes controller + guards per module.
+ * Internal details (repositories, services) are hidden from route consumers.
+ */
+export type CompositionRoot = {
+  authenticate: RequestHandler;
+  identity: Pick<IdentityModule, "controller" | "guards">;
+  userProfile: Pick<UserProfileModule, "controller" | "guards">;
+  notifications: Pick<NotificationsModule, "controller">;
+  jobBoard: Pick<JobBoardModule, "controller" | "guards">;
+  applications: Pick<ApplicationsModule, "controller" | "guards">;
+  organizations: Pick<OrganizationsModule, "controller" | "guards">;
+  invitations: Pick<InvitationsModule, "controller" | "guards">;
+  emailService: EmailServicePort;
+};
+
 /**
  * Central composition root for the entire application.
  *
@@ -52,7 +78,7 @@ import { setAuthDependencies } from "@/utils/auth";
  * 5. Remaining modules (user-profile, notifications, job-board, applications, invitations)
  * 6. Auth dependency injection
  */
-export function createCompositionRoot() {
+export function createCompositionRoot(): CompositionRoot {
   // ─── 1. Shared Infrastructure ───────────────────────────────────────
 
   const authMiddleware = new AuthMiddleware();
@@ -121,8 +147,7 @@ export function createCompositionRoot() {
 
   const notifications = createNotificationsModule({
     emailService,
-    getUserContactInfo: (userId: number) =>
-      identityToNotificationsAdapter.getUserContactInfo(userId),
+    userActivityQuery: identityToNotificationsAdapter,
   });
 
   const jobBoard = createJobBoardModule({
@@ -151,7 +176,6 @@ export function createCompositionRoot() {
 
   // ─── 6. Auth Dependency Injection ──────────────────────────────────
   // Inject dependencies into the auth module (Better-Auth hooks)
-  // so it no longer needs the old UserService facade.
 
   setAuthDependencies({
     notificationsService: notifications.service,
@@ -176,5 +200,3 @@ export function createCompositionRoot() {
     emailService,
   };
 }
-
-export type CompositionRoot = ReturnType<typeof createCompositionRoot>;

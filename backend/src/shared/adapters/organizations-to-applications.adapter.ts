@@ -1,14 +1,12 @@
-import type { OrganizationsRepositoryPort } from "@/modules/organizations/ports/organizations-repository.port";
-import type { OrgMembershipQueryPort } from "@/modules/applications/ports/org-membership-query.port";
+import type { OrganizationsRepositoryPort } from "@/modules/organizations";
+import type { OrgMembershipQueryPort } from "@/modules/applications";
 
 /**
  * Adapter bridging the organizations repository into the applications module's
  * OrgMembershipQueryPort. Provides membership lookup for authorization checks
  * without coupling applications to organizations internals.
  */
-export class OrganizationsToApplicationsAdapter
-  implements OrgMembershipQueryPort
-{
+export class OrganizationsToApplicationsAdapter implements OrgMembershipQueryPort {
   constructor(
     private readonly organizationsRepository: OrganizationsRepositoryPort,
   ) {}

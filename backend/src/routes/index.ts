@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createCompositionRoot } from "@/composition-root";
+import { CompositionRoot, createCompositionRoot } from "@/composition-root";
 import { createUserRoutes } from "./user.routes";
 import { createJobRoutes } from "./job.routes";
 import { createOrganizationRoutes } from "./organization.routes";
@@ -10,7 +10,7 @@ import { createInvitationRoutes } from "./invitation.routes";
 // All dependency wiring happens here — modules, adapters, infrastructure.
 // Each top-level route factory receives pre-wired modules.
 
-const root = createCompositionRoot();
+const root: CompositionRoot = createCompositionRoot();
 const router = Router();
 
 // Mount route modules

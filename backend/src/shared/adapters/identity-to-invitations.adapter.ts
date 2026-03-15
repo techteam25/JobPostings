@@ -1,5 +1,5 @@
-import type { IdentityRepositoryPort } from "@/modules/identity/ports/identity-repository.port";
-import type { UserEmailQueryPort } from "@/modules/invitations/ports/user-email-query.port";
+import type { IdentityRepositoryPort } from "@/modules/identity";
+import type { UserEmailQueryPort } from "@/modules/invitations";
 
 /**
  * Adapter bridging the identity repository into the invitations module's

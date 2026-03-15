@@ -1,6 +1,6 @@
 import { Router } from "express";
-import type { IdentityController } from "@/modules/identity";
-import type { IdentityGuards } from "@/modules/identity";
+import type { IdentityController } from "../controllers/identity.controller";
+import type { IdentityGuards } from "../guards/identity.guards";
 import type { OrganizationsGuards } from "@/modules/organizations";
 import validate from "@/middleware/validation.middleware";
 import {

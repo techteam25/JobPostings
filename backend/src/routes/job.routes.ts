@@ -1,4 +1,4 @@
-import { Router, type RequestHandler } from "express";
+import { Router } from "express";
 
 import {
   selectJobSchema,
@@ -10,7 +10,6 @@ import {
 import { searchJobResult, searchParams } from "@/validations/base.validation";
 import {
   applyForJobSchema,
-  updateApplicationStatusSchema,
   getJobApplicationSchema,
   selectJobApplicationSchema,
 } from "@/validations/jobApplications.validation";
@@ -28,13 +27,10 @@ import {
   paginationMetaSchema,
 } from "@shared/types";
 
-import { createJobBoardRoutes } from "@/modules/job-board/routes/job-board.routes";
-import { createApplicationsRoutes } from "@/modules/applications/routes/applications.routes";
+import { createJobBoardRoutes } from "@/modules/job-board";
+import { createApplicationsRoutes } from "@/modules/applications";
 
-import type { JobBoardModule } from "@/modules/job-board/composition-root";
-import type { ApplicationsModule } from "@/modules/applications/composition-root";
-import type { OrganizationsModule } from "@/modules/organizations/composition-root";
-import type { UserProfileModule } from "@/modules/user-profile/composition-root";
+import type { CompositionRoot } from "@/composition-root";
 
 // ─── OpenAPI Registry (documentation only) ──────────────────────────
 
@@ -487,11 +483,11 @@ registry.registerPath({
 // Dependencies are provided by the central composition root.
 
 interface JobRoutesDeps {
-  authenticate: RequestHandler;
-  jobBoard: JobBoardModule;
-  applications: ApplicationsModule;
-  organizations: OrganizationsModule;
-  userProfile: UserProfileModule;
+  authenticate: CompositionRoot["authenticate"];
+  jobBoard: CompositionRoot["jobBoard"];
+  applications: CompositionRoot["applications"];
+  organizations: CompositionRoot["organizations"];
+  userProfile: CompositionRoot["userProfile"];
 }
 
 export function createJobRoutes(deps: JobRoutesDeps): Router {

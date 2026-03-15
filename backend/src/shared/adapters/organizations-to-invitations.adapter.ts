@@ -1,4 +1,4 @@
-import type { OrgMembershipCommandPort } from "@/modules/invitations/ports/org-membership-command.port";
+import type { OrgMembershipCommandPort } from "@/modules/invitations";
 
 /**
  * Adapter bridging the organizations repository into the invitations module's
@@ -9,9 +9,7 @@ import type { OrgMembershipCommandPort } from "@/modules/invitations/ports/org-m
  * is created. During the transition, it accepts the concrete repository
  * typed as the new port.
  */
-export class OrganizationsToInvitationsAdapter
-  implements OrgMembershipCommandPort
-{
+export class OrganizationsToInvitationsAdapter implements OrgMembershipCommandPort {
   constructor(
     private readonly organizationsRepository: {
       createMember(data: {
@@ -19,8 +17,7 @@ export class OrganizationsToInvitationsAdapter
         organizationId: number;
         role: "owner" | "admin" | "recruiter" | "member";
       }): Promise<
-        | { userId: number; organizationId: number; role: string }
-        | undefined
+        { userId: number; organizationId: number; role: string } | undefined
       >;
       findByContact(
         contactId: number,
@@ -28,7 +25,9 @@ export class OrganizationsToInvitationsAdapter
       ): Promise<{ id: number; role: string } | null>;
       findById(
         id: number,
-      ): Promise<{ id: number; name: string; [key: string]: unknown } | undefined>;
+      ): Promise<
+        { id: number; name: string; [key: string]: unknown } | undefined
+      >;
     },
   ) {}
 
@@ -61,9 +60,7 @@ export class OrganizationsToInvitationsAdapter
     };
   }
 
-  async getOrganizationName(
-    organizationId: number,
-  ): Promise<string | null> {
+  async getOrganizationName(organizationId: number): Promise<string | null> {
     const org = await this.organizationsRepository.findById(organizationId);
 
     if (!org) {

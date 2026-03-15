@@ -1,5 +1,5 @@
 import { Router, type RequestHandler } from "express";
-import type { ApplicationsController } from "@/modules/applications";
+import type { ApplicationsController } from "../controllers/applications.controller";
 import type { ApplicationsGuards } from "@/modules/applications";
 import type { ProfileGuards } from "@/modules/user-profile";
 import type { OrganizationsGuards } from "@/modules/organizations";
@@ -80,7 +80,7 @@ export function createApplicationsRoutes({
     authenticate,
     orgGuards.requireJobPostingRole(),
     validate(updateApplicationStatusSchema),
-    invalidateCacheMiddleware((_req) => `/api/jobs/me/applications`),
+    invalidateCacheMiddleware(() => `/api/jobs/me/applications`),
     controller.updateApplicationStatus,
   );
 

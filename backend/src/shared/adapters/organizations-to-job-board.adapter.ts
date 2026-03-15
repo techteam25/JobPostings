@@ -1,5 +1,5 @@
-import type { OrganizationsRepositoryPort } from "@/modules/organizations/ports/organizations-repository.port";
-import type { OrgMembershipForJobPort } from "@/modules/job-board/ports/org-membership-for-job.port";
+import type { OrganizationsRepositoryPort } from "@/modules/organizations";
+import type { OrgMembershipForJobPort } from "@/modules/job-board";
 
 /**
  * Adapter bridging the organizations repository into the job-board module's

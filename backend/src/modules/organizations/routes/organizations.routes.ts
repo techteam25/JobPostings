@@ -1,7 +1,7 @@
 import { Router, type RequestHandler } from "express";
 
-import type { OrganizationsController } from "@/modules/organizations";
-import type { OrganizationsGuards } from "@/modules/organizations";
+import type { OrganizationsController } from "../controllers/organizations.controller";
+import type { OrganizationsGuards } from "../guards/organizations.guards";
 import { uploadMiddleware } from "@/middleware/multer.middleware";
 import validate from "@/middleware/validation.middleware";
 import {
@@ -23,7 +23,10 @@ export function createOrganizationsRoutes({
   controller,
 }: {
   authenticate: RequestHandler;
-  orgGuards: Pick<OrganizationsGuards, "requireAdminOrOwnerRole" | "ensureIsOrganizationMember">;
+  orgGuards: Pick<
+    OrganizationsGuards,
+    "requireAdminOrOwnerRole" | "ensureIsOrganizationMember"
+  >;
   controller: OrganizationsController;
 }): Router {
   const router = Router();

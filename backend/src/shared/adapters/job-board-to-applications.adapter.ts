@@ -1,5 +1,5 @@
-import type { JobBoardRepositoryPort } from "@/modules/job-board/ports/job-board-repository.port";
-import type { JobDetailsQueryPort } from "@/modules/applications/ports/job-details-query.port";
+import type { JobBoardRepositoryPort } from "@/modules/job-board";
+import type { JobDetailsQueryPort } from "@/modules/applications";
 
 /**
  * Adapter bridging the job-board repository into the applications module's

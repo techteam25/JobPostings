@@ -1,7 +1,6 @@
 export { createJobBoardModule } from "./composition-root";
 export type { JobBoardModule } from "./composition-root";
-export { JobBoardService } from "./services/job-board.service";
-export { JobBoardController } from "./controllers/job-board.controller";
+// Concrete exports — used by composition-root.ts (circular dep) and workers
 export { JobBoardRepository } from "./repositories/job-board.repository";
 export { JobInsightsRepository } from "./repositories/job-insights.repository";
 export type { JobBoardServicePort } from "./ports/job-board-service.port";
@@ -11,3 +10,4 @@ export type { ApplicationStatusQueryPort } from "./ports/application-status-quer
 export type { OrgMembershipForJobPort } from "./ports/org-membership-for-job.port";
 export { createJobBoardGuards } from "./guards/job-board.guards";
 export type { JobBoardGuards } from "./guards/job-board.guards";
+export { createJobBoardRoutes } from "./routes/job-board.routes";

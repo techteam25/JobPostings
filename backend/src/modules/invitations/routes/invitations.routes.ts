@@ -1,8 +1,8 @@
 import { Router, type RequestHandler } from "express";
 
-import type { InvitationsController } from "@/modules/invitations";
+import type { InvitationsController } from "../controllers/invitations.controller";
 import type { OrganizationsGuards } from "@/modules/organizations";
-import type { InvitationsGuards } from "@/modules/invitations";
+import type { InvitationsGuards } from "../guards/invitations.guards";
 import validate from "@/middleware/validation.middleware";
 import {
   createOrganizationInvitationSchema,
@@ -19,7 +19,12 @@ export function createInvitationsRoutes({
   controller,
 }: {
   authenticate: RequestHandler;
-  orgGuards: Pick<OrganizationsGuards, "requireAdminOrOwnerRole" | "ensureIsOrganizationMember" | "validateRoleAssignment">;
+  orgGuards: Pick<
+    OrganizationsGuards,
+    | "requireAdminOrOwnerRole"
+    | "ensureIsOrganizationMember"
+    | "validateRoleAssignment"
+  >;
   invitationsGuards: InvitationsGuards;
   controller: InvitationsController;
 }): Router {

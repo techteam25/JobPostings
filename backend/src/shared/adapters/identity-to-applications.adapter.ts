@@ -1,5 +1,5 @@
-import type { IdentityRepositoryPort } from "@/modules/identity/ports/identity-repository.port";
-import type { ApplicantQueryPort } from "@/modules/applications/ports/applicant-query.port";
+import type { IdentityRepositoryPort } from "@/modules/identity";
+import type { ApplicantQueryPort } from "@/modules/applications";
 
 /**
  * Adapter bridging the identity repository into the applications module's
@@ -8,9 +8,7 @@ import type { ApplicantQueryPort } from "@/modules/applications/ports/applicant-
  * applications to identity internals.
  */
 export class IdentityToApplicationsAdapter implements ApplicantQueryPort {
-  constructor(
-    private readonly identityRepository: IdentityRepositoryPort,
-  ) {}
+  constructor(private readonly identityRepository: IdentityRepositoryPort) {}
 
   async findById(
     userId: number,

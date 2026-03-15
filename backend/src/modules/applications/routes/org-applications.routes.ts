@@ -1,5 +1,5 @@
 import { Router, type RequestHandler } from "express";
-import type { ApplicationsController } from "@/modules/applications";
+import type { ApplicationsController } from "../controllers/applications.controller";
 import type { OrganizationsGuards } from "@/modules/organizations";
 import validate from "@/middleware/validation.middleware";
 import {
@@ -25,7 +25,10 @@ export function createOrgApplicationsRoutes({
   controller,
 }: {
   authenticate: RequestHandler;
-  orgGuards: Pick<OrganizationsGuards, "requireJobPostingRole" | "ensureIsOrganizationMember">;
+  orgGuards: Pick<
+    OrganizationsGuards,
+    "requireJobPostingRole" | "ensureIsOrganizationMember"
+  >;
   controller: ApplicationsController;
 }): Router {
   const router = Router();
@@ -59,7 +62,7 @@ export function createOrgApplicationsRoutes({
     orgGuards.requireJobPostingRole(),
     orgGuards.ensureIsOrganizationMember,
     validate(updateJobStatusInputSchema),
-    invalidateCacheMiddleware((_req) => `/api/jobs/me/applications`),
+    invalidateCacheMiddleware(() => `/api/jobs/me/applications`),
     controller.updateOrgJobApplicationStatus,
   );
 
