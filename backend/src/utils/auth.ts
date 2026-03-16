@@ -9,13 +9,16 @@ import { db } from "@shared/db/connection";
 import { env, isProduction } from "@shared/config/env";
 
 import type { NotificationsServicePort } from "@/modules/notifications";
-import type { EmailServicePort } from "@/ports/email-service.port";
+import type { EmailServicePort } from "@shared/ports/email-service.port";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 import { userOnBoarding } from "@/db/schema";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import logger from "@shared/logger";
 import { eq } from "drizzle-orm";
-import { queueService, QUEUE_NAMES } from "@shared/infrastructure/queue.service";
+import {
+  queueService,
+  QUEUE_NAMES,
+} from "@shared/infrastructure/queue.service";
 
 // ─── Setter-Injected Dependencies ────────────────────────────────────
 // These are set by the central composition root at startup, before

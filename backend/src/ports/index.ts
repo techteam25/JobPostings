@@ -1,16 +1,11 @@
-// Repository Ports
-export type { BaseRepositoryPort } from "./base-repository.port";
+// Shared infrastructure ports (canonical location: @shared/ports/)
+// Re-exported here for backward compatibility with old facades and workers.
+export type { EmailServicePort } from "@shared/ports/email-service.port";
+export type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
+export type { BaseRepositoryPort } from "@shared/ports/base-repository.port";
+
+// Facade-era ports — still needed by old facades, workers, and email.service.ts.
+// These will be removed when facades and workers are migrated (Phases 8–9).
 export type { UserRepositoryPort } from "./user-repository.port";
-export type { JobRepositoryPort } from "./job-repository.port";
 export type { OrganizationRepositoryPort } from "./organization-repository.port";
-export type { JobInsightsRepositoryPort } from "./job-insights-repository.port";
-
-// Service Ports
-export type { UserServicePort } from "./user-service.port";
-export type { JobServicePort } from "./job-service.port";
-export type { OrganizationServicePort } from "./organization-service.port";
 export type { JobMatchingServicePort } from "./job-matching-service.port";
-
-// Infrastructure Ports
-export type { EmailServicePort } from "./email-service.port";
-export type { TypesenseServicePort } from "./typesense-service.port";

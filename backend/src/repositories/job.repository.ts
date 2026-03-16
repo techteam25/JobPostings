@@ -1,16 +1,10 @@
 import { eq } from "drizzle-orm";
-import {
-  jobApplications,
-  jobsDetails,
-  organizations,
-  user,
-} from "@/db/schema";
+import { jobApplications, jobsDetails, organizations, user } from "@/db/schema";
 import { db } from "@shared/db/connection";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import { BaseRepository } from "@shared/base/base.repository";
 import { JobBoardRepository } from "@/modules/job-board/repositories/job-board.repository";
 import { ApplicationsRepository } from "@/modules/applications/repositories/applications.repository";
-import type { JobRepositoryPort } from "@/ports/job-repository.port";
 import type {
   JobSkills,
   JobWithSkills,
@@ -29,10 +23,7 @@ import type {
  * from `@/modules/applications` instead. This monolithic class will be removed once all consumers
  * have migrated to the new modular repositories.
  */
-export class JobRepository
-  extends BaseRepository<typeof jobsDetails>
-  implements JobRepositoryPort
-{
+export class JobRepository extends BaseRepository<typeof jobsDetails> {
   private jobBoardRepository: JobBoardRepository;
   private applicationsRepository: ApplicationsRepository;
 

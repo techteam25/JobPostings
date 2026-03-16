@@ -19,8 +19,7 @@ import type {
   OrganizationJobApplicationsResponse,
   UpdateJobStatusInputSchema,
 } from "@/validations/organization.validation";
-import type { ApiResponse, PaginatedResponse } from "@shared/types";
-import { AppError, ErrorCode } from "@shared/errors";
+import type { ApiResponse, EmptyBody } from "@shared/types";
 
 export class ApplicationsController extends BaseController {
   constructor(private applicationsService: ApplicationsServicePort) {
@@ -28,7 +27,11 @@ export class ApplicationsController extends BaseController {
   }
 
   applyForJob = async (
-    req: Request<ApplyForJobSchema["params"], {}, ApplyForJobSchema["body"]>,
+    req: Request<
+      ApplyForJobSchema["params"],
+      EmptyBody,
+      ApplyForJobSchema["body"]
+    >,
     res: Response,
   ) => {
     const jobId = Number(req.params.jobId);
@@ -69,7 +72,12 @@ export class ApplicationsController extends BaseController {
   };
 
   getJobApplications = async (
-    req: Request<GetJobSchema["params"], {}, {}, ApplicationQueryParams>,
+    req: Request<
+      GetJobSchema["params"],
+      EmptyBody,
+      EmptyBody,
+      ApplicationQueryParams
+    >,
     res: Response,
   ) => {
     const jobId = Number(req.params.jobId);
@@ -98,7 +106,7 @@ export class ApplicationsController extends BaseController {
   };
 
   getUserApplications = async (
-    req: Request<{}, {}, {}, ApplicationQueryParams>,
+    req: Request<EmptyBody, EmptyBody, EmptyBody, ApplicationQueryParams>,
     res: Response,
   ) => {
     const userId = req.userId!;
@@ -127,7 +135,11 @@ export class ApplicationsController extends BaseController {
   };
 
   updateApplicationStatus = async (
-    req: Request<GetJobApplicationSchema["params"], {}, UpdateJobApplication>,
+    req: Request<
+      GetJobApplicationSchema["params"],
+      EmptyBody,
+      UpdateJobApplication
+    >,
     res: Response,
   ) => {
     const applicationId = Number(req.params.applicationId);
@@ -211,7 +223,7 @@ export class ApplicationsController extends BaseController {
   updateOrgJobApplicationStatus = async (
     req: Request<
       JobApplicationManagementSchema["params"],
-      {},
+      EmptyBody,
       UpdateJobStatusInputSchema["body"]
     >,
     res: Response<ApiResponse<OrganizationJobApplicationsResponse>>,
@@ -242,7 +254,7 @@ export class ApplicationsController extends BaseController {
   attachNoteToJobApplication = async (
     req: Request<
       JobApplicationManagementSchema["params"],
-      {},
+      EmptyBody,
       CreateJobApplicationNoteInputSchema["body"]
     >,
     res: Response<ApiResponse<JobApplicationWithNotes>>,
@@ -323,8 +335,8 @@ export class ApplicationsController extends BaseController {
   getApplicationsForOrganization = async (
     req: Request<
       GetOrganizationSchema["params"],
-      {},
-      {},
+      EmptyBody,
+      EmptyBody,
       GetOrganizationSchema["query"]
     >,
     res: Response,

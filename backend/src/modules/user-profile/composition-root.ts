@@ -1,4 +1,7 @@
-import type { OrgRoleQueryPort, UserOrganizationsQueryPort } from "./ports/org-query.port";
+import type {
+  OrgRoleQueryPort,
+  UserOrganizationsQueryPort,
+} from "./ports/org-query.port";
 
 import { ProfileRepository } from "./repositories/profile.repository";
 import { ProfileService } from "./services/profile.service";

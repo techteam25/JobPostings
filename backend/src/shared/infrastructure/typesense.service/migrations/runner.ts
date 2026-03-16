@@ -24,7 +24,9 @@ async function ensureMigrationsCollection(client: Client): Promise<void> {
       ],
       default_sorting_field: "appliedAt",
     });
-    logger.info(`Created migrations tracking collection: ${MIGRATIONS_COLLECTION}`);
+    logger.info(
+      `Created migrations tracking collection: ${MIGRATIONS_COLLECTION}`,
+    );
   }
 }
 

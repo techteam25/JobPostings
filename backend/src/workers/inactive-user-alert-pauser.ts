@@ -1,6 +1,9 @@
 import { Job as BullMqJob } from "bullmq";
 import logger from "@shared/logger";
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 import type { NotificationsRepositoryPort } from "@/modules/notifications/ports/notifications-repository.port";
 import type { UserActivityQueryPort } from "@/modules/notifications/ports/user-activity-query.port";
 
@@ -44,7 +47,9 @@ export function createPauseInactiveUserAlerts(
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      logger.error("Inactive user alert pausing failed", { error: errorMessage });
+      logger.error("Inactive user alert pausing failed", {
+        error: errorMessage,
+      });
       throw error;
     }
   };
@@ -95,9 +100,7 @@ export async function scheduleInactiveUserAlertPausing() {
         jobId: "pause-inactive-user-alerts", // Prevent duplicate jobs
       },
     );
-    logger.info(
-      "Scheduled inactive user alert pausing (2:00 AM every Sunday)",
-    );
+    logger.info("Scheduled inactive user alert pausing (2:00 AM every Sunday)");
   } catch (error) {
     logger.error({ error }, "Failed to schedule inactive user alert pausing");
   }

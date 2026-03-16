@@ -15,7 +15,6 @@ import { OrganizationRepository } from "@/repositories/organization.repository";
 import { UserRepository } from "@/repositories/user.repository";
 import { EmailService } from "@shared/infrastructure/email.service";
 import { BullMqEventBus } from "@shared/events";
-import type { OrganizationServicePort } from "@/ports/organization-service.port";
 import type {
   CreateJobApplicationNoteInputSchema,
   NewOrganization,
@@ -34,10 +33,7 @@ import type { JobApplicationWithNotes } from "@/validations/jobApplications.vali
  *   - InvitationsService for invitation operations
  *   - ApplicationsService for employer-scoped application management
  */
-export class OrganizationService
-  extends BaseService
-  implements OrganizationServicePort
-{
+export class OrganizationService extends BaseService {
   private organizationsService: OrganizationsService;
   private invitationsService: InvitationsService;
   private applicationsService: ApplicationsService;
@@ -278,10 +274,7 @@ export class OrganizationService
   }
 
   async getInvitationDetails(token: string, organizationId: number) {
-    return this.invitationsService.getInvitationDetails(
-      token,
-      organizationId,
-    );
+    return this.invitationsService.getInvitationDetails(token, organizationId);
   }
 
   async acceptInvitation(

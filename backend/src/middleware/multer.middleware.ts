@@ -3,6 +3,7 @@ import path from "path";
 import { Request } from "express";
 
 import {
+  AllowedFileTypes,
   DEFAULT_ALLOWED_TYPES,
   FILE_UPLOAD_CONFIG,
 } from "@/validations/file.validation";
@@ -33,7 +34,7 @@ const fileFilter = (
   file: Express.Multer.File,
   cb: FileFilterCallback,
 ) => {
-  if (DEFAULT_ALLOWED_TYPES.includes(file.mimetype as any)) {
+  if (DEFAULT_ALLOWED_TYPES.includes(file.mimetype as AllowedFileTypes)) {
     cb(null, true);
   } else {
     cb(

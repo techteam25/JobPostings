@@ -1,7 +1,6 @@
 import { UserRepository } from "@/repositories/user.repository";
 import { EmailService } from "@shared/infrastructure/email.service";
 import { BaseService } from "@shared/base/base.service";
-import type { UserServicePort } from "@/ports/user-service.port";
 import type { UserRepositoryPort } from "@/ports/user-repository.port";
 import type { EmailServicePort } from "@/ports/email-service.port";
 import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
@@ -34,7 +33,7 @@ import { BullMqEventBus } from "@shared/events";
  *   - ProfileService for profile/search/saved-jobs operations
  *   - NotificationsService for email preferences/job alerts
  */
-export class UserService extends BaseService implements UserServicePort {
+export class UserService extends BaseService {
   private identityService: IdentityService;
   private profileService: ProfileService;
   private notificationsService: NotificationsService;

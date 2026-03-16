@@ -1,4 +1,4 @@
-import type { EmailServicePort } from "@/ports/email-service.port";
+import type { EmailServicePort } from "@shared/ports/email-service.port";
 import type { EventBusPort } from "@shared/events/event-bus.port";
 
 import { IdentityRepository } from "./repositories/identity.repository";

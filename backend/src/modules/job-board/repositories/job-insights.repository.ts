@@ -66,8 +66,14 @@ export class JobInsightsRepository
       const [result] = await db
         .select({
           total: count(),
-          active: sql`SUM(CASE WHEN ${jobsDetails.isActive} = true THEN 1 ELSE 0 END)`.mapWith(Number),
-          inactive: sql`SUM(CASE WHEN ${jobsDetails.isActive} = false THEN 1 ELSE 0 END)`.mapWith(Number),
+          active:
+            sql`SUM(CASE WHEN ${jobsDetails.isActive} = true THEN 1 ELSE 0 END)`.mapWith(
+              Number,
+            ),
+          inactive:
+            sql`SUM(CASE WHEN ${jobsDetails.isActive} = false THEN 1 ELSE 0 END)`.mapWith(
+              Number,
+            ),
           totalViews: sum(jobInsights.viewCount).mapWith(Number),
           totalApplications: sum(jobInsights.applicationCount).mapWith(Number),
         })

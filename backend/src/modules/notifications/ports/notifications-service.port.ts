@@ -126,9 +126,7 @@ export interface NotificationsServicePort {
     metadata?: { ipAddress?: string; userAgent?: string },
   ): Promise<Result<UserEmailPreferencesSchema, AppError>>;
 
-  getUnsubscribeLandingPageData(
-    token: string,
-  ): Promise<
+  getUnsubscribeLandingPageData(token: string): Promise<
     Result<
       {
         user: { name: string; email: string };

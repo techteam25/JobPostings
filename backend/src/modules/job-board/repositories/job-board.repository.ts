@@ -1,11 +1,6 @@
 import { and, asc, desc, eq, inArray, like, or, sql, SQL } from "drizzle-orm";
 import { SecurityUtils } from "@shared/utils/security";
-import {
-  jobsDetails,
-  jobSkills,
-  organizations,
-  skills,
-} from "@/db/schema";
+import { jobsDetails, jobSkills, organizations, skills } from "@/db/schema";
 import { BaseRepository } from "@shared/base/base.repository";
 import { db } from "@shared/db/connection";
 import { calculatePagination, countRecords } from "@shared/db/utils";

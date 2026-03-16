@@ -1,4 +1,4 @@
-import type { BaseRepositoryPort } from "@/ports/base-repository.port";
+import type { BaseRepositoryPort } from "@shared/ports/base-repository.port";
 import type { jobsDetails } from "@/db/schema";
 import type {
   Job,
@@ -13,8 +13,10 @@ import type { PaginationMeta } from "@shared/types";
 type JobSelect = typeof jobsDetails.$inferSelect;
 type JobInsert = typeof jobsDetails.$inferInsert;
 
-export interface JobBoardRepositoryPort
-  extends BaseRepositoryPort<JobSelect, JobInsert> {
+export interface JobBoardRepositoryPort extends BaseRepositoryPort<
+  JobSelect,
+  JobInsert
+> {
   createJob(
     jobData: NewJob & { skills: JobSkills["name"][] },
   ): Promise<JobWithSkills>;

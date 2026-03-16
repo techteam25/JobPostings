@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-const successResponseSchema = z.object({
+export const successResponseSchema = z.object({
   success: z.literal(true),
   message: z.string(),
   timestamp: z.string().optional(),
@@ -34,7 +34,7 @@ export const paginatedResponseSchema = z.object({
   pagination: paginationMetaSchema,
 });
 
-const authTokens = z.object({
+export const authTokens = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),
   expiresAt: z.date(),
@@ -74,6 +74,9 @@ export type PaginatedResponse<T> =
 
 export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
 export type AuthTokens = z.infer<typeof authTokens>;
+
+/** Type-safe placeholder for unused Express Request generic positions (Params, ResBody, ReqBody). */
+export type EmptyBody = Record<string, never>;
 
 // Email notification types
 export enum EmailType {

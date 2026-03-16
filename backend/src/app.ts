@@ -63,9 +63,12 @@ export async function initializeInfrastructure(): Promise<void> {
     await initializeTypesenseSchema();
     logger.info("Typesense schema initialized");
   } catch (error) {
-    logger.warn("Typesense schema initialization failed, continuing without search", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+    logger.warn(
+      "Typesense schema initialization failed, continuing without search",
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    );
   }
 
   // Redis Cache — non-critical
@@ -95,9 +98,12 @@ export async function initializeInfrastructure(): Promise<void> {
     logger.info("Queue service initialized");
     queueReady = true;
   } catch (error) {
-    logger.error("Queue service initialization failed, background jobs will not process", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+    logger.error(
+      "Queue service initialization failed, background jobs will not process",
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    );
   }
 
   if (queueReady) {
@@ -110,7 +116,9 @@ export async function initializeInfrastructure(): Promise<void> {
       initializeJobAlertWorker();
       const identityRepo = new IdentityRepository();
       const notificationsRepo = new NotificationsRepository();
-      const userActivityQuery = new IdentityToNotificationsAdapter(identityRepo);
+      const userActivityQuery = new IdentityToNotificationsAdapter(
+        identityRepo,
+      );
       initializeInactiveUserAlertWorker(userActivityQuery, notificationsRepo);
       initializeInvitationExpirationWorker();
       initializeDomainEventWorker();
@@ -134,7 +142,8 @@ export async function initializeInfrastructure(): Promise<void> {
     if (failed.length > 0) {
       for (const f of failed) {
         logger.warn("Failed to schedule a background job", {
-          error: (f as PromiseRejectedResult).reason?.message ?? "Unknown error",
+          error:
+            (f as PromiseRejectedResult).reason?.message ?? "Unknown error",
         });
       }
     } else {

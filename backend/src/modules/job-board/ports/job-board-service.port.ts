@@ -7,7 +7,10 @@ import type {
   UpdateJob,
   OrganizationJobInsightInterface,
 } from "@/validations/job.validation";
-import type { JobDocumentType, SearchParams } from "@/validations/base.validation";
+import type {
+  JobDocumentType,
+  SearchParams,
+} from "@/validations/base.validation";
 import type { PaginationMeta } from "@shared/types";
 import type { SearchResponse } from "typesense/lib/Typesense/Documents";
 

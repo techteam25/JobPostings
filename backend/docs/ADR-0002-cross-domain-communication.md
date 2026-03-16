@@ -6,9 +6,9 @@
 
 Two communication mechanisms, chosen by **staleness tolerance**:
 
-| Mechanism | When to use | Example |
-|-----------|-------------|---------|
-| **Query Facade (ACL)** | Synchronous reads where stale data = correctness bug | Authorization checks, deletion guards |
+| Mechanism                 | When to use                                                     | Example                                     |
+| ------------------------- | --------------------------------------------------------------- | ------------------------------------------- |
+| **Query Facade (ACL)**    | Synchronous reads where stale data = correctness bug            | Authorization checks, deletion guards       |
 | **Domain Event (BullMQ)** | Async writes/reactions where eventual consistency is acceptable | Analytics counters, cascading state changes |
 
 ## Design Decisions
@@ -29,11 +29,11 @@ Facade return-type DTOs (e.g. `JobForApplication`, `JobWithEmployerId`) are **no
 
 The `UserDeactivated` event provides **immediate** alert pausing (seconds), replacing the current batch-only approach (minutes/hours). The existing batch worker is retained as a **reconciliation sweep** using `IdentityQueryFacade` (ACL), catching any missed events.
 
-| Approach | Latency | Reliability |
-|----------|---------|-------------|
-| ~~Current batch job (JOINs user table)~~ | Minutes/hours | High — catches everything per sweep |
-| Event only (`UserDeactivated`) | Seconds | Risk: missed event = never paused |
-| **Event + batch safety net (chosen)** | Seconds (normal), minutes (fallback) | **Highest** |
+| Approach                                 | Latency                              | Reliability                         |
+| ---------------------------------------- | ------------------------------------ | ----------------------------------- |
+| ~~Current batch job (JOINs user table)~~ | Minutes/hours                        | High — catches everything per sweep |
+| Event only (`UserDeactivated`)           | Seconds                              | Risk: missed event = never paused   |
+| **Event + batch safety net (chosen)**    | Seconds (normal), minutes (fallback) | **Highest**                         |
 
 ### 5. Workers stay in `src/workers/` for now
 
@@ -43,39 +43,39 @@ Worker modularization (moving workers into their owning modules) is Phase 8 scop
 
 ### job-board → applications (3 calls, all reads → Query Facade)
 
-| Method | What it needs | Facade contract |
-|--------|---------------|-----------------|
-| `getAllActiveJobs` | Which jobs a user applied to | `getAppliedJobIds(userId, jobIds): Set<number>` |
-| `getJobById` | Has user applied to this job? | `hasUserApplied(userId, jobId): boolean` |
-| `deleteJob` | Are there any applications? (guard) | `hasApplicationsForJob(jobId): boolean` |
+| Method             | What it needs                       | Facade contract                                 |
+| ------------------ | ----------------------------------- | ----------------------------------------------- |
+| `getAllActiveJobs` | Which jobs a user applied to        | `getAppliedJobIds(userId, jobIds): Set<number>` |
+| `getJobById`       | Has user applied to this job?       | `hasUserApplied(userId, jobId): boolean`        |
+| `deleteJob`        | Are there any applications? (guard) | `hasApplicationsForJob(jobId): boolean`         |
 
 ### applications → job-board (3 calls, all reads → Query Facade)
 
-| Method | What it needs | Facade contract |
-|--------|---------------|-----------------|
-| `applyForJob` | Job exists, active, deadline, title | `getJobForApplication(jobId): JobForApplication \| null` |
-| `getJobApplications` | Job's employer ID (authorization) | `getJobWithEmployerId(jobId): JobWithEmployerId \| null` |
-| `updateApplicationStatus` | Same authorization check | Reuses `getJobWithEmployerId` |
+| Method                    | What it needs                       | Facade contract                                          |
+| ------------------------- | ----------------------------------- | -------------------------------------------------------- |
+| `applyForJob`             | Job exists, active, deadline, title | `getJobForApplication(jobId): JobForApplication \| null` |
+| `getJobApplications`      | Job's employer ID (authorization)   | `getJobWithEmployerId(jobId): JobWithEmployerId \| null` |
+| `updateApplicationStatus` | Same authorization check            | Reuses `getJobWithEmployerId`                            |
 
 ### applications → job-board write (1 call → Domain Event)
 
-| Method | What it does | Event |
-|--------|-------------|-------|
+| Method              | What it does                              | Event                                                |
+| ------------------- | ----------------------------------------- | ---------------------------------------------------- |
 | `createApplication` | Increments `jobInsights.applicationCount` | `ApplicationSubmitted` → job-board worker increments |
 
 ### notifications → identity (event + ACL safety net)
 
-| Mechanism | Trigger | Action |
-|-----------|---------|--------|
-| `UserDeactivated` event | User deactivates account | Immediately pause that user's alerts |
-| Batch worker (safety net) | Scheduled interval | `IdentityQueryFacade.getInactiveUserIds()` → pause any missed alerts |
+| Mechanism                 | Trigger                  | Action                                                               |
+| ------------------------- | ------------------------ | -------------------------------------------------------------------- |
+| `UserDeactivated` event   | User deactivates account | Immediately pause that user's alerts                                 |
+| Batch worker (safety net) | Scheduled interval       | `IdentityQueryFacade.getInactiveUserIds()` → pause any missed alerts |
 
 ### user-profile → job-board (deferred)
 
-| Method | What it accesses | Decision |
-|--------|-----------------|----------|
-| `getSavedJobsForUser` | JOINs `jobsDetails` + `organizations` | Keep JOIN for now; document as Phase 7+ debt |
-| `saveJobForUser` | Reads `jobsDetails` for existence check | Could use `doesJobExist` facade; defer to Phase 7+ |
+| Method                | What it accesses                        | Decision                                           |
+| --------------------- | --------------------------------------- | -------------------------------------------------- |
+| `getSavedJobsForUser` | JOINs `jobsDetails` + `organizations`   | Keep JOIN for now; document as Phase 7+ debt       |
+| `saveJobForUser`      | Reads `jobsDetails` for existence check | Could use `doesJobExist` facade; defer to Phase 7+ |
 
 ## Query Facade Interfaces
 
@@ -129,7 +129,9 @@ Consumers infer return types from method signatures. No direct import of `JobFor
 
 export interface UserActivityQueryPort {
   getInactiveUserIds(): Promise<number[]>;
-  getUserContactInfo(userId: number): Promise<{ email: string; fullName: string } | null>;
+  getUserContactInfo(
+    userId: number,
+  ): Promise<{ email: string; fullName: string } | null>;
 }
 ```
 
@@ -201,32 +203,32 @@ src/workers/domain-event-worker.ts
 
 ### Phase A: Shared event infrastructure (~0.5 day)
 
-| Action | File |
-|--------|------|
-| CREATE | `src/shared/events/domain-event.ts` |
-| CREATE | `src/shared/events/event-types.ts` — `DomainEventType` enum |
-| CREATE | `src/shared/events/event-bus.port.ts` |
-| CREATE | `src/shared/events/bullmq-event-bus.port.ts` |
-| CREATE | `src/shared/events/index.ts` |
+| Action | File                                                                     |
+| ------ | ------------------------------------------------------------------------ |
+| CREATE | `src/shared/events/domain-event.ts`                                      |
+| CREATE | `src/shared/events/event-types.ts` — `DomainEventType` enum              |
+| CREATE | `src/shared/events/event-bus.port.ts`                                    |
+| CREATE | `src/shared/events/bullmq-event-bus.port.ts`                             |
+| CREATE | `src/shared/events/index.ts`                                             |
 | MODIFY | `src/shared/infrastructure/queue.service.ts` — add `DOMAIN_EVENTS_QUEUE` |
 
 Zero behavior change. All tests pass unchanged.
 
 ### Phase B: Query facades (~1 day)
 
-| Action | File |
-|--------|------|
-| CREATE | `src/modules/job-board/ports/application-status-query.port.ts` |
-| CREATE | `src/modules/applications/ports/job-details-query.port.ts` |
-| CREATE | `src/modules/notifications/ports/user-activity-query.port.ts` |
-| MODIFY | `src/modules/applications/index.ts` — export facade port + class only (no DTOs) |
-| MODIFY | `src/modules/job-board/index.ts` — export facade port + class only (no DTOs) |
-| MODIFY | `src/modules/identity/index.ts` — export facade port + class |
+| Action | File                                                                                    |
+| ------ | --------------------------------------------------------------------------------------- |
+| CREATE | `src/modules/job-board/ports/application-status-query.port.ts`                          |
+| CREATE | `src/modules/applications/ports/job-details-query.port.ts`                              |
+| CREATE | `src/modules/notifications/ports/user-activity-query.port.ts`                           |
+| MODIFY | `src/modules/applications/index.ts` — export facade port + class only (no DTOs)         |
+| MODIFY | `src/modules/job-board/index.ts` — export facade port + class only (no DTOs)            |
+| MODIFY | `src/modules/identity/index.ts` — export facade port + class                            |
 | MODIFY | `src/modules/identity/ports/identity-repository.port.ts` — add `findDeactivatedUserIds` |
-| MODIFY | `src/modules/identity/repositories/identity.repository.ts` — implement it |
-| CREATE | `tests/unit/shared/adapters/applications-to-job-board.adapter.test.ts` |
-| CREATE | `tests/unit/shared/adapters/job-board-to-applications.adapter.test.ts` |
-| CREATE | `tests/unit/shared/adapters/identity-to-notifications.adapter.test.ts` |
+| MODIFY | `src/modules/identity/repositories/identity.repository.ts` — implement it               |
+| CREATE | `tests/unit/shared/adapters/applications-to-job-board.adapter.test.ts`                  |
+| CREATE | `tests/unit/shared/adapters/job-board-to-applications.adapter.test.ts`                  |
+| CREATE | `tests/unit/shared/adapters/identity-to-notifications.adapter.test.ts`                  |
 
 Zero behavior change. All existing tests pass unchanged.
 
@@ -234,41 +236,41 @@ Zero behavior change. All existing tests pass unchanged.
 
 **This is the phase that breaks the circular dependency.**
 
-| Action | File | Changes |
-|--------|------|---------|
-| MODIFY | `job-board.service.ts` | Replace `ApplicationsRepositoryPort` → `ApplicationsQueryFacadePort` |
-| MODIFY | `applications.service.ts` | Replace `JobBoardRepositoryPort` → `JobBoardQueryFacadePort` |
-| MODIFY | `job-board.routes.ts` | Accept `ApplicationsQueryFacadePort` instead of `ApplicationsRepositoryPort` |
-| MODIFY | `applications.routes.ts` | Accept `JobBoardQueryFacadePort` instead of `JobBoardRepositoryPort` |
-| MODIFY | `job.routes.ts` | Instantiate facades, pass to factories |
+| Action | File                      | Changes                                                                      |
+| ------ | ------------------------- | ---------------------------------------------------------------------------- |
+| MODIFY | `job-board.service.ts`    | Replace `ApplicationsRepositoryPort` → `ApplicationsQueryFacadePort`         |
+| MODIFY | `applications.service.ts` | Replace `JobBoardRepositoryPort` → `JobBoardQueryFacadePort`                 |
+| MODIFY | `job-board.routes.ts`     | Accept `ApplicationsQueryFacadePort` instead of `ApplicationsRepositoryPort` |
+| MODIFY | `applications.routes.ts`  | Accept `JobBoardQueryFacadePort` instead of `JobBoardRepositoryPort`         |
+| MODIFY | `job.routes.ts`           | Instantiate facades, pass to factories                                       |
 
 After this phase, no module imports another module's repository port. Existing integration tests pass because facades delegate to the same repository methods that spies already target.
 
 ### Phase D+E: Domain events for applicationCount + UserDeactivated (~1 day)
 
-| Action | File | Changes |
-|--------|------|---------|
-| CREATE | `src/modules/applications/events/application-submitted.event.ts` | Payload + factory |
-| CREATE | `src/modules/identity/events/user-deactivated.event.ts` | Payload + factory |
-| CREATE | `src/workers/domain-event-worker.ts` | Worker + init function |
-| MODIFY | `applications.repository.ts` | Remove `jobInsights` import and UPDATE from `createApplication` |
-| MODIFY | `applications.service.ts` | Add `EventBusPort`, publish `ApplicationSubmitted` after create |
-| MODIFY | `identity.service.ts` | Publish `UserDeactivated` on `deactivateSelf`/`deactivateUser` |
-| MODIFY | `applications.routes.ts` | Accept + pass `EventBusPort` |
-| MODIFY | `job.routes.ts` | Instantiate `BullMqEventBus`, pass to factory |
-| MODIFY | `app.ts` | Call `initializeDomainEventWorker()` |
-| CREATE | `tests/unit/workers/domain-event-worker.test.ts` |
+| Action | File                                                             | Changes                                                         |
+| ------ | ---------------------------------------------------------------- | --------------------------------------------------------------- |
+| CREATE | `src/modules/applications/events/application-submitted.event.ts` | Payload + factory                                               |
+| CREATE | `src/modules/identity/events/user-deactivated.event.ts`          | Payload + factory                                               |
+| CREATE | `src/workers/domain-event-worker.ts`                             | Worker + init function                                          |
+| MODIFY | `applications.repository.ts`                                     | Remove `jobInsights` import and UPDATE from `createApplication` |
+| MODIFY | `applications.service.ts`                                        | Add `EventBusPort`, publish `ApplicationSubmitted` after create |
+| MODIFY | `identity.service.ts`                                            | Publish `UserDeactivated` on `deactivateSelf`/`deactivateUser`  |
+| MODIFY | `applications.routes.ts`                                         | Accept + pass `EventBusPort`                                    |
+| MODIFY | `job.routes.ts`                                                  | Instantiate `BullMqEventBus`, pass to factory                   |
+| MODIFY | `app.ts`                                                         | Call `initializeDomainEventWorker()`                            |
+| CREATE | `tests/unit/workers/domain-event-worker.test.ts`                 |
 
 ### Phase G: Notifications decoupling — batch worker becomes safety net (~0.5 day)
 
-| Action | File | Changes |
-|--------|------|---------|
-| MODIFY | `notifications-repository.port.ts` | Add `pauseAlertsForUser(userId: number)` for single-user event path |
+| Action | File                               | Changes                                                                       |
+| ------ | ---------------------------------- | ----------------------------------------------------------------------------- |
+| MODIFY | `notifications-repository.port.ts` | Add `pauseAlertsForUser(userId: number)` for single-user event path           |
 | MODIFY | `notifications-repository.port.ts` | Change `pauseAlertsForInactiveUsers(inactiveUserIds: number[])` to accept IDs |
-| MODIFY | `notifications.repository.ts` | Remove `user` table JOIN, accept IDs as param |
-| MODIFY | `notifications.repository.ts` | Implement `pauseAlertsForUser` for single-user event handler |
-| MODIFY | `inactive-user-alert-pauser.ts` | Use `IdentityQueryFacade.getInactiveUserIds()` (ACL), pass to repo |
-| MODIFY | `domain-event-worker.ts` | Add `USER_DEACTIVATED` handler → calls `pauseAlertsForUser` |
+| MODIFY | `notifications.repository.ts`      | Remove `user` table JOIN, accept IDs as param                                 |
+| MODIFY | `notifications.repository.ts`      | Implement `pauseAlertsForUser` for single-user event handler                  |
+| MODIFY | `inactive-user-alert-pauser.ts`    | Use `IdentityQueryFacade.getInactiveUserIds()` (ACL), pass to repo            |
+| MODIFY | `domain-event-worker.ts`           | Add `USER_DEACTIVATED` handler → calls `pauseAlertsForUser`                   |
 
 ## Dependency Graph After
 

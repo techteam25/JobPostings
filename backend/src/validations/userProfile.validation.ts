@@ -1,10 +1,6 @@
 import { z } from "@/swagger/registry";
-import { educations, user, userProfile, workExperiences } from "@/db/schema";
-import {
-  createInsertSchema,
-  createSelectSchema,
-  createUpdateSchema,
-} from "drizzle-zod";
+import { user, userProfile } from "@/db/schema";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import {
   Certification,
   insertCertificationsSchema,
@@ -91,7 +87,7 @@ const idParamsSchema = z.object({
   id: z.string().regex(/^\d+$/, "Invalid work experience ID format"),
 });
 
-const updateProfileVisibilitySchema = z.object({
+export const updateProfileVisibilitySchema = z.object({
   body: updateUserProfileSchema.pick({ isProfilePublic: true }),
   params: z.object({}).strict(),
   query: z.object({}).strict(),

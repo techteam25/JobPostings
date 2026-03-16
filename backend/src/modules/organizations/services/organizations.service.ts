@@ -15,8 +15,8 @@ import {
 import { StorageFolder } from "@/workers/file-upload-worker";
 import type { FileUploadJobData } from "@/validations/file.validation";
 import type { NewOrganization } from "@/validations/organization.validation";
-import type { OrganizationsServicePort } from "../ports/organizations-service.port";
-import type { OrganizationsRepositoryPort } from "../ports/organizations-repository.port";
+import type { OrganizationsServicePort } from "@/modules/organizations";
+import type { OrganizationsRepositoryPort } from "@/modules/organizations";
 
 /**
  * Service class for managing organization CRUD and membership operations.
@@ -27,9 +27,7 @@ export class OrganizationsService
   extends BaseService
   implements OrganizationsServicePort
 {
-  constructor(
-    private organizationsRepository: OrganizationsRepositoryPort,
-  ) {
+  constructor(private organizationsRepository: OrganizationsRepositoryPort) {
     super();
   }
 
@@ -44,11 +42,10 @@ export class OrganizationsService
     try {
       const { searchTerm = "", ...paginationOptions } = options;
 
-      const results =
-        await this.organizationsRepository.searchOrganizations(
-          searchTerm,
-          paginationOptions,
-        );
+      const results = await this.organizationsRepository.searchOrganizations(
+        searchTerm,
+        paginationOptions,
+      );
 
       return ok(results);
     } catch (error) {
@@ -284,9 +281,7 @@ export class OrganizationsService
         return this.handleError(error);
       }
       return fail(
-        new DatabaseError(
-          "Failed to verify permission to reject applications",
-        ),
+        new DatabaseError("Failed to verify permission to reject applications"),
       );
     }
   }
@@ -386,10 +381,10 @@ export class OrganizationsService
   }
 
   /**
-   * Checks if a user has delete permission for an organization.
+   * Checks if a user has `delete` permission for an organization.
    * @param userId The ID of the user.
    * @param organizationId The ID of the organization.
-   * @returns A boolean indicating if the user has delete permission.
+   * @returns A boolean indicating if the user has `delete` permission.
    */
   async hasDeletePermission(
     userId: number,
@@ -400,7 +395,7 @@ export class OrganizationsService
         userId,
         organizationId,
       );
-    } catch (error) {
+    } catch {
       return false;
     }
   }

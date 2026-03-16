@@ -12,7 +12,10 @@ import {
   FileUploadResult,
   sanitizeFilename,
 } from "@/validations/file.validation";
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 
 export enum StorageFolder {
   PROFILE_PICTURES = "profile-pictures",

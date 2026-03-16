@@ -27,7 +27,8 @@ interface ApplicationsModuleDeps {
  */
 export function createApplicationsModule(deps: ApplicationsModuleDeps) {
   const repository =
-    deps.applicationsRepository ?? (new ApplicationsRepository() as ApplicationsRepositoryPort);
+    deps.applicationsRepository ??
+    (new ApplicationsRepository() as ApplicationsRepositoryPort);
 
   const service = new ApplicationsService(
     repository,

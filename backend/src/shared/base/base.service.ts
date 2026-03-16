@@ -1,8 +1,4 @@
-import {
-  AppError,
-  DatabaseError,
-  ValidationError,
-} from "@shared/errors";
+import { AppError, DatabaseError, ValidationError } from "@shared/errors";
 import { fail } from "@shared/result";
 
 /**

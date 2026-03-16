@@ -206,14 +206,17 @@ async function runSeed() {
       additionalMembers.push({
         userId: userId++,
         organizationId: orgId,
-        role: ["admin", "recruiter", "member"][j % 3],
+        role: ["admin", "recruiter", "member"][j % 3] as
+          | "owner"
+          | "admin"
+          | "recruiter"
+          | "member",
         isActive: true,
       });
     }
   }
 
   if (additionalMembers.length > 0) {
-    // @ts-ignore
     await db.insert(organizationMembers).values(additionalMembers);
   }
 

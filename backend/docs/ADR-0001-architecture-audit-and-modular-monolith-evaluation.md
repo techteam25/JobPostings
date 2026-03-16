@@ -50,16 +50,16 @@ The codebase uses what is described as constructor injection, but it is more pre
 // What the codebase does (manual instantiation):
 class JobService extends BaseService {
   constructor() {
-    this.jobRepository = new JobRepository();           // hardcoded
+    this.jobRepository = new JobRepository(); // hardcoded
     this.organizationRepository = new OrganizationRepository(); // hardcoded
-    this.typesenseService = new TypesenseService();     // hardcoded
+    this.typesenseService = new TypesenseService(); // hardcoded
   }
 }
 
 // What true constructor injection looks like:
 class JobService extends BaseService {
   constructor(
-    private jobRepository: JobRepositoryPort,           // injected
+    private jobRepository: JobRepositoryPort, // injected
     private organizationRepository: OrganizationRepositoryPort,
     private typesenseService: TypesenseServicePort,
   ) {}
@@ -72,20 +72,20 @@ class JobService extends BaseService {
 
 34 `new` calls across the codebase create domain objects:
 
-| Location | Instantiates | Cross-Domain? |
-|---|---|---|
-| `UserController` constructor | `UserService`, `OrganizationService` | Yes |
-| `JobController` constructor | `JobService` | No |
-| `OrganizationController` constructor | `OrganizationService` | No |
-| `UserService` constructor | `UserRepository`, `EmailService`, `OrganizationRepository` | Yes |
-| `JobService` constructor | `JobRepository`, `OrganizationRepository`, `JobInsightsRepository`, `TypesenseService`, `UserRepository` | Yes |
-| `OrganizationService` constructor | `OrganizationRepository`, `UserRepository`, `JobRepository` | Yes |
-| `JobMatchingService` constructor | `TypesenseService` | No |
-| `EmailService` constructor | `UserRepository` | Yes |
-| `AuthMiddleware` constructor | `OrganizationService`, `UserService`, `JobRepository`, `OrganizationRepository`, `JobService` | Yes (all 3 domains) |
-| `auth.ts` (module level) | `EmailService`, `UserService` | Yes |
-| Workers (various) | Various repositories and services | Yes |
-| Infrastructure singletons | `QueueService`, `FirebaseUploadService`, `RedisCacheService`, `RedisRateLimiterService` | N/A |
+| Location                             | Instantiates                                                                                             | Cross-Domain?       |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------- |
+| `UserController` constructor         | `UserService`, `OrganizationService`                                                                     | Yes                 |
+| `JobController` constructor          | `JobService`                                                                                             | No                  |
+| `OrganizationController` constructor | `OrganizationService`                                                                                    | No                  |
+| `UserService` constructor            | `UserRepository`, `EmailService`, `OrganizationRepository`                                               | Yes                 |
+| `JobService` constructor             | `JobRepository`, `OrganizationRepository`, `JobInsightsRepository`, `TypesenseService`, `UserRepository` | Yes                 |
+| `OrganizationService` constructor    | `OrganizationRepository`, `UserRepository`, `JobRepository`                                              | Yes                 |
+| `JobMatchingService` constructor     | `TypesenseService`                                                                                       | No                  |
+| `EmailService` constructor           | `UserRepository`                                                                                         | Yes                 |
+| `AuthMiddleware` constructor         | `OrganizationService`, `UserService`, `JobRepository`, `OrganizationRepository`, `JobService`            | Yes (all 3 domains) |
+| `auth.ts` (module level)             | `EmailService`, `UserService`                                                                            | Yes                 |
+| Workers (various)                    | Various repositories and services                                                                        | Yes                 |
+| Infrastructure singletons            | `QueueService`, `FirebaseUploadService`, `RedisCacheService`, `RedisRateLimiterService`                  | N/A                 |
 
 ### 2.4 Cross-Domain Coupling Matrix
 
@@ -113,6 +113,7 @@ Legend: R/W = reads & writes, X = own domain
 **Finding**: Zero interfaces/ports exist for repositories or services. All dependencies are concrete classes.
 
 **Impact**:
+
 - Unit testing requires either running a real database or complex mocking of `db` imports
 - Cannot substitute implementations (e.g., swap MySQL for PostgreSQL, or mock email for testing)
 - No compile-time contract enforcement between layers
@@ -129,11 +130,11 @@ Legend: R/W = reads & writes, X = own domain
 
 ### 3.3 HIGH: Service God Classes
 
-| File | Lines | Responsibilities |
-|---|---|---|
-| `user.service.ts` | 1,365 | Profile, alerts, email preferences, education, certifications, work experience, onboarding |
-| `organization.service.ts` | 1,045 | CRUD, members, invitations, applications, notes |
-| `job.service.ts` | 966 | CRUD, search, applications, statistics, insights |
+| File                      | Lines | Responsibilities                                                                           |
+| ------------------------- | ----- | ------------------------------------------------------------------------------------------ |
+| `user.service.ts`         | 1,365 | Profile, alerts, email preferences, education, certifications, work experience, onboarding |
+| `organization.service.ts` | 1,045 | CRUD, members, invitations, applications, notes                                            |
+| `job.service.ts`          | 966   | CRUD, search, applications, statistics, insights                                           |
 
 Each service handles 20-40+ methods. The Single Responsibility Principle is violated — these are "do everything" classes organized by entity rather than use case.
 
@@ -289,38 +290,38 @@ export interface JobRepositoryPort {
 
 ### 6.1 Phase Breakdown
 
-| Phase | Description | Effort | Risk |
-|---|---|---|---|
-| **Phase 0** | Prerequisite: Introduce interfaces/ports for repositories and services | 3-4 days | Low |
-| **Phase 1** | Extract shared kernel (`shared/` folder with base classes, errors, Result type, config) | 2-3 days | Low |
+| Phase       | Description                                                                                | Effort   | Risk   |
+| ----------- | ------------------------------------------------------------------------------------------ | -------- | ------ |
+| **Phase 0** | Prerequisite: Introduce interfaces/ports for repositories and services                     | 3-4 days | Low    |
+| **Phase 1** | Extract shared kernel (`shared/` folder with base classes, errors, Result type, config)    | 2-3 days | Low    |
 | **Phase 2** | Split `UserService` (1,365 lines) into `identity`, `user-profile`, `notifications` modules | 4-5 days | Medium |
-| **Phase 3** | Split `JobService` (966 lines) into `job-board` and `applications` modules | 3-4 days | Medium |
-| **Phase 4** | Extract `organizations` and `invitations` modules | 2-3 days | Low |
-| **Phase 5** | Refactor `AuthMiddleware` — extract authorization into module-specific guards | 3-4 days | High |
-| **Phase 6** | Introduce composition roots per module; remove `new` from constructors | 2-3 days | Medium |
-| **Phase 7** | Add module-level public APIs (facades) and enforce import boundaries | 2-3 days | Medium |
-| **Phase 8** | Migrate workers to module-owned background processors | 2-3 days | Low |
-| **Phase 9** | Update all tests to use injected dependencies | 3-4 days | Medium |
+| **Phase 3** | Split `JobService` (966 lines) into `job-board` and `applications` modules                 | 3-4 days | Medium |
+| **Phase 4** | Extract `organizations` and `invitations` modules                                          | 2-3 days | Low    |
+| **Phase 5** | Refactor `AuthMiddleware` — extract authorization into module-specific guards              | 3-4 days | High   |
+| **Phase 6** | Introduce composition roots per module; remove `new` from constructors                     | 2-3 days | Medium |
+| **Phase 7** | Add module-level public APIs (facades) and enforce import boundaries                       | 2-3 days | Medium |
+| **Phase 8** | Migrate workers to module-owned background processors                                      | 2-3 days | Low    |
+| **Phase 9** | Update all tests to use injected dependencies                                              | 3-4 days | Medium |
 
 ### 6.2 Total Effort
 
-| Category | Estimate |
-|---|---|
-| **Minimum** | 22 person-days (~4.5 weeks for 1 developer) |
-| **Expected** | 30 person-days (~6 weeks for 1 developer) |
-| **Maximum** | 38 person-days (~8 weeks for 1 developer) |
+| Category     | Estimate                                    |
+| ------------ | ------------------------------------------- |
+| **Minimum**  | 22 person-days (~4.5 weeks for 1 developer) |
+| **Expected** | 30 person-days (~6 weeks for 1 developer)   |
+| **Maximum**  | 38 person-days (~8 weeks for 1 developer)   |
 
 With 2 developers working in parallel (after Phase 0-1 are complete): **3-5 weeks**.
 
 ### 6.3 Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
-| Breaking existing tests during refactoring | High | Medium | Incremental moves with CI running after each phase |
-| Auth middleware refactoring introduces security gaps | Medium | High | Dedicated security review after Phase 5 |
-| Cross-domain database JOINs become harder to express | Medium | Medium | Allow shared read-only query views in shared kernel |
-| Team velocity drops during transition | High | Low | Run phases as dedicated sprint(s), not mixed with features |
-| Import boundary enforcement requires tooling | Low | Low | Use ESLint `no-restricted-imports` rules |
+| Risk                                                 | Likelihood | Impact | Mitigation                                                 |
+| ---------------------------------------------------- | ---------- | ------ | ---------------------------------------------------------- |
+| Breaking existing tests during refactoring           | High       | Medium | Incremental moves with CI running after each phase         |
+| Auth middleware refactoring introduces security gaps | Medium     | High   | Dedicated security review after Phase 5                    |
+| Cross-domain database JOINs become harder to express | Medium     | Medium | Allow shared read-only query views in shared kernel        |
+| Team velocity drops during transition                | High       | Low    | Run phases as dedicated sprint(s), not mixed with features |
+| Import boundary enforcement requires tooling         | Low        | Low    | Use ESLint `no-restricted-imports` rules                   |
 
 ### 6.4 Recommended Approach: Incremental Strangler Fig
 
@@ -342,16 +343,19 @@ Whether to refactor the current layered architecture into a Modular Monolith, an
 ### 7.2 Options Considered
 
 #### Option A: Status Quo (Do Nothing)
+
 - **Pros**: Zero effort, no disruption
 - **Cons**: Technical debt compounds; services will continue growing; testing remains difficult; onboarding new developers becomes harder
 - **Verdict**: Not recommended for a growing system
 
 #### Option B: Incremental Modularization (Recommended)
+
 - **Pros**: Manageable risk; each phase delivers independent value; team learns incrementally; can pause and resume
 - **Cons**: Takes 4-8 weeks; requires discipline to enforce boundaries; transition period has mixed patterns
 - **Verdict**: Best balance of effort and payoff
 
 #### Option C: Big-Bang Modular Monolith Rewrite
+
 - **Pros**: Clean result; no transition period with mixed patterns
 - **Cons**: High risk; blocks all feature work for 6-8 weeks; hard to review; all-or-nothing
 - **Verdict**: Not recommended — too risky for a production system
@@ -361,23 +365,21 @@ Whether to refactor the current layered architecture into a Modular Monolith, an
 **Option B: Incremental Modularization** is recommended.
 
 **Immediate actions** (can start this sprint):
+
 1. Introduce repository and service interfaces (ports) — zero behavior change, pure refactoring
 2. Extract `Result<T, E>` and error classes into `shared/` — already logically independent
 3. Add ESLint `no-restricted-imports` rules to begin enforcing boundaries
 
-**Short-term** (next 2-3 sprints):
-4. Extract `invitations` as the first fully modular context
-5. Split `AuthMiddleware` into authentication (shared) + authorization guards (per-module)
+**Short-term** (next 2-3 sprints): 4. Extract `invitations` as the first fully modular context 5. Split `AuthMiddleware` into authentication (shared) + authorization guards (per-module)
 
-**Medium-term** (subsequent sprints):
-6. Extract remaining modules one at a time, ordered by isolation (least-coupled first)
-7. Introduce composition roots per module
+**Medium-term** (subsequent sprints): 6. Extract remaining modules one at a time, ordered by isolation (least-coupled first) 7. Introduce composition roots per module
 
 ---
 
 ## 8. Consequences
 
 ### Positive
+
 - Clear domain boundaries reduce cognitive load
 - True DI enables proper unit testing without database
 - Modules can be developed, tested, and deployed more independently
@@ -385,12 +387,14 @@ Whether to refactor the current layered architecture into a Modular Monolith, an
 - Foundation for potential future extraction to microservices (if needed)
 
 ### Negative
+
 - Temporary code duplication during transition (some shared queries may need to be duplicated)
 - Need to establish and enforce module boundary conventions (tooling + code review)
 - Slightly more boilerplate for cross-module communication (events vs. direct calls)
 - Learning curve for team members unfamiliar with modular monolith patterns
 
 ### Neutral
+
 - Shared database remains — this is a monolith, not microservices
 - Base classes (`BaseController`, `BaseService`, `BaseRepository`) move to shared kernel — still used by all modules
 - Infrastructure services (Redis, BullMQ, Firebase) remain centralized singletons in shared kernel

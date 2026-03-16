@@ -7,7 +7,10 @@ import {
   extractTimestampFromFilename,
   isExpiredTempFile,
 } from "@/validations/file.validation";
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 
 export async function tempFileCleanupWorker(_job: BullMqJob) {
   const uploadsDir = path.resolve("uploads");

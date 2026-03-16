@@ -14,11 +14,14 @@ import {
   ValidationError,
 } from "@shared/errors";
 
-import type { InvitationsServicePort, OrganizationInvitationDetails } from "../ports/invitations-service.port";
+import type {
+  InvitationsServicePort,
+  OrganizationInvitationDetails,
+} from "../ports/invitations-service.port";
 import type { InvitationsRepositoryPort } from "../ports/invitations-repository.port";
 import type { OrgMembershipCommandPort } from "../ports/org-membership-command.port";
 import type { UserEmailQueryPort } from "../ports/user-email-query.port";
-import type { EmailServicePort } from "@/ports/email-service.port";
+import type { EmailServicePort } from "@shared/ports/email-service.port";
 
 /**
  * Service class for managing organization invitation operations.

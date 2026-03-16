@@ -55,7 +55,7 @@ async initialize(): Promise<void> {
     this.createQueue(QUEUE_NAMES.FILE_UPLOAD_QUEUE);
     this.createQueue(QUEUE_NAMES.TEMP_FILE_CLEANUP_QUEUE);
     this.createQueue(QUEUE_NAMES.JOB_ALERT_QUEUE);
-    
+
     // Create your new queue
     this.createQueue(QUEUE_NAMES.NOTIFICATION_QUEUE);
 
@@ -81,7 +81,10 @@ Create a new file in the `src/workers/` directory:
 
 import { Job as BullMqJob } from "bullmq";
 import logger from "@shared/logger";
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 
 /**
  * Type definition for notification job data
@@ -97,12 +100,12 @@ type NotificationJobData = {
 /**
  * Worker function to process notification jobs.
  * This function is called for each job in the queue.
- * 
+ *
  * @param job The BullMQ job containing notification data
  * @returns Promise that resolves when notification is sent
  */
 export async function processNotification(
-  job: BullMqJob<NotificationJobData>
+  job: BullMqJob<NotificationJobData>,
 ): Promise<void> {
   const { userId, type, title, message, data } = job.data;
 
@@ -154,7 +157,7 @@ export function initializeNotificationWorker(): void {
         max: 100, // Max 100 notifications
         duration: 60000, // per minute
       },
-    }
+    },
   );
 
   logger.info("Notification worker initialized");
@@ -165,12 +168,15 @@ async function sendPushNotification(
   userId: number,
   title: string,
   message: string,
-  data?: Record<string, unknown>
+  data?: Record<string, unknown>,
 ): Promise<void> {
   // Implementation here
 }
 
-async function sendSMSNotification(userId: number, message: string): Promise<void> {
+async function sendSMSNotification(
+  userId: number,
+  message: string,
+): Promise<void> {
   // Implementation here
 }
 
@@ -178,7 +184,7 @@ async function createInAppNotification(
   userId: number,
   title: string,
   message: string,
-  data?: Record<string, unknown>
+  data?: Record<string, unknown>,
 ): Promise<void> {
   // Implementation here
 }
@@ -213,12 +219,9 @@ try {
   initializeNotificationWorker();
   logger.info("Queue service and workers initialized");
 } catch (error) {
-  logger.warn(
-    "Queue service initialization failed",
-    {
-      error: error instanceof Error ? error.message : "Unknown error",
-    }
-  );
+  logger.warn("Queue service initialization failed", {
+    error: error instanceof Error ? error.message : "Unknown error",
+  });
 }
 ```
 
@@ -256,7 +259,7 @@ export class UserService {
           priority: 1, // Higher priority
           delay: 5000, // Delay 5 seconds
           attempts: 3, // Retry up to 3 times on failure
-        }
+        },
       );
 
       logger.info(`Queued welcome notification for user ${userId}`);
@@ -281,7 +284,10 @@ For workers that need to run on a schedule (e.g., daily cleanup, weekly reports)
 
 import { Job as BullMqJob } from "bullmq";
 import logger from "@shared/logger";
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 
 /**
  * Type definition for report job data
@@ -296,7 +302,7 @@ type ReportJobData = {
  * Worker function to generate reports
  */
 export async function processReport(
-  job: BullMqJob<ReportJobData>
+  job: BullMqJob<ReportJobData>,
 ): Promise<{ generated: boolean; reportId: string }> {
   const { reportType, startDate, endDate } = job.data;
 
@@ -337,17 +343,13 @@ export function initializeReportWorker(): void {
   queueService.registerWorker<
     ReportJobData,
     { generated: boolean; reportId: string }
-  >(
-    QUEUE_NAMES.REPORT_QUEUE,
-    processReport,
-    {
-      concurrency: 1, // Process one report at a time
-      limiter: {
-        max: 5, // Max 5 reports
-        duration: 60000, // per minute
-      },
-    }
-  );
+  >(QUEUE_NAMES.REPORT_QUEUE, processReport, {
+    concurrency: 1, // Process one report at a time
+    limiter: {
+      max: 5, // Max 5 reports
+      duration: 60000, // per minute
+    },
+  });
 
   logger.info("Report generator worker initialized");
 }
@@ -374,7 +376,7 @@ export async function scheduleDailyReport(): Promise<void> {
           pattern: "0 2 * * *", // Cron expression: Every day at 2:00 AM
         },
         jobId: "daily-report-generation", // Prevent duplicate jobs
-      }
+      },
     );
 
     logger.info("📅 Scheduled daily report generation (2:00 AM daily)");
@@ -407,7 +409,7 @@ export async function scheduleWeeklyReport(): Promise<void> {
           pattern: "0 3 * * 1", // Cron expression: Every Monday at 3:00 AM
         },
         jobId: "weekly-report-generation",
-      }
+      },
     );
 
     logger.info("📅 Scheduled weekly report generation (3:00 AM every Monday)");
@@ -440,10 +442,12 @@ export async function scheduleMonthlyReport(): Promise<void> {
           pattern: "0 4 1 * *", // Cron expression: 1st of every month at 4:00 AM
         },
         jobId: "monthly-report-generation",
-      }
+      },
     );
 
-    logger.info("📅 Scheduled monthly report generation (4:00 AM on 1st of month)");
+    logger.info(
+      "📅 Scheduled monthly report generation (4:00 AM on 1st of month)",
+    );
   } catch (error) {
     logger.error("Failed to schedule monthly report generation", {
       error: error instanceof Error ? error.message : "Unknown error",
@@ -452,7 +456,10 @@ export async function scheduleMonthlyReport(): Promise<void> {
 }
 
 // Helper functions
-async function fetchReportData(startDate: string, endDate: string): Promise<any> {
+async function fetchReportData(
+  startDate: string,
+  endDate: string,
+): Promise<any> {
   // Implementation
 }
 
@@ -465,12 +472,15 @@ async function saveReport(
   reportId: string,
   type: string,
   startDate: string,
-  endDate: string
+  endDate: string,
 ): Promise<void> {
   // Implementation
 }
 
-async function notifyAdministrators(type: string, reportId: string): Promise<void> {
+async function notifyAdministrators(
+  type: string,
+  reportId: string,
+): Promise<void> {
   // Implementation
 }
 ```
@@ -517,28 +527,28 @@ Common cron patterns for scheduled jobs:
 
 ```typescript
 // Every minute
-"* * * * *"
+"* * * * *";
 
 // Every 5 minutes
-"*/5 * * * *"
+"*/5 * * * *";
 
 // Every hour at minute 30
-"30 * * * *"
+"30 * * * *";
 
 // Every day at 2:00 AM
-"0 2 * * *"
+"0 2 * * *";
 
 // Every Monday at 9:00 AM
-"0 9 * * 1"
+"0 9 * * 1";
 
 // Every 1st of the month at midnight
-"0 0 1 * *"
+"0 0 1 * *";
 
 // Every weekday at 6:00 PM
-"0 18 * * 1-5"
+"0 18 * * 1-5";
 
 // Every 15 minutes during business hours (9 AM - 5 PM)
-"*/15 9-17 * * *"
+"*/15 9-17 * * *";
 ```
 
 Format: `"minute hour day-of-month month day-of-week"`
@@ -554,13 +564,13 @@ queueService.registerWorker<JobDataType, ReturnType>(
   {
     // Number of jobs to process concurrently
     concurrency: 5,
-    
+
     // Rate limiting
     limiter: {
-      max: 100,        // Maximum jobs
+      max: 100, // Maximum jobs
       duration: 60000, // Per time period (ms)
     },
-  }
+  },
 );
 ```
 
@@ -572,7 +582,9 @@ When adding jobs to a queue, you can specify:
 await queueService.addJob(
   QUEUE_NAMES.YOUR_QUEUE,
   "job-name",
-  { /* job data */ },
+  {
+    /* job data */
+  },
   {
     // Retry configuration
     attempts: 3,
@@ -580,32 +592,32 @@ await queueService.addJob(
       type: "exponential",
       delay: 1000, // Initial delay in ms
     },
-    
+
     // Priority (lower number = higher priority)
     priority: 1,
-    
+
     // Delay before processing
     delay: 5000, // 5 seconds
-    
+
     // Remove completed jobs
     removeOnComplete: {
-      count: 100,  // Keep last 100
-      age: 3600,   // Keep for 1 hour (seconds)
+      count: 100, // Keep last 100
+      age: 3600, // Keep for 1 hour (seconds)
     },
-    
+
     // Remove failed jobs
     removeOnFail: {
       count: 500,
     },
-    
+
     // Scheduled/recurring jobs
     repeat: {
       pattern: "0 2 * * *", // Cron pattern
     },
-    
+
     // Unique job ID (prevents duplicates)
     jobId: "unique-job-identifier",
-  }
+  },
 );
 ```
 

@@ -31,12 +31,8 @@ export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
  * @param status The application status value.
  * @returns The human-readable label for the status, or the original status if not found.
  */
-export function getApplicationStatusLabel(
-  status: string,
-): string {
-  return (
-    APPLICATION_STATUS_LABELS[status as ApplicationStatus] || status
-  );
+export function getApplicationStatusLabel(status: string): string {
+  return APPLICATION_STATUS_LABELS[status as ApplicationStatus] || status;
 }
 
 /**
@@ -52,4 +48,3 @@ export const APPLICATION_STATUSES: readonly ApplicationStatus[] = [
   "hired",
   "withdrawn",
 ] as const;
-

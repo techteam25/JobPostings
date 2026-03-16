@@ -13,7 +13,7 @@ export const insertJobAlertSchema = createInsertSchema(jobAlerts, {
     .string()
     .min(3, "Name must be at least 3 characters")
     .max(100)
-    .refine((val) => /^[a-zA-Z0-9\s\-]+$/.test(val)), // no special characters except spaces/hyphens
+    .refine((val) => /^[a-zA-Z0-9\s-]+$/.test(val)), // no special characters except spaces/hyphens
   searchQuery: z
     .string()
     .max(500, "Search query must be at most 500 characters")
@@ -23,13 +23,6 @@ export const insertJobAlertSchema = createInsertSchema(jobAlerts, {
 });
 
 export type InsertJobAlert = z.infer<typeof insertJobAlertSchema>;
-
-// Schema for job alert matches
-export const insertJobAlertMatchSchema = createInsertSchema(jobAlertMatches, {
-  jobAlertId: z.number().int().positive("Job Alert ID is required"),
-  jobId: z.number().int().positive("Job ID is required"),
-});
-export type InsertJobAlertMatch = z.infer<typeof insertJobAlertMatchSchema>;
 
 // Select schemas
 export const selectJobAlertSchema = createSelectSchema(jobAlerts);

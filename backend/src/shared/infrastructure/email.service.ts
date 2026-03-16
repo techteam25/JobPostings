@@ -9,7 +9,7 @@ import { getApplicationStatusLabel } from "@shared/utils/application-status";
 import { EmailType } from "@shared/types";
 import { UserRepository } from "@/repositories/user.repository";
 import logger from "@shared/logger";
-import type { EmailServicePort } from "@/ports/email-service.port";
+import type { EmailServicePort } from "@shared/ports/email-service.port";
 import type { UserRepositoryPort } from "@/ports/user-repository.port";
 
 /**
@@ -112,7 +112,7 @@ export class EmailService extends BaseService implements EmailServicePort {
         | "accountSecurityAlerts";
 
       return await this.userRepository.canSendEmailType(userId, emailTypeKey);
-    } catch (error) {
+    } catch {
       return true;
     }
   }
@@ -135,7 +135,7 @@ export class EmailService extends BaseService implements EmailServicePort {
       if (preferences) {
         unsubscribeLink = `${env.SERVER_URL}/api/users/me/email-preferences/unsubscribe/${preferences.unsubscribeToken}`;
       }
-    } catch (error) {
+    } catch {
       // If we can't get preferences, just don't include unsubscribe link
     }
 
@@ -302,13 +302,11 @@ ${footer}`,
    * @param email The recipient's email address.
    * @param name The recipient's name.
    * @param url The verification URL.
-   * @param token The verification token.
    */
   async sendDeleteAccountEmailVerification(
     email: string,
     name: string,
     url: string,
-    token: string,
   ): Promise<void> {
     const template = await this.loadTemplate("deleteEmail");
 
@@ -376,7 +374,9 @@ ${footer}`,
         this.handleError(error);
       } else {
         this.handleError(
-          new AppError("Unknown error occurred while sending password changed email"),
+          new AppError(
+            "Unknown error occurred while sending password changed email",
+          ),
         );
       }
     }
@@ -636,40 +636,56 @@ ${footer}`,
       const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
 
       // Generate status-specific messages
-      const statusMessages: Record<string, { message: string; nextSteps: string }> = {
+      const statusMessages: Record<
+        string,
+        { message: string; nextSteps: string }
+      > = {
         reviewed: {
-          message: "Your application has been reviewed by the employer. They are currently evaluating your qualifications.",
-          nextSteps: "The employer will continue to review your application and may contact you for next steps. Please check your email regularly for updates.",
+          message:
+            "Your application has been reviewed by the employer. They are currently evaluating your qualifications.",
+          nextSteps:
+            "The employer will continue to review your application and may contact you for next steps. Please check your email regularly for updates.",
         },
         shortlisted: {
-          message: "Great news! Your application has been shortlisted. The employer is interested in learning more about you.",
-          nextSteps: "The employer may contact you soon for an interview or additional information. Make sure to check your email and be prepared to discuss your qualifications.",
+          message:
+            "Great news! Your application has been shortlisted. The employer is interested in learning more about you.",
+          nextSteps:
+            "The employer may contact you soon for an interview or additional information. Make sure to check your email and be prepared to discuss your qualifications.",
         },
         interviewing: {
-          message: "Congratulations! You've been selected for an interview. The employer will contact you with details about the interview process.",
-          nextSteps: "Please check your email for interview details and be prepared to discuss your experience and qualifications. Good luck!",
+          message:
+            "Congratulations! You've been selected for an interview. The employer will contact you with details about the interview process.",
+          nextSteps:
+            "Please check your email for interview details and be prepared to discuss your experience and qualifications. Good luck!",
         },
         rejected: {
-          message: "We regret to inform you that your application was not selected for this position at this time.",
-          nextSteps: "Don't be discouraged! Continue to apply for other positions that match your skills and experience. We wish you the best in your job search.",
+          message:
+            "We regret to inform you that your application was not selected for this position at this time.",
+          nextSteps:
+            "Don't be discouraged! Continue to apply for other positions that match your skills and experience. We wish you the best in your job search.",
         },
         hired: {
-          message: "Congratulations! You've been selected for this position. The employer will contact you with next steps.",
-          nextSteps: "The employer will reach out to you with details about onboarding and your start date. Congratulations on your new opportunity!",
+          message:
+            "Congratulations! You've been selected for this position. The employer will contact you with next steps.",
+          nextSteps:
+            "The employer will reach out to you with details about onboarding and your start date. Congratulations on your new opportunity!",
         },
         pending: {
           message: "Your application status has been updated to pending.",
-          nextSteps: "The employer is reviewing your application. We will notify you when there are any updates.",
+          nextSteps:
+            "The employer is reviewing your application. We will notify you when there are any updates.",
         },
         withdrawn: {
           message: "Your application has been withdrawn.",
-          nextSteps: "If you have any questions about this action, please contact the employer or our support team.",
+          nextSteps:
+            "If you have any questions about this action, please contact the employer or our support team.",
         },
       };
 
       const statusInfo = statusMessages[newStatus.toLowerCase()] || {
         message: `Your application status has been updated from ${oldStatus} to ${newStatus}.`,
-        nextSteps: "Please check your dashboard for more details about your application.",
+        nextSteps:
+          "Please check your dashboard for more details about your application.",
       };
 
       // Get human-readable status labels
@@ -740,7 +756,10 @@ ${footer}`,
 
       const template = await this.loadTemplate("jobAlertNotification");
       const logoPath = await this.getImageAsBase64("logo.png");
-      const footer = await this.generateEmailFooter(userId, EmailType.JOB_MATCH);
+      const footer = await this.generateEmailFooter(
+        userId,
+        EmailType.JOB_MATCH,
+      );
 
       // Build job matches HTML
       const esc = (s: string) => this.escapeHtml(s);
@@ -797,10 +816,7 @@ ${footer}`,
         .replace("{{name}}", this.escapeHtml(fullName))
         .replace("{{alertName}}", this.escapeHtml(alertName))
         .replace("{{matchCount}}", totalMatches.toString())
-        .replace(
-          "{{matchWord}}",
-          totalMatches === 1 ? "match" : "matches",
-        )
+        .replace("{{matchWord}}", totalMatches === 1 ? "match" : "matches")
         .replace("{{jobsHtml}}", jobsHtml)
         .replace("{{moreMatchesText}}", moreMatchesText)
         .replace("{{alertsLink}}", `${env.FRONTEND_URL}/job-alerts`)

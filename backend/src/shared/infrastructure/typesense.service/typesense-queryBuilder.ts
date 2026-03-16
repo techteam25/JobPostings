@@ -12,7 +12,12 @@ export class TypesenseQueryBuilder {
   ) {
     const locationKeys = ["city", "state", "country", "zipcode"] as const;
     const locationFilters = Object.entries(location)
-      .filter(([key, value]) => locationKeys.includes(key as any) && value)
+      .filter(
+        ([key, value]) =>
+          locationKeys.includes(
+            key as "city" | "state" | "country" | "zipcode",
+          ) && value,
+      )
       .map(([key, value]) => `${key}:${value}`);
 
     if (locationFilters.length > 0 && includeRemote) {

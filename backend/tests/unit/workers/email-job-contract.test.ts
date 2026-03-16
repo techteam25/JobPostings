@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { emailJobSchemas } from "@/workers/send-email-worker";
-import { queueService, QUEUE_NAMES } from "@shared/infrastructure/queue.service";
+import {
+  queueService,
+  QUEUE_NAMES,
+} from "@shared/infrastructure/queue.service";
 import { JobService } from "@/services/job.service";
 import { JobBoardRepository } from "@/modules/job-board/repositories/job-board.repository";
 import { ApplicationsRepository } from "@/modules/applications/repositories/applications.repository";
-import { UserRepository } from "@/repositories/user.repository";
 import { IdentityRepository } from "@/modules/identity/repositories/identity.repository";
 // Mock auth module to break circular dependency (auth.ts → UserService → auth.ts)
 vi.mock("@/utils/auth", () => ({
@@ -71,19 +73,31 @@ describe("Email Job Contract Tests", () => {
         job: { id: 1, title: "Test Job", employerId: 10 },
         employer: { id: 10, name: "Acme" },
       } as any);
-      vi.spyOn(ApplicationsRepository.prototype, "findApplicationsByJob").mockResolvedValue({
+      vi.spyOn(
+        ApplicationsRepository.prototype,
+        "findApplicationsByJob",
+      ).mockResolvedValue({
         items: [],
-        pagination: { total: 0, page: 1, limit: 10, totalPages: 0, hasNext: false, hasPrevious: false, nextPage: null, previousPage: null },
+        pagination: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNext: false,
+          hasPrevious: false,
+          nextPage: null,
+          previousPage: null,
+        },
       });
       vi.spyOn(JobBoardRepository.prototype, "delete").mockResolvedValue(true);
-      vi.spyOn(UserRepository.prototype, "findById").mockResolvedValue({
+      vi.spyOn(IdentityRepository.prototype, "findUserById").mockResolvedValue({
         id: 5,
         email: "user@test.com",
         fullName: "Test User",
       } as any);
 
       const service = new JobService();
-      await service.deleteJob(1, 5, 10);
+      await service.deleteJob(1, 5);
 
       expectEmailDispatched("sendJobDeletionEmail");
     });
@@ -163,10 +177,7 @@ describe("Email Job Contract Tests", () => {
         status: "active",
       } as any);
       vi.spyOn(IdentityRepository.prototype, "update").mockResolvedValue(true);
-      vi.spyOn(
-        IdentityRepository.prototype,
-        "findUserById",
-      ).mockResolvedValue({
+      vi.spyOn(IdentityRepository.prototype, "findUserById").mockResolvedValue({
         id: 5,
         email: "user@test.com",
         fullName: "Test User",

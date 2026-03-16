@@ -3,7 +3,10 @@ import { JobWithSkills } from "@/validations/job.validation";
 import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 import type { TypesenseServicePort } from "@/ports/typesense-service.port";
 import logger from "@shared/logger";
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 
 const typesenseService: TypesenseServicePort = new TypesenseService();
 

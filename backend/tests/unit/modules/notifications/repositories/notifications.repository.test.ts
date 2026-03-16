@@ -115,10 +115,7 @@ describe("NotificationsRepository - Job Alerts", () => {
         userId: 1,
       };
 
-      const result = await notificationsRepository.createJobAlert(
-        1,
-        alertData,
-      );
+      const result = await notificationsRepository.createJobAlert(1, alertData);
 
       expect(result).toEqual(mockAlert);
       expect(mockInsert.values).toHaveBeenCalledWith({

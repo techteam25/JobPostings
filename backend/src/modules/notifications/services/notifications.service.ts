@@ -2,7 +2,7 @@ import { fail, ok } from "@shared/result";
 import { BaseService } from "@shared/base/base.service";
 import type { NotificationsServicePort } from "@/modules/notifications";
 import type { NotificationsRepositoryPort } from "@/modules/notifications";
-import type { EmailServicePort } from "@/ports/email-service.port";
+import type { EmailServicePort } from "@shared/ports/email-service.port";
 import type { UserActivityQueryPort } from "@/modules/notifications";
 import {
   AppError,

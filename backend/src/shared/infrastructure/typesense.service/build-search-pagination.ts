@@ -1,8 +1,7 @@
-import { SearchResponse } from "typesense/lib/Typesense/Documents";
 import { PaginationMeta } from "@shared/types";
 
 export function buildPaginationMeta(
-  searchResponse: SearchResponse<any>,
+  searchResponse: { found: number; page: number },
   limit: number,
 ): PaginationMeta {
   const total = searchResponse.found;

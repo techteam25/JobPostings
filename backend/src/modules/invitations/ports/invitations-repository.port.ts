@@ -67,10 +67,7 @@ export interface InvitationsRepositoryPort {
   /**
    * Checks if an email is already an active member of an organization.
    */
-  isEmailActiveMember(
-    email: string,
-    organizationId: number,
-  ): Promise<boolean>;
+  isEmailActiveMember(email: string, organizationId: number): Promise<boolean>;
 
   /**
    * Expires all pending invitations that have passed their expiration date.

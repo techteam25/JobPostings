@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NotificationsService } from "@/modules/notifications/services/notifications.service";
-import {
-  ValidationError,
-  DatabaseError,
-  NotFoundError,
-} from "@shared/errors";
+import { ValidationError, DatabaseError, NotFoundError } from "@shared/errors";
 
 describe("NotificationsService - Job Alerts", () => {
   let notificationsService: NotificationsService;
@@ -118,9 +114,7 @@ describe("NotificationsService - Job Alerts", () => {
         expect(result.error).toBeInstanceOf(ValidationError);
         expect(result.error.message).toContain("Maximum active job alerts");
       }
-      expect(
-        mockNotificationsRepository.createJobAlert,
-      ).not.toHaveBeenCalled();
+      expect(mockNotificationsRepository.createJobAlert).not.toHaveBeenCalled();
     });
 
     it("should handle database errors", async () => {
@@ -188,9 +182,10 @@ describe("NotificationsService - Job Alerts", () => {
       if (result.isSuccess) {
         expect(result.value).toEqual(mockResult);
       }
-      expect(
-        mockNotificationsRepository.getUserJobAlerts,
-      ).toHaveBeenCalledWith(1, { page: 1, limit: 10 });
+      expect(mockNotificationsRepository.getUserJobAlerts).toHaveBeenCalledWith(
+        1,
+        { page: 1, limit: 10 },
+      );
     });
 
     it("should handle database errors", async () => {
@@ -236,9 +231,10 @@ describe("NotificationsService - Job Alerts", () => {
       if (result.isSuccess) {
         expect(result.value).toEqual(mockAlert);
       }
-      expect(
-        mockNotificationsRepository.getJobAlertById,
-      ).toHaveBeenCalledWith(1, 1);
+      expect(mockNotificationsRepository.getJobAlertById).toHaveBeenCalledWith(
+        1,
+        1,
+      );
     });
 
     it("should fail when alert not found", async () => {
@@ -299,9 +295,7 @@ describe("NotificationsService - Job Alerts", () => {
         frequency: "daily",
       });
 
-      expect(
-        mockNotificationsRepository.updateJobAlert,
-      ).toHaveBeenCalledWith(
+      expect(mockNotificationsRepository.updateJobAlert).toHaveBeenCalledWith(
         1,
         1,
         expect.objectContaining({ frequency: "daily", lastSentAt: null }),
@@ -310,9 +304,7 @@ describe("NotificationsService - Job Alerts", () => {
 
     it("should set lastSentAt to now when switching to less frequent (daily -> weekly)", async () => {
       const dailyAlert = { ...baseAlert, frequency: "daily" as const };
-      mockNotificationsRepository.getJobAlertById.mockResolvedValue(
-        dailyAlert,
-      );
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(dailyAlert);
       mockNotificationsRepository.updateJobAlert.mockResolvedValue({
         ...dailyAlert,
         frequency: "weekly",
@@ -361,9 +353,10 @@ describe("NotificationsService - Job Alerts", () => {
       const result = await notificationsService.deleteJobAlert(1, 1);
 
       expect(result.isSuccess).toBe(true);
-      expect(
-        mockNotificationsRepository.deleteJobAlert,
-      ).toHaveBeenCalledWith(1, 1);
+      expect(mockNotificationsRepository.deleteJobAlert).toHaveBeenCalledWith(
+        1,
+        1,
+      );
     });
 
     it("should fail when alert not found", async () => {
@@ -387,11 +380,7 @@ describe("NotificationsService - Job Alerts", () => {
         isPaused: true,
       });
 
-      const result = await notificationsService.togglePauseJobAlert(
-        1,
-        1,
-        true,
-      );
+      const result = await notificationsService.togglePauseJobAlert(1, 1, true);
 
       expect(result.isSuccess).toBe(true);
       expect(

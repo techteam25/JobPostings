@@ -4,19 +4,18 @@ import { JobBoardRepository } from "@/modules/job-board/repositories/job-board.r
 import { JobInsightsRepository } from "@/modules/job-board";
 import { ApplicationsService } from "@/modules/applications/services/applications.service";
 import { ApplicationsRepository } from "@/modules/applications/repositories/applications.repository";
-import { OrganizationRepository } from "@/repositories/organization.repository";
-import { UserRepository } from "@/repositories/user.repository";
 import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 import {
   ApplicationsToJobBoardAdapter,
   JobBoardToApplicationsAdapter,
   OrganizationsToApplicationsAdapter,
+  OrganizationsToJobBoardAdapter,
   IdentityToApplicationsAdapter,
+  IdentityToJobBoardAdapter,
 } from "@shared/adapters";
 import { IdentityRepository } from "@/modules/identity/repositories/identity.repository";
 import { OrganizationsRepository } from "@/modules/organizations/repositories/organizations.repository";
 import { BullMqEventBus } from "@shared/events";
-import type { JobServicePort } from "@/ports/job-service.port";
 import type {
   CreateJobSchema,
   JobWithSkills,
@@ -39,7 +38,7 @@ import type { Result } from "@shared/result";
  * `@/modules/applications` instead. This monolithic class will be removed once all consumers
  * have migrated to the new modular services.
  */
-export class JobService extends BaseService implements JobServicePort {
+export class JobService extends BaseService {
   private jobBoardService: JobBoardService;
   private applicationsService: ApplicationsService;
 
@@ -49,32 +48,36 @@ export class JobService extends BaseService implements JobServicePort {
     // Job Board module
     const jobBoardRepository = new JobBoardRepository();
     const jobInsightsRepository = new JobInsightsRepository();
-    const organizationRepository = new OrganizationRepository();
     const typesenseService = new TypesenseService();
-    const userRepository = new UserRepository();
     const applicationsRepository = new ApplicationsRepository();
     const applicationStatusAdapter = new ApplicationsToJobBoardAdapter(
       applicationsRepository,
     );
-
-    this.jobBoardService = new JobBoardService(
-      jobBoardRepository,
-      organizationRepository,
-      jobInsightsRepository,
-      typesenseService,
-      userRepository,
-      applicationStatusAdapter,
-    );
-
-    // Applications module (with cross-module adapters)
-    const jobDetailsAdapter = new JobBoardToApplicationsAdapter(
-      jobBoardRepository,
-    );
     const organizationsRepository = new OrganizationsRepository();
-    const orgMembershipAdapter = new OrganizationsToApplicationsAdapter(
+    const orgMembershipForJobAdapter = new OrganizationsToJobBoardAdapter(
       organizationsRepository,
     );
     const identityRepository = new IdentityRepository();
+    const userContactAdapter = new IdentityToJobBoardAdapter(
+      identityRepository,
+    );
+
+    this.jobBoardService = new JobBoardService(
+      jobBoardRepository,
+      jobInsightsRepository,
+      typesenseService,
+      applicationStatusAdapter,
+      orgMembershipForJobAdapter,
+      userContactAdapter,
+    );
+
+    // Applications module (with cross-module adapters — reuses repos from above)
+    const jobDetailsAdapter = new JobBoardToApplicationsAdapter(
+      jobBoardRepository,
+    );
+    const orgMembershipAdapter = new OrganizationsToApplicationsAdapter(
+      organizationsRepository,
+    );
     const applicantAdapter = new IdentityToApplicationsAdapter(
       identityRepository,
     );
@@ -148,9 +151,8 @@ export class JobService extends BaseService implements JobServicePort {
   async deleteJob(
     id: number,
     requesterId: number,
-    organizationId: number,
   ): Promise<Result<null, Error>> {
-    return this.jobBoardService.deleteJob(id, requesterId, organizationId);
+    return this.jobBoardService.deleteJob(id, requesterId);
   }
 
   async getEmployerJobStats(organizationId: number) {
@@ -166,10 +168,7 @@ export class JobService extends BaseService implements JobServicePort {
     },
     correlationId: string,
   ): Promise<Result<{ applicationId: number; message: string }, Error>> {
-    return this.applicationsService.applyForJob(
-      applicationData,
-      correlationId,
-    );
+    return this.applicationsService.applyForJob(applicationData, correlationId);
   }
 
   async getJobApplications(
@@ -184,10 +183,7 @@ export class JobService extends BaseService implements JobServicePort {
     );
   }
 
-  async getUserApplications(
-    userId: number,
-    query: ApplicationQueryParams,
-  ) {
+  async getUserApplications(userId: number, query: ApplicationQueryParams) {
     return this.applicationsService.getUserApplications(userId, query);
   }
 
@@ -207,10 +203,7 @@ export class JobService extends BaseService implements JobServicePort {
     applicationId: number,
     userId: number,
   ): Promise<Result<{ message: string }, Error>> {
-    return this.applicationsService.withdrawApplication(
-      applicationId,
-      userId,
-    );
+    return this.applicationsService.withdrawApplication(applicationId, userId);
   }
 
   async deleteJobApplicationsByUserId(

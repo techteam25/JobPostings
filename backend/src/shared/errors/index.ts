@@ -23,15 +23,15 @@ export class AppError extends Error {
   public readonly errorCode: ErrorCode;
   public readonly isOperational: boolean;
   public readonly timestamp: string;
-  public readonly details?: any;
-  public readonly originalError?: any;
+  public readonly details?: unknown;
+  public readonly originalError?: Error;
 
   constructor(
     message: string,
     statusCode: number = 500,
     errorCode: ErrorCode = ErrorCode.INTERNAL_ERROR,
     isOperational: boolean = true,
-    details?: any,
+    details?: unknown,
   ) {
     super(message);
     this.statusCode = statusCode;
@@ -45,7 +45,7 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, details?: unknown) {
     super(message, 400, ErrorCode.VALIDATION_ERROR, true, details);
   }
 }
@@ -72,7 +72,7 @@ export class ForbiddenError extends AppError {
 }
 
 export class ConflictError extends AppError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, details?: unknown) {
     super(message, 409, ErrorCode.CONFLICT, true, details);
   }
 }
@@ -80,7 +80,7 @@ export class ConflictError extends AppError {
 export class DatabaseError extends AppError {
   constructor(
     message: string = "Database operation failed",
-    originalError?: any,
+    originalError?: Error,
   ) {
     super(message, 500, ErrorCode.DATABASE_ERROR, true, originalError);
   }

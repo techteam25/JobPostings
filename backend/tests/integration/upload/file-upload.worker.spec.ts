@@ -226,7 +226,11 @@ describe("File Upload Worker Integration", () => {
 
       // Mock to capture progress callback
       (firebaseUploadService.uploadFiles as any).mockImplementationOnce(
-        async (_files: any, _options: any, onProgress?: (progress: number) => void) => {
+        async (
+          _files: any,
+          _options: any,
+          onProgress?: (progress: number) => void,
+        ) => {
           if (onProgress) {
             onProgress(25);
             onProgress(50);

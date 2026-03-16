@@ -20,12 +20,21 @@ const MODULE_NAMES = [
 /**
  * Creates `no-restricted-imports` patterns that block deep imports into
  * OTHER modules while allowing a module to import its own internals.
+ * Also blocks imports from the deprecated `@/ports/` directory — shared
+ * infrastructure ports live in `@shared/ports/`.
  */
 function crossModuleBoundaryPatterns(currentModule: string) {
-  return MODULE_NAMES.filter((m) => m !== currentModule).map((m) => ({
-    group: [`@/modules/${m}/**`],
-    message: `Import from "@/modules/${m}" (public API) instead of internal paths.`,
-  }));
+  return [
+    ...MODULE_NAMES.filter((m) => m !== currentModule).map((m) => ({
+      group: [`@/modules/${m}/**`],
+      message: `Import from "@/modules/${m}" (public API) instead of internal paths.`,
+    })),
+    {
+      group: ["@/ports/*"],
+      message:
+        'Use "@shared/ports/<port-name>" for shared infrastructure ports. Facade-era ports in @/ports/ should not be imported by module code.',
+    },
+  ];
 }
 
 // Per-module overrides: each module may import its own internals but NOT other modules'.
@@ -66,6 +75,14 @@ export default tseslint.config(
                 'Import from "@/modules/<module-name>" (public API) instead of internal paths.',
             },
           ],
+        },
+      ],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
         },
       ],
     },

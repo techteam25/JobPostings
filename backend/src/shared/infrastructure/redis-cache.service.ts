@@ -137,7 +137,7 @@ class RedisCacheService {
     }
   }
 
-  async setJSON(key: string, value: any, ttl?: number): Promise<boolean> {
+  async setJSON(key: string, value: unknown, ttl?: number): Promise<boolean> {
     try {
       const serialized = JSON.stringify(value);
       const result = await this.set(key, serialized, ttl);
@@ -172,7 +172,10 @@ class RedisCacheService {
       let cursor = "0";
 
       do {
-        const result = await client.scan(cursor, { MATCH: pattern, COUNT: 100 });
+        const result = await client.scan(cursor, {
+          MATCH: pattern,
+          COUNT: 100,
+        });
         cursor = result.cursor.toString();
         if (result.keys.length > 0) {
           deleted += await client.del(result.keys);

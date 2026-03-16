@@ -117,7 +117,11 @@ export class CacheService {
         `${cachePattern}*`,
       );
 
-      logger.debug("Cache invalidated", { pattern: cachePattern, count, cacheResult: "DEL" });
+      logger.debug("Cache invalidated", {
+        pattern: cachePattern,
+        count,
+        cacheResult: "DEL",
+      });
       return count;
     } catch (error) {
       logger.warn("Cache invalidation error", {

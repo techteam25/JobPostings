@@ -9,7 +9,7 @@ import { typesenseClient } from "@shared/config/typesense-client";
 
 import type { JobDocumentType } from "@/validations/base.validation";
 import logger from "@shared/logger";
-import type { TypesenseServicePort } from "@/ports/typesense-service.port";
+import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
 
 type SortDirection = "asc" | "desc";
 type MetaSearchParams = {

@@ -7,7 +7,10 @@ import { request } from "@tests/utils/testHelpers";
 import { seedAdminScenario } from "@tests/utils/seedScenarios";
 import { jobPostingFixture } from "@tests/utils/fixtures";
 import { waitForJobIndexing } from "@tests/utils/wait-for-jobIndexer";
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 import { initializeTypesenseWorker } from "@/workers/typesense-job-indexer";
 
 // Override the global queue mock — this test needs real Redis queue + Typesense

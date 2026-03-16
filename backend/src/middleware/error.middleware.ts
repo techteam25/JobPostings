@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { AppError, createErrorResponse, ValidationError } from "@shared/errors";
 import { env } from "@shared/config/env";
 import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
@@ -8,13 +8,11 @@ import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
  * @param err The error object, which can be a standard Error or an AppError.
  * @param _ The Express request object (unused in this middleware).
  * @param res The Express response object used to send the error response.
- * @param __ The next middleware function (unused in this middleware).
  */
 export const errorHandler = (
   err: Error | AppError,
   _: Request,
   res: Response,
-  __: NextFunction,
 ) => {
   // Handle known AppError instances
   if (err instanceof AppError) {

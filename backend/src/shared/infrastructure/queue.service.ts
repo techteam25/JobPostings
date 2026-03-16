@@ -122,7 +122,7 @@ class QueueService {
   /**
    * Register a worker for a queue
    */
-  registerWorker<T = any, R = any>(
+  registerWorker<T = unknown, R = unknown>(
     queueName: string,
     processor: (job: Job<T>) => Promise<R>,
     options?: {

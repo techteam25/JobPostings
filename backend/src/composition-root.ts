@@ -3,9 +3,8 @@ import { EmailService } from "@shared/infrastructure/email.service";
 import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 import { BullMqEventBus } from "@shared/events";
 
-// Old facade repositories — still needed by JobBoardService until fully decoupled
+// Old facade repository — still needed by EmailService until fully decoupled
 import { UserRepository } from "@/repositories/user.repository";
-import { OrganizationRepository } from "@/repositories/organization.repository";
 
 // Module composition roots
 import { createOrganizationsModule } from "@/modules/organizations";
@@ -30,6 +29,7 @@ import {
   IdentityToNotificationsAdapter,
   IdentityToApplicationsAdapter,
   IdentityToInvitationsAdapter,
+  IdentityToJobBoardAdapter,
   ApplicationsToJobBoardAdapter,
   JobBoardToApplicationsAdapter,
 } from "@shared/adapters";
@@ -45,7 +45,7 @@ import type { JobBoardModule } from "@/modules/job-board";
 import type { ApplicationsModule } from "@/modules/applications";
 import type { OrganizationsModule } from "@/modules/organizations";
 import type { InvitationsModule } from "@/modules/invitations";
-import type { EmailServicePort } from "@/ports/email-service.port";
+import type { EmailServicePort } from "@shared/ports/email-service.port";
 
 /**
  * Public API of the composition root — only exposes controller + guards per module.
@@ -82,8 +82,7 @@ export function createCompositionRoot(): CompositionRoot {
   // ─── 1. Shared Infrastructure ───────────────────────────────────────
 
   const authMiddleware = new AuthMiddleware();
-  const userRepository = new UserRepository();
-  const organizationRepository = new OrganizationRepository();
+  const userRepository = new UserRepository(); // still needed by EmailService
   const emailService = new EmailService(userRepository);
   const eventBus = new BullMqEventBus();
   const typesenseService = new TypesenseService();
@@ -129,6 +128,9 @@ export function createCompositionRoot(): CompositionRoot {
   const identityToInvitationsAdapter = new IdentityToInvitationsAdapter(
     identity.repository,
   );
+  const identityToJobBoardAdapter = new IdentityToJobBoardAdapter(
+    identity.repository,
+  );
 
   // Job-board ↔ Applications (circular — using pre-created repositories)
   const applicationsToJobBoardAdapter = new ApplicationsToJobBoardAdapter(
@@ -151,11 +153,10 @@ export function createCompositionRoot(): CompositionRoot {
   });
 
   const jobBoard = createJobBoardModule({
-    organizationRepository,
-    userRepository,
     typesenseService,
     applicationStatusQuery: applicationsToJobBoardAdapter,
     orgMembershipForJob: orgsToJobBoardAdapter,
+    userContactQuery: identityToJobBoardAdapter,
     jobBoardRepository,
     jobInsightsRepository,
   });

@@ -2,7 +2,7 @@ import { fail, ok, Result } from "@shared/result";
 import { BaseService } from "@shared/base/base.service";
 import type { IdentityServicePort } from "@/modules/identity";
 import type { IdentityRepositoryPort } from "@/modules/identity";
-import type { EmailServicePort } from "@/ports/email-service.port";
+import type { EmailServicePort } from "@shared/ports/email-service.port";
 import type { EventBusPort } from "@shared/events";
 import { createUserDeactivatedEvent } from "@/modules/identity/events/user-deactivated.event";
 import {
@@ -17,6 +17,7 @@ import {
   QUEUE_NAMES,
   queueService,
 } from "@shared/infrastructure/queue.service";
+import logger from "@shared/logger";
 
 export class IdentityService
   extends BaseService
@@ -265,6 +266,8 @@ export class IdentityService
       });
       return ok(null);
     } catch (error) {
+      logger.error(error, "Error deleting account");
+
       return fail(new DatabaseError("Failed to deactivate user"));
     }
   }

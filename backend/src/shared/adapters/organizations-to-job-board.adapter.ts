@@ -32,4 +32,10 @@ export class OrganizationsToJobBoardAdapter implements OrgMembershipForJobPort {
       return null;
     }
   }
+
+  async organizationExists(organizationId: number): Promise<boolean> {
+    return this.organizationsRepository.validateOrganizationExists(
+      organizationId,
+    );
+  }
 }

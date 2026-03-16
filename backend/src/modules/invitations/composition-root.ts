@@ -1,4 +1,4 @@
-import type { EmailServicePort } from "@/ports/email-service.port";
+import type { EmailServicePort } from "@shared/ports/email-service.port";
 import type { OrgMembershipCommandPort } from "./ports/org-membership-command.port";
 import type { UserEmailQueryPort } from "./ports/user-email-query.port";
 

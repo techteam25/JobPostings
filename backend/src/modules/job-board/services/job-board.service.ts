@@ -1,6 +1,9 @@
 import { Result, fail, ok } from "@shared/result";
 import { BaseService } from "@shared/base/base.service";
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 import {
   NotFoundError,
   ForbiddenError,
@@ -14,10 +17,10 @@ import logger from "@shared/logger";
 import type { JobBoardServicePort } from "@/modules/job-board";
 import type { JobBoardRepositoryPort } from "@/modules/job-board";
 import type { JobInsightsRepositoryPort } from "@/modules/job-board";
-import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
-import type { TypesenseServicePort } from "@/ports/typesense-service.port";
-import type { UserRepositoryPort } from "@/ports/user-repository.port";
+import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
 import type { ApplicationStatusQueryPort } from "@/modules/job-board/ports/application-status-query.port";
+import type { OrgMembershipForJobPort } from "@/modules/job-board/ports/org-membership-for-job.port";
+import type { UserContactQueryPort } from "@/modules/job-board/ports/user-contact-query.port";
 
 import type {
   JobWithEmployer,
@@ -28,14 +31,17 @@ import type {
 } from "@/validations/job.validation";
 import type { SearchParams } from "@/validations/base.validation";
 
-export class JobBoardService extends BaseService implements JobBoardServicePort {
+export class JobBoardService
+  extends BaseService
+  implements JobBoardServicePort
+{
   constructor(
     private jobBoardRepository: JobBoardRepositoryPort,
-    private organizationRepository: OrganizationRepositoryPort,
     private jobInsightsRepository: JobInsightsRepositoryPort,
     private typesenseService: TypesenseServicePort,
-    private userRepository: UserRepositoryPort,
     private applicationStatusQuery: ApplicationStatusQueryPort,
+    private orgMembershipForJob: OrgMembershipForJobPort,
+    private userContactQuery: UserContactQueryPort,
   ) {
     super();
   }
@@ -57,8 +63,10 @@ export class JobBoardService extends BaseService implements JobBoardServicePort 
 
       const jobIds = activeJobs.items.map((job) => job.job.id);
 
-      const appliedJobIds =
-        await this.applicationStatusQuery.getAppliedJobIds(userId, jobIds);
+      const appliedJobIds = await this.applicationStatusQuery.getAppliedJobIds(
+        userId,
+        jobIds,
+      );
 
       const enrichedJobs = activeJobs.items.map((job) => ({
         ...job,
@@ -163,8 +171,10 @@ export class JobBoardService extends BaseService implements JobBoardServicePort 
         return ok({ ...job, hasApplied: false });
       }
 
-      const hasApplied =
-        await this.applicationStatusQuery.hasUserApplied(userId, id);
+      const hasApplied = await this.applicationStatusQuery.hasUserApplied(
+        userId,
+        id,
+      );
 
       return ok({ ...job, hasApplied });
     } catch (error) {
@@ -200,8 +210,10 @@ export class JobBoardService extends BaseService implements JobBoardServicePort 
     } = {},
   ) {
     try {
-      const jobsByEmployer =
-        await this.jobBoardRepository.findJobsByEmployer(employerId, options);
+      const jobsByEmployer = await this.jobBoardRepository.findJobsByEmployer(
+        employerId,
+        options,
+      );
       return ok(jobsByEmployer);
     } catch {
       return fail(new DatabaseError("Failed to fetch jobs by employer"));
@@ -212,11 +224,11 @@ export class JobBoardService extends BaseService implements JobBoardServicePort 
     jobData: CreateJobSchema["body"] & { employerId: number },
   ): Promise<Result<JobWithSkills, Error>> {
     try {
-      const employer = await this.organizationRepository.findById(
+      const employerExists = await this.orgMembershipForJob.organizationExists(
         jobData.employerId,
       );
 
-      if (!employer) {
+      if (!employerExists) {
         return fail(new NotFoundError("Organization", jobData.employerId));
       }
 
@@ -265,18 +277,18 @@ export class JobBoardService extends BaseService implements JobBoardServicePort 
         return fail(new NotFoundError("Job", id));
       }
 
-      const organization = await this.organizationRepository.findByContact(
+      const membership = await this.orgMembershipForJob.findByContact(
         requesterId,
         job.employer!.id,
       );
 
-      if (!organization) {
+      if (!membership) {
         return fail(
           new ForbiddenError("You do not belong to any organization"),
         );
       }
 
-      if (job.job.employerId !== organization.id) {
+      if (job.job.employerId !== membership.organizationId) {
         return fail(
           new ForbiddenError(
             "You can only update jobs posted by your organization",
@@ -329,7 +341,6 @@ export class JobBoardService extends BaseService implements JobBoardServicePort 
   async deleteJob(
     id: number,
     requesterId: number,
-    organizationId: number,
   ): Promise<Result<null, Error>> {
     try {
       const job = await this.jobBoardRepository.findJobById(id);
@@ -356,15 +367,16 @@ export class JobBoardService extends BaseService implements JobBoardServicePort 
         id,
       });
 
-      const user = await this.userRepository.findById(requesterId);
-      if (user) {
+      const userContact =
+        await this.userContactQuery.getUserContactInfo(requesterId);
+      if (userContact) {
         await queueService.addJob(
           QUEUE_NAMES.EMAIL_QUEUE,
           "sendJobDeletionEmail",
           {
             userId: requesterId,
-            email: user.email,
-            fullName: user.fullName,
+            email: userContact.email,
+            fullName: userContact.fullName,
             jobTitle: job.job.title,
             jobId: id,
           },

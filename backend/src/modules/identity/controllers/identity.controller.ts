@@ -9,6 +9,7 @@ import type {
 } from "@/validations/user.validation";
 import type { UpdateUser, User } from "@/validations/userProfile.validation";
 import type { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
+import type { EmptyBody } from "@shared/types";
 
 export class IdentityController extends BaseController {
   constructor(private identityService: IdentityServicePort) {
@@ -16,7 +17,7 @@ export class IdentityController extends BaseController {
   }
 
   updateUser = async (
-    req: Request<GetUserSchema["params"], {}, UpdateUser>,
+    req: Request<GetUserSchema["params"], EmptyBody, UpdateUser>,
     res: Response,
   ) => {
     const id = Number(req.params.id);
@@ -35,7 +36,7 @@ export class IdentityController extends BaseController {
   };
 
   changePassword = async (
-    req: Request<{}, {}, ChangePasswordSchema["body"]>,
+    req: Request<EmptyBody, EmptyBody, ChangePasswordSchema["body"]>,
     res: Response,
   ) => {
     const { currentPassword, newPassword } = req.body;
@@ -105,7 +106,7 @@ export class IdentityController extends BaseController {
   };
 
   deleteSelf = async (
-    req: Request<{}, {}, DeleteSelfSchema["body"]>,
+    req: Request<EmptyBody, EmptyBody, DeleteSelfSchema["body"]>,
     res: Response,
   ) => {
     const { currentPassword } = req.body;
@@ -123,7 +124,7 @@ export class IdentityController extends BaseController {
   };
 
   deleteUser = async (
-    req: Request<GetUserSchema["params"], {}, DeleteUserSchema["body"]>,
+    req: Request<GetUserSchema["params"], EmptyBody, DeleteUserSchema["body"]>,
     res: Response,
   ) => {
     const { token } = req.body;

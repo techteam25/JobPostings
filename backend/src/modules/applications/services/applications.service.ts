@@ -1,6 +1,9 @@
 import { Result, fail, ok } from "@shared/result";
 import { BaseService } from "@shared/base/base.service";
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 import {
   NotFoundError,
   ForbiddenError,
@@ -22,7 +25,10 @@ import type { ApplicantQueryPort } from "@/modules/applications/ports/applicant-
 import type { EventBusPort } from "@shared/events";
 import { createApplicationSubmittedEvent } from "@/modules/applications/events/application-submitted.event";
 
-import type { NewJobApplication, UpdateJobApplication } from "@/validations/job.validation";
+import type {
+  NewJobApplication,
+  UpdateJobApplication,
+} from "@/validations/job.validation";
 import type { ApplicationQueryParams } from "@/validations/jobApplications.validation";
 import type { FileUploadJobData } from "@/validations/file.validation";
 import type { CreateJobApplicationNoteInputSchema } from "@/validations/organization.validation";
@@ -355,9 +361,7 @@ export class ApplicationsService
 
       return ok(null);
     } catch {
-      return fail(
-        new DatabaseError("Failed to delete job applications"),
-      );
+      return fail(new DatabaseError("Failed to delete job applications"));
     }
   }
 
@@ -481,6 +485,7 @@ export class ApplicationsService
       );
     } catch (error) {
       // Log error but don't fail the status update if notification fails
+      logger.error(error, "Error Sending Application Status Update Email");
     }
   }
 

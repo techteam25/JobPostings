@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
-import { ApiResponse, PaginatedResponse } from "@shared/types";
+import {
+  type ApiResponse,
+  type EmptyBody,
+  type PaginatedResponse,
+} from "@shared/types";
 import { AppError, ErrorCode } from "@shared/errors";
 import type {
   CreateOrganizationSchema,
@@ -31,7 +35,7 @@ export class OrganizationsController extends BaseController {
    * @param res The Express response object.
    */
   getAllOrganizations = async (
-    req: Request<{}, {}, {}, SearchParams["query"]>,
+    req: Request<EmptyBody, EmptyBody, EmptyBody, SearchParams["query"]>,
     res: Response<PaginatedResponse<Organization>>,
   ) => {
     const { page, limit, q: search } = req.query;
@@ -41,8 +45,7 @@ export class OrganizationsController extends BaseController {
       searchTerm: search,
     };
 
-    const result =
-      await this.organizationsService.getAllOrganizations(options);
+    const result = await this.organizationsService.getAllOrganizations(options);
 
     if (result.isSuccess) {
       const { items, pagination } = result.value;
@@ -111,7 +114,7 @@ export class OrganizationsController extends BaseController {
    * @param res The Express response object.
    */
   createOrganization = async (
-    req: Request<{}, {}, CreateOrganizationSchema["body"]>,
+    req: Request<EmptyBody, EmptyBody, CreateOrganizationSchema["body"]>,
     res: Response<
       ApiResponse<Organization & { members: OrganizationMember[] }>
     >,
@@ -119,17 +122,19 @@ export class OrganizationsController extends BaseController {
     const organizationData = { ...req.body, logo: req.file };
 
     const userId = req.userId;
-    const organization =
-      await this.organizationsService.createOrganization(
-        organizationData,
-        userId!,
-        req.correlationId!,
-      );
+    const organization = await this.organizationsService.createOrganization(
+      organizationData,
+      userId!,
+      req.correlationId!,
+    );
 
     if (organization.isSuccess) {
-      return this.sendSuccess<
-        Organization & { members: OrganizationMember[] }
-      >(res, organization.value, "Organization created successfully", 201);
+      return this.sendSuccess<Organization & { members: OrganizationMember[] }>(
+        res,
+        organization.value,
+        "Organization created successfully",
+        201,
+      );
     } else {
       return this.handleControllerError(res, organization.error);
     }
@@ -143,7 +148,7 @@ export class OrganizationsController extends BaseController {
   uploadOrganizationLogo = async (
     req: Request<
       UploadOrganizationLogoSchema["params"],
-      {},
+      EmptyBody,
       UploadOrganizationLogoSchema["body"]
     >,
     res: Response<ApiResponse<Organization>>,
@@ -186,15 +191,17 @@ export class OrganizationsController extends BaseController {
   updateOrganization = async (
     req: Request<
       UpdateOrganizationSchema["params"],
-      {},
+      EmptyBody,
       UpdateOrganizationSchema["body"]
     >,
     res: Response<ApiResponse<Organization>>,
   ) => {
     const id = parseInt(req.params.organizationId);
     const updateData = req.body;
-    const organization =
-      await this.organizationsService.updateOrganization(id, updateData);
+    const organization = await this.organizationsService.updateOrganization(
+      id,
+      updateData,
+    );
 
     if (organization.isSuccess) {
       return this.sendSuccess<Organization>(

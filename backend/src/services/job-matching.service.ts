@@ -9,7 +9,10 @@ import logger from "@shared/logger";
 import type { JobMatchingServicePort } from "@/ports/job-matching-service.port";
 import type { TypesenseServicePort } from "@/ports/typesense-service.port";
 
-export class JobMatchingService extends BaseService implements JobMatchingServicePort {
+export class JobMatchingService
+  extends BaseService
+  implements JobMatchingServicePort
+{
   constructor(
     private typesenseService: TypesenseServicePort = new TypesenseService(),
   ) {
@@ -143,7 +146,9 @@ export class JobMatchingService extends BaseService implements JobMatchingServic
         alertId: alert.id,
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      return fail(new DatabaseError("Failed to find matching jobs", error));
+      return fail(
+        new DatabaseError("Failed to find matching jobs", error as Error),
+      );
     }
   }
 }

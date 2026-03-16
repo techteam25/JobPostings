@@ -43,12 +43,6 @@ export const getJobApplicationSchema = z.object({
   query: z.object({}).strict(),
 });
 
-export const deleteJobApplicationSchema = z.object({
-  body: z.object({}).strict(),
-  params: applicationIdParamSchema,
-  query: z.object({}).strict(),
-});
-
 const jobApplicationsSchema = createSelectSchema(jobApplications);
 export const selectJobApplicationSchema = jobApplicationsSchema
   .omit({

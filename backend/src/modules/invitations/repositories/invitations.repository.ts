@@ -1,9 +1,6 @@
 import { and, eq, lt } from "drizzle-orm";
 
-import {
-  organizationInvitations,
-  organizationMembers,
-} from "@/db/schema";
+import { organizationInvitations, organizationMembers } from "@/db/schema";
 import { db } from "@shared/db/connection";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import { DatabaseError } from "@shared/errors";

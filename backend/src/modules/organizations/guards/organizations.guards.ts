@@ -74,9 +74,7 @@ export function createOrganizationsGuards(deps: {
             Number(req.params.organizationId),
           );
         } else {
-          member = await organizationsRepository.findMemberByUserId(
-            req.userId,
-          );
+          member = await organizationsRepository.findMemberByUserId(req.userId);
         }
 
         if (!member) {
@@ -176,7 +174,7 @@ export function createOrganizationsGuards(deps: {
         }
 
         return next();
-      } catch (error) {
+      } catch {
         return res.status(403).json({
           success: false,
           status: "error",
@@ -256,11 +254,10 @@ export function createOrganizationsGuards(deps: {
           });
         }
 
-        const hasPermission =
-          await organizationsRepository.hasDeletePermission(
-            req.userId,
-            req.organizationId,
-          );
+        const hasPermission = await organizationsRepository.hasDeletePermission(
+          req.userId,
+          req.organizationId,
+        );
 
         if (!hasPermission) {
           return res.status(403).json({

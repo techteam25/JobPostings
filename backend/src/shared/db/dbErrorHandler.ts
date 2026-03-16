@@ -1,5 +1,6 @@
 import logger from "@shared/logger";
 import { AppError, DatabaseError } from "@shared/errors";
+import { QueryError } from "mysql2";
 
 /**
  * Common MySQL error codes mapped to user-friendly messages.
@@ -46,6 +47,14 @@ export const MYSQL_ERROR_MAP: Record<string, string> = {
   ER_SPECIFIC_ACCESS_DENIED_ERROR: "Access denied",
 };
 
+function isMySqlError(error: unknown): error is QueryError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    ("code" in error || "errno" in error)
+  );
+}
+
 /**
  * Maps a MySQL error (from mysql2 or Drizzle) to a DatabaseError instance.
  * This function takes a MySQL error object, extracts the error code, and maps it to a user-friendly message
@@ -54,7 +63,8 @@ export const MYSQL_ERROR_MAP: Record<string, string> = {
  * @param err The MySQL error object containing code, errno, and message properties.
  * @throws Always throws a DatabaseError or re-throws the original AppError.
  */
-export function handleMySqlError(err: any): never {
+
+export function handleMySqlError(err: QueryError): never {
   // Try both symbolic code and numeric errno
   const code = err?.code || `ER_${err?.errno}`;
   const friendlyMessage =
@@ -63,10 +73,6 @@ export function handleMySqlError(err: any): never {
     "Unknown database error";
 
   logger.error({ friendlyMessage, err });
-
-  if (err instanceof AppError) {
-    throw err;
-  }
 
   throw new DatabaseError(friendlyMessage);
 }
@@ -88,7 +94,7 @@ export async function withDbErrorHandling<T>(
     return await operation();
   } catch (err: unknown) {
     const error = err as { code?: string; errno?: number };
-    if (error.code?.startsWith?.("ER_") || typeof error.errno === "number") {
+    if (isMySqlError(error)) {
       handleMySqlError(error);
     }
 

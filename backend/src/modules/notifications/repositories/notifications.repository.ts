@@ -13,7 +13,6 @@ import {
   emailPreferenceAuditLog,
   jobAlertMatches,
   jobAlerts,
-  user,
   userEmailPreferences,
 } from "@/db/schema";
 import type { NotificationsRepositoryPort } from "@/modules/notifications";
@@ -24,6 +23,7 @@ import type {
   InsertJobAlert,
   JobAlert,
 } from "@/validations/jobAlerts.validation";
+import { UserEmailPreferencesSchema } from "@/validations/user.validation";
 
 export class NotificationsRepository implements NotificationsRepositoryPort {
   async findEmailPreferencesByUserId(userId: number) {
@@ -563,7 +563,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     context: "job_seeker" | "employer" | "global",
   ) {
     return await withDbErrorHandling(async () => {
-      const updateData: any = {};
+      const updateData: Partial<UserEmailPreferencesSchema> = {};
 
       if (context === "global") {
         updateData.globalUnsubscribe = true;
@@ -596,7 +596,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     context: "job_seeker" | "employer" | "global",
   ) {
     return await withDbErrorHandling(async () => {
-      const updateData: any = {};
+      const updateData: Partial<UserEmailPreferencesSchema> = {};
 
       if (context === "global") {
         updateData.globalUnsubscribe = false;

@@ -1,11 +1,12 @@
 import { count, type SQL } from "drizzle-orm";
 import { db } from "@shared/db/connection";
+import { MySqlTable } from "drizzle-orm/mysql-core";
 
 /**
  * Count total records for pagination
  */
 export async function countRecords(
-  table: any,
+  table: MySqlTable,
   whereCondition?: SQL,
 ): Promise<number> {
   const query = db.select({ count: count() }).from(table);

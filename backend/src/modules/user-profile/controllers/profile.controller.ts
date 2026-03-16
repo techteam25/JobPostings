@@ -10,7 +10,7 @@ import type {
   UserQuerySchema,
 } from "@/validations/user.validation";
 import type { GetJobSchema } from "@/validations/job.validation";
-import type { ApiResponse } from "@shared/types";
+import type { ApiResponse, EmptyBody } from "@shared/types";
 import type {
   UpdateProfileVisibilityInput,
   UpdateUserProfile,
@@ -28,7 +28,7 @@ export class ProfileController extends BaseController {
   }
 
   getAllUsers = async (
-    req: Request<{}, {}, {}, UserQuerySchema["query"]>,
+    req: Request<EmptyBody, EmptyBody, EmptyBody, UserQuerySchema["query"]>,
     res: Response,
   ) => {
     const { searchTerm } = req.query;
@@ -104,7 +104,7 @@ export class ProfileController extends BaseController {
   };
 
   createProfile = async (
-    req: Request<{}, {}, CreateUserProfile["body"]>,
+    req: Request<EmptyBody, EmptyBody, CreateUserProfile["body"]>,
     res: Response<ApiResponse<UserProfile>>,
   ) => {
     const profileData = req.body;
@@ -122,7 +122,7 @@ export class ProfileController extends BaseController {
   };
 
   updateProfile = async (
-    req: Request<{}, {}, UpdateUserProfile>,
+    req: Request<EmptyBody, EmptyBody, UpdateUserProfile>,
     res: Response<ApiResponse<UserWithProfile>>,
   ) => {
     const profileData = req.body;
@@ -143,7 +143,7 @@ export class ProfileController extends BaseController {
   };
 
   changeProfileVisibility = async (
-    req: Request<{}, {}, UpdateProfileVisibilityInput["body"]>,
+    req: Request<EmptyBody, EmptyBody, UpdateProfileVisibilityInput["body"]>,
     res: Response,
   ) => {
     const { isProfilePublic } = req.body;
@@ -180,9 +180,7 @@ export class ProfileController extends BaseController {
   };
 
   getUserOrganizations = async (req: Request, res: Response) => {
-    const result = await this.userOrgsQuery.getUserOrganizations(
-      req.userId!,
-    );
+    const result = await this.userOrgsQuery.getUserOrganizations(req.userId!);
 
     if (result.isSuccess) {
       return this.sendSuccess(
@@ -196,7 +194,12 @@ export class ProfileController extends BaseController {
   };
 
   getSavedJobsForCurrentUser = async (
-    req: Request<{}, {}, {}, SavedJobsQuerySchema["query"]>,
+    req: Request<
+      EmptyBody,
+      EmptyBody,
+      EmptyBody,
+      SavedJobsQuerySchema["query"]
+    >,
     res: Response<ApiResponse<SavedJobs>>,
   ) => {
     const page = Number(req.query.page) || 1;

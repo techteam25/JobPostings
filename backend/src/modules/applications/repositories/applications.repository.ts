@@ -16,6 +16,7 @@ import type {
 } from "@/validations/job.validation";
 import type { NewJobApplicationNote } from "@/validations/organization.validation";
 import type { ApplicationsRepositoryPort } from "@/modules/applications";
+import { Application } from "@/validations/jobApplications.validation";
 
 export class ApplicationsRepository implements ApplicationsRepositoryPort {
   async createApplication(applicationData: NewJobApplication) {
@@ -41,7 +42,9 @@ export class ApplicationsRepository implements ApplicationsRepositoryPort {
       eq(jobApplications.jobId, jobId),
     ];
     if (status) {
-      whereConditions.push(eq(jobApplications.status, status as any));
+      whereConditions.push(
+        eq(jobApplications.status, status as Application["status"]),
+      );
     }
 
     const where = and(

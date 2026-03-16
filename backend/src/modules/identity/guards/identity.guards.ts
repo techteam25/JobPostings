@@ -1,6 +1,7 @@
 import type { RequestHandler } from "express";
 
 import type { GetUserSchema } from "@/validations/user.validation";
+import logger from "@shared/logger";
 
 /**
  * Creates identity authorization guards.
@@ -37,6 +38,10 @@ export function createIdentityGuards() {
 
       return next();
     } catch (error) {
+      logger.error(
+        error,
+        `Failed to authorize user for own account access. User Id ${req.params.id}`,
+      );
       return res.status(500).json({
         success: false,
         status: "error",

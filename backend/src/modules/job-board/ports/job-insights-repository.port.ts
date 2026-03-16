@@ -1,4 +1,4 @@
-import type { BaseRepositoryPort } from "@/ports/base-repository.port";
+import type { BaseRepositoryPort } from "@shared/ports/base-repository.port";
 import type { jobInsights } from "@/db/schema";
 import type {
   JobInsight,

@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@shared/db/connection";
-import {
-  jobAlerts,
-  jobAlertMatches,
-  jobsDetails,
-} from "@/db/schema";
+import { jobAlerts, jobAlertMatches, jobsDetails } from "@/db/schema";
 import { seedUserScenario } from "@tests/utils/seedScenarios";
 import { createOrganization } from "@tests/utils/seedBuilders";
 import { eq } from "drizzle-orm";

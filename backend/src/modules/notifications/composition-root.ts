@@ -1,4 +1,4 @@
-import type { EmailServicePort } from "@/ports/email-service.port";
+import type { EmailServicePort } from "@shared/ports/email-service.port";
 import type { UserActivityQueryPort } from "./ports/user-activity-query.port";
 
 import { NotificationsRepository } from "./repositories/notifications.repository";
@@ -25,6 +25,8 @@ export function createNotificationsModule(deps: NotificationsModuleDeps) {
   );
   const controller = new NotificationsController(service);
 
+  // No guards — notifications routes only require authentication (shared auth
+  // middleware), not module-specific authorization guards.
   return { controller, service, repository };
 }
 

@@ -1,4 +1,4 @@
-import type { BaseRepositoryPort } from "@/ports/base-repository.port";
+import type { BaseRepositoryPort } from "@shared/ports/base-repository.port";
 import type { organizations } from "@/db/schema";
 import type {
   NewOrganization,
@@ -20,8 +20,10 @@ type OrganizationInsert = typeof organizations.$inferInsert;
  * Does NOT include invitation or employer-facing application methods
  * (those belong to their respective modules).
  */
-export interface OrganizationsRepositoryPort
-  extends BaseRepositoryPort<OrganizationSelect, OrganizationInsert> {
+export interface OrganizationsRepositoryPort extends BaseRepositoryPort<
+  OrganizationSelect,
+  OrganizationInsert
+> {
   /**
    * Finds an organization by its name.
    */

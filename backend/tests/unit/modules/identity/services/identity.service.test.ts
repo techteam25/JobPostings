@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { IdentityService } from "@/modules/identity/services/identity.service";
-import {
-  ValidationError,
-  DatabaseError,
-  NotFoundError,
-} from "@shared/errors";
+import { ValidationError, DatabaseError, NotFoundError } from "@shared/errors";
 
 vi.mock("@shared/infrastructure/queue.service", () => ({
   queueService: {
@@ -196,11 +192,7 @@ describe("IdentityService", () => {
     it("should fail when user not found", async () => {
       mockIdentityRepository.findById.mockResolvedValue(undefined);
 
-      const result = await identityService.changePassword(
-        999,
-        "old",
-        "new",
-      );
+      const result = await identityService.changePassword(999, "old", "new");
 
       expect(result.isSuccess).toBe(false);
       if (!result.isSuccess) {

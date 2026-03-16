@@ -58,6 +58,7 @@ Each domain (users, jobs, organizations) follows this stack with base classes:
 ### Background Workers (BullMQ)
 
 Workers in `src/workers/` process async tasks via Redis-backed queues:
+
 - `typesense-job-indexer` — Indexes jobs in Typesense on create/update
 - `file-upload-worker` — Uploads files to Firebase Storage
 - `send-email-worker` — Sends emails via Nodemailer
@@ -90,17 +91,18 @@ Drizzle schema files in `src/db/schema/`. Migrations output to `src/db/migration
 
 ### Docker Services (compose.yml)
 
-| Service | Port | Container |
-|---------|------|-----------|
-| MySQL 9.4 | 3306 | jobpostings-mysql |
-| Redis (cache) | 6369 | redis-cache |
-| Redis (queue) | 6359 | redis-queue |
+| Service              | Port | Container          |
+| -------------------- | ---- | ------------------ |
+| MySQL 9.4            | 3306 | jobpostings-mysql  |
+| Redis (cache)        | 6369 | redis-cache        |
+| Redis (queue)        | 6359 | redis-queue        |
 | Redis (rate-limiter) | 6389 | redis-rate-limiter |
-| Typesense | 8108 | typesense |
+| Typesense            | 8108 | typesense          |
 
 ### Routes
 
 All API routes mounted at `/api` via `src/routes/index.ts`:
+
 - `/api/users` — User profiles, education, work experience, certifications, job alerts
 - `/api/jobs` — Job listings, applications, search
 - `/api/organizations` — Organization management
@@ -115,22 +117,22 @@ All API routes mounted at `/api` via `src/routes/index.ts`:
 
 An architecture audit (2026-03-10) identified that the codebase uses **manual constructor instantiation** (not true DI), has **no domain boundary enforcement**, and suffers from **cross-domain coupling** and **God-class services**. The decision is to incrementally refactor toward a Modular Monolith.
 
-### Current Status: Started — Phase 7 is next
+### Current Status: Started — Phase 8 is next
 
 ### Execution Order (Azure Boards IDs)
 
-| Phase | User Story ID | Title | Priority | Est. |
-|-------|---------------|-------|----------|------|
-| 0 | **955** | Introduce interfaces/ports for repositories and services | P1 | 3-4d |
-| 1 | **956** | Extract shared kernel (Result type, errors, base classes, config) | P1 | 2-3d |
-| 2 | **957** | Split UserService into identity, user-profile, and notifications modules | P2 | 4-5d |
-| 3 | **958** | Split JobService into job-board and applications modules | P2 | 3-4d |
-| 4 | **959** | Extract organizations and invitations into separate modules | P2 | 2-3d |
-| 5 | **960** | Refactor AuthMiddleware — separate authentication from authorization | P1 | 3-4d |
-| 6 | **961** | Introduce composition roots per module and remove manual instantiation | P3 | 2-3d |
-| 7 | **962** | Add module-level public APIs (facades) and enforce import boundaries | P3 | 2-3d |
-| 8 | **963** | Migrate workers to module-owned background processors | P3 | 2-3d |
-| 9 | **964** | Update all tests to use injected dependencies | P2 | 3-4d |
+| Phase | User Story ID | Title                                                                    | Priority | Est. |
+| ----- | ------------- | ------------------------------------------------------------------------ | -------- | ---- |
+| 0     | **955**       | Introduce interfaces/ports for repositories and services                 | P1       | 3-4d |
+| 1     | **956**       | Extract shared kernel (Result type, errors, base classes, config)        | P1       | 2-3d |
+| 2     | **957**       | Split UserService into identity, user-profile, and notifications modules | P2       | 4-5d |
+| 3     | **958**       | Split JobService into job-board and applications modules                 | P2       | 3-4d |
+| 4     | **959**       | Extract organizations and invitations into separate modules              | P2       | 2-3d |
+| 5     | **960**       | Refactor AuthMiddleware — separate authentication from authorization     | P1       | 3-4d |
+| 6     | **961**       | Introduce composition roots per module and remove manual instantiation   | P3       | 2-3d |
+| 7     | **962**       | Add module-level public APIs (facades) and enforce import boundaries     | P3       | 2-3d |
+| 8     | **963**       | Migrate workers to module-owned background processors                    | P3       | 2-3d |
+| 9     | **964**       | Update all tests to use injected dependencies                            | P2       | 3-4d |
 
 Each user story has child tasks in Azure Boards with detailed descriptions and acceptance criteria.
 

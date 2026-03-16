@@ -9,7 +9,9 @@ process.env.NODE_ENV = "test";
 // Test files that need custom queue behavior can override with their own vi.mock.
 vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
   const original =
-    await importOriginal<typeof import("@shared/infrastructure/queue.service")>();
+    await importOriginal<
+      typeof import("@shared/infrastructure/queue.service")
+    >();
   return {
     ...original,
     queueService: {
@@ -27,7 +29,12 @@ vi.mock("@shared/infrastructure/email.service", () => {
   const createMockInstance = () =>
     new Proxy(
       {},
-      { get: (_target, prop) => (typeof prop === "string" ? vi.fn().mockResolvedValue(undefined) : undefined) },
+      {
+        get: (_target, prop) =>
+          typeof prop === "string"
+            ? vi.fn().mockResolvedValue(undefined)
+            : undefined,
+      },
     );
   const MockEmailService = Object.assign(
     vi.fn().mockImplementation(createMockInstance),

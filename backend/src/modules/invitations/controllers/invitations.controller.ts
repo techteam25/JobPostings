@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
-import { ApiResponse } from "@shared/types";
+import { ApiResponse, EmptyBody } from "@shared/types";
 import type {
   CreateOrganizationInvitationInput,
   GetOrganizationInvitationDetailsInput,
   AcceptOrganizationInvitationInput,
   CancelOrganizationInvitationInput,
 } from "@/validations/organization.validation";
-import type { InvitationsServicePort } from "../ports/invitations-service.port";
+import type { InvitationsServicePort } from "@/modules/invitations";
 
 /**
  * Controller class for handling invitation-related API endpoints.
@@ -25,7 +25,7 @@ export class InvitationsController extends BaseController {
   sendInvitation = async (
     req: Request<
       CreateOrganizationInvitationInput["params"],
-      {},
+      EmptyBody,
       CreateOrganizationInvitationInput["body"]
     >,
     res: Response<ApiResponse<{ invitationId: number; message: string }>>,

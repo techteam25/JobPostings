@@ -1,6 +1,9 @@
 import { Job as BullMqJob } from "bullmq";
 import logger from "@shared/logger";
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 import { UserRepository } from "@/repositories/user.repository";
 import type { UserRepositoryPort } from "@/ports/user-repository.port";
 import { JobMatchingService } from "@/services/job-matching.service";
@@ -10,7 +13,9 @@ import type { JobMatchingServicePort } from "@/ports/job-matching-service.port";
  * Worker function to process job alerts and find matches.
  * @param job The BullMQ job containing the frequency type.
  */
-export async function processJobAlerts(job: BullMqJob<{ frequency: "daily" | "weekly" | "monthly" }>) {
+export async function processJobAlerts(
+  job: BullMqJob<{ frequency: "daily" | "weekly" | "monthly" }>,
+) {
   const { frequency } = job.data;
   const userRepository: UserRepositoryPort = new UserRepository();
   const jobMatchingService: JobMatchingServicePort = new JobMatchingService();
@@ -21,7 +26,7 @@ export async function processJobAlerts(job: BullMqJob<{ frequency: "daily" | "we
     // Calculate cutoff time based on frequency
     const now = new Date();
     const cutoffTime = new Date(now);
-    
+
     if (frequency === "daily") {
       // Process alerts that haven't been sent in the last 24 hours
       cutoffTime.setHours(cutoffTime.getHours() - 24);
@@ -34,7 +39,10 @@ export async function processJobAlerts(job: BullMqJob<{ frequency: "daily" | "we
     }
 
     // Get all alerts that need processing
-    const alerts = await userRepository.getAlertsForProcessing(frequency, cutoffTime);
+    const alerts = await userRepository.getAlertsForProcessing(
+      frequency,
+      cutoffTime,
+    );
 
     logger.info(`Found ${alerts.length} ${frequency} alerts to process`);
 
@@ -50,10 +58,15 @@ export async function processJobAlerts(job: BullMqJob<{ frequency: "daily" | "we
           user?: { id: number; email: string; fullName: string };
         };
 
-        logger.debug(`Processing alert ${alertWithUser.id} for user ${alertWithUser.userId}`);
+        logger.debug(
+          `Processing alert ${alertWithUser.id} for user ${alertWithUser.userId}`,
+        );
 
         // Find matching jobs using Typesense
-        const matchResult = await jobMatchingService.findMatchingJobsForAlert(alert, 50);
+        const matchResult = await jobMatchingService.findMatchingJobsForAlert(
+          alert,
+          50,
+        );
 
         if (!matchResult.isSuccess) {
           logger.error(`Failed to find matches for alert ${alertWithUser.id}`, {
@@ -72,7 +85,9 @@ export async function processJobAlerts(job: BullMqJob<{ frequency: "daily" | "we
           continue;
         }
 
-        logger.info(`Found ${matches.length} matches for alert ${alertWithUser.id}`);
+        logger.info(
+          `Found ${matches.length} matches for alert ${alertWithUser.id}`,
+        );
 
         // Save matches to database
         await userRepository.saveAlertMatches(
@@ -86,13 +101,18 @@ export async function processJobAlerts(job: BullMqJob<{ frequency: "daily" | "we
         matchesFoundCount += matches.length;
 
         // Get unsent matches (limit to top 10 for email)
-        const unsentMatches = await userRepository.getUnsentMatches(alertWithUser.id, 10);
-        const totalUnsentCount = await userRepository.getUnsentMatchCount(alertWithUser.id);
+        const unsentMatches = await userRepository.getUnsentMatches(
+          alertWithUser.id,
+          10,
+        );
+        const totalUnsentCount = await userRepository.getUnsentMatchCount(
+          alertWithUser.id,
+        );
 
         if (unsentMatches.length > 0 && alertWithUser.user) {
           // Type for match with job relation
-          type MatchWithJob = typeof unsentMatches[number];
-          
+          type MatchWithJob = (typeof unsentMatches)[number];
+
           // Build location string from city and state
           const buildLocation = (match: MatchWithJob) => {
             const parts: string[] = [];
@@ -127,7 +147,9 @@ export async function processJobAlerts(job: BullMqJob<{ frequency: "daily" | "we
           );
 
           emailsQueuedCount++;
-          logger.debug(`Queued email notification for alert ${alertWithUser.id}`);
+          logger.debug(
+            `Queued email notification for alert ${alertWithUser.id}`,
+          );
 
           // Mark matches as sent
           const matchIds = unsentMatches.map((m) => m.id);
@@ -162,8 +184,11 @@ export async function processJobAlerts(job: BullMqJob<{ frequency: "daily" | "we
       emailsQueued: emailsQueuedCount,
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    logger.error(`${frequency} job alert processing failed`, { error: errorMessage });
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    logger.error(`${frequency} job alert processing failed`, {
+      error: errorMessage,
+    });
     throw error;
   }
 }
@@ -181,17 +206,13 @@ export function initializeJobAlertWorker(): void {
       matchesFound: number;
       emailsQueued: number;
     }
-  >(
-    QUEUE_NAMES.JOB_ALERT_QUEUE,
-    processJobAlerts,
-    {
-      concurrency: 2, // Process 2 job alert batches concurrently
-      limiter: {
-        max: 10, // Max 10 jobs
-        duration: 60000, // per minute
-      },
+  >(QUEUE_NAMES.JOB_ALERT_QUEUE, processJobAlerts, {
+    concurrency: 2, // Process 2 job alert batches concurrently
+    limiter: {
+      max: 10, // Max 10 jobs
+      duration: 60000, // per minute
     },
-  );
+  });
 
   logger.info("Job alert processor worker initialized");
 }
@@ -234,7 +255,9 @@ export async function scheduleWeeklyAlertProcessing() {
         jobId: "weekly-job-alert-processing", // Prevent duplicate jobs
       },
     );
-    logger.info("📅 Scheduled weekly job alert processing (8:00 AM every Monday)");
+    logger.info(
+      "📅 Scheduled weekly job alert processing (8:00 AM every Monday)",
+    );
   } catch (error) {
     logger.error({ error }, "Failed to schedule weekly job alert processing");
   }
@@ -256,7 +279,9 @@ export async function scheduleMonthlyAlertProcessing() {
         jobId: "monthly-job-alert-processing", // Prevent duplicate jobs
       },
     );
-    logger.info("📅 Scheduled monthly job alert processing (8:00 AM on the 1st of each month)");
+    logger.info(
+      "📅 Scheduled monthly job alert processing (8:00 AM on the 1st of each month)",
+    );
   } catch (error) {
     logger.error({ error }, "Failed to schedule monthly job alert processing");
   }

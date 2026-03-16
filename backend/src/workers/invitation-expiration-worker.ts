@@ -1,7 +1,10 @@
 import { Job as BullMqJob } from "bullmq";
 import logger from "@shared/logger";
 
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 import { InvitationsRepository } from "@/modules/invitations/repositories/invitations.repository";
 
 const invitationsRepository = new InvitationsRepository();
@@ -16,8 +19,7 @@ export async function expireInvitationsWorker(_job: BullMqJob): Promise<{
   logger.info("Starting invitation expiration job");
 
   try {
-    const expiredCount =
-      await invitationsRepository.expirePendingInvitations();
+    const expiredCount = await invitationsRepository.expirePendingInvitations();
 
     logger.info({ expiredCount }, "Invitation expiration job completed");
     return { expired: expiredCount };
@@ -33,10 +35,7 @@ export async function expireInvitationsWorker(_job: BullMqJob): Promise<{
  * Initialize Invitation Expiration worker
  */
 export function initializeInvitationExpirationWorker(): void {
-  queueService.registerWorker<
-    { correlationId: string },
-    { expired: number }
-  >(
+  queueService.registerWorker<{ correlationId: string }, { expired: number }>(
     QUEUE_NAMES.INVITATION_EXPIRATION_QUEUE,
     expireInvitationsWorker,
     {
@@ -68,9 +67,6 @@ export async function scheduleInvitationExpirationJob(): Promise<void> {
       "📅 Scheduled invitation expiration job (daily at 6:00 AM UTC / midnight Central Time)",
     );
   } catch (error) {
-    logger.error(
-      { error },
-      "Failed to schedule invitation expiration job",
-    );
+    logger.error({ error }, "Failed to schedule invitation expiration job");
   }
 }

@@ -9,7 +9,7 @@ import type {
   UpdateGranularPreference,
   GetUnsubscribeLandingPage,
 } from "@/validations/user.validation";
-import type { ApiResponse } from "@shared/types";
+import type { ApiResponse, EmptyBody } from "@shared/types";
 import { ValidationError } from "@shared/errors";
 import type {
   CreateJobAlert,
@@ -22,9 +22,7 @@ import type {
 } from "@/validations/jobAlerts.validation";
 
 export class NotificationsController extends BaseController {
-  constructor(
-    private notificationsService: NotificationsServicePort,
-  ) {
+  constructor(private notificationsService: NotificationsServicePort) {
     super();
   }
 
@@ -48,7 +46,7 @@ export class NotificationsController extends BaseController {
   };
 
   updateEmailPreferences = async (
-    req: Request<{}, {}, UpdateUserEmailPreferences["body"]>,
+    req: Request<EmptyBody, EmptyBody, UpdateUserEmailPreferences["body"]>,
     res: Response,
   ) => {
     const preferences = req.body;
@@ -79,7 +77,7 @@ export class NotificationsController extends BaseController {
   unsubscribeByToken = async (
     req: Request<
       UnsubscribeEmailPreferences["params"],
-      {},
+      EmptyBody,
       UserEmailPreferencesSchema
     >,
     res: Response,
@@ -121,7 +119,7 @@ export class NotificationsController extends BaseController {
   };
 
   createJobAlert = async (
-    req: Request<{}, {}, CreateJobAlert["body"]>,
+    req: Request<EmptyBody, EmptyBody, CreateJobAlert["body"]>,
     res: Response<ApiResponse<JobAlert>>,
   ) => {
     const alertData = req.body;
@@ -145,7 +143,7 @@ export class NotificationsController extends BaseController {
   };
 
   getUserJobAlerts = async (
-    req: Request<{}, {}, GetUserJobAlertsQuery["query"]>,
+    req: Request<EmptyBody, EmptyBody, GetUserJobAlertsQuery["query"]>,
     res: Response<ApiResponse<JobAlert>>,
   ) => {
     const page = Number(req.query.page) || 1;
@@ -194,7 +192,7 @@ export class NotificationsController extends BaseController {
   };
 
   updateJobAlert = async (
-    req: Request<UpdateJobAlert["params"], {}, UpdateJobAlert["body"]>,
+    req: Request<UpdateJobAlert["params"], EmptyBody, UpdateJobAlert["body"]>,
     res: Response<ApiResponse<JobAlert>>,
   ) => {
     const alertId = Number(req.params.id);
@@ -240,7 +238,7 @@ export class NotificationsController extends BaseController {
   togglePauseJobAlert = async (
     req: Request<
       TogglePauseJobAlert["params"],
-      {},
+      EmptyBody,
       TogglePauseJobAlert["body"]
     >,
     res: Response<ApiResponse<JobAlert>>,
@@ -267,7 +265,7 @@ export class NotificationsController extends BaseController {
   };
 
   unsubscribeByContext = async (
-    req: Request<{}, {}, UnsubscribeByContext["body"]>,
+    req: Request<EmptyBody, EmptyBody, UnsubscribeByContext["body"]>,
     res: Response,
   ) => {
     const userId = req.userId!;
@@ -297,7 +295,7 @@ export class NotificationsController extends BaseController {
   };
 
   resubscribeByContext = async (
-    req: Request<{}, {}, UnsubscribeByContext["body"]>,
+    req: Request<EmptyBody, EmptyBody, UnsubscribeByContext["body"]>,
     res: Response,
   ) => {
     const userId = req.userId!;
@@ -326,7 +324,7 @@ export class NotificationsController extends BaseController {
   };
 
   updateGranularEmailPreference = async (
-    req: Request<{}, {}, UpdateGranularPreference["body"]>,
+    req: Request<EmptyBody, EmptyBody, UpdateGranularPreference["body"]>,
     res: Response,
   ) => {
     const userId = req.userId!;

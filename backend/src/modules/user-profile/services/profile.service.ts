@@ -169,10 +169,7 @@ export class ProfileService extends BaseService implements ProfileServicePort {
   ) {
     try {
       return ok(
-        await this.orgRoleQuery.checkHasElevatedRole(
-          sessionUserId,
-          roles,
-        ),
+        await this.orgRoleQuery.checkHasElevatedRole(sessionUserId, roles),
       );
     } catch (error) {
       if (error instanceof AppError) {

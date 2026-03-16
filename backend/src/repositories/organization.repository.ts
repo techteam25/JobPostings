@@ -58,10 +58,7 @@ export class OrganizationRepository
   }
 
   async createOrganization(data: NewOrganization, sessionUserId: number) {
-    return this.organizationsRepository.createOrganization(
-      data,
-      sessionUserId,
-    );
+    return this.organizationsRepository.createOrganization(data, sessionUserId);
   }
 
   async findByContact(contactId: number, organizationId: number) {

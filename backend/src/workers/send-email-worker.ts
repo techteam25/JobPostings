@@ -2,7 +2,10 @@ import { Job as BullMqJob, UnrecoverableError } from "bullmq";
 import { z } from "zod";
 import { EmailService } from "@shared/infrastructure/email.service";
 import type { EmailServicePort } from "@/ports/email-service.port";
-import { QUEUE_NAMES, queueService } from "@shared/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 
 import logger from "@shared/logger";
 

@@ -6,4 +6,5 @@ export { IdentityToInvitationsAdapter } from "./identity-to-invitations.adapter"
 export { OrganizationsToApplicationsAdapter } from "./organizations-to-applications.adapter";
 export { IdentityToApplicationsAdapter } from "./identity-to-applications.adapter";
 export { OrganizationsToJobBoardAdapter } from "./organizations-to-job-board.adapter";
+export { IdentityToJobBoardAdapter } from "./identity-to-job-board.adapter";
 export { OrganizationsToProfileAdapter } from "./organizations-to-profile.adapter";

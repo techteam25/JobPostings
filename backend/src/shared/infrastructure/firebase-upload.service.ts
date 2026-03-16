@@ -89,7 +89,8 @@ export class FirebaseUploadService extends BaseService {
       }
 
       // Use deterministic name if provided (for idempotent retries), otherwise generate unique
-      const uniqueFilename = deterministicName || generateUniqueFilename(file.originalname);
+      const uniqueFilename =
+        deterministicName || generateUniqueFilename(file.originalname);
       const storagePath = `${folder}/${uniqueFilename}`;
 
       // Read file from temp path
@@ -239,7 +240,12 @@ export class FirebaseUploadService extends BaseService {
     // Process in batches
     for (let i = 0; i < files.length; i += this.batchSize) {
       const batch = files.slice(i, i + this.batchSize);
-      const batchResult = await this.processBatch(batch, i, folder, options.deterministicNames);
+      const batchResult = await this.processBatch(
+        batch,
+        i,
+        folder,
+        options.deterministicNames,
+      );
 
       allUrls.push(...batchResult.urls);
       allMetadata.push(...batchResult.metadata);
@@ -283,7 +289,7 @@ export class FirebaseUploadService extends BaseService {
       // Extract storage path from download URL
       const urlObj = new URL(fileUrl);
       // Match pattern: storage.googleapis.com/{bucket}/{path}
-      const pathMatch = urlObj.pathname.match(/\/([^\/]+\/[^?]+)/);
+      const pathMatch = urlObj.pathname.match(/\/([^/]+\/[^?]+)/);
 
       if (!pathMatch) {
         logger.error({ fileUrl }, "Could not extract storage path from URL");
@@ -323,7 +329,7 @@ export class FirebaseUploadService extends BaseService {
       try {
         await fs.promises.unlink(tempPath);
         logger.debug({ tempPath }, "Temporary file cleaned up");
-      } catch (error) {
+      } catch {
         // File may already be deleted or not exist
         logger.warn({ tempPath }, "Could not delete temporary file");
       }

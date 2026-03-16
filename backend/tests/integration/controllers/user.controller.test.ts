@@ -590,7 +590,10 @@ describe("User Controller Integration Tests", () => {
 
       it("should return 404 if preferences not found", async () => {
         const preferencesSpy = vi
-          .spyOn(NotificationsRepository.prototype, "findEmailPreferencesByUserId")
+          .spyOn(
+            NotificationsRepository.prototype,
+            "findEmailPreferencesByUserId",
+          )
           .mockResolvedValue(undefined);
 
         const loginResponse = await request
@@ -912,7 +915,10 @@ describe("User Controller Integration Tests", () => {
 
         it("should return 404 if preferences not found", async () => {
           const preferencesSpy = vi
-            .spyOn(NotificationsRepository.prototype, "findEmailPreferencesByUserId")
+            .spyOn(
+              NotificationsRepository.prototype,
+              "findEmailPreferencesByUserId",
+            )
             .mockResolvedValueOnce(undefined);
 
           const loginResponse = await request

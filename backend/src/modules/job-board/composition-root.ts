@@ -1,8 +1,7 @@
-import type { TypesenseServicePort } from "@/ports/typesense-service.port";
-import type { OrganizationRepositoryPort } from "@/ports/organization-repository.port";
-import type { UserRepositoryPort } from "@/ports/user-repository.port";
+import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
 import type { ApplicationStatusQueryPort } from "./ports/application-status-query.port";
 import type { OrgMembershipForJobPort } from "./ports/org-membership-for-job.port";
+import type { UserContactQueryPort } from "./ports/user-contact-query.port";
 import type { JobBoardRepositoryPort } from "./ports/job-board-repository.port";
 import type { JobInsightsRepositoryPort } from "./ports/job-insights-repository.port";
 
@@ -13,13 +12,10 @@ import { JobBoardController } from "./controllers/job-board.controller";
 import { createJobBoardGuards } from "./guards/job-board.guards";
 
 interface JobBoardModuleDeps {
-  /** Old facade repo — still needed by JobBoardService until fully decoupled */
-  organizationRepository: OrganizationRepositoryPort;
-  /** Old facade repo — still needed by JobBoardService until fully decoupled */
-  userRepository: UserRepositoryPort;
   typesenseService: TypesenseServicePort;
   applicationStatusQuery: ApplicationStatusQueryPort;
   orgMembershipForJob: OrgMembershipForJobPort;
+  userContactQuery: UserContactQueryPort;
   /** Optional: pass pre-created repos for circular dependency resolution */
   jobBoardRepository?: JobBoardRepositoryPort;
   jobInsightsRepository?: JobInsightsRepositoryPort;
@@ -34,17 +30,19 @@ interface JobBoardModuleDeps {
  */
 export function createJobBoardModule(deps: JobBoardModuleDeps) {
   const repository =
-    deps.jobBoardRepository ?? (new JobBoardRepository() as JobBoardRepositoryPort);
+    deps.jobBoardRepository ??
+    (new JobBoardRepository() as JobBoardRepositoryPort);
   const jobInsightsRepository =
-    deps.jobInsightsRepository ?? (new JobInsightsRepository() as JobInsightsRepositoryPort);
+    deps.jobInsightsRepository ??
+    (new JobInsightsRepository() as JobInsightsRepositoryPort);
 
   const service = new JobBoardService(
     repository,
-    deps.organizationRepository,
     jobInsightsRepository,
     deps.typesenseService,
-    deps.userRepository,
     deps.applicationStatusQuery,
+    deps.orgMembershipForJob,
+    deps.userContactQuery,
   );
   const controller = new JobBoardController(service);
   const guards = createJobBoardGuards({

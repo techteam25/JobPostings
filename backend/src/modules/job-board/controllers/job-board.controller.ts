@@ -13,7 +13,7 @@ import type {
 } from "@/validations/job.validation";
 import type { GetOrganizationSchema } from "@/validations/organization.validation";
 import type { SearchParams } from "@/validations/base.validation";
-import type { ApiResponse, PaginatedResponse } from "@shared/types";
+import type { ApiResponse, EmptyBody, PaginatedResponse } from "@shared/types";
 import { buildPaginationMeta } from "@shared/infrastructure/typesense.service/build-search-pagination";
 
 export class JobBoardController extends BaseController {
@@ -22,7 +22,7 @@ export class JobBoardController extends BaseController {
   }
 
   getAllJobs = async (
-    req: Request<{}, {}, {}, SearchParams["query"]>,
+    req: Request<EmptyBody, EmptyBody, EmptyBody, SearchParams["query"]>,
     res: Response<PaginatedResponse<JobWithEmployer[]>>,
   ) => {
     const { page, limit } = req.query;
@@ -50,7 +50,7 @@ export class JobBoardController extends BaseController {
   };
 
   searchJobs = async (
-    req: Request<{}, {}, {}, SearchParams["query"]>,
+    req: Request<EmptyBody, EmptyBody, EmptyBody, SearchParams["query"]>,
     res: Response,
   ) => {
     const {
@@ -129,7 +129,7 @@ export class JobBoardController extends BaseController {
   };
 
   createJob = async (
-    req: Request<{}, {}, CreateJobSchema["body"]>,
+    req: Request<EmptyBody, EmptyBody, CreateJobSchema["body"]>,
     res: Response<ApiResponse<JobWithSkills>>,
   ) => {
     if (!req.organizationId) {
@@ -161,7 +161,7 @@ export class JobBoardController extends BaseController {
   };
 
   updateJob = async (
-    req: Request<UpdateJobSchema["params"], {}, UpdateJobSchema["body"]>,
+    req: Request<UpdateJobSchema["params"], EmptyBody, UpdateJobSchema["body"]>,
     res: Response<ApiResponse<Job>>,
   ) => {
     const jobId = parseInt(req.params.jobId);
@@ -211,8 +211,8 @@ export class JobBoardController extends BaseController {
   getJobsByEmployer = async (
     req: Request<
       GetOrganizationSchema["params"],
-      {},
-      {},
+      EmptyBody,
+      EmptyBody,
       GetOrganizationSchema["query"]
     >,
     res: Response,
@@ -244,8 +244,8 @@ export class JobBoardController extends BaseController {
   getMyJobs = async (
     req: Request<
       GetOrganizationSchema["params"],
-      {},
-      {},
+      EmptyBody,
+      EmptyBody,
       SearchParams["query"]
     >,
     res: Response,

@@ -41,7 +41,9 @@ describe("EmailService HTML escaping", () => {
     const maliciousName = '<script>alert("xss")</script>';
     const maliciousTitle = '<img onerror="hack()" src=x>';
 
-    vi.spyOn(UserRepository.prototype, "canSendEmailType").mockResolvedValue(true);
+    vi.spyOn(UserRepository.prototype, "canSendEmailType").mockResolvedValue(
+      true,
+    );
 
     await service.sendJobApplicationConfirmation(
       1,
@@ -58,7 +60,9 @@ describe("EmailService HTML escaping", () => {
     expect(html).not.toContain("<img");
 
     // Escaped versions must appear
-    expect(html).toContain("&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;");
+    expect(html).toContain(
+      "&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;",
+    );
     expect(html).toContain("&lt;img onerror=&quot;hack()&quot; src=x&gt;");
   });
 
@@ -75,6 +79,8 @@ describe("EmailService HTML escaping", () => {
     const html = sendMailMock.mock.calls[0]![0].html as string;
 
     expect(html).not.toContain("<b onmouseover");
-    expect(html).toContain("&lt;b onmouseover=&quot;steal()&quot;&gt;Bob&lt;/b&gt;");
+    expect(html).toContain(
+      "&lt;b onmouseover=&quot;steal()&quot;&gt;Bob&lt;/b&gt;",
+    );
   });
 });
