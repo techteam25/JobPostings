@@ -24,7 +24,7 @@ export const useFetchJobs = (
   });
 
   if ((data && !data.success) || isError) {
-    toast.success("Could not fetch jobs at this time.");
+    toast.error("Could not fetch jobs at this time.");
   }
 
   return { data, error, fetchingJobs };

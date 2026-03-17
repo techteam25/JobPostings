@@ -23,6 +23,15 @@ import { Suspense } from "react";
 
 async function Page() {
   const jobs = await getJobs();
+
+  if (!jobs.success) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <p className="text-muted-foreground">{jobs.message}</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <section className="border-b">

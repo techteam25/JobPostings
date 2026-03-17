@@ -7,6 +7,7 @@ import { BsBookmarkFill } from "react-icons/bs";
 import { ImOffice } from "react-icons/im";
 import { formatToRelativeDate } from "@/lib/utils";
 import { removeSavedJobForUser } from "@/lib/api";
+import { toast } from "sonner";
 
 interface SavedJobCardProps {
   savedJob: SavedJob;
@@ -30,7 +31,12 @@ export const SavedJobCard = ({ savedJob }: SavedJobCardProps) => {
             variant="ghost"
             size="icon"
             className="text-secondary-foreground hover:text-foreground cursor-pointer hover:bg-transparent"
-            onClick={() => removeSavedJobForUser(savedJob.job.id)}
+            onClick={async () => {
+              const result = await removeSavedJobForUser(savedJob.job.id);
+              if (!result.success) {
+                toast.error(result.message);
+              }
+            }}
           >
             <BsBookmarkFill />
           </Button>

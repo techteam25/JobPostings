@@ -18,9 +18,9 @@ interface PageProps {
 
 export default async function Page({ params }: PageProps) {
   const { id } = await params;
-  const organization = await getOrganizationAction(Number(id));
+  const result = await getOrganizationAction(Number(id));
 
-  if (!organization) {
+  if (!result.success) {
     return (
       <Empty>
         <EmptyHeader>
@@ -61,10 +61,10 @@ export default async function Page({ params }: PageProps) {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="company">
-              <CompanyInformation organization={organization} />
+              <CompanyInformation organization={result.data} />
             </TabsContent>
             <TabsContent value="members">
-              <EmployeeListSection members={organization.members} organizationId={organization.id} />
+              <EmployeeListSection members={result.data.members} organizationId={result.data.id} />
             </TabsContent>
           </Tabs>
         </div>

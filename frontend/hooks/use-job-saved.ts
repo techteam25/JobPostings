@@ -20,15 +20,9 @@ export function useJobSaved(jobId: number | undefined) {
     let mounted = true;
 
     const checkSavedJob = async () => {
-      try {
-        const savedState = await isJobSavedByUser(jobId);
-        if (mounted && savedState.success) {
-          setSavedJob(jobId, savedState.data.isSaved);
-        }
-      } catch {
-        if (mounted) {
-          setSavedJob(jobId, false);
-        }
+      const savedState = await isJobSavedByUser(jobId);
+      if (mounted && savedState.success) {
+        setSavedJob(jobId, savedState.data.isSaved);
       }
     };
 
@@ -47,13 +41,11 @@ export function useJobSaved(jobId: number | undefined) {
     // Optimistic update
     setSavedJob(jobId, !previousState);
 
-    try {
-      if (previousState) {
-        await removeSavedJobForUser(jobId);
-      } else {
-        await saveJobForUser(jobId);
-      }
-    } catch {
+    const result = previousState
+      ? await removeSavedJobForUser(jobId)
+      : await saveJobForUser(jobId);
+
+    if (!result.success) {
       // Revert on error
       setSavedJob(jobId, previousState);
     }

@@ -23,7 +23,7 @@ export default async function OrganizationJobsPage({ params }: PageProps) {
   const { id } = await params;
   const organizationJobsList = await getOrganizationJobsList(Number(id));
 
-  if (!organizationJobsList || organizationJobsList.data.length === 0) {
+  if (!organizationJobsList.success || organizationJobsList.data.length === 0) {
     return (
       <Empty>
         <EmptyHeader>

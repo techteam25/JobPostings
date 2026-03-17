@@ -17,7 +17,7 @@ import Link from "next/link";
 export default async function MyApplicationsPage() {
   const applications = await getAllApplicationsByUser();
 
-  if (!applications || applications.data.length === 0) {
+  if (!applications.success || applications.data.length === 0) {
     return (
       <Empty>
         <EmptyHeader>

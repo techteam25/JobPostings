@@ -24,8 +24,8 @@ export const useUploadLogo = (organizationId: number) => {
       });
       toast.success("Logo uploaded successfully");
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to upload logo");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to upload logo");
     },
   });
 };

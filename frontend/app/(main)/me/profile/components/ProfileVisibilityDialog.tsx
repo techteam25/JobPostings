@@ -16,13 +16,17 @@ import { Separator } from "@/components/ui/separator";
 
 import { ChevronRight, Eye } from "lucide-react";
 import { updateProfileVisibility } from "@/lib/api";
+import { toast } from "sonner";
 
 const ProfileVisibilityDialog = ({ isVisible }: { isVisible: boolean }) => {
   const defaultValue = isVisible ? "profile-visible" : "profile-invisible";
 
   const handleUpdateVisibility = async (value: string) => {
     const isVisible = value === "profile-visible";
-    await updateProfileVisibility(isVisible);
+    const result = await updateProfileVisibility(isVisible);
+    if (!result.success) {
+      toast.error(result.message);
+    }
   };
 
   return (

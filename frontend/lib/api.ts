@@ -13,15 +13,37 @@ import {
   OrganizationJobApplications,
   OrganizationJobStats,
   OrganizationWithMembers,
-  PaginatedApiResponse,
   SavedJob,
   SavedState,
+  ServerActionPaginatedResponse,
   UserJobApplications,
   UserOrganizationMembership,
   UserProfile,
   UserWithProfile,
 } from "@/lib/types";
 import { UserIntentResponse } from "@/schemas/responses/users";
+
+async function handleApiResponse<T>(
+  res: Response,
+  fallbackMessage: string,
+): Promise<ApiResponse<T>> {
+  return res.json().catch(() => ({
+    success: false as const,
+    message: fallbackMessage,
+    errorCode: "PARSE_ERROR",
+  }));
+}
+
+async function handlePaginatedApiResponse<T>(
+  res: Response,
+  fallbackMessage: string,
+): Promise<ServerActionPaginatedResponse<T>> {
+  return res.json().catch(() => ({
+    success: false as const,
+    message: fallbackMessage,
+    errorCode: "PARSE_ERROR",
+  }));
+}
 
 export const getUserIntent = async (): Promise<UserIntentResponse> => {
   const cookieStore = await cookies();
@@ -33,12 +55,7 @@ export const getUserIntent = async (): Promise<UserIntentResponse> => {
     next: { revalidate: 300, tags: ["user-intent"] },
   });
 
-  if (!res.ok) {
-    console.error("Failed to fetch user intent");
-    return await res.json();
-  }
-
-  return await res.json();
+  return res.json();
 };
 
 export const getUserOrganizations = async (): Promise<
@@ -56,26 +73,17 @@ export const getUserOrganizations = async (): Promise<
     },
   );
 
-  if (!res.ok) {
-    console.error("Failed to fetch user organizations");
-    return await res.json();
-  }
-
-  return await res.json();
+  return handleApiResponse(res, "Failed to fetch user organizations");
 };
 
 export const getJobs = async (): Promise<
-  PaginatedApiResponse<JobWithEmployer>
+  ServerActionPaginatedResponse<JobWithEmployer>
 > => {
   const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs`, {
     next: { revalidate: 60, tags: ["jobs"] },
   });
 
-  if (!res.ok) {
-    return await res.json();
-  }
-
-  return res.json();
+  return handlePaginatedApiResponse(res, "Failed to fetch jobs");
 };
 
 export const getJobById = async (jobId: number): Promise<JobResponse> => {
@@ -83,44 +91,25 @@ export const getJobById = async (jobId: number): Promise<JobResponse> => {
     next: { revalidate: 300, tags: [`job-${jobId}`] },
   });
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch job");
-  }
-
   return res.json();
 };
 
 export const getOrganization = async (
   id: number,
-): Promise<OrganizationWithMembers | null> => {
-  try {
-    const response = await fetch(
-      `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${id}`,
-      {
-        credentials: "include",
-        next: { revalidate: 300, tags: [`organization-${id}`] },
-      },
-    );
+): Promise<ApiResponse<OrganizationWithMembers>> => {
+  const response = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${id}`,
+    {
+      credentials: "include",
+      next: { revalidate: 300, tags: [`organization-${id}`] },
+    },
+  );
 
-    if (!response.ok) {
-      console.error("Failed to fetch organization:", response.statusText);
-      return null;
-    }
-
-    const data = await response.json();
-
-    if (!data.success || !data.data) {
-      console.error("Organization not found:", data.message);
-      return null;
-    }
-
-    return data.data;
-  } catch (error) {
-    console.error("Error fetching organization:", error);
-    return null;
-  }
+  return handleApiResponse(response, "Failed to fetch organization");
 };
 
+// TODO: Migrate to ApiResponse<Organization> once CompanyInformation.tsx
+// is refactored away from useActionState (which couples return type to state type).
 export const updateOrganization = async (
   organizationData: Organization | null,
 ): Promise<Organization | null> => {
@@ -136,13 +125,12 @@ export const updateOrganization = async (
   );
 
   if (!res.ok) {
-    throw new Error("Failed to update organization");
+    return null;
   }
 
   const data: ApiResponse<Organization> = await res.json();
 
   if (!data.success || !data.data) {
-    console.error("Failed to update organization:", data.message);
     return null;
   }
 
@@ -153,7 +141,7 @@ export const updateOrganization = async (
 
 export const getOrganizationJobsList = async (
   organizationId: number,
-): Promise<PaginatedApiResponse<Job>> => {
+): Promise<ServerActionPaginatedResponse<Job>> => {
   const cookieStore = await cookies();
   const res = await fetch(
     `${env.NEXT_PUBLIC_SERVER_URL}/jobs/employer/${organizationId}/jobs`,
@@ -166,17 +154,12 @@ export const getOrganizationJobsList = async (
     },
   );
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Failed to fetch organization's jobs");
-  }
-
-  return res.json();
+  return handlePaginatedApiResponse(res, "Failed to fetch organization's jobs");
 };
 
 export const getAllJobsApplicationsForOrganization = async (
   organizationId: string,
-): Promise<PaginatedApiResponse<OrganizationJobApplications>> => {
+): Promise<ServerActionPaginatedResponse<OrganizationJobApplications>> => {
   const cookieStore = await cookies();
   const res = await fetch(
     `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${organizationId}/applications`,
@@ -192,18 +175,14 @@ export const getAllJobsApplicationsForOrganization = async (
     },
   );
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(
-      err.message || "Failed to fetch organization's job applications",
-    );
-  }
-
-  return res.json();
+  return handlePaginatedApiResponse(
+    res,
+    "Failed to fetch organization's job applications",
+  );
 };
 
 export const getAllApplicationsByUser = async (): Promise<
-  PaginatedApiResponse<UserJobApplications>
+  ServerActionPaginatedResponse<UserJobApplications>
 > => {
   const cookieStore = await cookies();
   const res = await fetch(
@@ -217,16 +196,14 @@ export const getAllApplicationsByUser = async (): Promise<
     },
   );
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Failed to fetch user's applications");
-  }
-
-  return res.json();
+  return handlePaginatedApiResponse(
+    res,
+    "Failed to fetch user's applications",
+  );
 };
 
 export const getUserSavedJobs = async (): Promise<
-  PaginatedApiResponse<SavedJob>
+  ServerActionPaginatedResponse<SavedJob>
 > => {
   const cookieStore = await cookies();
   const res = await fetch(
@@ -240,15 +217,12 @@ export const getUserSavedJobs = async (): Promise<
     },
   );
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Failed to fetch user's saved jobs");
-  }
-
-  return res.json();
+  return handlePaginatedApiResponse(res, "Failed to fetch user's saved jobs");
 };
 
-export const saveJobForUser = async (jobId: number): Promise<boolean> => {
+export const saveJobForUser = async (
+  jobId: number,
+): Promise<ApiResponse<SavedState>> => {
   const cookieStore = await cookies();
   const res = await fetch(
     `${env.NEXT_PUBLIC_SERVER_URL}/users/me/saved-jobs/${jobId}`,
@@ -261,20 +235,22 @@ export const saveJobForUser = async (jobId: number): Promise<boolean> => {
     },
   );
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Failed to save job for user");
+  const result = await handleApiResponse<SavedState>(
+    res,
+    "Failed to save job",
+  );
+
+  if (result.success) {
+    revalidatePath("/saved");
+    revalidatePath(`/job/${jobId}`);
   }
 
-  revalidatePath("/saved");
-  revalidatePath(`/job/${jobId}`);
-
-  return true;
+  return result;
 };
 
 export const removeSavedJobForUser = async (
   jobId: number,
-): Promise<boolean> => {
+): Promise<ApiResponse<void>> => {
   const cookieStore = await cookies();
   const res = await fetch(
     `${env.NEXT_PUBLIC_SERVER_URL}/users/me/saved-jobs/${jobId}`,
@@ -287,15 +263,17 @@ export const removeSavedJobForUser = async (
     },
   );
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Failed to remove saved job for user");
+  const result = await handleApiResponse<void>(
+    res,
+    "Failed to remove saved job",
+  );
+
+  if (result.success) {
+    revalidatePath("/saved");
+    revalidatePath(`/job/${jobId}`);
   }
 
-  revalidatePath("/saved");
-  revalidatePath(`/job/${jobId}`);
-
-  return true;
+  return result;
 };
 
 export const isJobSavedByUser = async (
@@ -313,12 +291,7 @@ export const isJobSavedByUser = async (
     },
   );
 
-  if (!res.ok) {
-    console.error("Failed to check if job is saved by user");
-    return await res.json();
-  }
-
-  return await res.json();
+  return handleApiResponse(res, "Failed to check if job is saved by user");
 };
 
 export const getUserInformation = async (): Promise<
@@ -333,19 +306,12 @@ export const getUserInformation = async (): Promise<
     next: { revalidate: 300, tags: [`user-bio-info`] },
   });
 
-  if (!res.ok) {
-    console.error("Failed to fetch user bio info");
-    return await res.json();
-  }
-
-  return await res.json();
+  return handleApiResponse(res, "Failed to fetch user information");
 };
-
-type UpdateProfileVisibilityResponse = ApiResponse<UserProfile>;
 
 export const updateProfileVisibility = async (
   isProfilePublic: boolean,
-): Promise<UpdateProfileVisibilityResponse> => {
+): Promise<ApiResponse<UserProfile>> => {
   const cookieStore = await cookies();
   const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/users/me/visibility`, {
     method: "PATCH",
@@ -357,20 +323,22 @@ export const updateProfileVisibility = async (
     body: JSON.stringify({ isProfilePublic }),
   });
 
-  if (!res.ok) {
-    console.error("Failed to update profile visibility");
-    return await res.json();
+  const result = await handleApiResponse<UserProfile>(
+    res,
+    "Failed to update profile visibility",
+  );
+
+  if (result.success) {
+    revalidatePath("/profile");
   }
 
-  revalidatePath("/profile");
-
-  return await res.json();
+  return result;
 };
 
 export const applyForJob = async (
   jobId: number,
   formData: FormData,
-): Promise<{ success: boolean; message: string; applicationId?: number }> => {
+): Promise<ApiResponse<{ applicationId?: number }>> => {
   const cookieStore = await cookies();
 
   const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}/apply`, {
@@ -381,20 +349,12 @@ export const applyForJob = async (
     body: formData,
   });
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    return {
-      success: false,
-      message: errorData.message || "Failed to submit application",
-    };
-  }
-
-  return await res.json();
+  return handleApiResponse(res, "Failed to submit application");
 };
 
 export const withdrawJobApplication = async (
   applicationId: number,
-): Promise<{ success: boolean; message: string }> => {
+): Promise<ApiResponse<void>> => {
   const cookieStore = await cookies();
 
   const res = await fetch(
@@ -407,17 +367,16 @@ export const withdrawJobApplication = async (
     },
   );
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    return {
-      success: false,
-      message: errorData.message || "Failed to withdraw application",
-    };
+  const result = await handleApiResponse<void>(
+    res,
+    "Failed to withdraw application",
+  );
+
+  if (result.success) {
+    revalidatePath("/applications");
   }
 
-  revalidatePath("/applications");
-
-  return await res.json();
+  return result;
 };
 
 export const fetchEmailPreferences = async (): Promise<
@@ -435,18 +394,13 @@ export const fetchEmailPreferences = async (): Promise<
     },
   );
 
-  if (!res.ok) {
-    console.error("Failed to fetch email preferences");
-    return await res.json();
-  }
-
-  return await res.json();
+  return handleApiResponse(res, "Failed to fetch email preferences");
 };
 
 export const fetchJobAlerts = async (
   page = 1,
   limit = 10,
-): Promise<PaginatedApiResponse<JobAlert>> => {
+): Promise<ServerActionPaginatedResponse<JobAlert>> => {
   const cookieStore = await cookies();
   const res = await fetch(
     `${env.NEXT_PUBLIC_SERVER_URL}/users/me/job-alerts?page=${page}&limit=${limit}`,
@@ -456,8 +410,8 @@ export const fetchJobAlerts = async (
       cache: "no-store",
     },
   );
-  if (!res.ok) return await res.json();
-  return await res.json();
+
+  return handlePaginatedApiResponse(res, "Failed to fetch job alerts");
 };
 
 export const fetchJobAlert = async (
@@ -472,8 +426,8 @@ export const fetchJobAlert = async (
       next: { revalidate: 300, tags: [`job-alert-${alertId}`] },
     },
   );
-  if (!res.ok) return await res.json();
-  return await res.json();
+
+  return handleApiResponse(res, "Failed to fetch job alert");
 };
 
 export const getOrganizationJobStats = async (
@@ -494,12 +448,7 @@ export const getOrganizationJobStats = async (
     },
   );
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Failed to fetch job stats");
-  }
-
-  return res.json();
+  return handleApiResponse(res, "Failed to fetch job stats");
 };
 
 export const getInvitationDetails = async (
@@ -510,12 +459,7 @@ export const getInvitationDetails = async (
     { next: { revalidate: 0 } },
   );
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Failed to fetch invitation details");
-  }
-
-  return res.json();
+  return handleApiResponse(res, "Failed to fetch invitation details");
 };
 
 export const acceptInvitation = async (
@@ -533,10 +477,5 @@ export const acceptInvitation = async (
     },
   );
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Failed to accept invitation");
-  }
-
-  return res.json();
+  return handleApiResponse(res, "Failed to accept invitation");
 };

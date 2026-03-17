@@ -54,10 +54,8 @@ export const useCreateJobAlert = () => {
       );
       toast.success("Job alert created successfully");
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to create job alert",
-      );
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create job alert");
     },
   });
 };

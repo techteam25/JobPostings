@@ -19,7 +19,7 @@ import {
 export default async function SavedJobsPage() {
   const savedJobs = await getUserSavedJobs();
 
-  if (!savedJobs || savedJobs.data.length === 0) {
+  if (!savedJobs.success || savedJobs.data.length === 0) {
     return (
       <Empty>
         <EmptyHeader>

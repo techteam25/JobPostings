@@ -309,6 +309,21 @@ export type PaginatedApiResponse<T> = ApiSuccessResponse<T[]> & {
   pagination: PaginationMeta;
 };
 
+export type ServerActionPaginatedResponse<T> =
+  | PaginatedApiResponse<T>
+  | ApiErrorResponse;
+
+export class ApiError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    message: string,
+    public readonly errorCode = "UNKNOWN_ERROR",
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export type JobAlert = {
   id: number;
   userId: number;

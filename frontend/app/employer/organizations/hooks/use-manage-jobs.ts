@@ -23,8 +23,8 @@ export const useCreateJob = (organizationId: number) => {
       });
       toast.success("Job posted successfully");
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to create job");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create job");
     },
   });
 };
@@ -44,8 +44,8 @@ export const useDeleteJob = (organizationId: number) => {
       });
       toast.success("Job deleted successfully");
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to delete job");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete job");
     },
   });
 };
@@ -71,8 +71,8 @@ export const useUpdateJob = (organizationId: number) => {
       });
       toast.success("Job updated successfully");
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to update job");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update job");
     },
   });
 };

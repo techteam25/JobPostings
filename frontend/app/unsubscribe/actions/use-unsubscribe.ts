@@ -32,11 +32,8 @@ export const useUnsubscribe = () => {
       toast.success("Unsubscribed successfully");
       queryClient.invalidateQueries({ queryKey: ["unsubscribe-info"] });
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message ||
-          "Failed to unsubscribe. Please try again.",
-      );
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to unsubscribe. Please try again.");
     },
   });
 };

@@ -20,7 +20,7 @@ export default async function OrganizationJobApplicationsPage({
   const { id } = await params;
   const receivedApplications = await getAllJobsApplicationsForOrganization(id);
 
-  if (!receivedApplications || receivedApplications.data.length === 0) {
+  if (!receivedApplications.success || receivedApplications.data.length === 0) {
     return (
       <Empty className="mx-auto w-full">
         <EmptyHeader>

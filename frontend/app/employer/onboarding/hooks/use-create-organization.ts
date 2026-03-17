@@ -39,9 +39,8 @@ export const useCreateOrganization = () => {
         router.replace(`/employer/organizations/${organizationData.data.id}`);
       }
     },
-    onError: (e) => {
-      console.log("Error creating organization:", e);
-      toast.error("There was an error creating the organization.");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create organization");
     },
   });
 

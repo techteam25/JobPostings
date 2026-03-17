@@ -15,6 +15,7 @@ import { MdCancelScheduleSend } from "react-icons/md";
 import { MoreVertical } from "lucide-react";
 import { formatToRelativeDate } from "@/lib/utils";
 import { withdrawJobApplication } from "@/lib/api";
+import { toast } from "sonner";
 
 interface ApplicationCardProps {
   application: {
@@ -82,9 +83,14 @@ export const ApplicationCard = ({ application }: ApplicationCardProps) => {
               <DropdownMenuItem>
                 <Button
                   variant="ghost"
-                  onClick={async () =>
-                    await withdrawJobApplication(application.applicationId)
-                  }
+                  onClick={async () => {
+                    const result = await withdrawJobApplication(
+                      application.applicationId,
+                    );
+                    if (!result.success) {
+                      toast.error(result.message);
+                    }
+                  }}
                 >
                   <MdCancelScheduleSend className="mr-1 size-4" />
                   Withdraw Application
