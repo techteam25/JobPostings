@@ -2,7 +2,6 @@ import { MutableRefObject } from "react";
 
 import { CreateOrganizationData } from "@/schemas/organizations";
 
-
 export enum JobType {
   FullTime = "Full-time",
   PartTime = "Part-time",
@@ -26,6 +25,8 @@ export interface JobCardType {
 export interface TCreateOrganizationFormProps {
   organization: CreateOrganizationData;
   setOrganizationData: (formData: CreateOrganizationData) => void;
+
+  // eslint-disable-next-line
   formRef?: MutableRefObject<any>;
 }
 
@@ -204,7 +205,6 @@ export type UserWithProfile = {
   lastLoginAt: Date | null;
 } & { profile: UserProfile | null };
 
-
 export type EmailPreferences = {
   jobMatchNotifications: boolean;
   applicationStatusNotifications: boolean;
@@ -332,7 +332,9 @@ export type JobAlert = {
   state?: string;
   city?: string;
   searchQuery?: string;
-  jobType?: Array<"full_time" | "part_time" | "contract" | "temporary" | "intern">;
+  jobType?: Array<
+    "full_time" | "part_time" | "contract" | "temporary" | "intern"
+  >;
   skills?: string[];
   experienceLevel?: string[];
   includeRemote: boolean;
@@ -344,7 +346,10 @@ export type JobAlert = {
   updatedAt: string;
 };
 
-export type CreateJobAlertInput = Omit<JobAlert, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'lastSentAt'>;
+export type CreateJobAlertInput = Omit<
+  JobAlert,
+  "id" | "userId" | "createdAt" | "updatedAt" | "lastSentAt"
+>;
 export type UpdateJobAlertInput = Partial<CreateJobAlertInput>;
 
 export type Invitation = {
