@@ -17,7 +17,7 @@ import type {
 } from "@/validations/organization.validation";
 import type { GetUserSchema } from "@/validations/user.validation";
 import type { SearchParams } from "@/validations/base.validation";
-import type { OrganizationsServicePort } from "../ports/organizations-service.port";
+import type { OrganizationsServicePort } from "@/modules/organizations";
 
 /**
  * Controller class for handling organization CRUD API endpoints.

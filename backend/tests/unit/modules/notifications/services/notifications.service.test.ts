@@ -302,6 +302,50 @@ describe("NotificationsService - Job Alerts", () => {
       );
     });
 
+    it("should set lastSentAt to null when switching monthly -> daily", async () => {
+      const monthlyAlert = { ...baseAlert, frequency: "monthly" as const };
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(
+        monthlyAlert,
+      );
+      mockNotificationsRepository.updateJobAlert.mockResolvedValue({
+        ...monthlyAlert,
+        frequency: "daily",
+        lastSentAt: null,
+      });
+
+      await notificationsService.updateJobAlert(1, 1, {
+        frequency: "daily",
+      });
+
+      expect(mockNotificationsRepository.updateJobAlert).toHaveBeenCalledWith(
+        1,
+        1,
+        expect.objectContaining({ frequency: "daily", lastSentAt: null }),
+      );
+    });
+
+    it("should set lastSentAt to null when switching monthly -> weekly", async () => {
+      const monthlyAlert = { ...baseAlert, frequency: "monthly" as const };
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(
+        monthlyAlert,
+      );
+      mockNotificationsRepository.updateJobAlert.mockResolvedValue({
+        ...monthlyAlert,
+        frequency: "weekly",
+        lastSentAt: null,
+      });
+
+      await notificationsService.updateJobAlert(1, 1, {
+        frequency: "weekly",
+      });
+
+      expect(mockNotificationsRepository.updateJobAlert).toHaveBeenCalledWith(
+        1,
+        1,
+        expect.objectContaining({ frequency: "weekly", lastSentAt: null }),
+      );
+    });
+
     it("should set lastSentAt to now when switching to less frequent (daily -> weekly)", async () => {
       const dailyAlert = { ...baseAlert, frequency: "daily" as const };
       mockNotificationsRepository.getJobAlertById.mockResolvedValue(dailyAlert);
@@ -328,12 +372,76 @@ describe("NotificationsService - Job Alerts", () => {
       );
     });
 
+    it("should set lastSentAt to now when switching daily -> monthly", async () => {
+      const dailyAlert = { ...baseAlert, frequency: "daily" as const };
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(dailyAlert);
+      mockNotificationsRepository.updateJobAlert.mockResolvedValue({
+        ...dailyAlert,
+        frequency: "monthly",
+      });
+
+      const before = new Date();
+      await notificationsService.updateJobAlert(1, 1, {
+        frequency: "monthly",
+      });
+      const after = new Date();
+
+      const callArgs =
+        mockNotificationsRepository.updateJobAlert.mock.calls[0][2];
+      expect(callArgs.frequency).toBe("monthly");
+      expect(callArgs.lastSentAt).toBeInstanceOf(Date);
+      expect(callArgs.lastSentAt.getTime()).toBeGreaterThanOrEqual(
+        before.getTime(),
+      );
+      expect(callArgs.lastSentAt.getTime()).toBeLessThanOrEqual(
+        after.getTime(),
+      );
+    });
+
+    it("should set lastSentAt to now when switching weekly -> monthly", async () => {
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(baseAlert);
+      mockNotificationsRepository.updateJobAlert.mockResolvedValue({
+        ...baseAlert,
+        frequency: "monthly",
+      });
+
+      const before = new Date();
+      await notificationsService.updateJobAlert(1, 1, {
+        frequency: "monthly",
+      });
+      const after = new Date();
+
+      const callArgs =
+        mockNotificationsRepository.updateJobAlert.mock.calls[0][2];
+      expect(callArgs.frequency).toBe("monthly");
+      expect(callArgs.lastSentAt).toBeInstanceOf(Date);
+      expect(callArgs.lastSentAt.getTime()).toBeGreaterThanOrEqual(
+        before.getTime(),
+      );
+      expect(callArgs.lastSentAt.getTime()).toBeLessThanOrEqual(
+        after.getTime(),
+      );
+    });
+
     it("should not modify lastSentAt when frequency is unchanged", async () => {
       mockNotificationsRepository.getJobAlertById.mockResolvedValue(baseAlert);
       mockNotificationsRepository.updateJobAlert.mockResolvedValue(baseAlert);
 
       await notificationsService.updateJobAlert(1, 1, {
         name: "Updated Name",
+      });
+
+      const callArgs =
+        mockNotificationsRepository.updateJobAlert.mock.calls[0][2];
+      expect(callArgs.lastSentAt).toBeUndefined();
+    });
+
+    it("should not modify lastSentAt when updating same frequency", async () => {
+      mockNotificationsRepository.getJobAlertById.mockResolvedValue(baseAlert);
+      mockNotificationsRepository.updateJobAlert.mockResolvedValue(baseAlert);
+
+      await notificationsService.updateJobAlert(1, 1, {
+        frequency: "weekly",
       });
 
       const callArgs =

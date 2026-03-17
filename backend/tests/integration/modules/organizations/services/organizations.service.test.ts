@@ -1,11 +1,12 @@
 import { user } from "@/db/schema";
 import { db } from "@shared/db/connection";
 
-import { OrganizationService } from "@/services/organization.service";
+import { OrganizationsService } from "@/modules/organizations/services/organizations.service";
+import { OrganizationsRepository } from "@/modules/organizations/repositories/organizations.repository";
 
 import { seedJobsScenario } from "@tests/utils/seedScenarios";
 
-describe("OrganizationService", () => {
+describe("OrganizationsService", () => {
   beforeEach(async () => {
     const { faker } = await import("@faker-js/faker");
     const bcrypt = await import("bcrypt");
@@ -24,11 +25,13 @@ describe("OrganizationService", () => {
       })),
     );
   });
-  describe("requireJobPostingRole", () => {
+  describe("isRolePermitted", () => {
     it("should return true when user has job posting role", async () => {
-      const organizationService = new OrganizationService();
+      const organizationsService = new OrganizationsService(
+        new OrganizationsRepository(),
+      );
 
-      const result = await organizationService.isRolePermitted(1);
+      const result = await organizationsService.isRolePermitted(1);
       expect(result.isSuccess).toBe(true);
 
       if (result.isSuccess) {
@@ -36,9 +39,11 @@ describe("OrganizationService", () => {
       }
     });
     it("should return false when user does not have job posting role", async () => {
-      const organizationService = new OrganizationService();
+      const organizationsService = new OrganizationsService(
+        new OrganizationsRepository(),
+      );
 
-      const result = await organizationService.isRolePermitted(999);
+      const result = await organizationsService.isRolePermitted(999);
 
       expect(result.isSuccess).toBe(true);
       if (result.isSuccess) {

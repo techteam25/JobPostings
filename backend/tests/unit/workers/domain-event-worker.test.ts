@@ -4,32 +4,17 @@ import type { DomainEvent } from "@shared/events";
 import type { ApplicationSubmittedPayload } from "@/modules/applications/events/application-submitted.event";
 import type { UserDeactivatedPayload } from "@/modules/identity/events/user-deactivated.event";
 
-const { mockIncrementJobApplications, mockPauseAlertsForUser } = vi.hoisted(
-  () => ({
-    mockIncrementJobApplications: vi.fn().mockResolvedValue(undefined),
-    mockPauseAlertsForUser: vi.fn().mockResolvedValue(0),
-  }),
-);
+const { mockRegisterWorker } = vi.hoisted(() => ({
+  mockRegisterWorker: vi.fn(),
+}));
 
 vi.mock("@shared/infrastructure/queue.service", () => ({
   queueService: {
-    registerWorker: vi.fn(),
+    registerWorker: mockRegisterWorker,
   },
   QUEUE_NAMES: {
     DOMAIN_EVENTS_QUEUE: "domainEventsQueue",
   },
-}));
-
-vi.mock("@/modules/job-board", () => ({
-  JobInsightsRepository: vi.fn().mockImplementation(() => ({
-    incrementJobApplications: mockIncrementJobApplications,
-  })),
-}));
-
-vi.mock("@/modules/notifications", () => ({
-  NotificationsRepository: vi.fn().mockImplementation(() => ({
-    pauseAlertsForUser: mockPauseAlertsForUser,
-  })),
 }));
 
 vi.mock("@shared/logger", () => ({
@@ -41,11 +26,31 @@ vi.mock("@shared/logger", () => ({
   },
 }));
 
-import { processDomainEvent } from "@/workers/domain-event-worker";
+import { createDomainEventWorker } from "@shared/workers/domain-event.worker";
 
 describe("Domain Event Worker", () => {
+  const mockIncrementJobApplications = vi.fn().mockResolvedValue(undefined);
+  const mockPauseAlertsForUser = vi.fn().mockResolvedValue(0);
+  let processDomainEvent: (job: any) => Promise<void>;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIncrementJobApplications.mockResolvedValue(undefined);
+    mockPauseAlertsForUser.mockResolvedValue(0);
+
+    // Create worker with mock ports and capture the registered handler
+    const worker = createDomainEventWorker({
+      applicationInsights: {
+        incrementJobApplications: mockIncrementJobApplications,
+      },
+      notificationsRepository: {
+        pauseAlertsForUser: mockPauseAlertsForUser,
+      },
+    });
+    worker.initialize();
+
+    // The handler is the second argument passed to registerWorker
+    processDomainEvent = mockRegisterWorker.mock.calls[0]![1];
   });
 
   describe("processDomainEvent", () => {

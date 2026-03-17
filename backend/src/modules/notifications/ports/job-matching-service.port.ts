@@ -3,10 +3,6 @@ import type { DatabaseError } from "@shared/errors";
 import type { Job } from "@/validations/job.validation";
 import type { JobAlert } from "@/validations/jobAlerts.validation";
 
-/**
- * Port interface for JobMatchingService.
- * Defines the public contract for job alert matching operations.
- */
 export interface JobMatchingServicePort {
   findMatchingJobsForAlert(
     alert: JobAlert,

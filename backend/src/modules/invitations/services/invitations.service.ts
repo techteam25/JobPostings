@@ -18,10 +18,9 @@ import type {
   InvitationsServicePort,
   OrganizationInvitationDetails,
 } from "../ports/invitations-service.port";
-import type { InvitationsRepositoryPort } from "../ports/invitations-repository.port";
-import type { OrgMembershipCommandPort } from "../ports/org-membership-command.port";
-import type { UserEmailQueryPort } from "../ports/user-email-query.port";
-import type { EmailServicePort } from "@shared/ports/email-service.port";
+import type { InvitationsRepositoryPort } from "@/modules/invitations";
+import type { OrgMembershipCommandPort } from "@/modules/invitations";
+import type { UserEmailQueryPort } from "@/modules/invitations";
 
 /**
  * Service class for managing organization invitation operations.
@@ -34,7 +33,6 @@ export class InvitationsService
     private invitationsRepository: InvitationsRepositoryPort,
     private orgMembership: OrgMembershipCommandPort,
     private userEmailQuery: UserEmailQueryPort,
-    private emailService: EmailServicePort,
   ) {
     super();
   }
@@ -332,13 +330,11 @@ export class InvitationsService
 
   /**
    * Cancels an organization invitation (soft delete).
-   * @param organizationId The organization ID.
    * @param invitationId The invitation ID.
    * @param requesterId The ID of the user canceling the invitation.
    * @returns Success message.
    */
   async cancelInvitation(
-    organizationId: number,
     invitationId: number,
     requesterId: number,
   ): Promise<Result<{ message: string }, Error>> {

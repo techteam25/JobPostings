@@ -103,7 +103,6 @@ export interface EmailServicePort {
    * Sends an unsubscribe confirmation email to the user.
    */
   sendUnsubscribeConfirmation(
-    userId: number,
     email: string,
     name: string,
     context: "job_seeker" | "employer" | "global",

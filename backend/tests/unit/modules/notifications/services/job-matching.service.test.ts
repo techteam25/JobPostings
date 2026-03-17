@@ -1,21 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { JobMatchingService } from "@/services/job-matching.service";
+import { JobMatchingService } from "@/modules/notifications/services/job-matching.service";
 import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 import type { SearchResponse } from "typesense/lib/Typesense/Documents";
 import type { JobDocumentType } from "@/validations/base.validation";
 
 // Mock dependencies
 vi.mock("@shared/infrastructure/typesense.service/typesense.service");
-vi.mock("@/repositories/job.repository");
-vi.mock("@/repositories/user.repository");
 
 describe("JobMatchingService - Alert Matching Logic", () => {
   let jobMatchingService: JobMatchingService;
   let mockTypesenseService: TypesenseService;
 
   beforeEach(() => {
-    jobMatchingService = new JobMatchingService();
-    mockTypesenseService = (jobMatchingService as any).typesenseService;
+    mockTypesenseService = new TypesenseService() as any;
+    jobMatchingService = new JobMatchingService(mockTypesenseService);
     vi.clearAllMocks();
   });
 

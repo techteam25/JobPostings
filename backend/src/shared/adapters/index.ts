@@ -8,3 +8,5 @@ export { IdentityToApplicationsAdapter } from "./identity-to-applications.adapte
 export { OrganizationsToJobBoardAdapter } from "./organizations-to-job-board.adapter";
 export { IdentityToJobBoardAdapter } from "./identity-to-job-board.adapter";
 export { OrganizationsToProfileAdapter } from "./organizations-to-profile.adapter";
+export { FileMetadataUpdateAdapter } from "./file-metadata-update.adapter";
+export { JobBoardToSharedInsightsAdapter } from "./job-board-to-shared-insights.adapter";

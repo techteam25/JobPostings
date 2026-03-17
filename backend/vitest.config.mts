@@ -13,7 +13,7 @@ export default defineConfig({
 
     // Coverage configuration
     coverage: {
-      provider: "v8",
+      provider: "istanbul",
       reporter: ["text", "json", "html"],
       exclude: [
         "node_modules/",

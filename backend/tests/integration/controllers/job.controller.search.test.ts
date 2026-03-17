@@ -11,7 +11,7 @@ import {
   QUEUE_NAMES,
   queueService,
 } from "@shared/infrastructure/queue.service";
-import { initializeTypesenseWorker } from "@/workers/typesense-job-indexer";
+import { createTypesenseJobIndexerWorker } from "@/modules/job-board/workers/typesense-job-indexer.worker";
 
 // Override the global queue mock — this test needs real Redis queue + Typesense
 vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
@@ -26,7 +26,10 @@ describe("Job Search Integration Tests", () => {
   beforeAll(async () => {
     // Initialize real queue service and Typesense worker (requires running Docker services)
     await queueService.initialize();
-    initializeTypesenseWorker();
+    const typesenseWorker = createTypesenseJobIndexerWorker({
+      typesenseService,
+    });
+    typesenseWorker.initialize();
 
     // Clean DB before seeding — beforeEach only runs before each test, not before beforeAll
     const { cleanAll } = await import("@tests/utils/cleanAll");

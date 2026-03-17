@@ -6,67 +6,32 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  */
 
 // Hoist all mocks so they survive vi.mock hoisting
-const {
-  mockQueueInit,
-  mockInitEmailWorker,
-  mockInitTypesenseWorker,
-  mockInitFileUploadWorker,
-  mockInitFileCleanupWorker,
-  mockInitJobAlertWorker,
-  mockInitInactiveUserAlertWorker,
-  mockInitInvitationExpirationWorker,
-  mockScheduleCleanupJob,
-  mockScheduleDailyAlert,
-  mockScheduleWeeklyAlert,
-  mockScheduleMonthlyAlert,
-  mockScheduleInactiveUserAlert,
-  mockScheduleInvitationExpiration,
-} = vi.hoisted(() => ({
-  mockQueueInit: vi.fn(),
-  mockInitEmailWorker: vi.fn(),
-  mockInitTypesenseWorker: vi.fn(),
-  mockInitFileUploadWorker: vi.fn(),
-  mockInitFileCleanupWorker: vi.fn(),
-  mockInitJobAlertWorker: vi.fn(),
-  mockInitInactiveUserAlertWorker: vi.fn(),
-  mockInitInvitationExpirationWorker: vi.fn(),
-  mockScheduleCleanupJob: vi.fn().mockResolvedValue(undefined),
-  mockScheduleDailyAlert: vi.fn().mockResolvedValue(undefined),
-  mockScheduleWeeklyAlert: vi.fn().mockResolvedValue(undefined),
-  mockScheduleMonthlyAlert: vi.fn().mockResolvedValue(undefined),
-  mockScheduleInactiveUserAlert: vi.fn().mockResolvedValue(undefined),
-  mockScheduleInvitationExpiration: vi.fn().mockResolvedValue(undefined),
-}));
+const { mockQueueInit, mockInitializeAll, mockScheduleAllJobs } = vi.hoisted(
+  () => ({
+    mockQueueInit: vi.fn(),
+    mockInitializeAll: vi.fn(),
+    mockScheduleAllJobs: vi.fn().mockResolvedValue(undefined),
+  }),
+);
 
 vi.mock("@shared/infrastructure/queue.service", () => ({
   queueService: { initialize: mockQueueInit },
 }));
-vi.mock("@/workers/send-email-worker", () => ({
-  initializeEmailWorker: mockInitEmailWorker,
+
+vi.mock("@/composition-root", () => ({
+  createCompositionRoot: vi.fn(() => ({
+    workers: {
+      initializeAll: mockInitializeAll,
+      scheduleAllJobs: mockScheduleAllJobs,
+    },
+  })),
 }));
-vi.mock("@/workers/typesense-job-indexer", () => ({
-  initializeTypesenseWorker: mockInitTypesenseWorker,
-}));
-vi.mock("@/workers/file-upload-worker", () => ({
-  initializeFileUploadWorker: mockInitFileUploadWorker,
-}));
-vi.mock("@/workers/temp-file-cleanup-worker", () => ({
-  initializeFileCleanupWorker: mockInitFileCleanupWorker,
-  scheduleCleanupJob: mockScheduleCleanupJob,
-}));
-vi.mock("@/workers/job-alert-processor", () => ({
-  initializeJobAlertWorker: mockInitJobAlertWorker,
-  scheduleDailyAlertProcessing: mockScheduleDailyAlert,
-  scheduleWeeklyAlertProcessing: mockScheduleWeeklyAlert,
-  scheduleMonthlyAlertProcessing: mockScheduleMonthlyAlert,
-}));
-vi.mock("@/workers/inactive-user-alert-pauser", () => ({
-  initializeInactiveUserAlertWorker: mockInitInactiveUserAlertWorker,
-  scheduleInactiveUserAlertPausing: mockScheduleInactiveUserAlert,
-}));
-vi.mock("@/workers/invitation-expiration-worker", () => ({
-  initializeInvitationExpirationWorker: mockInitInvitationExpirationWorker,
-  scheduleInvitationExpirationJob: mockScheduleInvitationExpiration,
+
+vi.mock("@/routes", () => ({
+  createApiRoutes: vi.fn(() => {
+    const { Router } = require("express");
+    return Router();
+  }),
 }));
 
 // Stub non-critical infra so initializeInfrastructure doesn't hit real services
@@ -82,25 +47,6 @@ vi.mock("@shared/infrastructure/redis-rate-limiter.service", () => ({
 
 import { initializeInfrastructure } from "@/app";
 
-const allWorkerMocks = [
-  mockInitEmailWorker,
-  mockInitTypesenseWorker,
-  mockInitFileUploadWorker,
-  mockInitFileCleanupWorker,
-  mockInitJobAlertWorker,
-  mockInitInactiveUserAlertWorker,
-  mockInitInvitationExpirationWorker,
-];
-
-const allSchedulerMocks = [
-  mockScheduleCleanupJob,
-  mockScheduleDailyAlert,
-  mockScheduleWeeklyAlert,
-  mockScheduleMonthlyAlert,
-  mockScheduleInactiveUserAlert,
-  mockScheduleInvitationExpiration,
-];
-
 describe("initializeInfrastructure queue guard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -111,12 +57,8 @@ describe("initializeInfrastructure queue guard", () => {
 
     await initializeInfrastructure();
 
-    for (const mock of allWorkerMocks) {
-      expect(mock).toHaveBeenCalledOnce();
-    }
-    for (const mock of allSchedulerMocks) {
-      expect(mock).toHaveBeenCalledOnce();
-    }
+    expect(mockInitializeAll).toHaveBeenCalledOnce();
+    expect(mockScheduleAllJobs).toHaveBeenCalledOnce();
   });
 
   it("should skip workers and scheduled jobs when queue fails", async () => {
@@ -124,11 +66,7 @@ describe("initializeInfrastructure queue guard", () => {
 
     await initializeInfrastructure();
 
-    for (const mock of allWorkerMocks) {
-      expect(mock).not.toHaveBeenCalled();
-    }
-    for (const mock of allSchedulerMocks) {
-      expect(mock).not.toHaveBeenCalled();
-    }
+    expect(mockInitializeAll).not.toHaveBeenCalled();
+    expect(mockScheduleAllJobs).not.toHaveBeenCalled();
   });
 });

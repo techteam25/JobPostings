@@ -4,7 +4,7 @@ import { organizationInvitations, organizationMembers } from "@/db/schema";
 import { db } from "@shared/db/connection";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import { DatabaseError } from "@shared/errors";
-import type { InvitationsRepositoryPort } from "../ports/invitations-repository.port";
+import type { InvitationsRepositoryPort } from "@/modules/invitations";
 
 /**
  * Repository class for managing invitation-related database operations.

@@ -3,7 +3,7 @@ import { seedJobsScenario } from "@tests/utils/seedScenarios";
 import { createUser, createUserProfile } from "@tests/utils/seedBuilders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JobBoardRepository } from "@/modules/job-board";
-import { JobRepository } from "@/repositories/job.repository";
+import { ApplicationsRepository } from "@/modules/applications";
 import { queueService } from "@shared/infrastructure/queue.service";
 
 describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
@@ -238,7 +238,7 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
 });
 
 describe("Withdraw Job Application Integration Tests", () => {
-  let jobRepository: JobRepository;
+  let applicationsRepository: ApplicationsRepository;
   let userCookie: string;
   let otherUserCookie: string;
   let jobId: number;
@@ -246,7 +246,7 @@ describe("Withdraw Job Application Integration Tests", () => {
   let otherUserApplicationId: number;
 
   beforeAll(() => {
-    jobRepository = new JobRepository();
+    applicationsRepository = new ApplicationsRepository();
 
     // Mock email queue to prevent actual email sending during tests
     vi.spyOn(queueService, "addJob").mockResolvedValue({} as any);
@@ -328,7 +328,7 @@ describe("Withdraw Job Application Integration Tests", () => {
 
       // Verify application status was updated in database
       const application =
-        await jobRepository.findApplicationById(applicationId);
+        await applicationsRepository.findApplicationById(applicationId);
       expect(application?.application.status).toBe("withdrawn");
     });
 

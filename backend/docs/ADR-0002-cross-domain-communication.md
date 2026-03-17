@@ -35,9 +35,9 @@ The `UserDeactivated` event provides **immediate** alert pausing (seconds), repl
 | Event only (`UserDeactivated`)           | Seconds                              | Risk: missed event = never paused   |
 | **Event + batch safety net (chosen)**    | Seconds (normal), minutes (fallback) | **Highest**                         |
 
-### 5. Workers stay in `src/workers/` for now
+### 5. Workers moved to owning modules (Phase 8 complete)
 
-Worker modularization (moving workers into their owning modules) is Phase 8 scope. The domain event worker is created in `src/workers/` following the current established pattern.
+Worker modularization is complete. The domain event worker now lives at `src/shared/workers/domain-event.worker.ts`. Module-specific workers are in their owning module's `workers/` directory.
 
 ## Cross-Context Coupling Inventory
 
@@ -169,7 +169,7 @@ export interface EventBusPort {
   publish<T>(event: DomainEvent<T>): Promise<void>;
 }
 
-// src/shared/events/bullmq-event-bus.port.ts — implements EventBusPort using queueService.addJob
+// src/shared/events/bullmq-event-bus.ts — implements EventBusPort using queueService.addJob
 ```
 
 ### Event payloads (pure domain data, not extending DomainEvent)
@@ -193,7 +193,7 @@ export interface UserDeactivatedPayload {
 ### Domain event worker
 
 ```
-src/workers/domain-event-worker.ts
+src/shared/workers/domain-event.worker.ts
   — routes by job.name (DomainEventType enum value)
   — APPLICATION_SUBMITTED → JobInsightsRepository.incrementJobApplications(jobId)
   — USER_DEACTIVATED → NotificationsRepository.pauseAlertsForUser(userId)
@@ -208,7 +208,7 @@ src/workers/domain-event-worker.ts
 | CREATE | `src/shared/events/domain-event.ts`                                      |
 | CREATE | `src/shared/events/event-types.ts` — `DomainEventType` enum              |
 | CREATE | `src/shared/events/event-bus.port.ts`                                    |
-| CREATE | `src/shared/events/bullmq-event-bus.port.ts`                             |
+| CREATE | `src/shared/events/bullmq-event-bus.ts`                             |
 | CREATE | `src/shared/events/index.ts`                                             |
 | MODIFY | `src/shared/infrastructure/queue.service.ts` — add `DOMAIN_EVENTS_QUEUE` |
 
@@ -252,7 +252,7 @@ After this phase, no module imports another module's repository port. Existing i
 | ------ | ---------------------------------------------------------------- | --------------------------------------------------------------- |
 | CREATE | `src/modules/applications/events/application-submitted.event.ts` | Payload + factory                                               |
 | CREATE | `src/modules/identity/events/user-deactivated.event.ts`          | Payload + factory                                               |
-| CREATE | `src/workers/domain-event-worker.ts`                             | Worker + init function                                          |
+| CREATE | `src/shared/workers/domain-event.worker.ts`                             | Worker + init function                                          |
 | MODIFY | `applications.repository.ts`                                     | Remove `jobInsights` import and UPDATE from `createApplication` |
 | MODIFY | `applications.service.ts`                                        | Add `EventBusPort`, publish `ApplicationSubmitted` after create |
 | MODIFY | `identity.service.ts`                                            | Publish `UserDeactivated` on `deactivateSelf`/`deactivateUser`  |
@@ -281,11 +281,10 @@ applications ──type import──→ EventBusPort (shared)
 identity ──type import──→ EventBusPort (shared)
 notifications ──type import──→ IdentityQueryFacadePort
 
-Composition root (job.routes.ts)
-  ├── instantiates ApplicationsQueryFacade(applicationsRepository)
-  ├── instantiates JobBoardQueryFacade(jobBoardRepository)
+Central composition root (src/composition-root.ts)
+  ├── instantiates cross-module adapters (ApplicationsToJobBoardAdapter, etc.)
   ├── instantiates BullMqEventBus()
-  └── passes facades + event bus to route factories
+  └── injects adapters + event bus into module composition roots
 
 domain-event-worker
   ├── APPLICATION_SUBMITTED → JobInsightsRepository.incrementJobApplications
@@ -293,4 +292,4 @@ domain-event-worker
 ```
 
 No module-to-module repository imports. Circular dependency eliminated.
-Worker modularization deferred to Phase 8.
+Worker modularization complete (Phase 8).

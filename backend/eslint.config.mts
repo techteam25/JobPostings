@@ -77,9 +77,16 @@ export default tseslint.config(
           ],
         },
       ],
+    },
+  },
+
+  {
+    files: ["src/**/*.ts"],
+    rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
+          args: "all",
           argsIgnorePattern: "^_",
           varsIgnorePattern: "^_",
           caughtErrorsIgnorePattern: "^_",
@@ -90,19 +97,4 @@ export default tseslint.config(
 
   // ─── Per-Module Overrides ────────────────────────────────────────
   ...perModuleOverrides,
-
-  // ─── Legacy Exemptions ──────────────────────────────────────────
-  // Old facade files and workers still use deep imports. These will be
-  // cleaned up in Phase 8 (migrate workers to module-owned processors)
-  // and when facades are deleted.
-  {
-    files: [
-      "src/services/**/*.ts",
-      "src/repositories/**/*.ts",
-      "src/workers/**/*.ts",
-    ],
-    rules: {
-      "no-restricted-imports": "off",
-    },
-  },
 );

@@ -17,14 +17,19 @@ vi.spyOn(nodemailer, "createTransport").mockReturnValue({
 } as any);
 
 import { EmailService } from "@shared/infrastructure/email.service";
-import { UserRepository } from "@/repositories/user.repository";
+import type { EmailPreferencesQueryPort } from "@shared/ports/email-preferences-query.port";
+
+const mockEmailPreferencesQuery: EmailPreferencesQueryPort = {
+  canSendEmailType: vi.fn().mockResolvedValue(true),
+  findEmailPreferencesByUserId: vi.fn().mockResolvedValue(undefined),
+};
 
 describe("EmailService HTML escaping", () => {
   let service: EmailService;
 
   beforeEach(() => {
     sendMailMock.mockClear();
-    service = EmailService.createDefault();
+    service = new EmailService(mockEmailPreferencesQuery);
 
     // Stub template loading — return a minimal template with the placeholders
     vi.spyOn(service as any, "loadTemplate").mockResolvedValue(
@@ -40,10 +45,6 @@ describe("EmailService HTML escaping", () => {
   it("should escape HTML in user-supplied name and jobTitle (sendJobApplicationConfirmation)", async () => {
     const maliciousName = '<script>alert("xss")</script>';
     const maliciousTitle = '<img onerror="hack()" src=x>';
-
-    vi.spyOn(UserRepository.prototype, "canSendEmailType").mockResolvedValue(
-      true,
-    );
 
     await service.sendJobApplicationConfirmation(
       1,

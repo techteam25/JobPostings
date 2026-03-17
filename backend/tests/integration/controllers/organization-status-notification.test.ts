@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@shared/db/connection";
 import { user, jobsDetails } from "@/db/schema";
-import { JobRepository } from "@/repositories/job.repository";
+import { ApplicationsRepository } from "@/modules/applications";
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import {
   expect,
@@ -28,7 +28,7 @@ describe("Application Status Change Notification Integration Tests", () => {
   let applicantEmail: string;
   let applicantFullName: string;
   let jobTitle: string;
-  let jobRepository: JobRepository;
+  let applicationsRepository: ApplicationsRepository;
 
   // Helper function to seed test data
   async function seedTestApplicationData() {
@@ -115,7 +115,7 @@ describe("Application Status Change Notification Integration Tests", () => {
   }
 
   beforeAll(() => {
-    jobRepository = new JobRepository();
+    applicationsRepository = new ApplicationsRepository();
 
     // Mock email queue to prevent actual email sending during tests
     vi.spyOn(queueService, "addJob").mockResolvedValue({} as any);
@@ -425,7 +425,7 @@ describe("Application Status Change Notification Integration Tests", () => {
 
       // Verify status was actually updated in database
       const application =
-        await jobRepository.findApplicationById(applicationId);
+        await applicationsRepository.findApplicationById(applicationId);
       expect(application?.application.status).toBe("reviewed");
     });
   });
@@ -436,7 +436,7 @@ describe("Application Status Change Notification Integration Tests", () => {
 
       // Fetch current application data before the test
       const currentApplication =
-        await jobRepository.findApplicationById(applicationId);
+        await applicationsRepository.findApplicationById(applicationId);
       if (!currentApplication) {
         throw new Error("Test application not found");
       }
@@ -474,7 +474,7 @@ describe("Application Status Change Notification Integration Tests", () => {
 
       // Fetch current application data before the test
       const currentApplication =
-        await jobRepository.findApplicationById(applicationId);
+        await applicationsRepository.findApplicationById(applicationId);
       if (!currentApplication) {
         throw new Error("Test application not found");
       }

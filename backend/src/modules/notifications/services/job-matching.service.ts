@@ -2,20 +2,17 @@ import { fail, ok, Result } from "@shared/result";
 import { BaseService } from "@shared/base/base.service";
 import { DatabaseError } from "@shared/errors";
 import { Job } from "@/validations/job.validation";
-import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 import { JobAlert } from "@/validations/jobAlerts.validation";
 import { TypesenseQueryBuilder } from "@shared/infrastructure/typesense.service/typesense-queryBuilder";
 import logger from "@shared/logger";
-import type { JobMatchingServicePort } from "@/ports/job-matching-service.port";
-import type { TypesenseServicePort } from "@/ports/typesense-service.port";
+import type { JobMatchingServicePort } from "../ports/job-matching-service.port";
+import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
 
 export class JobMatchingService
   extends BaseService
   implements JobMatchingServicePort
 {
-  constructor(
-    private typesenseService: TypesenseServicePort = new TypesenseService(),
-  ) {
+  constructor(private typesenseService: TypesenseServicePort) {
     super();
   }
 

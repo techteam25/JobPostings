@@ -12,7 +12,7 @@ import {
   ForbiddenError,
   NotFoundError,
 } from "@shared/errors";
-import { StorageFolder } from "@/workers/file-upload-worker";
+import { StorageFolder } from "@shared/constants/storage-folders";
 import type { FileUploadJobData } from "@/validations/file.validation";
 import type { NewOrganization } from "@/validations/organization.validation";
 import type { OrganizationsServicePort } from "@/modules/organizations";

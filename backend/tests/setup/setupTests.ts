@@ -36,10 +36,7 @@ vi.mock("@shared/infrastructure/email.service", () => {
             : undefined,
       },
     );
-  const MockEmailService = Object.assign(
-    vi.fn().mockImplementation(createMockInstance),
-    { createDefault: vi.fn().mockReturnValue(createMockInstance()) },
-  );
+  const MockEmailService = vi.fn().mockImplementation(createMockInstance);
   return { EmailService: MockEmailService };
 });
 

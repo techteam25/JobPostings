@@ -13,7 +13,7 @@ import {
   AppError,
 } from "@shared/errors";
 import { SecurityUtils } from "@shared/utils/security";
-import { StorageFolder } from "@/workers/file-upload-worker";
+import { StorageFolder } from "@shared/constants/storage-folders";
 import logger from "@shared/logger";
 import { statusRegressionGuard } from "@/utils/update-status-guard";
 

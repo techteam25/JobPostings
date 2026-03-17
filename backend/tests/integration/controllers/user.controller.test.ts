@@ -29,7 +29,6 @@ import {
   workExperiencesFixture,
 } from "@tests/utils/fixtures";
 import { auth } from "@/utils/auth";
-import { UserRepository } from "@/repositories/user.repository";
 import { NotificationsRepository } from "@/modules/notifications";
 const {
   mockSendAccountDeactivationConfirmation,
@@ -46,9 +45,6 @@ vi.mock("@shared/infrastructure/email.service", () => {
       mockSendAccountDeactivationConfirmation;
     sendAccountDeletionConfirmation = mockSendAccountDeletionConfirmation;
   };
-  Object.assign(MockEmailService, {
-    createDefault: vi.fn().mockReturnValue(new MockEmailService()),
-  });
   return { EmailService: MockEmailService };
 });
 

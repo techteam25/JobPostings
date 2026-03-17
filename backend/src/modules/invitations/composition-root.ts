@@ -6,6 +6,7 @@ import { InvitationsRepository } from "./repositories/invitations.repository";
 import { InvitationsService } from "./services/invitations.service";
 import { InvitationsController } from "./controllers/invitations.controller";
 import { createInvitationsGuards } from "./guards/invitations.guards";
+import { createInvitationExpirationWorker } from "./workers/invitation-expiration.worker";
 
 interface InvitationsModuleDeps {
   orgMembership: OrgMembershipCommandPort;
@@ -31,7 +32,11 @@ export function createInvitationsModule(deps: InvitationsModuleDeps) {
     invitationsRepository: repository,
   });
 
-  return { controller, guards, repository };
+  const workers = createInvitationExpirationWorker({
+    invitationsRepository: repository,
+  });
+
+  return { controller, guards, repository, workers };
 }
 
 export type InvitationsModule = ReturnType<typeof createInvitationsModule>;

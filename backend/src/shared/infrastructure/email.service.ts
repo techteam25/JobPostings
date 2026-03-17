@@ -7,10 +7,9 @@ import { env } from "@shared/config/env";
 import { AppError } from "@shared/errors";
 import { getApplicationStatusLabel } from "@shared/utils/application-status";
 import { EmailType } from "@shared/types";
-import { UserRepository } from "@/repositories/user.repository";
 import logger from "@shared/logger";
 import type { EmailServicePort } from "@shared/ports/email-service.port";
-import type { UserRepositoryPort } from "@/ports/user-repository.port";
+import type { EmailPreferencesQueryPort } from "@shared/ports/email-preferences-query.port";
 
 /**
  * Service for handling email operations, including sending various types of emails.
@@ -20,9 +19,9 @@ export class EmailService extends BaseService implements EmailServicePort {
 
   /**
    * Creates an instance of EmailService and initializes the email transporter.
-   * @param userRepository - Repository for looking up user data for email operations.
+   * @param emailPreferencesQuery - Port for checking user email preferences before sending.
    */
-  constructor(private userRepository: UserRepositoryPort) {
+  constructor(private emailPreferencesQuery: EmailPreferencesQueryPort) {
     super();
     this.transporter = nodemailer.createTransport({
       host: env.SMTP_HOST,
@@ -38,15 +37,6 @@ export class EmailService extends BaseService implements EmailServicePort {
       //   privateKey: privateKey, // Private key string
       // },
     });
-  }
-
-  /**
-   * Factory method for callers that don't have a composition root (e.g. workers).
-   * @deprecated Use the composition root to inject EmailService with its dependencies.
-   * This will be removed once workers are migrated to module-owned processors (Phase 8).
-   */
-  static createDefault(): EmailService {
-    return new EmailService(new UserRepository());
   }
 
   /**
@@ -111,7 +101,10 @@ export class EmailService extends BaseService implements EmailServicePort {
         | "marketingEmails"
         | "accountSecurityAlerts";
 
-      return await this.userRepository.canSendEmailType(userId, emailTypeKey);
+      return await this.emailPreferencesQuery.canSendEmailType(
+        userId,
+        emailTypeKey,
+      );
     } catch {
       return true;
     }
@@ -131,7 +124,7 @@ export class EmailService extends BaseService implements EmailServicePort {
 
     try {
       const preferences =
-        await this.userRepository.findEmailPreferencesByUserId(userId);
+        await this.emailPreferencesQuery.findEmailPreferencesByUserId(userId);
       if (preferences) {
         unsubscribeLink = `${env.SERVER_URL}/api/users/me/email-preferences/unsubscribe/${preferences.unsubscribeToken}`;
       }
@@ -838,13 +831,11 @@ ${footer}`,
 
   /**
    * Sends an unsubscribe confirmation email to the user.
-   * @param userId The ID of the user.
    * @param email The recipient's email address.
    * @param name The recipient's name.
    * @param context The context of unsubscription (job_seeker, employer, or global).
    */
   async sendUnsubscribeConfirmation(
-    userId: number,
     email: string,
     name: string,
     context: "job_seeker" | "employer" | "global",

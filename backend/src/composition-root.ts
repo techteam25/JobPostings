@@ -3,19 +3,19 @@ import { EmailService } from "@shared/infrastructure/email.service";
 import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
 import { BullMqEventBus } from "@shared/events";
 
-// Old facade repository — still needed by EmailService until fully decoupled
-import { UserRepository } from "@/repositories/user.repository";
-
 // Module composition roots
 import { createOrganizationsModule } from "@/modules/organizations";
 import { createIdentityModule } from "@/modules/identity";
 import { createUserProfileModule } from "@/modules/user-profile";
-import { createNotificationsModule } from "@/modules/notifications";
+import {
+  createNotificationsModule,
+  NotificationsRepository,
+} from "@/modules/notifications";
 import { createJobBoardModule } from "@/modules/job-board";
 import { createApplicationsModule } from "@/modules/applications";
 import { createInvitationsModule } from "@/modules/invitations";
 
-// Repositories created centrally for circular dependency resolution
+// Concrete repositories — only the central composition root instantiates these
 import { JobBoardRepository } from "@/modules/job-board";
 import { JobInsightsRepository } from "@/modules/job-board";
 import { ApplicationsRepository } from "@/modules/applications";
@@ -32,7 +32,14 @@ import {
   IdentityToJobBoardAdapter,
   ApplicationsToJobBoardAdapter,
   JobBoardToApplicationsAdapter,
+  FileMetadataUpdateAdapter,
+  JobBoardToSharedInsightsAdapter,
 } from "@shared/adapters";
+
+// Shared workers
+import { createFileUploadWorker } from "@shared/workers/file-upload.worker";
+import { createDomainEventWorker } from "@shared/workers/domain-event.worker";
+import { createTempFileCleanupWorker } from "@shared/workers/temp-file-cleanup.worker";
 
 // Auth dependency injection
 import { setAuthDependencies } from "@/utils/auth";
@@ -46,10 +53,13 @@ import type { ApplicationsModule } from "@/modules/applications";
 import type { OrganizationsModule } from "@/modules/organizations";
 import type { InvitationsModule } from "@/modules/invitations";
 import type { EmailServicePort } from "@shared/ports/email-service.port";
+import type { ModuleWorkers } from "@shared/types/module-workers";
+
+import logger from "@shared/logger";
 
 /**
- * Public API of the composition root — only exposes controller + guards per module.
- * Internal details (repositories, services) are hidden from route consumers.
+ * Public API of the composition root — only exposes controller + guards per module,
+ * plus a workers orchestrator for background job initialization.
  */
 export type CompositionRoot = {
   authenticate: RequestHandler;
@@ -61,14 +71,18 @@ export type CompositionRoot = {
   organizations: Pick<OrganizationsModule, "controller" | "guards">;
   invitations: Pick<InvitationsModule, "controller" | "guards">;
   emailService: EmailServicePort;
+  workers: {
+    initializeAll(): void;
+    scheduleAllJobs(): Promise<void>;
+  };
 };
 
 /**
  * Central composition root for the entire application.
  *
- * Creates all shared infrastructure, module instances, and cross-module adapters.
- * Each module receives its dependencies through constructor injection — no module
- * instantiates its own cross-module dependencies.
+ * Creates all shared infrastructure, module instances, cross-module adapters,
+ * and wires worker dependencies. Each module receives its dependencies through
+ * constructor injection — no module instantiates its own cross-module dependencies.
  *
  * Wiring order:
  * 1. Shared infrastructure (AuthMiddleware, EmailService, EventBus, Typesense)
@@ -77,24 +91,26 @@ export type CompositionRoot = {
  * 4. Cross-module adapters (using repos/services from steps 2-3)
  * 5. Remaining modules (user-profile, notifications, job-board, applications, invitations)
  * 6. Auth dependency injection
+ * 7. Shared workers (file-upload, domain-event, temp-file-cleanup)
  */
 export function createCompositionRoot(): CompositionRoot {
   // ─── 1. Shared Infrastructure ───────────────────────────────────────
 
   const authMiddleware = new AuthMiddleware();
-  const userRepository = new UserRepository(); // still needed by EmailService
-  const emailService = new EmailService(userRepository);
   const eventBus = new BullMqEventBus();
   const typesenseService = new TypesenseService();
 
-  // ─── 2. Repositories for Circular Dependency Resolution ─────────────
-  // job-board needs applicationStatusQuery (from applications repo)
-  // applications needs jobDetailsQuery (from job-board repo)
-  // Both adapters need the other's repository, so we create repos first.
+  // ─── 2. Concrete Repositories ───────────────────────────────────────
+  // All repositories are created here and injected into modules.
+  // This ensures no module instantiates its own concrete classes.
 
+  const notificationsRepository = new NotificationsRepository();
   const jobBoardRepository = new JobBoardRepository();
   const jobInsightsRepository = new JobInsightsRepository();
   const applicationsRepository = new ApplicationsRepository();
+
+  // EmailService depends on email preferences — satisfied by NotificationsRepository
+  const emailService = new EmailService(notificationsRepository);
 
   // ─── 3. Leaf Modules ────────────────────────────────────────────────
 
@@ -140,6 +156,12 @@ export function createCompositionRoot(): CompositionRoot {
     jobBoardRepository,
   );
 
+  // Shared worker adapters
+  const fileMetadataUpdateAdapter = new FileMetadataUpdateAdapter();
+  const jobBoardToSharedInsightsAdapter = new JobBoardToSharedInsightsAdapter(
+    jobInsightsRepository,
+  );
+
   // ─── 5. Remaining Modules ──────────────────────────────────────────
 
   const userProfile = createUserProfileModule({
@@ -150,6 +172,8 @@ export function createCompositionRoot(): CompositionRoot {
   const notifications = createNotificationsModule({
     emailService,
     userActivityQuery: identityToNotificationsAdapter,
+    typesenseService,
+    notificationsRepository,
   });
 
   const jobBoard = createJobBoardModule({
@@ -183,6 +207,27 @@ export function createCompositionRoot(): CompositionRoot {
     emailService,
   });
 
+  // ─── 7. Shared Workers ─────────────────────────────────────────────
+
+  const fileUploadWorker = createFileUploadWorker({
+    fileMetadataUpdate: fileMetadataUpdateAdapter,
+  });
+  const domainEventWorker = createDomainEventWorker({
+    applicationInsights: jobBoardToSharedInsightsAdapter,
+    notificationsRepository: notifications.repository,
+  });
+  const tempFileCleanupWorker = createTempFileCleanupWorker();
+
+  // Collect all module and shared workers
+  const allWorkers: ModuleWorkers[] = [
+    jobBoard.workers,
+    notifications.workers,
+    invitations.workers,
+    fileUploadWorker,
+    domainEventWorker,
+    tempFileCleanupWorker,
+  ];
+
   // ─── Return All Wired Modules ──────────────────────────────────────
 
   return {
@@ -199,5 +244,30 @@ export function createCompositionRoot(): CompositionRoot {
 
     // Shared infrastructure (for route files that need it)
     emailService,
+
+    // Worker orchestrator
+    workers: {
+      initializeAll() {
+        for (const w of allWorkers) {
+          w.initialize();
+        }
+        logger.info("All workers initialized");
+      },
+      async scheduleAllJobs() {
+        const results = await Promise.allSettled(
+          allWorkers.map((w) => w.scheduleJobs()),
+        );
+        const failed = results.filter((r) => r.status === "rejected");
+        if (failed.length > 0) {
+          for (const f of failed) {
+            logger.warn("Failed to schedule a background job", {
+              error: f.reason?.message ?? "Unknown error",
+            });
+          }
+        } else {
+          logger.info("Background jobs scheduled");
+        }
+      },
+    },
   };
 }

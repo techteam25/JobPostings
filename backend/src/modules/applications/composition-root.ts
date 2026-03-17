@@ -4,7 +4,6 @@ import type { OrgMembershipQueryPort } from "./ports/org-membership-query.port";
 import type { ApplicantQueryPort } from "./ports/applicant-query.port";
 import type { ApplicationsRepositoryPort } from "./ports/applications-repository.port";
 
-import { ApplicationsRepository } from "./repositories/applications.repository";
 import { ApplicationsService } from "./services/applications.service";
 import { ApplicationsController } from "./controllers/applications.controller";
 import { createApplicationsGuards } from "./guards/applications.guards";
@@ -14,21 +13,17 @@ interface ApplicationsModuleDeps {
   orgMembershipQuery: OrgMembershipQueryPort;
   applicantQuery: ApplicantQueryPort;
   eventBus: EventBusPort;
-  /** Optional: pass pre-created repo for circular dependency resolution */
-  applicationsRepository?: ApplicationsRepositoryPort;
+  applicationsRepository: ApplicationsRepositoryPort;
 }
 
 /**
  * Composition root for the Applications module.
  *
- * Receives cross-module query ports and event bus. Optionally accepts a
- * pre-created repository when the central composition root needs it for
- * adapter creation before the module is fully wired.
+ * Receives cross-module query ports, event bus, and pre-created repository
+ * from the central composition root.
  */
 export function createApplicationsModule(deps: ApplicationsModuleDeps) {
-  const repository =
-    deps.applicationsRepository ??
-    (new ApplicationsRepository() as ApplicationsRepositoryPort);
+  const repository = deps.applicationsRepository;
 
   const service = new ApplicationsService(
     repository,

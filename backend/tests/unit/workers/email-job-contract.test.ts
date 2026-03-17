@@ -1,28 +1,41 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { emailJobSchemas } from "@/workers/send-email-worker";
+import { emailJobSchemas } from "@/modules/notifications/workers/send-email.worker";
 import {
   queueService,
   QUEUE_NAMES,
 } from "@shared/infrastructure/queue.service";
-import { JobService } from "@/services/job.service";
-import { JobBoardRepository } from "@/modules/job-board/repositories/job-board.repository";
-import { ApplicationsRepository } from "@/modules/applications/repositories/applications.repository";
-import { IdentityRepository } from "@/modules/identity/repositories/identity.repository";
-// Mock auth module to break circular dependency (auth.ts → UserService → auth.ts)
+
+// Mock auth module — IdentityService imports auth.ts at the top level
 vi.mock("@/utils/auth", () => ({
   auth: { api: { updateUser: vi.fn(), deleteUser: vi.fn() } },
 }));
 
-// Import UserService after auth mock is set up
-import { UserService } from "@/services/user.service";
+import { JobBoardService } from "@/modules/job-board/services/job-board.service";
+import { ApplicationsService } from "@/modules/applications/services/applications.service";
+import { IdentityService } from "@/modules/identity/services/identity.service";
+
+import type { JobBoardRepositoryPort } from "@/modules/job-board/ports/job-board-repository.port";
+import type { JobInsightsRepositoryPort } from "@/modules/job-board/ports/job-insights-repository.port";
+import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
+import type { ApplicationStatusQueryPort } from "@/modules/job-board/ports/application-status-query.port";
+import type { OrgMembershipForJobPort } from "@/modules/job-board/ports/org-membership-for-job.port";
+import type { UserContactQueryPort } from "@/modules/job-board/ports/user-contact-query.port";
+
+import type { ApplicationsRepositoryPort } from "@/modules/applications/ports/applications-repository.port";
+import type { JobDetailsQueryPort } from "@/modules/applications/ports/job-details-query.port";
+import type { OrgMembershipQueryPort } from "@/modules/applications/ports/org-membership-query.port";
+import type { ApplicantQueryPort } from "@/modules/applications/ports/applicant-query.port";
+
+import type { IdentityRepositoryPort } from "@/modules/identity/ports/identity-repository.port";
+import type { EmailServicePort } from "@shared/ports/email-service.port";
+import type { EventBusPort } from "@shared/events";
 
 /**
  * Contract tests: verify that every service dispatching an email job
  * sends a payload that passes the worker's Zod schema.
  *
- * These tests spy on repository prototypes (same pattern as existing tests),
- * call the service method, then validate the payload passed to
- * queueService.addJob against the email worker's Zod schema.
+ * Services are constructed with mock dependencies via DI — no prototype
+ * spying needed.
  */
 
 const addJobMock = queueService.addJob as ReturnType<typeof vi.fn>;
@@ -61,77 +74,219 @@ function expectEmailDispatched(jobName: string) {
   expectValidPayload(match!.jobName, match!.payload);
 }
 
+// ─── Mock factories ──────────────────────────────────────────────────
+
+function createMockJobBoardRepository(): JobBoardRepositoryPort {
+  return {
+    createJob: vi.fn(),
+    updateJob: vi.fn(),
+    findJobById: vi.fn(),
+    findActiveJobs: vi.fn(),
+    findJobsByEmployer: vi.fn(),
+    findJobByIdWithSkills: vi.fn(),
+    findById: vi.fn(),
+    findAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  } as unknown as JobBoardRepositoryPort;
+}
+
+function createMockJobInsightsRepository(): JobInsightsRepositoryPort {
+  return {
+    incrementJobViews: vi.fn(),
+    getJobInsightByOrganizationId: vi.fn(),
+  } as unknown as JobInsightsRepositoryPort;
+}
+
+function createMockTypesenseService(): TypesenseServicePort {
+  return {
+    indexJobDocument: vi.fn(),
+    indexManyJobDocuments: vi.fn(),
+    retrieveJobDocumentById: vi.fn(),
+    updateJobDocumentById: vi.fn(),
+    deleteJobDocumentById: vi.fn(),
+    deleteJobDocumentByTitle: vi.fn(),
+    searchJobsCollection: vi.fn(),
+    searchJobsForAlert: vi.fn(),
+  } as unknown as TypesenseServicePort;
+}
+
+function createMockApplicationStatusQuery(): ApplicationStatusQueryPort {
+  return {
+    getAppliedJobIds: vi.fn(),
+    hasUserApplied: vi.fn(),
+    hasApplicationsForJob: vi.fn(),
+  };
+}
+
+function createMockOrgMembershipForJob(): OrgMembershipForJobPort {
+  return {
+    findByContact: vi.fn(),
+    organizationExists: vi.fn(),
+  };
+}
+
+function createMockUserContactQuery(): UserContactQueryPort {
+  return {
+    getUserContactInfo: vi.fn(),
+  };
+}
+
+function createMockApplicationsRepository(): ApplicationsRepositoryPort {
+  return {
+    createApplication: vi.fn(),
+    findApplicationsByJob: vi.fn(),
+    findApplicationsByUser: vi.fn(),
+    updateApplicationStatus: vi.fn(),
+    findApplicationById: vi.fn(),
+    hasUserAppliedToJob: vi.fn(),
+    deleteJobApplicationsByUserId: vi.fn(),
+    getJobApplicationForOrganization: vi.fn(),
+    updateOrgJobApplicationStatus: vi.fn(),
+    createJobApplicationNote: vi.fn(),
+    getNotesForJobApplication: vi.fn(),
+    getJobApplicationsForOrganization: vi.fn(),
+    getApplicationsForOrganization: vi.fn(),
+  } as unknown as ApplicationsRepositoryPort;
+}
+
+function createMockJobDetailsQuery(): JobDetailsQueryPort {
+  return {
+    getJobForApplication: vi.fn(),
+    getJobWithEmployerId: vi.fn(),
+    doesJobExist: vi.fn(),
+  };
+}
+
+function createMockOrgMembershipQuery(): OrgMembershipQueryPort {
+  return {
+    findByContact: vi.fn(),
+  };
+}
+
+function createMockApplicantQuery(): ApplicantQueryPort {
+  return {
+    findById: vi.fn(),
+  };
+}
+
+function createMockIdentityRepository(): IdentityRepositoryPort {
+  return {
+    findByEmail: vi.fn(),
+    findByIdWithPassword: vi.fn(),
+    findUserById: vi.fn(),
+    deactivateUserAccount: vi.fn(),
+    update: vi.fn(),
+    findById: vi.fn(),
+    findDeactivatedUserIds: vi.fn(),
+  };
+}
+
+function createMockEmailService(): EmailServicePort {
+  return {
+    sendEmailVerification: vi.fn(),
+    sendPasswordChangedEmail: vi.fn(),
+    sendJobApplicationConfirmation: vi.fn(),
+    sendApplicationWithdrawalConfirmation: vi.fn(),
+    sendJobDeletionEmail: vi.fn(),
+    sendOrganizationInvitation: vi.fn(),
+    sendOrganizationWelcome: vi.fn(),
+    sendApplicationStatusUpdate: vi.fn(),
+    sendJobAlertNotification: vi.fn(),
+    sendUnsubscribeConfirmation: vi.fn(),
+    sendAccountDeactivationConfirmation: vi.fn(),
+    sendAccountDeletionConfirmation: vi.fn(),
+    sendDeleteAccountEmailVerification: vi.fn(),
+  };
+}
+
+function createMockEventBus(): EventBusPort {
+  return {
+    publish: vi.fn(),
+  };
+}
+
 describe("Email Job Contract Tests", () => {
   beforeEach(() => {
     addJobMock.mockClear();
-    vi.restoreAllMocks();
   });
 
-  describe("JobService email dispatches", () => {
+  describe("JobBoardService email dispatches", () => {
     it("deleteJob sends a valid sendJobDeletionEmail payload", async () => {
-      vi.spyOn(JobBoardRepository.prototype, "findJobById").mockResolvedValue({
+      const jobBoardRepository = createMockJobBoardRepository();
+      const applicationStatusQuery = createMockApplicationStatusQuery();
+      const userContactQuery = createMockUserContactQuery();
+
+      (
+        jobBoardRepository.findJobById as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
         job: { id: 1, title: "Test Job", employerId: 10 },
         employer: { id: 10, name: "Acme" },
-      } as any);
-      vi.spyOn(
-        ApplicationsRepository.prototype,
-        "findApplicationsByJob",
-      ).mockResolvedValue({
-        items: [],
-        pagination: {
-          total: 0,
-          page: 1,
-          limit: 10,
-          totalPages: 0,
-          hasNext: false,
-          hasPrevious: false,
-          nextPage: null,
-          previousPage: null,
-        },
       });
-      vi.spyOn(JobBoardRepository.prototype, "delete").mockResolvedValue(true);
-      vi.spyOn(IdentityRepository.prototype, "findUserById").mockResolvedValue({
-        id: 5,
+      (
+        applicationStatusQuery.hasApplicationsForJob as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(false);
+      (jobBoardRepository.delete as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true,
+      );
+      (
+        userContactQuery.getUserContactInfo as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
         email: "user@test.com",
         fullName: "Test User",
-      } as any);
+      });
 
-      const service = new JobService();
+      const service = new JobBoardService(
+        jobBoardRepository,
+        createMockJobInsightsRepository(),
+        createMockTypesenseService(),
+        applicationStatusQuery,
+        createMockOrgMembershipForJob(),
+        userContactQuery,
+      );
+
       await service.deleteJob(1, 5);
 
       expectEmailDispatched("sendJobDeletionEmail");
     });
+  });
 
+  describe("ApplicationsService email dispatches", () => {
     it("applyForJob sends a valid sendJobApplicationConfirmation payload", async () => {
-      // JobService facade delegates to ApplicationsService which uses:
-      // - JobBoardToApplicationsAdapter → JobBoardRepository for job lookup
-      // - ApplicationsRepository for application operations
-      // - IdentityToApplicationsAdapter → IdentityRepository for applicant info
-      vi.spyOn(JobBoardRepository.prototype, "findJobById").mockResolvedValue({
-        job: {
-          id: 1,
-          title: "Test Job",
-          isActive: true,
-          applicationDeadline: null,
-          employerId: 10,
-        },
-        employer: { id: 10, name: "Acme" },
-      } as any);
-      vi.spyOn(
-        ApplicationsRepository.prototype,
-        "hasUserAppliedToJob",
+      const applicationsRepository = createMockApplicationsRepository();
+      const jobDetailsQuery = createMockJobDetailsQuery();
+      const applicantQuery = createMockApplicantQuery();
+      const eventBus = createMockEventBus();
+
+      (
+        jobDetailsQuery.getJobForApplication as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
+        id: 1,
+        title: "Test Job",
+        isActive: true,
+        applicationDeadline: null,
+        employerId: 10,
+      });
+      (
+        applicationsRepository.hasUserAppliedToJob as ReturnType<typeof vi.fn>
       ).mockResolvedValue(false);
-      vi.spyOn(
-        ApplicationsRepository.prototype,
-        "createApplication",
+      (
+        applicationsRepository.createApplication as ReturnType<typeof vi.fn>
       ).mockResolvedValue(100);
-      vi.spyOn(IdentityRepository.prototype, "findById").mockResolvedValue({
-        id: 5,
+      (applicantQuery.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
         email: "applicant@test.com",
         fullName: "Test Applicant",
-      } as any);
+      });
 
-      const service = new JobService();
+      const service = new ApplicationsService(
+        applicationsRepository,
+        jobDetailsQuery,
+        createMockOrgMembershipQuery(),
+        applicantQuery,
+        eventBus,
+      );
+
       await service.applyForJob(
         { jobId: 1, applicantId: 5, status: "pending" },
         "corr-123",
@@ -141,51 +296,71 @@ describe("Email Job Contract Tests", () => {
     });
 
     it("withdrawApplication sends a valid sendApplicationWithdrawalConfirmation payload", async () => {
-      // JobService facade delegates to ApplicationsService which uses:
-      // - ApplicationsRepository for application lookup and status update
-      // - IdentityToApplicationsAdapter → IdentityRepository for applicant info
-      vi.spyOn(
-        ApplicationsRepository.prototype,
-        "findApplicationById",
+      const applicationsRepository = createMockApplicationsRepository();
+      const applicantQuery = createMockApplicantQuery();
+
+      (
+        applicationsRepository.findApplicationById as ReturnType<typeof vi.fn>
       ).mockResolvedValue({
         application: { id: 100, jobId: 1, applicantId: 5, status: "pending" },
-        job: { title: "Test Job" },
-      } as any);
-      vi.spyOn(
-        ApplicationsRepository.prototype,
-        "updateApplicationStatus",
+        job: { id: 1, title: "Test Job" },
+      });
+      (
+        applicationsRepository.updateApplicationStatus as ReturnType<
+          typeof vi.fn
+        >
       ).mockResolvedValue(true);
-      vi.spyOn(IdentityRepository.prototype, "findById").mockResolvedValue({
-        id: 5,
+      (applicantQuery.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
         email: "user@test.com",
         fullName: "Test User",
-      } as any);
+      });
 
-      const service = new JobService();
+      const service = new ApplicationsService(
+        applicationsRepository,
+        createMockJobDetailsQuery(),
+        createMockOrgMembershipQuery(),
+        applicantQuery,
+        createMockEventBus(),
+      );
+
       await service.withdrawApplication(100, 5);
 
       expectEmailDispatched("sendApplicationWithdrawalConfirmation");
     });
   });
 
-  describe("UserService email dispatches", () => {
+  describe("IdentityService email dispatches", () => {
     it("deactivateUser sends sendAccountDeactivationConfirmation (not Deletion)", async () => {
-      vi.spyOn(IdentityRepository.prototype, "findById").mockResolvedValue({
+      const identityRepository = createMockIdentityRepository();
+      const eventBus = createMockEventBus();
+
+      (
+        identityRepository.findById as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
         id: 5,
         email: "user@test.com",
         fullName: "Test User",
         status: "active",
-      } as any);
-      vi.spyOn(IdentityRepository.prototype, "update").mockResolvedValue(true);
-      vi.spyOn(IdentityRepository.prototype, "findUserById").mockResolvedValue({
+      });
+      (identityRepository.update as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true,
+      );
+      (
+        identityRepository.findUserById as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
         id: 5,
         email: "user@test.com",
         fullName: "Test User",
         image: null,
         status: "deactivated",
-      } as any);
+      });
 
-      const service = new UserService();
+      const service = new IdentityService(
+        identityRepository,
+        createMockEmailService(),
+        eventBus,
+      );
+
       await service.deactivateUser(5, 1);
 
       // Verify correct job name (not sendAccountDeletionConfirmation)
