@@ -27,7 +27,6 @@ describe("Application Status Change Notification Integration Tests", () => {
   let applicationId: number;
   let applicantEmail: string;
   let applicantFullName: string;
-  let jobTitle: string;
   let applicationsRepository: ApplicationsRepository;
 
   // Helper function to seed test data
@@ -141,7 +140,6 @@ describe("Application Status Change Notification Integration Tests", () => {
     applicationId = application.id;
     applicantEmail = applicant.email;
     applicantFullName = applicant.fullName;
-    jobTitle = job.title;
 
     // Clear mock calls before each test to ensure isolation
     vi.clearAllMocks();

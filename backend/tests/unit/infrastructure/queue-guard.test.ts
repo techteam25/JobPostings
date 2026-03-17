@@ -28,8 +28,8 @@ vi.mock("@/composition-root", () => ({
 }));
 
 vi.mock("@/routes", () => ({
-  createApiRoutes: vi.fn(() => {
-    const { Router } = require("express");
+  createApiRoutes: vi.fn(async () => {
+    const { Router } = await import("express");
     return Router();
   }),
 }));

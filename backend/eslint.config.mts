@@ -95,7 +95,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["tests/**/*.test.ts"],
+    files: ["tests/**/*.test.ts", "tests/**/*.spec.ts"],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
     },
