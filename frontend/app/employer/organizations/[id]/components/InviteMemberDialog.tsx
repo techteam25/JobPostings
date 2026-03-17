@@ -65,7 +65,7 @@ export function InviteMemberDialog({
             e.stopPropagation();
             await form.handleSubmit();
           }}
-          className="space-y-4"
+          className="flex flex-col gap-4"
         >
           <form.Field
             name="email"
@@ -81,7 +81,7 @@ export function InviteMemberDialog({
               const isInvalid =
                 field.state.meta.isTouched && !field.state.meta.isValid;
               return (
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor={field.name}>Email Address</Label>
                   <Input
                     id={field.name}
@@ -108,7 +108,7 @@ export function InviteMemberDialog({
           <form.Field
             name="role"
             children={(field) => (
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor={field.name}>Role</Label>
                 <Select
                   name={field.name}

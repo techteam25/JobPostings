@@ -35,7 +35,7 @@ export default function OrgPicker({ organizations }: OrgPickerProps) {
             href={`/employer/organizations/${membership.organizationId}`}
           >
             <Card className="hover:border-primary/50 cursor-pointer transition-colors">
-              <CardHeader className="flex flex-row items-center gap-4 space-y-0">
+              <CardHeader className="flex flex-row items-center gap-4">
                 <div className="bg-muted flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg">
                   {membership.organization.logoUrl ? (
                     <Image
