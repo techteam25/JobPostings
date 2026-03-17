@@ -94,6 +94,12 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ["tests/**/*.test.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 
   // ─── Per-Module Overrides ────────────────────────────────────────
   ...perModuleOverrides,

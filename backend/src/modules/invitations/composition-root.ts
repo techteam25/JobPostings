@@ -25,7 +25,6 @@ export function createInvitationsModule(deps: InvitationsModuleDeps) {
     repository,
     deps.orgMembership,
     deps.userEmailQuery,
-    deps.emailService,
   );
   const controller = new InvitationsController(service);
   const guards = createInvitationsGuards({

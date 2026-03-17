@@ -512,7 +512,6 @@ export class NotificationsService
       const user = await this.userActivityQuery.getUserContactInfo(userId);
       if (user) {
         await this.emailService.sendUnsubscribeConfirmation(
-          userId,
           user.email,
           user.fullName,
           context,
