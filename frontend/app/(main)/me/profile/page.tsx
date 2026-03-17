@@ -18,6 +18,7 @@ import { FaFilePdf } from "react-icons/fa6";
 import { FaSearch } from "react-icons/fa";
 
 import { getUserInformation } from "@/lib/api";
+import { FeatureErrorBoundary } from "@/components/common/FeatureErrorBoundary";
 import ProfileVisibilityDialog from "@/app/(main)/me/profile/components/ProfileVisibilityDialog";
 import Link from "next/link";
 import ResumeContextMenu from "@/app/(main)/me/profile/components/ResumeContextMenu";
@@ -39,6 +40,7 @@ export default async function ProfilePage() {
     <div className="bg-background min-h-screen">
       {/* Main Content */}
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        <FeatureErrorBoundary featureName="profile">
         {/* Compact Profile Header - Indeed style with ZipRecruiter details */}
         <div className="bg-background mb-6 rounded-lg border p-8">
           <div className="mb-6 flex items-start justify-between">
@@ -272,6 +274,7 @@ export default async function ProfilePage() {
             </p>
           </CardContent>
         </Card>
+        </FeatureErrorBoundary>
       </main>
     </div>
   );

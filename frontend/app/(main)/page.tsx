@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import JobsWrapper, {
   JobsWrapperSkeleton,
 } from "@/app/(main)/components/JobsWrapper";
+import { FeatureErrorBoundary } from "@/components/common/FeatureErrorBoundary";
 import { JobTypeDropDownButton } from "@/app/(main)/components/JobTypeDropDownButton";
 import { ServiceRoleDropDownButton } from "@/app/(main)/components/ServiceRoleDropDownButton";
 import { DatePostedDropDownButton } from "@/app/(main)/components/DatePostedDropDownButton";
@@ -101,7 +102,9 @@ async function Page() {
             </TabsList>
             {/* Job filters component */}
             <TabsContent value="foryou">
-              <ForYouJobsWrapper />
+              <FeatureErrorBoundary featureName="recommended jobs">
+                <ForYouJobsWrapper />
+              </FeatureErrorBoundary>
             </TabsContent>
             <TabsContent value="search" className="w-full">
               <div className="w-full">
@@ -117,9 +120,11 @@ async function Page() {
                   </div>
                 </div>
               </div>
-              <Suspense fallback={<JobsWrapperSkeleton />}>
-                <JobsWrapper jobs={jobs} />
-              </Suspense>
+              <FeatureErrorBoundary featureName="job listings">
+                <Suspense fallback={<JobsWrapperSkeleton />}>
+                  <JobsWrapper jobs={jobs} />
+                </Suspense>
+              </FeatureErrorBoundary>
             </TabsContent>
           </Tabs>
         </div>

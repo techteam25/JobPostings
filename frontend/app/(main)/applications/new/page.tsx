@@ -7,6 +7,7 @@ import {
 } from "./components";
 import { MainContent } from "@/app/(main)/applications/new/components/MainContent";
 import { buttonVariants } from "@/components/ui/button";
+import { FeatureErrorBoundary } from "@/components/common/FeatureErrorBoundary";
 import Link from "next/link";
 
 type Props = {
@@ -82,15 +83,17 @@ export default async function ApplyForJob({ searchParams }: Props) {
 
           {/* RIGHT COLUMN: Application Flow */}
           <div className="lg:col-span-8">
-            <div className="flex min-h-150 flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl shadow-slate-200/50">
-              {/* Main Content Area */}
-              <MainContent
-                key={jobId}
-                jobId={jobId}
-                userProfile={userProfileRes.data}
-              />
-              <ApplicationFooter />
-            </div>
+            <FeatureErrorBoundary featureName="application form">
+              <div className="flex min-h-150 flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl shadow-slate-200/50">
+                {/* Main Content Area */}
+                <MainContent
+                  key={jobId}
+                  jobId={jobId}
+                  userProfile={userProfileRes.data}
+                />
+                <ApplicationFooter />
+              </div>
+            </FeatureErrorBoundary>
           </div>
         </div>
       </div>

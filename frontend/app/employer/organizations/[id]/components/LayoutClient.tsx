@@ -4,6 +4,7 @@ import { ReactNode, useState } from "react";
 import { PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppSidebar } from "./dashboard-sidebar";
+import { FeatureErrorBoundary } from "@/components/common/FeatureErrorBoundary";
 
 interface LayoutClientProps {
   children: ReactNode;
@@ -28,11 +29,13 @@ export function LayoutClient({
           isOpen ? "w-64" : "w-0"
         } border-background bg-background overflow-hidden border-r transition-all duration-300 ease-in-out`}
       >
-        <AppSidebar
-          organizationId={organizationId}
-          organizationName={organizationName}
-          organizationLogoUrl={organizationLogoUrl}
-        />
+        <FeatureErrorBoundary featureName="navigation sidebar">
+          <AppSidebar
+            organizationId={organizationId}
+            organizationName={organizationName}
+            organizationLogoUrl={organizationLogoUrl}
+          />
+        </FeatureErrorBoundary>
       </aside>
 
       {/* Main Content */}
@@ -47,7 +50,11 @@ export function LayoutClient({
             <PanelLeft className="h-5 w-5" />
           </Button>
         </header>
-        <div className="flex-1 overflow-y-auto p-4">{children}</div>
+        <div className="flex-1 overflow-y-auto p-4">
+          <FeatureErrorBoundary featureName="organization dashboard">
+            {children}
+          </FeatureErrorBoundary>
+        </div>
       </main>
     </div>
   );
