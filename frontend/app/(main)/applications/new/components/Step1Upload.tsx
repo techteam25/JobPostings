@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import { useForm } from "@tanstack/react-form";
 import { useApplicationStore } from "@/context/store";
+import { step1ResumeSchema } from "@/schemas/applications";
 
 export const Step1Upload = () => {
   const [isDragging, setIsDragging] = useState(false);
@@ -26,13 +27,9 @@ export const Step1Upload = () => {
   });
 
   const handleFileUpload = async (file: File) => {
-    if (file.type !== "application/pdf") {
-      toast.error("Please upload a PDF file");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File size must be less than 5MB");
+    const result = step1ResumeSchema.safeParse(file);
+    if (!result.success) {
+      toast.error(result.error.issues[0].message);
       return;
     }
 

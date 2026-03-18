@@ -8,6 +8,7 @@ import { applyForJob } from "@/lib/api";
 import { UserWithProfile } from "@/lib/types";
 import { useApplicationStore } from "@/context/store";
 import { ApplicationFormData } from "@/context/slices/application-form-slice";
+import { applicationFormSchema } from "@/schemas/applications";
 
 const StepSkeleton = () => (
   <div className="flex flex-col gap-6">
@@ -87,6 +88,12 @@ export const MainContent = ({ jobId, userProfile }: MainContentProps) => {
   const handleSubmitApplication = async (
     finalData: ApplicationFormData,
   ): Promise<boolean> => {
+    const validation = applicationFormSchema.safeParse(finalData);
+    if (!validation.success) {
+      toast.error(validation.error.issues[0].message);
+      return false;
+    }
+
     const formDataToSend = new FormData();
 
     if (finalData.resume) {

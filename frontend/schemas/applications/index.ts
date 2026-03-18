@@ -27,3 +27,5 @@ export const jobApplicationSchema = z.object({
 });
 
 export type JobApplicationInput = z.infer<typeof jobApplicationSchema>;
+
+export * from "./form";

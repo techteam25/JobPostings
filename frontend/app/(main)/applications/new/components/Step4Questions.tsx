@@ -16,20 +16,7 @@ import { useForm } from "@tanstack/react-form";
 import { useApplicationStore } from "@/context/store";
 import { ApplicationFormData } from "@/context/slices/application-form-slice";
 import { toast } from "sonner";
-import { z } from "zod";
-
-const step4Schema = z.object({
-  salvationStatement: z
-    .string()
-    .min(10, "Please share your salvation experience"),
-  race: z.string().min(1, "Please select a race"),
-  gender: z.enum(["Male", "Female"], { message: "Please select a gender" }),
-  veteranStatus: z.string().min(1, "Please select veteran status"),
-  yearsOfExperience: z.enum(["0-1", "2-4", "5-9", "10+"], {
-    message: "Please select years of experience",
-  }),
-  authorized: z.enum(["yes", "no"], { message: "Please select an option" }),
-});
+import { step4QuestionsSchema } from "@/schemas/applications";
 
 const RACE_OPTIONS = [
   "Asian",
@@ -68,7 +55,7 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
       authorized: formData.customAnswers?.authorized || (undefined as any),
     },
     onSubmit: async ({ value }) => {
-      const result = step4Schema.safeParse(value);
+      const result = step4QuestionsSchema.safeParse(value);
 
       if (!result.success) {
         const firstError = result.error.issues[0];
