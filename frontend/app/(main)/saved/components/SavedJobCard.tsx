@@ -3,8 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { SavedJob } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { BsBookmarkFill } from "react-icons/bs";
-import { ImOffice } from "react-icons/im";
+import { Bookmark, Building2 } from "lucide-react";
 import { formatToRelativeDate } from "@/lib/utils";
 import { removeSavedJobForUser } from "@/lib/api";
 import { toast } from "sonner";
@@ -21,7 +20,7 @@ export const SavedJobCard = ({ savedJob }: SavedJobCardProps) => {
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center justify-start">
             <div className="flex size-8 flex-shrink-0 justify-center rounded-full">
-              <ImOffice className="text-muted-foreground mr-2 size-5" />
+              <Building2 className="text-muted-foreground mr-2 size-5" />
             </div>
             <span className="text-secondary-foreground line-clamp-1 text-sm text-ellipsis">
               {savedJob.job.employer.name}
@@ -38,7 +37,7 @@ export const SavedJobCard = ({ savedJob }: SavedJobCardProps) => {
               }
             }}
           >
-            <BsBookmarkFill />
+            <Bookmark />
           </Button>
         </div>
 

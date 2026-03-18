@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { BsSliders } from "react-icons/bs";
+import { SlidersHorizontal } from "lucide-react";
 
 import {
   Drawer,
@@ -23,7 +23,7 @@ export const SearchFiltersMobile = () => {
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger className="w-full lg:hidden" asChild>
         <Button className="w-auto justify-end bg-transparent shadow-none">
-          <BsSliders className="text-muted-foreground" />
+          <SlidersHorizontal className="text-muted-foreground" />
         </Button>
       </DrawerTrigger>
       <DrawerContent className="h-[90%]">

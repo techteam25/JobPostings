@@ -15,8 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldInfo } from "@/components/common/FieldInfo";
 
-import { BsEye, BsEyeSlash } from "react-icons/bs";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 const defaultValues: ChangePasswordData = {
@@ -148,7 +147,7 @@ export default function ChangePasswordForm() {
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                   className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5"
                 >
-                  {showCurrentPassword ? <BsEye /> : <BsEyeSlash />}
+                  {showCurrentPassword ? <Eye /> : <EyeOff />}
                 </Button>
               </div>
               <FieldInfo field={field} />
@@ -184,7 +183,7 @@ export default function ChangePasswordForm() {
                   onClick={() => setShowNewPassword(!showNewPassword)}
                   className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5"
                 >
-                  {showNewPassword ? <BsEye /> : <BsEyeSlash />}
+                  {showNewPassword ? <Eye /> : <EyeOff />}
                 </Button>
               </div>
               <PasswordStrengthIndicator password={field.state.value} />
@@ -221,7 +220,7 @@ export default function ChangePasswordForm() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5"
                 >
-                  {showConfirmPassword ? <BsEye /> : <BsEyeSlash />}
+                  {showConfirmPassword ? <Eye /> : <EyeOff />}
                 </Button>
               </div>
               <FieldInfo field={field} />

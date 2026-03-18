@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BsChevronLeft } from "react-icons/bs";
+import { ChevronLeft } from "lucide-react";
 
 import { useFetchJobDetails } from "@/app/(main)/hooks/use-fetch-jobs";
 import { JobsWrapperSkeleton } from "@/app/(main)/components/JobsWrapper";
@@ -59,7 +59,7 @@ export const JobDetailPanelMobile = ({
                 onClick={() => onOpenChange(false)}
                 className="text-foreground p-0"
               >
-                <BsChevronLeft className="mr-1" /> Back to jobs
+                <ChevronLeft className="mr-1" /> Back to jobs
               </Button>
             </DrawerTitle>
             <DrawerDescription className="sr-only">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Bookmark, Menu } from "lucide-react";
+import { Bookmark, Building2, Menu } from "lucide-react";
 
 import { useFetchJobDetails } from "@/app/(main)/hooks/use-fetch-jobs";
 import { useJobSaved } from "@/hooks/use-job-saved";
@@ -15,7 +15,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ImOffice } from "react-icons/im";
 import Link from "next/link";
 
 interface JobDetailPanelProps {
@@ -59,7 +58,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="text-primary-foreground flex size-16 items-center justify-center rounded font-bold">
-              <ImOffice className="text-muted-foreground mr-2 size-5" />
+              <Building2 className="text-muted-foreground mr-2 size-5" />
             </div>
             <div>
               <div className="font-semibold">{employer?.name}</div>

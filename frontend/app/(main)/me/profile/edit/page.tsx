@@ -6,7 +6,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { LuConstruction } from "react-icons/lu";
+import { Construction } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -15,7 +15,7 @@ function Page() {
     <Empty>
       <EmptyHeader>
         <EmptyMedia variant="icon">
-          <LuConstruction className="size-16 text-amber-400" />
+          <Construction className="size-16 text-amber-400" />
         </EmptyMedia>
         <EmptyTitle>Coming Soon</EmptyTitle>
         <EmptyDescription>

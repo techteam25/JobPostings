@@ -11,10 +11,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Menu, User } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { BsFillPersonFill } from "react-icons/bs";
 import { useUserSignOut } from "@/app/(main)/hooks/use-user-signout";
 
 interface NavbarMobileProps {
@@ -52,7 +51,7 @@ export function NavbarMobile({
               </div>
             ) : (
               <div className="bg-background flex items-center rounded-full">
-                <BsFillPersonFill className="mr-2" />
+                <User className="mr-2" />
                 {username}
               </div>
             )}

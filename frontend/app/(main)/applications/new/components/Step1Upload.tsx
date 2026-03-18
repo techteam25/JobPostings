@@ -1,7 +1,7 @@
 "use client";
 
 import { FileText, Sparkles, UploadCloud } from "lucide-react";
-import { BsLinkedin as Linkedin } from "react-icons/bs";
+import { LinkedInIcon } from "@/components/common/icons";
 import { Input } from "@/components/ui/input";
 import React, { useState } from "react";
 import { toast } from "sonner";
@@ -82,7 +82,7 @@ export const Step1Upload = () => {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <button className="flex items-center justify-center gap-2 rounded-xl border border-[#0077b5] bg-[#0077b5]/5 p-4 font-semibold text-[#0077b5] transition-colors hover:bg-[#0077b5]/10">
-          <Linkedin size={20} />
+          <LinkedInIcon className="size-5" />
           Apply with LinkedIn
         </button>
         <button className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-4 font-semibold text-slate-700 transition-colors hover:bg-slate-50">

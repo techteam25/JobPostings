@@ -6,7 +6,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { TbFileStack } from "react-icons/tb";
+import { Files } from "lucide-react";
 import MyApplications, {
   MyApplicationsSkeleton,
 } from "@/app/(main)/applications/components/MyApplications";
@@ -22,7 +22,7 @@ export default async function MyApplicationsPage() {
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <TbFileStack />
+            <Files />
           </EmptyMedia>
           <EmptyTitle>No job applications</EmptyTitle>
           <EmptyDescription>

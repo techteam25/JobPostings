@@ -1,6 +1,6 @@
 "use client";
 
-import { BsChevronDown } from "react-icons/bs";
+import { ChevronDown } from "lucide-react";
 
 import { DropdownMenuCheckboxItemProps } from "@radix-ui/react-dropdown-menu";
 import {
@@ -28,7 +28,7 @@ export const ServiceRoleDropDownButton = () => {
           className="hover:text-foreground cursor-pointer hover:bg-transparent"
         >
           Service Role
-          <BsChevronDown className="ml-1" />
+          <ChevronDown className="ml-1" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">

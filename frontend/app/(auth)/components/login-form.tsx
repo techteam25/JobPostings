@@ -17,9 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldInfo } from "@/components/common/FieldInfo";
 
-import { BsEye, BsEyeSlash, BsLinkedin } from "react-icons/bs";
-import { FcGoogle } from "react-icons/fc";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { GoogleIcon, LinkedInIcon } from "@/components/common/icons";
 import { toast } from "sonner";
 
 import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
@@ -146,7 +145,7 @@ export default function LoginForm() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5 md:[&_svg]:size-6"
                     >
-                      {showPassword ? <BsEye /> : <BsEyeSlash />}
+                      {showPassword ? <Eye /> : <EyeOff />}
                     </Button>
                   </div>
                   <FieldInfo field={field} />
@@ -230,7 +229,7 @@ export default function LoginForm() {
               className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
               onClick={async () => await handleSocialAuth("google")}
             >
-              <FcGoogle className="size-6" />
+              <GoogleIcon className="size-6" />
               Google
             </Button>
             <Button
@@ -240,7 +239,7 @@ export default function LoginForm() {
               className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
               onClick={async () => await handleSocialAuth("linkedin")}
             >
-              <BsLinkedin className="size-6 text-[#0072b1]" />
+              <LinkedInIcon className="size-6" />
               LinkedIn
             </Button>
           </div>

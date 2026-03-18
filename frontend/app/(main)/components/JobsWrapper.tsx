@@ -3,10 +3,8 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
 
-import { RefreshCcwIcon } from "lucide-react";
+import { Info, RefreshCcwIcon } from "lucide-react";
 import { useFetchJobs } from "@/app/(main)/hooks/use-fetch-jobs";
-
-import { BsInfoCircle } from "react-icons/bs";
 
 import { JobDetailPanel } from "@/app/(main)/components/JobDetailPanel";
 import { JobsList } from "@/app/(main)/components/JobsList";
@@ -198,7 +196,7 @@ export function EmptyMuted() {
     <Empty className="from-muted/50 to-background h-full bg-gradient-to-b from-30%">
       <EmptyHeader>
         <EmptyMedia variant="icon">
-          <BsInfoCircle />
+          <Info />
         </EmptyMedia>
         <EmptyTitle>No Jobs Posted</EmptyTitle>
         <EmptyDescription>

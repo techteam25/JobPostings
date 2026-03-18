@@ -13,12 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldInfo } from "@/components/common/FieldInfo";
 
-import { BsEye, BsEyeSlash } from "react-icons/bs";
-import { BsFillPersonFill } from "react-icons/bs";
-import { BsLinkedin } from "react-icons/bs";
-import { FcGoogle } from "react-icons/fc";
-import { MdWork } from "react-icons/md";
-import { Loader2 } from "lucide-react";
+import { Briefcase, Eye, EyeOff, Loader2, User } from "lucide-react";
+import { GoogleIcon, LinkedInIcon } from "@/components/common/icons";
 import { toast } from "sonner";
 
 import useLocalStorage from "@/hooks/use-local-storage";
@@ -131,8 +127,8 @@ export default function RegistrationForm() {
                       },
                     )}
                   >
-                    <div className="mb-2 flex justify-center text-2xl sm:text-4xl">
-                      <BsFillPersonFill className="text-chart-1" />
+                    <div className="mb-2 flex justify-center">
+                      <User className="size-6 text-chart-1 sm:size-10" />
                     </div>
                     <div className="text-foreground font-semibold">
                       Job Seeker
@@ -163,8 +159,8 @@ export default function RegistrationForm() {
                       },
                     )}
                   >
-                    <div className="mb-2 flex justify-center text-2xl sm:text-4xl">
-                      <MdWork className="text-chart-2" />
+                    <div className="mb-2 flex justify-center">
+                      <Briefcase className="size-6 text-chart-2 sm:size-10" />
                     </div>
                     <div className="text-foreground font-semibold">
                       Employer
@@ -298,7 +294,7 @@ export default function RegistrationForm() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5 md:[&_svg]:size-6"
                   >
-                    {showPassword ? <BsEye /> : <BsEyeSlash />}
+                    {showPassword ? <Eye /> : <EyeOff />}
                   </Button>
                 </div>
                 <p className="text-muted-foreground mt-1 text-xs">
@@ -337,7 +333,7 @@ export default function RegistrationForm() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5 md:[&_svg]:size-6"
                   >
-                    {showConfirmPassword ? <BsEye /> : <BsEyeSlash />}
+                    {showConfirmPassword ? <Eye /> : <EyeOff />}
                   </Button>
                 </div>
                 <FieldInfo field={field} />
@@ -432,7 +428,7 @@ export default function RegistrationForm() {
             className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
             onClick={() => handleSocialAuth("google")}
           >
-            <FcGoogle className="size-6" />
+            <GoogleIcon className="size-6" />
             Google
           </Button>
           <Button
@@ -442,7 +438,7 @@ export default function RegistrationForm() {
             className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
             onClick={() => handleSocialAuth("linkedin")}
           >
-            <BsLinkedin className="size-6 text-[#0072b1]" />
+            <LinkedInIcon className="size-6" />
             LinkedIn
           </Button>
         </div>

@@ -4,10 +4,7 @@ import { useCallback, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { Bell, Loader2 } from "lucide-react";
-import { BsFillPersonFill } from "react-icons/bs";
-import { AiOutlineProfile } from "react-icons/ai";
-import { TbLogout, TbSettings } from "react-icons/tb";
+import { Bell, CircleUser, Loader2, LogOut, Settings, User } from "lucide-react";
 
 import { useUserSession } from "@/app/(main)/hooks/use-user-session";
 
@@ -135,7 +132,7 @@ export default function Navbar() {
                         </div>
                       ) : (
                         <div className="bg-background flex items-center justify-center rounded-full">
-                          <BsFillPersonFill className="" />
+                          <User />
                         </div>
                       )}
                     </Button>
@@ -160,7 +157,7 @@ export default function Navbar() {
                       className="hover:bg-muted/80 [&>svg]:size-5"
                     >
                       <Link href="/me/profile">
-                        <AiOutlineProfile className="text-foreground mr-2 size-8" />
+                        <CircleUser className="text-foreground mr-2 size-8" />
                         Profile
                       </Link>
                     </DropdownMenuItem>
@@ -169,7 +166,7 @@ export default function Navbar() {
                       className="hover:bg-muted/80 [&>svg]:size-5"
                     >
                       <Link href="/settings">
-                        <TbSettings className="text-foreground mr-2" />
+                        <Settings className="text-foreground mr-2" />
                         Settings
                       </Link>
                     </DropdownMenuItem>
@@ -182,7 +179,7 @@ export default function Navbar() {
                         className="text-foreground cursor-pointer focus-visible:ring-0"
                         onClick={handleSignOut}
                       >
-                        <TbLogout className="text-foreground mr-2" />
+                        <LogOut className="text-foreground mr-2" />
                         {signOutPending ? (
                           <span>
                             <Loader2 className="text-muted-foreground animate-spin" />{" "}

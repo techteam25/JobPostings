@@ -1,6 +1,6 @@
 "use client";
 
-import { BsSliders } from "react-icons/bs";
+import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,7 +17,7 @@ export const SearchFilterDropDownButton = () => {
         asChild
       >
         <Button variant="outline" size="icon">
-          <BsSliders className="mr-1" />
+          <SlidersHorizontal className="mr-1" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" className="my-4 w-auto p-4">

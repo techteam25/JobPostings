@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { JobAlert, PaginatedApiResponse } from "@/lib/types";
 import { JobAlertCard } from "./JobAlertCard";
-import { CreateJobAlertDialog } from "./CreateJobAlertDialog";
+import dynamic from "next/dynamic";
+
+const CreateJobAlertDialog = dynamic(() =>
+  import("./CreateJobAlertDialog").then((mod) => ({
+    default: mod.CreateJobAlertDialog,
+  })),
+);
 import { EditJobAlertDialog } from "./EditJobAlertDialog";
 import { DeleteJobAlertDialog } from "./DeleteJobAlertDialog";
 import {

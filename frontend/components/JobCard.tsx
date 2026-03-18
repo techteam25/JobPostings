@@ -13,8 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import { Bookmark } from "lucide-react";
-import { ImOffice } from "react-icons/im";
+import { Bookmark, Building2 } from "lucide-react";
 
 interface JobCardType {
   jobId: number;
@@ -74,7 +73,7 @@ export const JobCard = memo(
                 {/*) : (*/}
                 {/*  <span>name.charAt(0)</span>*/}
                 {/*)}*/}
-                <ImOffice className="text-muted-foreground mr-2 size-5" />
+                <Building2 className="text-muted-foreground mr-2 size-5" />
               </div>
               <div>
                 <div className="text-sm font-semibold">{companyName}</div>

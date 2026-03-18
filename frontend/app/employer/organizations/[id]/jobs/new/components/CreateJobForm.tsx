@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { RichTextEditor } from "@/components/common";
+import { DynamicRichTextEditor } from "@/components/common";
 import {
   Select,
   SelectContent,
@@ -119,7 +119,7 @@ export function CreateJobForm({ organizationId }: CreateJobFormProps) {
           return (
             <div className="space-y-2">
               <Label htmlFor={field.name}>Job Description *</Label>
-              <RichTextEditor
+              <DynamicRichTextEditor
                 value={field.state.value}
                 onChange={(value) => field.handleChange(value)}
                 onBlur={field.handleBlur}

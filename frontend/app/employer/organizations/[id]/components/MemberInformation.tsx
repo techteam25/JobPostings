@@ -35,7 +35,13 @@ import {
 } from "lucide-react";
 import { Member } from "@/lib/types";
 import { formatToReadableDate } from "@/lib/utils";
-import { InviteMemberDialog } from "./InviteMemberDialog";
+import dynamic from "next/dynamic";
+
+const InviteMemberDialog = dynamic(() =>
+  import("./InviteMemberDialog").then((mod) => ({
+    default: mod.InviteMemberDialog,
+  })),
+);
 
 interface EmployeeListSectionProps {
   members: Member[];

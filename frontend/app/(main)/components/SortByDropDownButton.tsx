@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 
 import { type SortBy } from "@/context/store";
 
-import { BsChevronDown } from "react-icons/bs";
+import { ChevronDown } from "lucide-react";
 import { useFiltersStore } from "@/context/store";
 
 const sortOptions = {
@@ -35,7 +35,7 @@ export const SortByDropDownButton = () => {
         >
           <span>
             {sortOptions[sortBy]}
-            <BsChevronDown className="ml-1 inline-flex" />
+            <ChevronDown className="ml-1 inline-flex" />
           </span>
         </Button>
       </DropdownMenuTrigger>

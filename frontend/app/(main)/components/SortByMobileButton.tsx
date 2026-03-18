@@ -9,8 +9,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { X } from "lucide-react";
-import { BsChevronDown } from "react-icons/bs";
+import { ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CheckmarkOption } from "@/components/common/CheckMarkOption";
 
@@ -28,7 +27,7 @@ export const SortByMobileButton = ({ defaultSort, onSortChange }: Props) => {
           className="flex items-center border-0 shadow-none"
         >
           {defaultSort}
-          <BsChevronDown
+          <ChevronDown
             className={cn(
               "ml-1 rotate-0 transition-transform",
               open && "rotate-180",

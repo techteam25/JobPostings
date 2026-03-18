@@ -13,9 +13,9 @@ import {
   Watch,
   X,
   ArrowRight,
+  FileText,
+  Search,
 } from "lucide-react";
-import { FaFilePdf } from "react-icons/fa6";
-import { FaSearch } from "react-icons/fa";
 
 import { getUserInformation } from "@/lib/api";
 import { FeatureErrorBoundary } from "@/components/common/FeatureErrorBoundary";
@@ -104,7 +104,7 @@ export default async function ProfilePage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex size-10 flex-shrink-0 items-center justify-center rounded">
-                    <FaFilePdf className="text-secondary-foreground size-8" />
+                    <FileText className="text-secondary-foreground size-8" />
                   </div>
                   <div>
                     <p className="text-foreground font-medium">
@@ -124,7 +124,7 @@ export default async function ProfilePage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-3xl">
-                    <FaSearch />
+                    <Search />
                   </span>
                   <div>
                     <p className="text-foreground text-sm font-semibold">

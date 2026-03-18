@@ -1,8 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
-import { Bell, ChevronRight, Mail } from "lucide-react";
-import { TbPasswordUser } from "react-icons/tb";
+import { Bell, ChevronRight, Mail, LockKeyhole } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
 import { FeatureErrorBoundary } from "@/components/common/FeatureErrorBoundary";
@@ -24,7 +23,7 @@ export default function SettingsPage() {
     },
     {
       id: "change-password",
-      icon: TbPasswordUser,
+      icon: LockKeyhole,
       title: "Change Password",
       description: "Update your password and security settings",
     },

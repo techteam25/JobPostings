@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import { getOrganizationJobsList } from "@/lib/api";
 import {
   Empty,
@@ -9,12 +10,18 @@ import {
 } from "@/components/ui/empty";
 import { CircleOff, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  JobListingsSection,
-  JobListingsSectionSkeleton,
-} from "@/app/employer/organizations/[id]/components/JobListingInformation";
-import { Suspense } from "react";
+import { JobListingsSectionSkeleton } from "@/app/employer/organizations/[id]/components/JobListingInformation";
 import Link from "next/link";
+
+const JobListingsSection = dynamic(
+  () =>
+    import(
+      "@/app/employer/organizations/[id]/components/JobListingInformation"
+    ).then((mod) => ({ default: mod.JobListingsSection })),
+  {
+    loading: () => <JobListingsSectionSkeleton />,
+  },
+);
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -49,11 +56,9 @@ export default async function OrganizationJobsPage({ params }: PageProps) {
   }
 
   return (
-    <Suspense fallback={<JobListingsSectionSkeleton />}>
-      <JobListingsSection
-        jobsList={organizationJobsList}
-        organizationId={Number(id)}
-      />
-    </Suspense>
+    <JobListingsSection
+      jobsList={organizationJobsList}
+      organizationId={Number(id)}
+    />
   );
 }

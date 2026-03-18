@@ -1,6 +1,6 @@
 "use client";
 
-import { BsChevronDown } from "react-icons/bs";
+import { ChevronDown } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -26,7 +26,7 @@ export const DatePostedDropDownButton = () => {
           className="hover:text-foreground cursor-pointer hover:bg-transparent"
         >
           Date Posted
-          <BsChevronDown className="ml-1" />
+          <ChevronDown className="ml-1" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">

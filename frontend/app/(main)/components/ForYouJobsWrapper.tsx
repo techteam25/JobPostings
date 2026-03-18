@@ -1,4 +1,4 @@
-import { MdRecommend } from "react-icons/md";
+import { ThumbsUp } from "lucide-react";
 
 import {
   Empty,
@@ -12,7 +12,7 @@ export const ForYouJobsWrapper = () => {
     <Empty>
       <EmptyHeader>
         <EmptyMedia variant="icon">
-          <MdRecommend />
+          <ThumbsUp />
         </EmptyMedia>
         <EmptyTitle>Coming Soon</EmptyTitle>
         <EmptyDescription>

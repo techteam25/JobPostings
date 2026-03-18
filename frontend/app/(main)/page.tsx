@@ -1,6 +1,4 @@
-import { MapPin, Search } from "lucide-react";
-import { BsBellFill } from "react-icons/bs";
-import { HiSparkles } from "react-icons/hi2";
+import { Bell, MapPin, Search, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,7 +79,7 @@ async function Page() {
                   value="foryou"
                   className="data-[state=active]:border-accent data-[state=active]:text-foreground rounded-none bg-transparent px-6 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                 >
-                  <HiSparkles className="mr-1" /> For You
+                  <Sparkles className="mr-1" /> For You
                 </TabsTrigger>
                 <TabsTrigger
                   value="search"
@@ -94,7 +92,7 @@ async function Page() {
                     variant="ghost"
                     className="text-foreground/85 hover:text-foreground/95 decoration-accent cursor-pointer text-sm decoration-4 underline-offset-8 hover:bg-transparent hover:underline [&_svg]:size-4"
                   >
-                    <BsBellFill className="mr-1" />
+                    <Bell className="mr-1" />
                     Create job alert
                   </Button>
                 </div>
