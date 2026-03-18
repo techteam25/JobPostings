@@ -15,6 +15,7 @@ import { Menu, User } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useUserSignOut } from "@/app/(main)/hooks/use-user-signout";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 
 interface NavbarMobileProps {
   username?: string;
@@ -90,6 +91,10 @@ export function NavbarMobile({
           >
             FAQ
           </Button>
+          <div className="flex items-center gap-2 px-6">
+            <span className="text-secondary-foreground text-xs">Theme</span>
+            <ThemeToggle />
+          </div>
         </nav>
         <SheetFooter>
           <SheetClose asChild>

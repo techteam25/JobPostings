@@ -49,7 +49,7 @@ export default async function SavedJobsPage() {
           {savedJobs.data.length > 1 ? "Saved Jobs" : "Saved Job"}
         </p>
         <Suspense fallback={<SavedJobsGridSkeleton />}>
-          <SavedJobsGrid userSavedJobs={savedJobs} />
+          <SavedJobsGrid initialData={savedJobs} />
         </Suspense>
       </div>
     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,16 @@ const formatStatus = (status: string) => {
   return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
-export const ApplicationCard = ({ application }: ApplicationCardProps) => {
+export const ApplicationCard = memo(function ApplicationCard({
+  application,
+}: ApplicationCardProps) {
+  const handleWithdraw = useCallback(async () => {
+    const result = await withdrawJobApplication(application.applicationId);
+    if (!result.success) {
+      toast.error(result.message);
+    }
+  }, [application.applicationId]);
+
   return (
     <Card className="group overflow-hidden transition-shadow duration-300 hover:shadow-lg">
       <div className="p-6">
@@ -80,14 +90,7 @@ export const ApplicationCard = ({ application }: ApplicationCardProps) => {
               <DropdownMenuItem>
                 <Button
                   variant="ghost"
-                  onClick={async () => {
-                    const result = await withdrawJobApplication(
-                      application.applicationId,
-                    );
-                    if (!result.success) {
-                      toast.error(result.message);
-                    }
-                  }}
+                  onClick={handleWithdraw}
                 >
                   <XCircle className="mr-1 size-4" />
                   Withdraw Application
@@ -135,4 +138,5 @@ export const ApplicationCard = ({ application }: ApplicationCardProps) => {
       </div>
     </Card>
   );
-};
+});
+ApplicationCard.displayName = "ApplicationCard";

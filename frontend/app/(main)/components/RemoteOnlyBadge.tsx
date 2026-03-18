@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { X } from "lucide-react";
 
 import { useFiltersStore } from "@/context/store";
@@ -8,7 +8,7 @@ import { useFiltersStore } from "@/context/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-export function RemoteOnlyBadge() {
+export const RemoteOnlyBadge = memo(function RemoteOnlyBadge() {
   const remoteOnly = useFiltersStore((state) => state.remoteOnly);
   const setRemoteOnly = useFiltersStore((state) => state.setRemoteOnly);
 
@@ -32,4 +32,5 @@ export function RemoteOnlyBadge() {
       Remote only
     </Button>
   );
-}
+});
+RemoteOnlyBadge.displayName = "RemoteOnlyBadge";

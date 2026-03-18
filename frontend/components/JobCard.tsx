@@ -40,7 +40,6 @@ export const JobCard = memo(
     location,
     experienceLevel,
     onJobSelected,
-    logoUrl,
     isSelected,
   }: JobCardType) => {
     const { hasSaved, toggleSaved } = useJobSaved(jobId);

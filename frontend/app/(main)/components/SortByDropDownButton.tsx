@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +21,7 @@ const sortOptions = {
   recent: "Most Recent",
   relevant: "Most Relevant",
 };
-export const SortByDropDownButton = () => {
+export const SortByDropDownButton = memo(function SortByDropDownButton() {
   const sortBy = useFiltersStore((state) => state.sortBy);
   const setSortBy = useFiltersStore((state) => state.setSortBy);
   return (
@@ -56,4 +57,5 @@ export const SortByDropDownButton = () => {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+});
+SortByDropDownButton.displayName = "SortByDropDownButton";

@@ -22,6 +22,7 @@ import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserSignOut } from "@/app/(main)/hooks/use-user-signout";
 import { NavbarMobile } from "@/app/(main)/components/NavbarMobile";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 export function SkeletonDemo() {
   return (
     <div className="flex items-center space-x-4">
@@ -110,6 +111,9 @@ export default function Navbar() {
                 >
                   <Bell className="text-secondary-foreground h-6 w-6" />
                 </Button>
+
+                {/* Theme Toggle */}
+                <ThemeToggle />
 
                 {/* User Profile Dropdown */}
                 <DropdownMenu>

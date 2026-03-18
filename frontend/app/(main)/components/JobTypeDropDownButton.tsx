@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { ChevronDown } from "lucide-react";
 
 import { DropdownMenuCheckboxItemProps } from "@radix-ui/react-dropdown-menu";
@@ -15,7 +15,7 @@ import { useFiltersStore, JobType } from "@/context/store";
 
 type Checked = DropdownMenuCheckboxItemProps["checked"];
 
-export const JobTypeDropDownButton = () => {
+export const JobTypeDropDownButton = memo(function JobTypeDropDownButton() {
   const jobTypes = useFiltersStore((state) => state.jobTypes);
   const setJobTypes = useFiltersStore((state) => state.setJobTypes);
 
@@ -80,4 +80,5 @@ export const JobTypeDropDownButton = () => {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+});
+JobTypeDropDownButton.displayName = "JobTypeDropDownButton";

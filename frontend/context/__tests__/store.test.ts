@@ -1,8 +1,4 @@
-import {
-  useFiltersStore,
-  useSavedJobsStore,
-  useApplicationStore,
-} from "@/context/store";
+import { useFiltersStore, useApplicationStore } from "@/context/store";
 
 describe("useFiltersStore (composed)", () => {
   beforeEach(() => {
@@ -61,7 +57,6 @@ describe("store isolation", () => {
       datePosted: null,
       sortBy: "recent",
     });
-    useSavedJobsStore.setState({ savedJobIds: new Set<number>() });
     useApplicationStore.setState({
       step: 1,
       formData: {
@@ -83,24 +78,13 @@ describe("store isolation", () => {
     });
   });
 
-  it("changes to filters do not affect saved jobs store", () => {
-    useFiltersStore.getState().setJobTypes(["full-time"]);
-    expect(useSavedJobsStore.getState().savedJobIds.size).toBe(0);
-  });
-
   it("changes to filters do not affect application store", () => {
     useFiltersStore.getState().setRemoteOnly(true);
     expect(useApplicationStore.getState().step).toBe(1);
   });
 
-  it("changes to saved jobs do not affect filters store", () => {
-    useSavedJobsStore.getState().setSavedJob(1, true);
-    expect(useFiltersStore.getState().jobTypes).toEqual([]);
-  });
-
-  it("changes to application store do not affect other stores", () => {
+  it("changes to application store do not affect filters store", () => {
     useApplicationStore.getState().setStep(3);
     expect(useFiltersStore.getState().sortBy).toBe("recent");
-    expect(useSavedJobsStore.getState().savedJobIds.size).toBe(0);
   });
 });

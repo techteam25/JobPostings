@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import { Montserrat, Poppins } from "next/font/google";
 
 import Providers from "@/providers";
+import { WebVitalsReporter } from "@/components/common/WebVitalsReporter";
 
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
           poppins.className,
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         )}
       >
         <Providers>{children}</Providers>
+        <WebVitalsReporter />
         <Toaster position="bottom-right" />
       </body>
     </html>

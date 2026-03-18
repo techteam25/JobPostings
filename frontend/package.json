@@ -71,6 +71,7 @@
     "states-us": "^1.1.1",
     "usehooks-ts": "^3.1.1",
     "vaul": "^1.1.2",
+    "web-vitals": "^5.1.0",
     "zod": "^4.1.12",
     "zustand": "^5.0.8"
   },

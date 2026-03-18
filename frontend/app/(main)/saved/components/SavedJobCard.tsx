@@ -1,18 +1,25 @@
 "use client";
 
+import { memo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { SavedJob } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Bookmark, Building2 } from "lucide-react";
 import { formatToRelativeDate } from "@/lib/utils";
-import { removeSavedJobForUser } from "@/lib/api";
-import { toast } from "sonner";
+import { useUnsaveJobMutation } from "@/hooks/use-saved-jobs";
 
 interface SavedJobCardProps {
   savedJob: SavedJob;
 }
 
-export const SavedJobCard = ({ savedJob }: SavedJobCardProps) => {
+export const SavedJobCard = memo(function SavedJobCard({
+  savedJob,
+}: SavedJobCardProps) {
+  const unsaveJob = useUnsaveJobMutation();
+
+  const handleRemove = useCallback(() => {
+    unsaveJob.mutate(savedJob.job.id);
+  }, [savedJob.job.id, unsaveJob]);
   return (
     <Card className="group overflow-hidden transition-shadow duration-300 hover:shadow-lg">
       <div className="p-6">
@@ -30,12 +37,7 @@ export const SavedJobCard = ({ savedJob }: SavedJobCardProps) => {
             variant="ghost"
             size="icon"
             className="text-secondary-foreground hover:text-foreground cursor-pointer hover:bg-transparent"
-            onClick={async () => {
-              const result = await removeSavedJobForUser(savedJob.job.id);
-              if (!result.success) {
-                toast.error(result.message);
-              }
-            }}
+            onClick={handleRemove}
           >
             <Bookmark />
           </Button>
@@ -80,4 +82,5 @@ export const SavedJobCard = ({ savedJob }: SavedJobCardProps) => {
       </div>
     </Card>
   );
-};
+});
+SavedJobCard.displayName = "SavedJobCard";

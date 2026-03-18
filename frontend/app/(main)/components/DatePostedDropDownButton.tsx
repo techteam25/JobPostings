@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { ChevronDown } from "lucide-react";
 
 import {
@@ -12,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { DatePosted, useFiltersStore } from "@/context/store";
 
-export const DatePostedDropDownButton = () => {
+export const DatePostedDropDownButton = memo(function DatePostedDropDownButton() {
   const datePosted = useFiltersStore((state) => state.datePosted);
   const setDatePosted = useFiltersStore((state) => state.setDatePosted);
   return (
@@ -50,4 +51,5 @@ export const DatePostedDropDownButton = () => {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+});
+DatePostedDropDownButton.displayName = "DatePostedDropDownButton";
