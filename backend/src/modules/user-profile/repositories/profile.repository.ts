@@ -1,4 +1,4 @@
-import { and, count, desc, eq, like, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import {
   certifications,
   educations,
@@ -499,6 +499,23 @@ export class ProfileRepository
       });
 
       return !!savedJob;
+    });
+  }
+
+  async getSavedJobIdsForJobs(
+    userId: number,
+    jobIds: number[],
+  ): Promise<Set<number>> {
+    return withDbErrorHandling(async () => {
+      const saved = await db.query.savedJobs.findMany({
+        where: and(
+          eq(savedJobs.userId, userId),
+          inArray(savedJobs.jobId, jobIds),
+        ),
+        columns: { jobId: true },
+      });
+
+      return new Set(saved.map((s) => s.jobId));
     });
   }
 

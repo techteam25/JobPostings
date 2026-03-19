@@ -165,6 +165,7 @@ export type UpdateJobApplication = z.infer<typeof updateJobApplicationSchema>;
 export type UpdateJobInsights = z.infer<typeof updateJobInsightsSchema>;
 export type JobWithEmployer = {
   hasApplied: boolean;
+  hasSaved: boolean;
   job: Job;
   employer: Pick<
     Organization,

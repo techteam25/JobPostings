@@ -19,6 +19,7 @@ import type { JobBoardRepositoryPort } from "@/modules/job-board";
 import type { JobInsightsRepositoryPort } from "@/modules/job-board";
 import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
 import type { ApplicationStatusQueryPort } from "@/modules/job-board/ports/application-status-query.port";
+import type { SavedJobsStatusQueryPort } from "@/modules/job-board/ports/saved-jobs-status-query.port";
 import type { OrgMembershipForJobPort } from "@/modules/job-board/ports/org-membership-for-job.port";
 import type { UserContactQueryPort } from "@/modules/job-board/ports/user-contact-query.port";
 
@@ -40,6 +41,7 @@ export class JobBoardService
     private jobInsightsRepository: JobInsightsRepositoryPort,
     private typesenseService: TypesenseServicePort,
     private applicationStatusQuery: ApplicationStatusQueryPort,
+    private savedJobsStatusQuery: SavedJobsStatusQueryPort,
     private orgMembershipForJob: OrgMembershipForJobPort,
     private userContactQuery: UserContactQueryPort,
   ) {
@@ -57,20 +59,22 @@ export class JobBoardService
         const enrichedJobs = activeJobs.items.map((job) => ({
           ...job,
           hasApplied: false,
+          hasSaved: false,
         }));
         return ok({ ...activeJobs, items: enrichedJobs });
       }
 
       const jobIds = activeJobs.items.map((job) => job.job.id);
 
-      const appliedJobIds = await this.applicationStatusQuery.getAppliedJobIds(
-        userId,
-        jobIds,
-      );
+      const [appliedJobIds, savedJobIds] = await Promise.all([
+        this.applicationStatusQuery.getAppliedJobIds(userId, jobIds),
+        this.savedJobsStatusQuery.getSavedJobIds(userId, jobIds),
+      ]);
 
       const enrichedJobs = activeJobs.items.map((job) => ({
         ...job,
         hasApplied: appliedJobIds.has(job.job.id),
+        hasSaved: savedJobIds.has(job.job.id),
       }));
 
       return ok({ ...activeJobs, items: enrichedJobs });
@@ -168,15 +172,15 @@ export class JobBoardService
       await this.incrementJobViews(id);
 
       if (!userId) {
-        return ok({ ...job, hasApplied: false });
+        return ok({ ...job, hasApplied: false, hasSaved: false });
       }
 
-      const hasApplied = await this.applicationStatusQuery.hasUserApplied(
-        userId,
-        id,
-      );
+      const [hasApplied, hasSaved] = await Promise.all([
+        this.applicationStatusQuery.hasUserApplied(userId, id),
+        this.savedJobsStatusQuery.hasUserSavedJob(userId, id),
+      ]);
 
-      return ok({ ...job, hasApplied });
+      return ok({ ...job, hasApplied, hasSaved });
     } catch (error) {
       if (error instanceof AppError) {
         return this.handleError(error);

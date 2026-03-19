@@ -18,6 +18,7 @@ import type { JobBoardRepositoryPort } from "@/modules/job-board/ports/job-board
 import type { JobInsightsRepositoryPort } from "@/modules/job-board/ports/job-insights-repository.port";
 import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
 import type { ApplicationStatusQueryPort } from "@/modules/job-board/ports/application-status-query.port";
+import type { SavedJobsStatusQueryPort } from "@/modules/job-board/ports/saved-jobs-status-query.port";
 import type { OrgMembershipForJobPort } from "@/modules/job-board/ports/org-membership-for-job.port";
 import type { UserContactQueryPort } from "@/modules/job-board/ports/user-contact-query.port";
 
@@ -117,6 +118,13 @@ function createMockApplicationStatusQuery(): ApplicationStatusQueryPort {
     getAppliedJobIds: vi.fn(),
     hasUserApplied: vi.fn(),
     hasApplicationsForJob: vi.fn(),
+  };
+}
+
+function createMockSavedJobsStatusQuery(): SavedJobsStatusQueryPort {
+  return {
+    getSavedJobIds: vi.fn(),
+    hasUserSavedJob: vi.fn(),
   };
 }
 
@@ -242,6 +250,7 @@ describe("Email Job Contract Tests", () => {
         createMockJobInsightsRepository(),
         createMockTypesenseService(),
         applicationStatusQuery,
+        createMockSavedJobsStatusQuery(),
         createMockOrgMembershipForJob(),
         userContactQuery,
       );

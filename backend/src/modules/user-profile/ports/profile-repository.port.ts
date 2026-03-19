@@ -40,6 +40,7 @@ export interface ProfileRepositoryPort {
   ): Promise<{ items: SavedJobs[]; pagination: PaginationMeta }>;
   saveJobForUser(userId: number, jobId: number): Promise<{ success: boolean }>;
   isJobSavedByUser(userId: number, jobId: number): Promise<boolean>;
+  getSavedJobIdsForJobs(userId: number, jobIds: number[]): Promise<Set<number>>;
   unsaveJobForUser(
     userId: number,
     jobId: number,

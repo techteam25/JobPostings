@@ -32,6 +32,7 @@ import {
   IdentityToJobBoardAdapter,
   ApplicationsToJobBoardAdapter,
   JobBoardToApplicationsAdapter,
+  ProfileToJobBoardAdapter,
   FileMetadataUpdateAdapter,
   JobBoardToSharedInsightsAdapter,
 } from "@shared/adapters";
@@ -169,6 +170,11 @@ export function createCompositionRoot(): CompositionRoot {
     userOrgsQuery: orgsToProfileAdapter,
   });
 
+  // Profile → Job-board (saved jobs enrichment)
+  const profileToJobBoardAdapter = new ProfileToJobBoardAdapter(
+    userProfile.repository,
+  );
+
   const notifications = createNotificationsModule({
     emailService,
     userActivityQuery: identityToNotificationsAdapter,
@@ -179,6 +185,7 @@ export function createCompositionRoot(): CompositionRoot {
   const jobBoard = createJobBoardModule({
     typesenseService,
     applicationStatusQuery: applicationsToJobBoardAdapter,
+    savedJobsStatusQuery: profileToJobBoardAdapter,
     orgMembershipForJob: orgsToJobBoardAdapter,
     userContactQuery: identityToJobBoardAdapter,
     jobBoardRepository,

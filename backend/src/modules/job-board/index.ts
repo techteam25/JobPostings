@@ -7,6 +7,7 @@ export type { JobBoardServicePort } from "./ports/job-board-service.port";
 export type { JobBoardRepositoryPort } from "./ports/job-board-repository.port";
 export type { JobInsightsRepositoryPort } from "./ports/job-insights-repository.port";
 export type { ApplicationStatusQueryPort } from "./ports/application-status-query.port";
+export type { SavedJobsStatusQueryPort } from "./ports/saved-jobs-status-query.port";
 export type { OrgMembershipForJobPort } from "./ports/org-membership-for-job.port";
 export type { UserContactQueryPort } from "./ports/user-contact-query.port";
 export { createJobBoardGuards } from "./guards/job-board.guards";

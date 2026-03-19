@@ -28,7 +28,7 @@ export interface JobBoardRepositoryPort extends BaseRepositoryPort<
   ): Promise<{ job: Job; employer: JobWithEmployer["employer"] }>;
 
   findActiveJobs(options?: { page?: number; limit?: number }): Promise<{
-    items: Omit<JobWithEmployer, "hasApplied">[];
+    items: Omit<JobWithEmployer, "hasApplied" | "hasSaved">[];
     pagination: PaginationMeta;
   }>;
 
