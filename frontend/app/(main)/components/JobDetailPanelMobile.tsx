@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 
 import { useFetchJobDetails } from "@/app/(main)/hooks/use-fetch-jobs";
@@ -52,7 +51,7 @@ export const JobDetailPanelMobile = ({
     <div className="lg:hidden">
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="flex h-[95vh] flex-col">
-          <DrawerHeader className="flex-shrink-0 p-1 text-left">
+          <DrawerHeader className="shrink-0 p-1 text-left">
             <DrawerTitle>
               <Button
                 variant="link"
@@ -66,7 +65,7 @@ export const JobDetailPanelMobile = ({
               Detailed information about the job
             </DrawerDescription>
           </DrawerHeader>
-          <div className="bg-muted-foreground/80 mb-2 h-px w-full flex-shrink-0" />
+          <div className="bg-muted-foreground/80 mb-2 h-px w-full shrink-0" />
           <div className="flex-1 overflow-y-auto px-4">
             <div className="flex flex-col space-y-2">
               <div>
