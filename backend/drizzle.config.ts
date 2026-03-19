@@ -1,5 +1,5 @@
 import { defineConfig } from "drizzle-kit";
-import { env } from "./src/config/env";
+import { env } from "@shared/config/env";
 
 export default defineConfig({
   // Database connection
