@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import { Bookmark, Building2 } from "lucide-react";
+import { useUserSession } from "@/app/(main)/hooks/use-user-session";
 
 interface JobCardType {
   jobId: number;
@@ -27,6 +28,7 @@ interface JobCardType {
   logoUrl: string | null;
   onJobSelected: () => void;
   isSelected: boolean;
+  hasSaved: boolean;
 }
 
 export const JobCard = memo(
@@ -41,8 +43,15 @@ export const JobCard = memo(
     experienceLevel,
     onJobSelected,
     isSelected,
+    hasSaved: initialHasSaved,
   }: JobCardType) => {
-    const { hasSaved, toggleSaved } = useJobSaved(jobId);
+    const { data: session } = useUserSession();
+    const isAuthenticated = !!session?.data?.user;
+    const { hasSaved, toggleSaved } = useJobSaved(
+      jobId,
+      initialHasSaved,
+      isAuthenticated,
+    );
 
     const handleSaveJobChange = async () => {
       await toggleSaved();

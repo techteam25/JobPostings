@@ -41,6 +41,7 @@ export const organizationSchema = z.object({
 
 export const jobWithEmployerSchema = z.object({
   hasApplied: z.boolean().optional(),
+  hasSaved: z.boolean().optional(),
   job: JobSchema,
   employer: organizationSchema.nullable(),
 });

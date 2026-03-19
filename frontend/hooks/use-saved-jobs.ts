@@ -6,32 +6,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { savedJobsApi } from "@/lib/api/client/saved-jobs";
 import type {
-  ApiResponse,
   PaginatedApiResponse,
   SavedJob,
-  SavedState,
 } from "@/lib/types";
+import type { JobResponse, JobWithEmployer } from "@/schemas/responses/jobs";
 
-export const useSavedJobs = (
-  initialData?: PaginatedApiResponse<SavedJob>,
-) => {
+export const useSavedJobs = (initialData?: PaginatedApiResponse<SavedJob>) => {
   return useQuery({
     queryKey: ["saved-jobs"],
     queryFn: savedJobsApi.getSavedJobs,
     initialData,
   });
-};
-
-export const useIsJobSaved = (jobId: number | undefined) => {
-  const { data, isLoading } = useQuery({
-    queryKey: ["saved-job-check", jobId],
-    queryFn: () => savedJobsApi.checkIfSaved(jobId!),
-    enabled: !!jobId,
-  });
-
-  const isSaved = data?.success === true && data.data.isSaved;
-
-  return { isSaved, isLoading };
 };
 
 export const useSaveJobMutation = () => {
@@ -40,36 +25,56 @@ export const useSaveJobMutation = () => {
   return useMutation({
     mutationFn: savedJobsApi.saveJob,
     onMutate: async (jobId) => {
-      await queryClient.cancelQueries({
-        queryKey: ["saved-job-check", jobId],
-      });
+      await queryClient.cancelQueries({ queryKey: ["fetch-jobs"] });
+      await queryClient.cancelQueries({ queryKey: ["job-details", jobId] });
 
-      const previousData = queryClient.getQueryData<ApiResponse<SavedState>>([
-        "saved-job-check",
+      const previousJobs =
+        queryClient.getQueryData<PaginatedApiResponse<JobWithEmployer>>([
+          "fetch-jobs",
+        ]);
+      const previousJobDetail = queryClient.getQueryData<JobResponse>([
+        "job-details",
         jobId,
       ]);
 
-      queryClient.setQueryData<ApiResponse<SavedState>>(
-        ["saved-job-check", jobId],
-        { success: true, data: { isSaved: true } },
+      // Optimistically update the jobs list
+      queryClient.setQueryData<PaginatedApiResponse<JobWithEmployer>>(
+        ["fetch-jobs"],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: old.data.map((item) =>
+              item.job.id === jobId ? { ...item, hasSaved: true } : item,
+            ),
+          };
+        },
       );
 
-      return { previousData, jobId };
+      // Optimistically update the job detail
+      queryClient.setQueryData<JobResponse>(["job-details", jobId], (old) => {
+        if (!old || !old.success) return old;
+        return { ...old, data: { ...old.data, hasSaved: true } };
+      });
+
+      return { previousJobs, previousJobDetail, jobId };
     },
     onError: (_err, _jobId, context) => {
-      if (context?.previousData) {
+      if (context?.previousJobs) {
+        queryClient.setQueryData(["fetch-jobs"], context.previousJobs);
+      }
+      if (context?.previousJobDetail) {
         queryClient.setQueryData(
-          ["saved-job-check", context.jobId],
-          context.previousData,
+          ["job-details", context.jobId],
+          context.previousJobDetail,
         );
       }
       toast.error("Failed to save job");
     },
     onSuccess: (_data, jobId) => {
       queryClient.invalidateQueries({ queryKey: ["saved-jobs"] });
-      queryClient.invalidateQueries({
-        queryKey: ["saved-job-check", jobId],
-      });
+      queryClient.invalidateQueries({ queryKey: ["fetch-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["job-details", jobId] });
     },
   });
 };
@@ -80,24 +85,43 @@ export const useUnsaveJobMutation = () => {
   return useMutation({
     mutationFn: savedJobsApi.unsaveJob,
     onMutate: async (jobId) => {
-      await queryClient.cancelQueries({
-        queryKey: ["saved-job-check", jobId],
-      });
+      await queryClient.cancelQueries({ queryKey: ["fetch-jobs"] });
+      await queryClient.cancelQueries({ queryKey: ["job-details", jobId] });
       await queryClient.cancelQueries({ queryKey: ["saved-jobs"] });
 
-      const previousCheckData = queryClient.getQueryData<
-        ApiResponse<SavedState>
-      >(["saved-job-check", jobId]);
-
+      const previousJobs =
+        queryClient.getQueryData<PaginatedApiResponse<JobWithEmployer>>([
+          "fetch-jobs",
+        ]);
+      const previousJobDetail = queryClient.getQueryData<JobResponse>([
+        "job-details",
+        jobId,
+      ]);
       const previousSavedJobs = queryClient.getQueryData<
         PaginatedApiResponse<SavedJob>
       >(["saved-jobs"]);
 
-      queryClient.setQueryData<ApiResponse<SavedState>>(
-        ["saved-job-check", jobId],
-        { success: true, data: { isSaved: false } },
+      // Optimistically update the jobs list
+      queryClient.setQueryData<PaginatedApiResponse<JobWithEmployer>>(
+        ["fetch-jobs"],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: old.data.map((item) =>
+              item.job.id === jobId ? { ...item, hasSaved: false } : item,
+            ),
+          };
+        },
       );
 
+      // Optimistically update the job detail
+      queryClient.setQueryData<JobResponse>(["job-details", jobId], (old) => {
+        if (!old || !old.success) return old;
+        return { ...old, data: { ...old.data, hasSaved: false } };
+      });
+
+      // Optimistically remove from saved jobs list
       queryClient.setQueryData<PaginatedApiResponse<SavedJob>>(
         ["saved-jobs"],
         (old) => {
@@ -109,13 +133,16 @@ export const useUnsaveJobMutation = () => {
         },
       );
 
-      return { previousCheckData, previousSavedJobs, jobId };
+      return { previousJobs, previousJobDetail, previousSavedJobs, jobId };
     },
     onError: (_err, _jobId, context) => {
-      if (context?.previousCheckData) {
+      if (context?.previousJobs) {
+        queryClient.setQueryData(["fetch-jobs"], context.previousJobs);
+      }
+      if (context?.previousJobDetail) {
         queryClient.setQueryData(
-          ["saved-job-check", context.jobId],
-          context.previousCheckData,
+          ["job-details", context.jobId],
+          context.previousJobDetail,
         );
       }
       if (context?.previousSavedJobs) {
@@ -125,27 +152,34 @@ export const useUnsaveJobMutation = () => {
     },
     onSuccess: (_data, jobId) => {
       queryClient.invalidateQueries({ queryKey: ["saved-jobs"] });
-      queryClient.invalidateQueries({
-        queryKey: ["saved-job-check", jobId],
-      });
+      queryClient.invalidateQueries({ queryKey: ["fetch-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["job-details", jobId] });
     },
   });
 };
 
-export function useToggleSavedJob(jobId: number | undefined) {
-  const { isSaved: hasSaved } = useIsJobSaved(jobId);
+export function useToggleSavedJob(
+  jobId: number | undefined,
+  hasSaved: boolean,
+  isAuthenticated: boolean,
+) {
   const saveJobMutation = useSaveJobMutation();
   const unsaveJobMutation = useUnsaveJobMutation();
 
   const toggleSaved = useCallback(async () => {
     if (jobId === undefined) return;
 
+    if (!isAuthenticated) {
+      toast.info("Sign in to save jobs");
+      return;
+    }
+
     if (hasSaved) {
       unsaveJobMutation.mutate(jobId);
     } else {
       saveJobMutation.mutate(jobId);
     }
-  }, [jobId, hasSaved, saveJobMutation, unsaveJobMutation]);
+  }, [jobId, hasSaved, saveJobMutation, unsaveJobMutation, isAuthenticated]);
 
   return { hasSaved, toggleSaved };
 }

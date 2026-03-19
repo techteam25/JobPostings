@@ -5,6 +5,7 @@ import { Bookmark, Building2, Menu } from "lucide-react";
 
 import { useFetchJobDetails } from "@/app/(main)/hooks/use-fetch-jobs";
 import { useJobSaved } from "@/hooks/use-job-saved";
+import { useUserSession } from "@/app/(main)/hooks/use-user-session";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,18 +23,25 @@ interface JobDetailPanelProps {
 }
 
 export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
+  const { data: session } = useUserSession();
+  const isAuthenticated = !!session?.data?.user;
+
   const {
     data: jobDetails,
     fetchingJobDetails,
     fetchJobDetailsError,
   } = useFetchJobDetails(jobId);
 
-  const { hasSaved, toggleSaved } = useJobSaved(jobId);
-
   const jobData = useMemo(() => {
     if (!jobDetails?.success) return null;
     return jobDetails.data;
   }, [jobDetails]);
+
+  const { hasSaved, toggleSaved } = useJobSaved(
+    jobId,
+    jobData?.hasSaved ?? false,
+    isAuthenticated,
+  );
 
   if (fetchingJobDetails || !jobDetails) {
     return (
@@ -126,13 +134,13 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
 function SkeletonCard() {
   return (
     <div className="flex flex-col space-y-3">
-      <Skeleton className="h-[40px] w-auto rounded-xl" />
+      <Skeleton className="h-10 w-auto rounded-xl" />
       <div className="space-y-2">
         <div>
-          <Skeleton className="h-4 w-[250px]" />
+          <Skeleton className="h-4 w-62.5" />
         </div>
         <Skeleton className="h-4 w-auto" />
-        <Skeleton className="h-4 w-[200px]" />
+        <Skeleton className="h-4 w-50" />
       </div>
     </div>
   );
