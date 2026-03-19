@@ -10,7 +10,8 @@ import { jobsDetails } from "@/db/schema";
 import { env } from "@shared/config/env";
 import { auth } from "@/utils/auth";
 import logger from "@shared/logger";
-import { userOnBoarding } from "./schema";
+import { userEmailPreferences, userOnBoarding } from "./schema";
+import crypto from "crypto";
 
 const connection = mysql.createPool({
   host: env.DB_HOST,
@@ -54,6 +55,22 @@ async function runSeed() {
         name: faker.person.firstName() + " " + faker.person.lastName(),
         image: faker.image.avatar(),
       },
+    });
+
+    const unsubscribeToken = crypto.randomBytes(32).toString("hex");
+
+    await db.insert(userEmailPreferences).values({
+      userId: idx + 1,
+      unsubscribeToken,
+      unsubscribeTokenExpiresAt: new Date(),
+      jobMatchNotifications: true,
+      applicationStatusNotifications: true,
+      savedJobUpdates: true,
+      weeklyJobDigest: true,
+      monthlyNewsletter: true,
+      marketingEmails: true,
+      accountSecurityAlerts: true,
+      globalUnsubscribe: false,
     });
   }
 
