@@ -6,7 +6,6 @@ import { Building2, ChevronRight } from "lucide-react";
 
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,

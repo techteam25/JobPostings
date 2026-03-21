@@ -48,11 +48,10 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
     defaultValues: {
       salvationStatement: formData.customAnswers?.salvationStatement || "",
       race: formData.customAnswers?.race || "",
-      gender: formData.customAnswers?.gender || (undefined as any),
+      gender: formData.customAnswers?.gender,
       veteranStatus: formData.customAnswers?.veteranStatus || "",
-      yearsOfExperience:
-        formData.customAnswers?.yearsOfExperience || (undefined as any),
-      authorized: formData.customAnswers?.authorized || (undefined as any),
+      yearsOfExperience: formData.customAnswers?.yearsOfExperience,
+      authorized: formData.customAnswers?.authorized,
     },
     onSubmit: async ({ value }) => {
       const result = step4QuestionsSchema.safeParse(value);
@@ -90,7 +89,7 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
 
   return (
     <div className="animate-in fade-in slide-in-from-right-8 flex flex-col gap-6 duration-500">
-      <h2 className="text-xl font-bold text-foreground">
+      <h2 className="text-foreground text-xl font-bold">
         A few more questions
       </h2>
 
@@ -231,16 +230,14 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
               </FieldLabel>
               <RadioGroup
                 value={field.state.value}
-                onValueChange={(val) =>
-                  field.handleChange(val as "yes" | "no")
-                }
+                onValueChange={(val) => field.handleChange(val as "yes" | "no")}
                 className="flex gap-4"
               >
-                <FieldLabel className="flex w-full cursor-pointer items-center gap-2 rounded-lg border p-3 font-normal hover:bg-accent">
+                <FieldLabel className="hover:bg-accent flex w-full cursor-pointer items-center gap-2 rounded-lg border p-3 font-normal">
                   <RadioGroupItem value="yes" />
                   <span className="text-sm">Yes, I am authorized</span>
                 </FieldLabel>
-                <FieldLabel className="flex w-full cursor-pointer items-center gap-2 rounded-lg border p-3 font-normal hover:bg-accent">
+                <FieldLabel className="hover:bg-accent flex w-full cursor-pointer items-center gap-2 rounded-lg border p-3 font-normal">
                   <RadioGroupItem value="no" />
                   <span className="text-sm">No, I require sponsorship</span>
                 </FieldLabel>

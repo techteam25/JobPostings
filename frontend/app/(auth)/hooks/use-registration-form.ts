@@ -11,6 +11,7 @@ import {
 } from "@/schemas/auth/registration";
 import { instance } from "@/lib/axios-instance";
 import { useSocialAuth } from "@/app/(auth)/sign-in/hooks/use-social";
+import { isAxiosError } from "axios";
 
 export function useRegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -62,10 +63,14 @@ export function useRegistrationForm() {
               response.data.message || "Account creation unsuccessful",
             );
           }
-        } catch (error: any) {
-          const errorMessage =
-            error.response?.data?.message || "Account creation unsuccessful";
-          toast.error(errorMessage);
+        } catch (error: unknown) {
+          if (isAxiosError(error)) {
+            const errorMessage =
+              error.response?.data?.message || "Account creation unsuccessful";
+            toast.error(errorMessage);
+          } else {
+            toast.error("An unexpected error occurred. Please try again.");
+          }
           console.error("Registration error:", error);
         }
       });

@@ -1,10 +1,18 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { Bell, CircleUser, Loader2, LogOut, Settings, User } from "lucide-react";
+import {
+  Bell,
+  CircleUser,
+  Loader2,
+  LogIn,
+  LogOut,
+  Settings,
+  User,
+} from "lucide-react";
 
 import { useUserSession } from "@/app/(main)/hooks/use-user-session";
 
@@ -23,6 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUserSignOut } from "@/app/(main)/hooks/use-user-signout";
 import { NavbarMobile } from "@/app/(main)/components/NavbarMobile";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 export function SkeletonDemo() {
   return (
     <div className="flex items-center space-x-4">
@@ -33,12 +42,13 @@ export function SkeletonDemo() {
 
 export default function Navbar() {
   const { isPending, data } = useUserSession();
+  const { isAuthenticated } = useAuthenticationStatus();
   const { signOutAsyncAction, isPending: signOutPending } = useUserSignOut();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   const handleSignOut = useCallback(async () => {
     await signOutAsyncAction();
@@ -143,7 +153,7 @@ export default function Navbar() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="flex w-[300px] flex-col items-start space-y-3"
+                    className="flex w-75 flex-col items-start space-y-3"
                   >
                     <DropdownMenuItem className="">
                       <div className="space-y-1">
@@ -178,21 +188,33 @@ export default function Navbar() {
                       asChild
                       className="hover:bg-muted/80 [&>svg]:size-5"
                     >
-                      <Button
-                        variant="link"
-                        className="text-foreground cursor-pointer focus-visible:ring-0"
-                        onClick={handleSignOut}
-                      >
-                        <LogOut className="text-foreground mr-2" />
-                        {signOutPending ? (
-                          <span>
-                            <Loader2 className="text-muted-foreground animate-spin" />{" "}
-                            Signing out...
-                          </span>
-                        ) : (
-                          <span>Sign out</span>
-                        )}
-                      </Button>
+                      {isAuthenticated ? (
+                        <Button
+                          variant="link"
+                          className="text-foreground cursor-pointer focus-visible:ring-0"
+                          onClick={handleSignOut}
+                        >
+                          <LogOut className="text-foreground mr-2" />
+                          {signOutPending ? (
+                            <span>
+                              <Loader2 className="text-muted-foreground animate-spin" />{" "}
+                              Signing out...
+                            </span>
+                          ) : (
+                            <span>Sign out</span>
+                          )}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="link"
+                          className="text-foreground cursor-pointer focus-visible:ring-0"
+                        >
+                          <Link href="/sign-in" className="flex items-center">
+                            <LogIn className="text-foreground mr-2" />
+                            Sign in
+                          </Link>
+                        </Button>
+                      )}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

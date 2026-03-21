@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { instance } from "@/lib/axios-instance";
-import { UnsubscribeInfo } from "@/lib/types";
+import { ApiResponse, UnsubscribeInfo } from "@/lib/types";
 import { toast } from "sonner";
 
 export const useUnsubscribeInfo = (token: string | null) => {
@@ -8,10 +8,10 @@ export const useUnsubscribeInfo = (token: string | null) => {
     queryKey: ["unsubscribe-info", token],
     queryFn: async () => {
       if (!token) throw new Error("No token provided");
-      const response = await instance.get<{ data: UnsubscribeInfo }>(
+      const response = await instance.get<ApiResponse<UnsubscribeInfo>>(
         `/users/me/email-preferences/unsubscribe/${token}/info`,
       );
-      return response.data.data;
+      return response.data;
     },
     enabled: !!token,
     retry: false,
@@ -23,9 +23,9 @@ export const useUnsubscribe = () => {
 
   return useMutation({
     mutationFn: async (token: string) => {
-      const response = await instance.post(
-        `/users/me/email-preferences/unsubscribe/${token}`,
-      );
+      const response = await instance.post<
+        ApiResponse<UnsubscribeInfo["preferences"]>
+      >(`/users/me/email-preferences/unsubscribe/${token}`);
       return response.data;
     },
     onSuccess: () => {

@@ -13,6 +13,7 @@ import { CreateOrganizationData } from "@/schemas/organizations";
 import CompanyProfileGraphic from "@/public/company-profile-graphic.png";
 import { useCreateOrganization } from "@/app/employer/onboarding/hooks/use-create-organization";
 import { Loader2 } from "lucide-react";
+import { AnyFormApi } from "@tanstack/form-core";
 
 const CreateOrganizationWrapper = () => {
   const [companyData, setCompanyData] = useState<CreateOrganizationData>({
@@ -30,7 +31,7 @@ const CreateOrganizationWrapper = () => {
     logo: undefined,
   });
   const [currentStep, setCurrentStep] = useState("general-info");
-  const formRef = useRef<any>(null);
+  const formRef = useRef<AnyFormApi | null>(null);
   const { isCreatingOrganization, createOrganizationAsync } =
     useCreateOrganization();
 
@@ -55,12 +56,12 @@ const CreateOrganizationWrapper = () => {
     const formState = formRef.current.state;
     const hasErrors =
       formState.errors.length > 0 ||
-      Object.values(formState.fieldMeta).some((meta: any) => !meta.isValid);
+      Object.values(formState.fieldMeta).some((meta) => !meta?.isValid);
 
     if (hasErrors) {
       // Touch all fields to show errors
       Object.keys(formState.fieldMeta).forEach((fieldName) => {
-        formRef.current?.setFieldMeta(fieldName, (prev: any) => ({
+        formRef.current?.setFieldMeta(fieldName, (prev) => ({
           ...prev,
           isTouched: true,
         }));
@@ -131,7 +132,7 @@ const CreateOrganizationWrapper = () => {
       <div className="flex w-full max-w-6xl gap-6">
         {/* Right Panel - Form */}
         <div className="bg-background flex-1 p-8">
-          <h2 className="mb-2 text-2xl font-bold">Company's profile</h2>
+          <h2 className="mb-2 text-2xl font-bold">Company&apos;s profile</h2>
           <p className="mb-8 text-gray-500">
             Provide information about your company and other details
           </p>

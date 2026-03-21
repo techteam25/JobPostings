@@ -5,7 +5,6 @@ import { Bookmark, Building2, Menu } from "lucide-react";
 
 import { useFetchJobDetails } from "@/app/(main)/hooks/use-fetch-jobs";
 import { useJobSaved } from "@/hooks/use-job-saved";
-import { useUserSession } from "@/app/(main)/hooks/use-user-session";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,14 +16,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Link from "next/link";
+import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 
 interface JobDetailPanelProps {
   jobId: number | undefined;
 }
 
 export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
-  const { data: session } = useUserSession();
-  const isAuthenticated = !!session?.data?.user;
+  const { isAuthenticated } = useAuthenticationStatus();
 
   const {
     data: jobDetails,
@@ -65,7 +64,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
       <CardContent className="max-h-screen p-6">
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="text-primary-foreground flex size-16 items-center justify-center rounded font-bold">
+            <div className="text-foreground flex size-16 items-center justify-center rounded font-bold">
               <Building2 className="text-muted-foreground mr-2 size-5" />
             </div>
             <div>
@@ -98,7 +97,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
             </Tooltip>
             <Button
               asChild
-              className="bg-foreground text-primary-foreground hover:bg-foreground/95 cursor-pointer"
+              className="bg-primary text-primary-foreground hover:bg-primary/95 cursor-pointer"
             >
               <Link href={`/applications/new?jobId=${job.id}`}>Apply Now</Link>
             </Button>
@@ -110,11 +109,11 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
           {job.city || ""}, {job.state || "" || job.country || ""}
         </div>
 
-        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-6">
-          <h2 className="mb-2 text-lg font-semibold">
+        <div className="bg-primary/10 border-border mb-6 rounded-lg border p-6">
+          <h2 className="text-foreground mb-2 text-lg font-semibold">
             Is your resume a good match?
           </h2>
-          <p className="mb-4 text-sm text-gray-700">
+          <p className="text-secondary-foreground mb-4 text-sm">
             Use AI to find out how well the skills on your resume fit this job
             description.
           </p>
@@ -124,7 +123,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
         </div>
 
         <div className="prose max-w-none">
-          <p className="mb-4 text-gray-700">{job.description || ""}</p>
+          <p className="text-card-foreground mb-4">{job.description || ""}</p>
         </div>
       </CardContent>
     </Card>

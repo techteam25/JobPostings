@@ -1,8 +1,9 @@
 import { MutableRefObject } from "react";
 
 import { CreateOrganizationData } from "@/schemas/organizations";
+import { AnyFormApi } from "@tanstack/form-core";
 
-export enum JobType {
+export enum JobTypeEnum {
   FullTime = "Full-time",
   PartTime = "Part-time",
   Contract = "Contract",
@@ -10,24 +11,11 @@ export enum JobType {
   Temporary = "Temporary",
 }
 
-export interface JobCardType {
-  positionName: string;
-  companyName: string;
-  location: string;
-  jobType: JobType;
-  experienceLevel: string;
-  posted: string;
-  jobDescription: string;
-  logoUrl: string | null;
-  onJobSelected: () => void;
-}
-
 export interface TCreateOrganizationFormProps {
   organization: CreateOrganizationData;
   setOrganizationData: (formData: CreateOrganizationData) => void;
 
-  // eslint-disable-next-line
-  formRef?: MutableRefObject<any>;
+  formRef?: MutableRefObject<AnyFormApi | null>;
 }
 
 export type Organization = {

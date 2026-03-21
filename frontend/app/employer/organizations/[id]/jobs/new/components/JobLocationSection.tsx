@@ -1,8 +1,8 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { CreateJobFormApi } from "../hooks/use-create-job-form";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 
 interface JobLocationSectionProps {
   form: CreateJobFormApi;
@@ -25,8 +25,8 @@ export function JobLocationSection({ form }: JobLocationSectionProps) {
             const isInvalid =
               field.state.meta.isTouched && !field.state.meta.isValid;
             return (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>City *</Label>
+              <Field className="space-y-2" data-invalid={isInvalid}>
+                <FieldLabel htmlFor={field.name}>City *</FieldLabel>
                 <Input
                   id={field.name}
                   placeholder="e.g. San Francisco"
@@ -35,14 +35,14 @@ export function JobLocationSection({ form }: JobLocationSectionProps) {
                   onChange={(e) => field.handleChange(e.target.value)}
                   aria-invalid={isInvalid}
                 />
-                {isInvalid && field.state.meta.errors.length > 0 && (
-                  <p className="text-destructive text-sm">
-                    {typeof field.state.meta.errors[0] === "string"
-                      ? field.state.meta.errors[0]
-                      : (field.state.meta.errors[0] as any).message}
-                  </p>
+                {isInvalid && (
+                  <FieldError
+                    errors={field.state.meta.errors.map((e) =>
+                      typeof e === "string" ? { message: e } : e,
+                    )}
+                  />
                 )}
-              </div>
+              </Field>
             );
           }}
         />
@@ -53,8 +53,8 @@ export function JobLocationSection({ form }: JobLocationSectionProps) {
             const isInvalid =
               field.state.meta.isTouched && !field.state.meta.isValid;
             return (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>State</Label>
+              <Field className="space-y-2" data-invalid={isInvalid}>
+                <FieldLabel htmlFor={field.name}>State</FieldLabel>
                 <Input
                   id={field.name}
                   placeholder="e.g. California"
@@ -63,14 +63,14 @@ export function JobLocationSection({ form }: JobLocationSectionProps) {
                   onChange={(e) => field.handleChange(e.target.value)}
                   aria-invalid={isInvalid}
                 />
-                {isInvalid && field.state.meta.errors.length > 0 && (
-                  <p className="text-destructive text-sm">
-                    {typeof field.state.meta.errors[0] === "string"
-                      ? field.state.meta.errors[0]
-                      : (field.state.meta.errors[0] as any).message}
-                  </p>
+                {isInvalid && (
+                  <FieldError
+                    errors={field.state.meta.errors.map((e) =>
+                      typeof e === "string" ? { message: e } : e,
+                    )}
+                  />
                 )}
-              </div>
+              </Field>
             );
           }}
         />
@@ -81,8 +81,8 @@ export function JobLocationSection({ form }: JobLocationSectionProps) {
         <form.Field
           name="country"
           children={(field) => (
-            <div className="space-y-2">
-              <Label htmlFor={field.name}>Country *</Label>
+            <Field className="space-y-2">
+              <FieldLabel htmlFor={field.name}>Country *</FieldLabel>
               <Input
                 id={field.name}
                 placeholder="e.g. United States"
@@ -90,7 +90,7 @@ export function JobLocationSection({ form }: JobLocationSectionProps) {
                 onBlur={field.handleBlur}
                 onChange={(e) => field.handleChange(e.target.value)}
               />
-            </div>
+            </Field>
           )}
         />
 
@@ -100,8 +100,8 @@ export function JobLocationSection({ form }: JobLocationSectionProps) {
             const isInvalid =
               field.state.meta.isTouched && !field.state.meta.isValid;
             return (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>Zip Code</Label>
+              <Field className="space-y-2" data-invalid={isInvalid}>
+                <FieldLabel htmlFor={field.name}>Zip Code</FieldLabel>
                 <Input
                   id={field.name}
                   type="number"
@@ -115,14 +115,14 @@ export function JobLocationSection({ form }: JobLocationSectionProps) {
                   }
                   aria-invalid={isInvalid}
                 />
-                {isInvalid && field.state.meta.errors.length > 0 && (
-                  <p className="text-destructive text-sm">
-                    {typeof field.state.meta.errors[0] === "string"
-                      ? field.state.meta.errors[0]
-                      : (field.state.meta.errors[0] as any).message}
-                  </p>
+                {isInvalid && (
+                  <FieldError
+                    errors={field.state.meta.errors.map((e) =>
+                      typeof e === "string" ? { message: e } : e,
+                    )}
+                  />
                 )}
-              </div>
+              </Field>
             );
           }}
         />

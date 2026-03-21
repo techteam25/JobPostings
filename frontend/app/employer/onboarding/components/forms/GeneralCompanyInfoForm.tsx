@@ -188,7 +188,7 @@ const GeneralCompanyInfoForm = ({
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>Mission *</FieldLabel>
                     <DynamicRichTextEditor
-                      value={field.state.value}
+                      defaultValue={field.state.value}
                       onChange={(value) => field.handleChange(value)}
                       onBlur={field.handleBlur}
                       placeholder="Describe your company's mission..."

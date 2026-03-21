@@ -1,5 +1,4 @@
 import { type Page } from "@playwright/test";
-import path from "path";
 
 export class JobApplicationPage {
   constructor(private page: Page) {}

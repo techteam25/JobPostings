@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@/lib/utils";
-import { JobType } from "@/lib/types";
+import { JobTypeEnum } from "@/lib/types";
 import { useJobSaved } from "@/hooks/use-job-saved";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,14 +14,14 @@ import {
 } from "@/components/ui/tooltip";
 
 import { Bookmark, Building2 } from "lucide-react";
-import { useUserSession } from "@/app/(main)/hooks/use-user-session";
+import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 
 interface JobCardType {
   jobId: number;
   positionName: string;
   companyName: string;
   location: string;
-  jobType: JobType;
+  jobType: JobTypeEnum;
   experienceLevel: string;
   posted: string;
   jobDescription: string;
@@ -45,8 +45,7 @@ export const JobCard = memo(
     isSelected,
     hasSaved: initialHasSaved,
   }: JobCardType) => {
-    const { data: session } = useUserSession();
-    const isAuthenticated = !!session?.data?.user;
+    const { isAuthenticated } = useAuthenticationStatus();
     const { hasSaved, toggleSaved } = useJobSaved(
       jobId,
       initialHasSaved,
@@ -60,7 +59,7 @@ export const JobCard = memo(
     return (
       <Card
         className={cn(
-          "border-l-border hover:bg-secondary my-2 cursor-pointer border-l-2 shadow-none transition-colors",
+          "border-l-border bg-background hover:bg-card my-2 cursor-pointer border-l-2 shadow-none transition-colors",
           isSelected && "border-accent border-2",
         )}
         onClick={onJobSelected}
@@ -68,7 +67,7 @@ export const JobCard = memo(
         <CardContent className="p-4">
           <div className="mb-2 flex items-start justify-between">
             <div className="flex items-center gap-2">
-              <div className="text-primary-foreground flex size-8 items-center justify-center rounded text-xs font-bold md:h-10 md:w-10">
+              <div className="text -foreground flex size-8 items-center justify-center rounded text-xs font-bold md:h-10 md:w-10">
                 {/*{logoUrl ? (*/}
                 {/*  <Image*/}
                 {/*    src={logoUrl}*/}

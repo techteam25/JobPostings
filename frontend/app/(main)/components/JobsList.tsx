@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { formatPostedDate } from "@/lib/utils";
 import { JobCard } from "@/components/JobCard";
 
-import { JobType } from "@/lib/types";
+import { JobTypeEnum } from "@/lib/types";
 import type { JobWithEmployer } from "@/schemas/responses/jobs";
 
 interface JobsListProps {
@@ -23,7 +23,7 @@ export const JobsList = ({
         <JobCard
           key={job.id}
           jobId={job.id}
-          jobType={job.jobType as JobType}
+          jobType={job.jobType as JobTypeEnum}
           jobDescription={job.description}
           companyName={employer!.name}
           experienceLevel={job.experience || "Not Specified"}

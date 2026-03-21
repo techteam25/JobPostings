@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { FieldInfo } from "@/components/common/FieldInfo";
 import type { RegistrationFormApi } from "../hooks/use-registration-form";
+import React from "react";
 
 interface PasswordFieldsProps {
   form: RegistrationFormApi;
@@ -50,7 +51,7 @@ export function PasswordFields({
                 size="icon"
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5 md:[&_svg]:size-6"
+                className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 md:[&_svg]:size-5"
               >
                 {showPassword ? <Eye /> : <EyeOff />}
               </Button>
@@ -89,7 +90,7 @@ export function PasswordFields({
                 size="icon"
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5 md:[&_svg]:size-6"
+                className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 md:[&_svg]:size-5"
               >
                 {showConfirmPassword ? <Eye /> : <EyeOff />}
               </Button>

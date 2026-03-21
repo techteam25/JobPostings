@@ -13,7 +13,6 @@ import { DatePostedDropDownButton } from "@/app/(main)/components/DatePostedDrop
 import { SearchFilterDropDownButton } from "./components/SearchFilterDropDownButton";
 import { SearchFilterDialogButton } from "./components/SearchFilterDialogButton";
 import { RemoteOnlyBadge } from "@/app/(main)/components/RemoteOnlyBadge";
-import { UserProfileStatusBanner } from "@/app/(main)/components/UserProfileStatusBanner";
 import { ForYouJobsWrapper } from "@/app/(main)/components/ForYouJobsWrapper";
 import { SearchInputMobile } from "@/app/(main)/components/SearchInputMobile";
 import { SearchFiltersMobile } from "@/app/(main)/components/SearchFiltersMobile";
@@ -47,14 +46,14 @@ async function Page() {
               <Search className="text-secondary-foreground absolute top-1/2 left-3 mr-1 size-6 -translate-y-1/2" />
               <Input
                 placeholder="Find your next job"
-                className="text-secondary-foreground border-input bg-input h-12 rounded-none rounded-l-full pl-10 text-lg shadow-none outline-none focus-visible:ring-0"
+                className="text-secondary-foreground border-foreground bg-background h-12 rounded-none rounded-l-full pl-10 text-lg shadow-none outline-none focus-visible:ring-0"
               />
             </div>
             <div className="relative w-64">
               <MapPin className="text-secondary-foreground absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2" />
               <Input
                 placeholder="Location"
-                className="text-secondary-foreground border-input bg-input h-12 rounded-none rounded-r-full pl-10 text-lg shadow-none outline-none focus-visible:ring-0"
+                className="text-secondary-foreground border-foreground bg-background h-12 rounded-none rounded-r-full pl-10 text-lg shadow-none outline-none focus-visible:ring-0"
               />
             </div>
             {/* Mobile: Dialog */}
@@ -72,18 +71,18 @@ async function Page() {
       <div className="border-b">
         <div className="mx-auto max-w-7xl px-4">
           <Tabs defaultValue="search" className="w-auto py-3">
-            <TabsList className="h-auto w-full border-b p-0">
+            <TabsList className="bg-background h-auto w-full p-0">
               <div className="flex w-full items-center justify-center md:justify-between">
                 <div className="md:flex-1" />
                 <TabsTrigger
                   value="foryou"
-                  className="data-[state=active]:border-accent data-[state=active]:text-foreground rounded-none bg-transparent px-6 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                  className="data-[state=active]:border-primary data-[state=active]:text-foreground rounded-none bg-transparent px-6 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                 >
-                  <Sparkles className="mr-1" /> For You
+                  <Sparkles className="text-primary mr-1 size-5" /> For You
                 </TabsTrigger>
                 <TabsTrigger
                   value="search"
-                  className="data-[state=active]:border-accent data-[state=active]:text-foreground rounded-none bg-transparent px-6 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                  className="data-[state=active]:border-primary data-[state=active]:text-foreground rounded-none bg-transparent px-6 data-[state=active]:border-b-4 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                 >
                   Search
                 </TabsTrigger>

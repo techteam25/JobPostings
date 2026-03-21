@@ -5,26 +5,14 @@ import { LinkedInIcon } from "@/components/common/icons";
 import { Input } from "@/components/ui/input";
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { useForm } from "@tanstack/react-form";
 import { useApplicationStore } from "@/context/store";
 import { step1ResumeSchema } from "@/schemas/applications";
+import { Button } from "@/components/ui/button";
 
 export const Step1Upload = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
-  const { setStep, formData, setFormData } = useApplicationStore();
-
-  const form = useForm({
-    defaultValues: {
-      resume: formData.resume,
-    },
-    onSubmit: async ({ value }) => {
-      if (value.resume) {
-        setFormData({ resume: value.resume });
-      }
-      setStep(2);
-    },
-  });
+  const { setStep, setFormData } = useApplicationStore();
 
   const handleFileUpload = async (file: File) => {
     const result = step1ResumeSchema.safeParse(file);
@@ -70,7 +58,7 @@ export const Step1Upload = () => {
     <div className="animate-in fade-in slide-in-from-bottom-4 space-y-6 duration-500">
       <div className="mb-8 space-y-2 text-center">
         <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-          Let's start with your profile
+          Let&apos;s start with your profile
         </h2>
         <p className="text-slate-500">
           Import your details to skip the manual entry.
@@ -131,12 +119,12 @@ export const Step1Upload = () => {
       </div>
 
       <div className="text-center">
-        <button
+        <Button
           onClick={() => setStep(2)}
           className="text-sm font-medium text-slate-500 hover:text-slate-900"
         >
           Skip for now
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -1,9 +1,9 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { DynamicRichTextEditor } from "@/components/common";
 import type { CreateJobFormApi } from "../hooks/use-create-job-form";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 
 interface JobBasicInfoSectionProps {
   form: CreateJobFormApi;
@@ -26,8 +26,8 @@ export function JobBasicInfoSection({ form }: JobBasicInfoSectionProps) {
           const isInvalid =
             field.state.meta.isTouched && !field.state.meta.isValid;
           return (
-            <div className="space-y-2">
-              <Label htmlFor={field.name}>Job Title *</Label>
+            <Field className="space-y-2" data-invalid={isInvalid}>
+              <FieldLabel htmlFor={field.name}>Job Title *</FieldLabel>
               <Input
                 id={field.name}
                 placeholder="e.g. Senior Software Engineer"
@@ -36,14 +36,14 @@ export function JobBasicInfoSection({ form }: JobBasicInfoSectionProps) {
                 onChange={(e) => field.handleChange(e.target.value)}
                 aria-invalid={isInvalid}
               />
-              {isInvalid && field.state.meta.errors.length > 0 && (
-                <p className="text-destructive text-sm">
-                  {typeof field.state.meta.errors[0] === "string"
-                    ? field.state.meta.errors[0]
-                    : (field.state.meta.errors[0] as any).message}
-                </p>
+              {isInvalid && (
+                <FieldError
+                  errors={field.state.meta.errors.map((e) =>
+                    typeof e === "string" ? { message: e } : e,
+                  )}
+                />
               )}
-            </div>
+            </Field>
           );
         }}
       />
@@ -61,23 +61,23 @@ export function JobBasicInfoSection({ form }: JobBasicInfoSectionProps) {
           const isInvalid =
             field.state.meta.isTouched && !field.state.meta.isValid;
           return (
-            <div className="space-y-2">
-              <Label htmlFor={field.name}>Job Description *</Label>
+            <Field className="space-y-2" data-invalid={isInvalid}>
+              <FieldLabel htmlFor={field.name}>Job Description *</FieldLabel>
               <DynamicRichTextEditor
-                value={field.state.value}
+                defaultValue={field.state.value}
                 onChange={(value) => field.handleChange(value)}
                 onBlur={field.handleBlur}
                 placeholder="Describe the job responsibilities, requirements, and benefits..."
                 height={200}
               />
-              {isInvalid && field.state.meta.errors.length > 0 && (
-                <p className="text-destructive text-sm">
-                  {typeof field.state.meta.errors[0] === "string"
-                    ? field.state.meta.errors[0]
-                    : (field.state.meta.errors[0] as any).message}
-                </p>
+              {isInvalid && (
+                <FieldError
+                  errors={field.state.meta.errors.map((e) =>
+                    typeof e === "string" ? { message: e } : e,
+                  )}
+                />
               )}
-            </div>
+            </Field>
           );
         }}
       />

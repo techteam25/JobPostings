@@ -61,7 +61,7 @@ export function SocialAuthSection({
             <Button
               asChild
               variant="link"
-              className="text-accent hover:text-accent/90 cursor-pointer text-xs font-semibold sm:text-sm"
+              className="text-accent-foreground hover:text-accent-foreground/90 cursor-pointer text-xs font-semibold sm:text-sm"
             >
               <Link href="/sign-in">Sign in</Link>
             </Button>
@@ -72,7 +72,7 @@ export function SocialAuthSection({
             <Button
               asChild
               variant="link"
-              className="text-accent hover:text-accent/90 cursor-pointer font-semibold"
+              className="text-accent-foreground hover:text-accent-foreground/90 cursor-pointer font-semibold"
             >
               <Link href="/sign-up">Sign up</Link>
             </Button>

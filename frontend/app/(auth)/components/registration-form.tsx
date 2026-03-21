@@ -69,15 +69,15 @@ export default function RegistrationForm() {
                       field.handleChange(checked === true)
                     }
                     onBlur={field.handleBlur}
-                    className="data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground border-accent mt-0.5 h-5 w-5 cursor-pointer"
+                    className="data-[state=checked]:bg-background data-[state=checked]:text-accent-foreground border-border mt-0.5 h-5 w-5 cursor-pointer"
                   />
                   <span className="text-secondary-foreground text-xs sm:text-sm">
                     I agree to the{" "}
-                    <span className="text-accent hover:text-accent/90 cursor-pointer font-semibold">
+                    <span className="text-secondary-foreground hover:text-secondary-foreground/90 cursor-pointer font-semibold">
                       Terms & Conditions
                     </span>{" "}
                     and{" "}
-                    <span className="text-accent hover:text-accent/90 cursor-pointer font-semibold">
+                    <span className="text-secondary-foreground hover:text-secondary-foreground/90 cursor-pointer font-semibold">
                       Privacy Policy
                     </span>
                   </span>
@@ -99,7 +99,7 @@ export default function RegistrationForm() {
                 type="submit"
                 disabled={!canSubmit || isSubmitting || !hasAgreedToTerms}
                 className={cn(
-                  "bg-accent hover:bg-accent/90 text-accent-foreground w-full cursor-pointer rounded-lg py-3 font-semibold transition",
+                  "bg-primary hover:bg-primary/90 text-primary-foreground w-full cursor-pointer rounded-lg py-3 font-semibold transition",
                   {
                     "cursor-not-allowed":
                       !canSubmit || isSubmitting || !hasAgreedToTerms,

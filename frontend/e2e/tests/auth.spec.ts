@@ -1,4 +1,3 @@
-import { test, expect } from "../fixtures";
 import { test as base, expect as baseExpect } from "@playwright/test";
 import { SignInPage } from "../pages/sign-in.page";
 import { SignUpPage } from "../pages/sign-up.page";
@@ -20,43 +19,34 @@ base.describe("Authentication Flow", () => {
       await baseExpect(signInPage.signUpLink).toBeVisible();
     });
 
-    base(
-      "successful login redirects to home page",
-      async ({ page }) => {
-        const signInPage = new SignInPage(page);
+    base("successful login redirects to home page", async ({ page }) => {
+      const signInPage = new SignInPage(page);
 
-        await signInPage.login(
-          process.env.TEST_USER_EMAIL ?? "user_11@example.com",
-          process.env.TEST_USER_PASSWORD ?? "Password@123",
-        );
+      await signInPage.login(
+        process.env.TEST_USER_EMAIL ?? "user_11@example.com",
+        process.env.TEST_USER_PASSWORD ?? "Password@123",
+      );
 
-        await page.waitForURL("/", { timeout: 10000 });
-        await baseExpect(page).toHaveURL("/");
-      },
-    );
+      await page.waitForURL("/", { timeout: 10000 });
+      await baseExpect(page).toHaveURL("/");
+    });
 
-    base(
-      "invalid credentials show error",
-      async ({ page }) => {
-        const signInPage = new SignInPage(page);
+    base("invalid credentials show error", async ({ page }) => {
+      const signInPage = new SignInPage(page);
 
-        await signInPage.login("invalid@example.com", "wrongpassword");
+      await signInPage.login("invalid@example.com", "wrongpassword");
 
-        // Wait for error toast or error message
-        const errorToast = page.locator("[data-sonner-toast][data-type='error']");
-        await baseExpect(errorToast).toBeVisible({ timeout: 5000 });
-      },
-    );
+      // Wait for error toast or error message
+      const errorToast = page.locator("[data-sonner-toast][data-type='error']");
+      await baseExpect(errorToast).toBeVisible({ timeout: 5000 });
+    });
 
-    base(
-      "sign-up link navigates to registration page",
-      async ({ page }) => {
-        const signInPage = new SignInPage(page);
+    base("sign-up link navigates to registration page", async ({ page }) => {
+      const signInPage = new SignInPage(page);
 
-        await signInPage.signUpLink.click();
-        await baseExpect(page).toHaveURL(/\/sign-up/);
-      },
-    );
+      await signInPage.signUpLink.click();
+      await baseExpect(page).toHaveURL(/\/sign-up/);
+    });
   });
 
   base.describe("Sign-up page", () => {
@@ -79,15 +69,12 @@ base.describe("Authentication Flow", () => {
       await baseExpect(signUpPage.registerButton).toBeVisible();
     });
 
-    base(
-      "sign-in link navigates to login page",
-      async ({ page }) => {
-        const signUpPage = new SignUpPage(page);
+    base("sign-in link navigates to login page", async ({ page }) => {
+      const signUpPage = new SignUpPage(page);
 
-        await signUpPage.signInLink.click();
-        await baseExpect(page).toHaveURL(/\/sign-in/);
-      },
-    );
+      await signUpPage.signInLink.click();
+      await baseExpect(page).toHaveURL(/\/sign-in/);
+    });
   });
 
   base.describe("Route protection", () => {
