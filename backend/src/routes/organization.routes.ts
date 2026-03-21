@@ -1,12 +1,7 @@
 import { Router } from "express";
 
-import { OrganizationController } from "@/controllers/organization.controller";
-import { AuthMiddleware } from "@/middleware/auth.middleware";
-import { uploadMiddleware } from "@/middleware/multer.middleware";
-import validate from "../middleware/validation.middleware";
 import {
   createOrganizationSchema,
-  updateOrganizationInputSchema,
   getOrganizationSchema,
   deleteOrganizationSchema,
   updateOrganizationSchema,
@@ -24,21 +19,18 @@ import {
   apiResponseSchema,
   errorResponseSchema,
   paginationMetaSchema,
-} from "@/types";
+} from "@shared/types";
 import {
   getJobApplicationSchema,
   selectJobApplicationSchema,
 } from "@/validations/jobApplications.validation";
 import { getJobSchema } from "@/validations/job.validation";
-import { getUserSchema } from "@/validations/user.validation";
-import {
-  cacheMiddleware,
-  invalidateCacheMiddleware,
-} from "@/middleware/cache.middleware";
 
-const router = Router();
-const organizationController = new OrganizationController();
-const authMiddleware = new AuthMiddleware();
+import { createOrganizationsRoutes } from "@/modules/organizations";
+import { createOrgApplicationsRoutes } from "@/modules/applications";
+import { createInvitationsRoutes } from "@/modules/invitations";
+
+import type { CompositionRoot } from "@/composition-root";
 
 const organizationResponse = apiResponseSchema(selectOrganizationSchema);
 const paginatedOrganizationResponse = apiResponseSchema(
@@ -46,6 +38,8 @@ const paginatedOrganizationResponse = apiResponseSchema(
 ).extend({
   pagination: paginationMetaSchema,
 });
+
+// ─── OpenAPI Registry (documentation only) ──────────────────────────
 
 // Public routes
 
@@ -73,21 +67,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Retrieves all organizations with pagination and search.
- * This public endpoint allows users to browse organizations, with support for search and pagination.
- * Includes caching for performance optimization.
- * @route GET /organizations
- * @param {Object} req.query - Query parameters for pagination and search term.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with a paginated list of organizations.
- */
-router.get(
-  "/",
-  cacheMiddleware({ ttl: 300 }),
-  organizationController.getAllOrganizations,
-);
 
 registry.registerPath({
   method: "get",
@@ -132,22 +111,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Retrieves detailed information about a specific organization by its ID.
- * This public endpoint fetches organization details, including members if applicable.
- * Includes caching for performance optimization.
- * @route GET /organizations/:organizationId
- * @param {Object} req.params - Route parameters including the organizationId.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the organization details.
- */
-router.get(
-  "/:organizationId",
-  validate(getOrganizationSchema),
-  cacheMiddleware({ ttl: 300 }),
-  organizationController.getOrganizationById,
-);
 
 registry.registerPath({
   method: "get",
@@ -196,21 +159,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Retrieves the organization ID associated with a specific member (user) ID.
- * This public endpoint finds the organization for a given user.
- * @route GET /organizations/members/:id
- * @param {Object} req.params - Route parameters including the user id.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the organization ID.
- */
-router.get(
-  "/members/:id",
-  validate(getUserSchema),
-  cacheMiddleware({ ttl: 600 }),
-  organizationController.getOrganizationIdByMemberId,
-);
 
 registry.registerPath({
   method: "post",
@@ -263,26 +211,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Creates a new organization and sets the authenticated user as the owner.
- * This authenticated endpoint allows users to create organizations, automatically adding them as owners.
- * Requires authentication.
- * Invalidates cache for organization listings.
- * @route POST /organizations
- * @param {Object} req.body - Request body with organization details.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the created organization.
- */
-router.post(
-  "/",
-  authMiddleware.authenticate,
-  uploadMiddleware.organizationLogo,
-  validate(createOrganizationSchema),
-  invalidateCacheMiddleware(() => "/organizations"),
-  invalidateCacheMiddleware(() => "users/me/intent"),
-  organizationController.createOrganization,
-);
 
 registry.registerPath({
   method: "post",
@@ -345,29 +273,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Uploads or updates the logo for a specific organization.
- * This authenticated endpoint allows organization owners or admins to upload a logo image.
- * Requires authentication and admin/owner role in the organization.
- * Invalidates cache for the specific organization.
- * @route POST /organizations/:organizationId/logo
- * @param {Object} req.params - Route parameters including the organizationId.
- * @param {Object} req.body - Request body with the logo file.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the updated organization.
- */
-router.post(
-  "/:organizationId/logo",
-  authMiddleware.authenticate,
-  authMiddleware.requireAdminOrOwnerRole(["owner"]),
-  uploadMiddleware.organizationLogo,
-  validate(uploadOrganizationLogoSchema),
-  invalidateCacheMiddleware(
-    (req) => `/organizations/${req.params.organizationId}`,
-  ),
-  organizationController.uploadOrganizationLogo,
-);
-
 registry.registerPath({
   method: "put",
   path: "/organizations/{organizationId}",
@@ -428,30 +333,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Updates an existing organization.
- * This authenticated endpoint allows organization owners or admins to modify organization details.
- * Requires authentication and admin/owner role in the organization.
- * Invalidates cache for organization listings and specific organization.
- * @route PUT /organizations/:organizationId
- * @param {Object} req.params - Route parameters including the organizationId.
- * @param {Object} req.body - Request body with updated organization details.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the updated organization.
- */
-router.put(
-  "/:organizationId",
-  authMiddleware.authenticate,
-  authMiddleware.requireAdminOrOwnerRole(["owner"]),
-  validate(updateOrganizationInputSchema),
-  authMiddleware.ensureIsOrganizationMember,
-  invalidateCacheMiddleware(() => "/organizations"),
-  invalidateCacheMiddleware(
-    (req) => `/organizations/${req.params.organizationId}`,
-  ),
-  organizationController.updateOrganization,
-);
-
 registry.registerPath({
   method: "delete",
   path: "/organizations/{organizationId}",
@@ -508,29 +389,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Deletes an organization.
- * This authenticated endpoint allows organization owners to delete their organizations.
- * Requires authentication and owner role in the organization.
- * Invalidates cache for organization listings and specific organization.
- * @route DELETE /organizations/:organizationId
- * @param {Object} req.params - Route parameters including the organizationId.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response confirming the organization deletion.
- */
-router.delete(
-  "/:organizationId",
-  authMiddleware.authenticate,
-  authMiddleware.requireAdminOrOwnerRole(["owner"]),
-  validate(deleteOrganizationSchema),
-  authMiddleware.ensureIsOrganizationMember,
-  invalidateCacheMiddleware(() => "/organizations"),
-  invalidateCacheMiddleware(
-    (req) => `/organizations/${req.params.organizationId}`,
-  ),
-  organizationController.deleteOrganization,
-);
 
 registry.registerPath({
   method: "get",
@@ -591,27 +449,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Retrieves job applications for a specific job in an organization.
- * This authenticated endpoint fetches all applications for a job posted by the organization.
- * Requires authentication, job posting role, and membership in the organization.
- * Includes caching for performance optimization.
- * @route GET /organizations/:organizationId/jobs/:jobId/applications
- * @param {Object} req.params - Route parameters including organizationId and jobId.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the list of applications.
- */
-router.get(
-  "/:organizationId/jobs/:jobId/applications",
-  authMiddleware.authenticate,
-  authMiddleware.requireJobPostingRole(),
-  validate(getOrganizationSchema),
-  validate(getJobSchema),
-  authMiddleware.ensureIsOrganizationMember,
-  cacheMiddleware({ ttl: 300 }),
-  organizationController.getJobApplicationsForOrganization,
-);
-
 registry.registerPath({
   method: "get",
   path: "/organizations/{organizationId}/jobs/{jobId}/applications/{applicationId}",
@@ -670,28 +507,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Retrieves a specific job application for an organization.
- * This authenticated endpoint fetches details of a job application for a job posted by the organization.
- * Requires authentication, job posting role, and membership in the organization.
- * Includes caching for performance optimization.
- * @route GET /organizations/:organizationId/jobs/:jobId/applications/:applicationId
- * @param {Object} req.params - Route parameters including organizationId, jobId, and applicationId.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the job application details.
- */
-router.get(
-  "/:organizationId/jobs/:jobId/applications/:applicationId",
-  authMiddleware.authenticate,
-  authMiddleware.requireJobPostingRole(),
-  validate(getOrganizationSchema),
-  validate(getJobSchema),
-  validate(getJobApplicationSchema),
-  authMiddleware.ensureIsOrganizationMember,
-  cacheMiddleware({ ttl: 300 }),
-  organizationController.getJobApplicationForOrganization,
-);
 
 registry.registerPath({
   method: "patch",
@@ -760,34 +575,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Updates the status of a job application.
- * This authenticated endpoint allows employers to change application statuses (e.g., reviewed, shortlisted).
- * Requires authentication, admin/owner role, and membership in the organization.
- * Invalidates cache for job applications and specific application.
- * @route PATCH /organizations/:organizationId/jobs/:jobId/applications/:applicationId/status
- * @param {Object} req.params - Route parameters including organizationId, jobId, and applicationId.
- * @param {Object} req.body - Request body with the new status.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the updated application.
- */
-router.patch(
-  "/:organizationId/jobs/:jobId/applications/:applicationId/status",
-  authMiddleware.authenticate,
-  authMiddleware.requireAdminOrOwnerRole(["owner", "admin"]),
-  validate(updateJobStatusInputSchema),
-  authMiddleware.ensureIsOrganizationMember,
-  invalidateCacheMiddleware(
-    (req) =>
-      `organizations/${req.params.organizationId}/jobs/${req.params.jobId}/applications`,
-  ),
-  invalidateCacheMiddleware(
-    (req) =>
-      `organizations/${req.params.organizationId}/jobs/${req.params.jobId}/applications/${req.params.applicationId}`,
-  ),
-  organizationController.updateJobApplicationStatus,
-);
-
 registry.registerPath({
   method: "post",
   path: "/organizations/{organizationId}/jobs/{jobId}/applications/{applicationId}/notes",
@@ -855,30 +642,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Attaches a note to a job application.
- * This authenticated endpoint allows employers to add notes to job applications for internal tracking.
- * Requires authentication, job posting role, and membership in the organization.
- * Invalidates cache for the specific application.
- * @route POST /organizations/:organizationId/jobs/:jobId/applications/:applicationId/notes
- * @param {Object} req.params - Route parameters including organizationId, jobId, and applicationId.
- * @param {Object} req.body - Request body with the note text.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the added note.
- */
-router.post(
-  "/:organizationId/jobs/:jobId/applications/:applicationId/notes",
-  authMiddleware.authenticate,
-  authMiddleware.requireJobPostingRole(),
-  validate(createJobApplicationNoteSchema),
-  authMiddleware.ensureIsOrganizationMember,
-  invalidateCacheMiddleware(
-    (req) =>
-      `organizations/${req.params.organizationId}/jobs/${req.params.jobId}/applications/${req.params.applicationId}`,
-  ),
-  organizationController.attachNoteToJobApplication,
-);
-
 registry.registerPath({
   method: "get",
   path: "/organizations/{organizationId}/jobs/{jobId}/applications/{applicationId}/notes",
@@ -945,26 +708,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Retrieves notes for a specific job application.
- * This authenticated endpoint fetches all notes attached to a job application.
- * Requires authentication, job posting role, and membership in the organization.
- * @route GET /organizations/:organizationId/jobs/:jobId/applications/:applicationId/notes
- * @param {Object} req.params - Route parameters including organizationId, jobId, and applicationId.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the list of notes.
- */
-router.get(
-  "/:organizationId/jobs/:jobId/applications/:applicationId/notes",
-  authMiddleware.authenticate,
-  authMiddleware.requireJobPostingRole(),
-  validate(getOrganizationSchema),
-  validate(getJobSchema),
-  validate(getJobApplicationSchema),
-  authMiddleware.ensureIsOrganizationMember,
-  organizationController.getNotesForJobApplication,
-);
-
 registry.registerPath({
   method: "get",
   path: "/organizations/{organizationId}/applications",
@@ -1019,27 +762,6 @@ registry.registerPath({
     },
   },
 });
-
-/**
- * Retrieves all applications for an organization with pagination.
- * This authenticated endpoint fetches all job applications for jobs posted by the organization.
- * Requires authentication, job posting role, and membership in the organization.
- * @route GET /organizations/:organizationId/applications
- * @param {Object} req.params - Route parameters including the organizationId.
- * @param {Object} req.query - Query parameters for pagination.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the paginated list of applications.
- */
-router.get(
-  "/:organizationId/applications",
-  authMiddleware.authenticate,
-  authMiddleware.requireJobPostingRole(),
-  authMiddleware.ensureIsOrganizationMember,
-  validate(getOrganizationSchema),
-  organizationController.getApplicationsForOrganization,
-);
-
-// Organization Invitation Routes (AI-generated)
 
 registry.registerPath({
   method: "post",
@@ -1105,27 +827,6 @@ registry.registerPath({
   },
 });
 
-/**
- * Sends an invitation to join an organization.
- * This authenticated endpoint allows organization owners and admins to invite new members.
- * Requires authentication, owner/admin role, and membership in the organization.
- * @route POST /organizations/:organizationId/invitations
- * @param {Object} req.params - Route parameters including the organizationId.
- * @param {Object} req.body - Request body with invitation details (email, role).
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with the invitation ID and message.
- */
-router.post(
-  "/:organizationId/invitations",
-  authMiddleware.authenticate,
-  authMiddleware.requireAdminOrOwnerRole(["owner", "admin"]),
-  authMiddleware.ensureIsOrganizationMember,
-  validate(createOrganizationInvitationSchema),
-  authMiddleware.validateRoleAssignment,
-  organizationController.sendInvitation,
-);
-
-// Cancel invitation route (AI-generated)
 registry.registerPath({
   method: "delete",
   path: "/api/organizations/{organizationId}/invitations/{invitationId}",
@@ -1182,24 +883,47 @@ registry.registerPath({
   },
 });
 
-/**
- * Cancels an organization invitation (authenticated endpoint, admin/owner only).
- * This endpoint allows organization owners and admins to cancel pending invitations.
- * Performs soft delete by updating status to 'cancelled' and preserving audit trail.
- * Requires authentication, owner/admin role, and membership in the organization.
- * @route DELETE /organizations/:organizationId/invitations/:invitationId
- * @param {Object} req.params - Route parameters including organizationId and invitationId.
- * @param {Response} res - Express response object.
- * @returns {Promise<void>} - Sends a JSON response with success message.
- */
-router.delete(
-  "/:organizationId/invitations/:invitationId",
-  authMiddleware.authenticate,
-  authMiddleware.requireAdminOrOwnerRole(["owner", "admin"]),
-  authMiddleware.ensureIsOrganizationMember,
-  validate(cancelOrganizationInvitationSchema),
-  authMiddleware.ensureInvitationBelongsToOrganization,
-  organizationController.cancelInvitation,
-);
+// ─── Route Mounting ──────────────────────────────────────────────────
+//
+// Dependencies are provided by the central composition root.
 
-export default router;
+interface OrganizationRoutesDeps {
+  authenticate: CompositionRoot["authenticate"];
+  organizations: CompositionRoot["organizations"];
+  applications: CompositionRoot["applications"];
+  invitations: CompositionRoot["invitations"];
+}
+
+export function createOrganizationRoutes(deps: OrganizationRoutesDeps): Router {
+  const router = Router();
+
+  // 1. Organization CRUD routes
+  router.use(
+    createOrganizationsRoutes({
+      authenticate: deps.authenticate,
+      orgGuards: deps.organizations.guards,
+      controller: deps.organizations.controller,
+    }),
+  );
+
+  // 2. Employer application management routes
+  router.use(
+    createOrgApplicationsRoutes({
+      authenticate: deps.authenticate,
+      orgGuards: deps.organizations.guards,
+      controller: deps.applications.controller,
+    }),
+  );
+
+  // 3. Invitation management routes (send, cancel, view, accept)
+  router.use(
+    createInvitationsRoutes({
+      authenticate: deps.authenticate,
+      orgGuards: deps.organizations.guards,
+      invitationsGuards: deps.invitations.guards,
+      controller: deps.invitations.controller,
+    }),
+  );
+
+  return router;
+}

@@ -12,17 +12,12 @@ export default function UnsubscribeComponent() {
   const router = useRouter();
   const token = searchParams.get("token");
 
-  const {
-    data,
-    isLoading: loading,
-    error: loadError,
-  } = useUnsubscribeInfo(token);
+  const { data, isLoading: loading } = useUnsubscribeInfo(token);
 
   const {
     mutate: unsubscribe,
     isPending: unsubscribing,
     isSuccess: success,
-    error: unsubscribeError,
   } = useUnsubscribe();
 
   if (!token) {
@@ -43,13 +38,12 @@ export default function UnsubscribeComponent() {
     );
   }
 
-  if (loadError) {
+  if (data && !data.success) {
     return (
       <div className="flex min-h-screen items-center justify-center p-6">
         <Alert variant="destructive" className="max-w-2xl">
           <AlertDescription>
-            {(loadError as any).response?.data?.message ||
-              "Failed to load data"}
+            {data.message || "Failed to load data"}
           </AlertDescription>
         </Alert>
       </div>
@@ -83,21 +77,12 @@ export default function UnsubscribeComponent() {
       <Card className="w-full max-w-2xl p-8">
         <h1 className="mb-2 text-3xl font-bold">Unsubscribe from Emails</h1>
         <p className="text-muted-foreground mb-6 text-sm">
-          {data?.user?.email}
+          {data?.data.user?.email}
         </p>
-
-        {(unsubscribeError as any) && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              {(unsubscribeError as any).response?.data?.message ||
-                "Failed to unsubscribe"}
-            </AlertDescription>
-          </Alert>
-        )}
 
         <div className="mb-6 space-y-4">
           <p>
-            You're about to unsubscribe from all non-essential email
+            You&apos;re about to unsubscribe from all non-essential email
             communications. You will still receive:
           </p>
           <ul className="list-disc space-y-2 pl-6">

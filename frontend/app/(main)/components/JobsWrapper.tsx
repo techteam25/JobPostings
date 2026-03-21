@@ -1,12 +1,10 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
-import { useMediaQuery } from "usehooks-ts";
+import { Suspense, useCallback, useState } from "react";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
-import { RefreshCcwIcon } from "lucide-react";
+import { Info, RefreshCcwIcon } from "lucide-react";
 import { useFetchJobs } from "@/app/(main)/hooks/use-fetch-jobs";
-
-import { BsInfoCircle } from "react-icons/bs";
 
 import { JobDetailPanel } from "@/app/(main)/components/JobDetailPanel";
 import { JobsList } from "@/app/(main)/components/JobsList";
@@ -39,13 +37,13 @@ const JobsWrapper = ({ jobs }: JobsWrapperProps) => {
   );
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
-  useEffect(() => {
-    if (isDesktop && data && data.data.length > 0 && !jobId) {
-      setJobId(data.data[0].job.id);
-    }
-  }, [isDesktop, data, jobId]);
+  const selectedJobId =
+    jobId ??
+    (isDesktop && data && data.data.length > 0
+      ? data.data[0].job.id
+      : undefined);
 
-  const open = !isDesktop && !!jobId;
+  const open = !isDesktop && !!selectedJobId;
 
   const handleJobSelect = useCallback((id: number) => {
     setJobId(id);
@@ -74,7 +72,7 @@ const JobsWrapper = ({ jobs }: JobsWrapperProps) => {
     <main className="mx-auto max-w-7xl px-1 py-4 lg:px-4 lg:py-6">
       <div className="flex gap-4">
         {/* Job Listings Sidebar */}
-        <div className="w-full space-y-1.5 lg:w-[28rem]">
+        <div className="w-full space-y-1.5 lg:w-md">
           {/* Total results found in location, sort results dropdown */}
           <div className="mb-4 flex items-center justify-between">
             <div className="text-secondary-foreground mr-4 truncate text-sm text-ellipsis">
@@ -91,19 +89,19 @@ const JobsWrapper = ({ jobs }: JobsWrapperProps) => {
             <JobsList
               data={data.data}
               onJobSelected={handleJobSelect}
-              selectedId={jobId}
+              selectedId={selectedJobId}
             />
           </Suspense>
         </div>
         {/*  job detail component */}
         <JobDetailPanelMobile
-          jobId={jobId}
+          jobId={selectedJobId}
           open={open}
           onOpenChange={handleOpenChange}
         />
         <div className="sticky top-0 hidden h-fit max-h-screen flex-1 pt-6 lg:block">
           <Suspense fallback={<JobDetailPanelSkeleton />}>
-            <JobDetailPanel jobId={jobId} />
+            <JobDetailPanel jobId={selectedJobId} />
           </Suspense>
         </div>
       </div>
@@ -115,7 +113,7 @@ export default JobsWrapper;
 
 export function JobsListSkeleton() {
   return (
-    <div className="w-full space-y-4 lg:w-[28rem]">
+    <div className="w-full space-y-4 lg:w-md">
       <div className="mb-4 flex items-center justify-between">
         <Skeleton className="h-5 w-48" />
         <div className="flex gap-2">
@@ -195,10 +193,10 @@ export function JobsWrapperSkeleton() {
 
 export function EmptyMuted() {
   return (
-    <Empty className="from-muted/50 to-background h-full bg-gradient-to-b from-30%">
+    <Empty className="from-muted/50 to-background h-full bg-linear-to-b from-30%">
       <EmptyHeader>
         <EmptyMedia variant="icon">
-          <BsInfoCircle />
+          <Info />
         </EmptyMedia>
         <EmptyTitle>No Jobs Posted</EmptyTitle>
         <EmptyDescription>

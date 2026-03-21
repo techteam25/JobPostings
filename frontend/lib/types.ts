@@ -1,9 +1,9 @@
 import { MutableRefObject } from "react";
 
 import { CreateOrganizationData } from "@/schemas/organizations";
+import { AnyFormApi } from "@tanstack/form-core";
 
-
-export enum JobType {
+export enum JobTypeEnum {
   FullTime = "Full-time",
   PartTime = "Part-time",
   Contract = "Contract",
@@ -11,22 +11,11 @@ export enum JobType {
   Temporary = "Temporary",
 }
 
-export interface JobCardType {
-  positionName: string;
-  companyName: string;
-  location: string;
-  jobType: JobType;
-  experienceLevel: string;
-  posted: string;
-  jobDescription: string;
-  logoUrl: string | null;
-  onJobSelected: () => void;
-}
-
 export interface TCreateOrganizationFormProps {
   organization: CreateOrganizationData;
   setOrganizationData: (formData: CreateOrganizationData) => void;
-  formRef?: MutableRefObject<any>;
+
+  formRef?: MutableRefObject<AnyFormApi | null>;
 }
 
 export type Organization = {
@@ -204,7 +193,6 @@ export type UserWithProfile = {
   lastLoginAt: Date | null;
 } & { profile: UserProfile | null };
 
-
 export type EmailPreferences = {
   jobMatchNotifications: boolean;
   applicationStatusNotifications: boolean;
@@ -309,6 +297,21 @@ export type PaginatedApiResponse<T> = ApiSuccessResponse<T[]> & {
   pagination: PaginationMeta;
 };
 
+export type ServerActionPaginatedResponse<T> =
+  | PaginatedApiResponse<T>
+  | ApiErrorResponse;
+
+export class ApiError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    message: string,
+    public readonly errorCode = "UNKNOWN_ERROR",
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export type JobAlert = {
   id: number;
   userId: number;
@@ -317,7 +320,9 @@ export type JobAlert = {
   state?: string;
   city?: string;
   searchQuery?: string;
-  jobType?: Array<"full_time" | "part_time" | "contract" | "temporary" | "intern">;
+  jobType?: Array<
+    "full_time" | "part_time" | "contract" | "temporary" | "intern"
+  >;
   skills?: string[];
   experienceLevel?: string[];
   includeRemote: boolean;
@@ -329,7 +334,10 @@ export type JobAlert = {
   updatedAt: string;
 };
 
-export type CreateJobAlertInput = Omit<JobAlert, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'lastSentAt'>;
+export type CreateJobAlertInput = Omit<
+  JobAlert,
+  "id" | "userId" | "createdAt" | "updatedAt" | "lastSentAt"
+>;
 export type UpdateJobAlertInput = Partial<CreateJobAlertInput>;
 
 export type Invitation = {

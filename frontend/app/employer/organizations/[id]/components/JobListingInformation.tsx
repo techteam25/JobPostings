@@ -1,38 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, MoreVertical, Plus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
 
-import { formatToReadableDate } from "@/lib/utils";
 import { Job } from "@/schemas/responses/jobs";
 import { PaginatedApiResponse } from "@/lib/types";
 import {
   useUpdateJob,
   useCreateJob,
 } from "@/app/employer/organizations/hooks/use-manage-jobs";
+import { useJobListingFilters } from "@/app/employer/organizations/[id]/hooks/use-job-listing-filters";
+import { JobListingTable } from "./JobListingTable";
 
 interface JobListingInformationProps {
   jobsList: PaginatedApiResponse<Job>;
@@ -43,79 +26,10 @@ export function JobListingsSection({
   jobsList,
   organizationId,
 }: JobListingInformationProps) {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
+  const { activeTab, setActiveTab, searchTerm, setSearchTerm, filteredJobs } =
+    useJobListingFilters(jobsList.data);
   const { mutateAsync: updateJobAsync } = useUpdateJob(organizationId);
   const { mutateAsync: createJobAsync } = useCreateJob(organizationId);
-
-  const filteredJobs = useMemo(() => {
-    let jobs = jobsList.data;
-
-    // Tab filtering
-    switch (activeTab) {
-      case "open":
-        jobs = jobs.filter((j) => j.isActive);
-        break;
-      case "expiring":
-        jobs = jobs.filter((j) => {
-          if (!j.applicationDeadline || !j.isActive) return false;
-          const deadline = new Date(j.applicationDeadline);
-          const now = new Date();
-          const daysUntil = Math.ceil(
-            (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-          );
-          return daysUntil <= 7 && daysUntil >= 0;
-        });
-        break;
-      case "expired":
-        jobs = jobs.filter((j) => !j.isActive);
-        break;
-    }
-
-    // Search filtering
-    if (searchTerm) {
-      const lower = searchTerm.toLowerCase();
-      jobs = jobs.filter(
-        (j) =>
-          j.title.toLowerCase().includes(lower) ||
-          j.city.toLowerCase().includes(lower),
-      );
-    }
-
-    return jobs;
-  }, [jobsList.data, activeTab, searchTerm]);
-
-  const getStatusBadge = (job: Job) => {
-    if (!job.isActive) {
-      return (
-        <Badge className="border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20">
-          Expired
-        </Badge>
-      );
-    }
-
-    if (job.applicationDeadline) {
-      const deadline = new Date(job.applicationDeadline);
-      const now = new Date();
-      const daysUntil = Math.ceil(
-        (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-      );
-      if (daysUntil <= 7 && daysUntil >= 0) {
-        return (
-          <Badge className="border-amber-200 bg-amber-100 text-amber-700 hover:bg-amber-200">
-            Expiring
-          </Badge>
-        );
-      }
-    }
-
-    return (
-      <Badge className="border-accent/80 bg-accent/10 text-accent/80 hover:bg-accent/20">
-        Active
-      </Badge>
-    );
-  };
 
   const handleCloseJob = async (jobId: number) => {
     await updateJobAsync({ jobId, data: { isActive: false } });
@@ -193,94 +107,12 @@ export function JobListingsSection({
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-background">
-                  <TableHead>Job title</TableHead>
-                  <TableHead>Location (City)</TableHead>
-                  <TableHead>Date posted</TableHead>
-                  <TableHead>Closing date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredJobs.map((job) => (
-                  <TableRow key={job.id} className="hover:bg-background">
-                    <TableCell className="font-medium">
-                      <div>
-                        <div className="text-foreground text-sm font-semibold">
-                          {job.title}
-                        </div>
-                        <div className="text-secondary-foreground mt-1 text-xs">
-                          {job.jobType}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{job.city}</span>
-                    </TableCell>
-                    <TableCell className="text-secondary-foreground">
-                      {formatToReadableDate(job.createdAt)}
-                    </TableCell>
-                    <TableCell className="text-secondary-foreground">
-                      {job.applicationDeadline
-                        ? formatToReadableDate(job.applicationDeadline)
-                        : "—"}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(job)}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="hover:bg-primary hover:text-primary-foreground [&_svg]:size-4"
-                          >
-                            Options
-                            <MoreVertical className="ml-2" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(
-                                `/employer/organizations/${organizationId}/applications`,
-                              )
-                            }
-                          >
-                            View Applicants
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              toast.info("Job editing is coming soon")
-                            }
-                          >
-                            Edit Job
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDuplicate(job)}
-                          >
-                            Duplicate
-                          </DropdownMenuItem>
-                          {job.isActive && (
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleCloseJob(job.id)}
-                            >
-                              Close Job
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <JobListingTable
+            jobs={filteredJobs}
+            organizationId={organizationId}
+            onCloseJob={handleCloseJob}
+            onDuplicate={handleDuplicate}
+          />
         </Card>
       </div>
     </div>

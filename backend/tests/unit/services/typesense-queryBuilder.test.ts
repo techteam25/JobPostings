@@ -1,4 +1,4 @@
-import { TypesenseQueryBuilder } from "@/utils/typesense-queryBuilder";
+import { TypesenseQueryBuilder } from "@shared/infrastructure/typesense.service/typesense-queryBuilder";
 
 describe("TypesenseQueryBuilder", () => {
   let builder: TypesenseQueryBuilder;

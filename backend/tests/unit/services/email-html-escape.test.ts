@@ -8,7 +8,7 @@ import nodemailer from "nodemailer";
  * We unmock EmailService for this file so we can call real methods,
  * then mock the transporter and template loading to capture the HTML output.
  */
-vi.unmock("@/infrastructure/email.service");
+vi.unmock("@shared/infrastructure/email.service");
 
 // Mock nodemailer so no real transport is created
 const sendMailMock = vi.fn().mockResolvedValue({ messageId: "test" });
@@ -16,15 +16,20 @@ vi.spyOn(nodemailer, "createTransport").mockReturnValue({
   sendMail: sendMailMock,
 } as any);
 
-import { EmailService } from "@/infrastructure/email.service";
-import { UserRepository } from "@/repositories/user.repository";
+import { EmailService } from "@shared/infrastructure/email.service";
+import type { EmailPreferencesQueryPort } from "@shared/ports/email-preferences-query.port";
+
+const mockEmailPreferencesQuery: EmailPreferencesQueryPort = {
+  canSendEmailType: vi.fn().mockResolvedValue(true),
+  findEmailPreferencesByUserId: vi.fn().mockResolvedValue(undefined),
+};
 
 describe("EmailService HTML escaping", () => {
   let service: EmailService;
 
   beforeEach(() => {
     sendMailMock.mockClear();
-    service = new EmailService();
+    service = new EmailService(mockEmailPreferencesQuery);
 
     // Stub template loading — return a minimal template with the placeholders
     vi.spyOn(service as any, "loadTemplate").mockResolvedValue(
@@ -41,8 +46,6 @@ describe("EmailService HTML escaping", () => {
     const maliciousName = '<script>alert("xss")</script>';
     const maliciousTitle = '<img onerror="hack()" src=x>';
 
-    vi.spyOn(UserRepository.prototype, "canSendEmailType").mockResolvedValue(true);
-
     await service.sendJobApplicationConfirmation(
       1,
       "user@test.com",
@@ -58,7 +61,9 @@ describe("EmailService HTML escaping", () => {
     expect(html).not.toContain("<img");
 
     // Escaped versions must appear
-    expect(html).toContain("&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;");
+    expect(html).toContain(
+      "&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;",
+    );
     expect(html).toContain("&lt;img onerror=&quot;hack()&quot; src=x&gt;");
   });
 
@@ -75,6 +80,8 @@ describe("EmailService HTML escaping", () => {
     const html = sendMailMock.mock.calls[0]![0].html as string;
 
     expect(html).not.toContain("<b onmouseover");
-    expect(html).toContain("&lt;b onmouseover=&quot;steal()&quot;&gt;Bob&lt;/b&gt;");
+    expect(html).toContain(
+      "&lt;b onmouseover=&quot;steal()&quot;&gt;Bob&lt;/b&gt;",
+    );
   });
 });

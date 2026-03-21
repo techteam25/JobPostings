@@ -2,7 +2,7 @@
 
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { userFixture } from "@tests/utils/fixtures";
-import { beforeEach, expect } from "vitest";
+import { expect } from "vitest";
 import { seedUserScenario } from "@tests/utils/seedScenarios";
 
 describe("Authentication Controller Integration Tests", () => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,14 +14,14 @@ import { Button } from "@/components/ui/button";
 
 import { type SortBy } from "@/context/store";
 
-import { BsChevronDown } from "react-icons/bs";
+import { ChevronDown } from "lucide-react";
 import { useFiltersStore } from "@/context/store";
 
 const sortOptions = {
   recent: "Most Recent",
   relevant: "Most Relevant",
 };
-export const SortByDropDownButton = () => {
+export const SortByDropDownButton = memo(function SortByDropDownButton() {
   const sortBy = useFiltersStore((state) => state.sortBy);
   const setSortBy = useFiltersStore((state) => state.setSortBy);
   return (
@@ -35,7 +36,7 @@ export const SortByDropDownButton = () => {
         >
           <span>
             {sortOptions[sortBy]}
-            <BsChevronDown className="ml-1 inline-flex" />
+            <ChevronDown className="ml-1 inline-flex" />
           </span>
         </Button>
       </DropdownMenuTrigger>
@@ -56,4 +57,5 @@ export const SortByDropDownButton = () => {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+});
+SortByDropDownButton.displayName = "SortByDropDownButton";

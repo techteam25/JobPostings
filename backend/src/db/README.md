@@ -18,6 +18,7 @@ cp .env.example .env
 ```
 
 Required environment variables:
+
 - `DB_HOST`: MySQL server host (default: localhost)
 - `DB_PORT`: MySQL server port (default: 3306)
 - `DB_NAME`: Database name
@@ -27,32 +28,38 @@ Required environment variables:
 ### Database Schema
 
 The database schema is defined in the `schema/` directory:
+
 - `users.ts`: User accounts and authentication
 - `jobsDetails.ts`: Job postings and applications
 
 ## Database Commands
 
 ### Generate Migrations
+
 ```bash
 bun run db:generate
 ```
 
 ### Push Schema to Database
+
 ```bash
 bun run db:push
 ```
 
 ### Run Migrations
+
 ```bash
 bun run db:migrate
 ```
 
 ### Open Drizzle Studio
+
 ```bash
 bun run db:studio
 ```
 
 ### Drop Database Schema
+
 ```bash
 bun run db:drop
 ```
@@ -60,12 +67,14 @@ bun run db:drop
 ## Initial Setup
 
 1. **Create Database**:
+
    ```sql
    CREATE DATABASE jobpostings;
    CREATE DATABASE jobpostings_test; -- For testing
    ```
 
 2. **Push Schema**:
+
    ```bash
    bun run db:push
    ```
@@ -79,17 +88,20 @@ bun run db:drop
 ## Database Structure
 
 ### Users Table
+
 - User authentication and profile information
 - Roles: user, employer, admin
 - Email verification and account status
 
 ### Jobs Table
+
 - Job postings with detailed information
 - Salary ranges and job types
 - Location and remote work options
 - Required skills (JSON format)
 
 ### Job Applications Table
+
 - Application tracking
 - Status management
 - Cover letters and resume links
@@ -104,6 +116,7 @@ The project includes test database utilities:
 - **Data Helpers**: Functions to create test users, jobsDetails, and applications
 
 ### Running Tests with Database
+
 ```bash
 # Make sure test database exists
 CREATE DATABASE jobpostings_test;
@@ -145,16 +158,16 @@ import {
 export const categories = mysqlTable("categories", {
   // Primary key with auto-increment
   id: int("id").primaryKey().autoincrement(),
-  
+
   // Required varchar field
   name: varchar("name", { length: 100 }).notNull(),
-  
+
   // Optional text field
   description: text("description"),
-  
+
   // Boolean with default value
   isActive: boolean("is_active").default(true).notNull(),
-  
+
   // Timestamps with automatic defaults
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
@@ -185,7 +198,7 @@ export const jobsDetails = mysqlTable(
     id: int("id").primaryKey().autoincrement(),
     title: varchar("title", { length: 255 }).notNull(),
     description: text("description").notNull(),
-    
+
     // Enum field with specific allowed values
     jobType: mysqlEnum("job_type", [
       "full-time",
@@ -194,14 +207,14 @@ export const jobsDetails = mysqlTable(
       "volunteer",
       "internship",
     ]).notNull(),
-    
+
     compensationType: mysqlEnum("compensation_type", [
       "paid",
       "missionary",
       "volunteer",
       "stipend",
     ]).notNull(),
-    
+
     isRemote: boolean("is_remote").default(false).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
     applicationDeadline: timestamp("application_deadline"),
@@ -214,9 +227,9 @@ export const jobsDetails = mysqlTable(
     // Check constraint example
     check(
       "active_jobs_must_have_deadline",
-      sql`(${table.isActive} = false OR ${table.applicationDeadline} IS NOT NULL)`
+      sql`(${table.isActive} = false OR ${table.applicationDeadline} IS NOT NULL)`,
     ),
-  ]
+  ],
 );
 ```
 
@@ -245,13 +258,13 @@ type FileMetadata = {
 export const userProfile = mysqlTable("user_profile", {
   id: int("id").primaryKey().autoincrement(),
   userId: int("user_id").notNull().unique(),
-  
+
   // JSON field with type safety
   fileMetadata: json("file_metadata").$type<FileMetadata[]>(),
-  
+
   // JSON for flexible data
   preferences: json("preferences").$type<Record<string, unknown>>(),
-  
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
@@ -283,7 +296,7 @@ export const jobsDetails = mysqlTable(
     index("state_idx").on(table.state),
     index("job_type_idx").on(table.jobType),
     index("is_active_idx").on(table.isActive),
-  ]
+  ],
 );
 ```
 
@@ -308,12 +321,12 @@ export const jobApplications = mysqlTable(
     // Single column indexes
     index("job_idx").on(table.jobId),
     index("applicant_idx").on(table.applicantId),
-    
+
     // Composite indexes for common query patterns
     index("user_applications_idx").on(table.applicantId, table.appliedAt),
     index("job_applications_idx").on(table.jobId, table.appliedAt),
     index("user_job_lookup_idx").on(table.jobId, table.applicantId),
-  ]
+  ],
 );
 ```
 
@@ -336,10 +349,10 @@ export const savedJobs = mysqlTable(
     // Regular indexes for queries
     index("user_idx").on(table.userId),
     index("job_idx").on(table.jobId),
-    
+
     // Unique constraint - user can only save a job once
     unique("unique_user_job").on(table.userId, table.jobId),
-  ]
+  ],
 );
 ```
 
@@ -356,13 +369,13 @@ import { user } from "./users";
 
 export const userProfile = mysqlTable("user_profile", {
   id: int("id").primaryKey().autoincrement(),
-  
+
   // Foreign key using references() - simple syntax
   userId: int("user_id")
     .notNull()
     .unique()
     .references(() => user.id, { onDelete: "cascade" }),
-  
+
   bio: text("bio"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -389,7 +402,7 @@ export const jobsDetails = mysqlTable(
       foreignColumns: [organizations.id],
       name: "fk_job_employer",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 ```
 
@@ -416,13 +429,13 @@ export const applicationNotes = mysqlTable(
       foreignColumns: [jobApplications.id],
       name: "fk_note_application",
     }).onDelete("cascade"),
-    
+
     foreignKey({
       columns: [table.userId],
       foreignColumns: [user.id],
       name: "fk_note_user",
     }).onDelete("cascade"),
-  ]
+  ],
 );
 ```
 
@@ -602,7 +615,7 @@ import { skills } from "./skills";
 // Junction table (linking table)
 export const jobSkills = mysqlTable("job_skills", {
   id: int("id").primaryKey().autoincrement(),
-  
+
   // Foreign keys to both tables
   jobId: int("job_id")
     .notNull()
@@ -610,7 +623,7 @@ export const jobSkills = mysqlTable("job_skills", {
   skillId: int("skill_id")
     .notNull()
     .references(() => skills.id, { onDelete: "cascade" }),
-  
+
   // Additional attributes for the relationship
   isRequired: boolean("is_required").default(false).notNull(),
 });
@@ -678,7 +691,7 @@ export const jobApplicationsRelations = relations(
     }),
     // One-to-many: application has many notes
     notes: many(applicationNotes),
-  })
+  }),
 );
 ```
 
@@ -701,7 +714,7 @@ export const applicationNotesRelations = relations(
       fields: [applicationNotes.applicationId],
       references: [jobApplications.id],
     }),
-  })
+  }),
 );
 ```
 
@@ -721,15 +734,17 @@ export class JobRepository {
       where: (jobs, { eq }) => eq(jobs.id, jobId),
       with: {
         employer: true, // Include employer (1:1)
-        applications: {  // Include applications (1:m)
+        applications: {
+          // Include applications (1:m)
           with: {
             applicant: true, // Include applicant for each application
-            notes: true,     // Include notes for each application
+            notes: true, // Include notes for each application
           },
         },
-        skills: {         // Include skills through junction table (m:m)
+        skills: {
+          // Include skills through junction table (m:m)
           with: {
-            skill: true,  // Include actual skill data
+            skill: true, // Include actual skill data
           },
         },
       },
@@ -754,14 +769,17 @@ export class JobRepository {
 ## Troubleshooting
 
 ### Connection Issues
+
 - Verify MySQL server is running
 - Check firewall settings
 - Ensure user has proper permissions
 
 ### Migration Issues
+
 - Run `bun run db:drop` and recreate if needed
 - Check for conflicting schema changes
 
 ### Test Database Issues
+
 - Ensure test database exists
 - Verify test user has permissions on test database

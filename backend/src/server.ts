@@ -1,15 +1,15 @@
 import type { Server } from "http";
 import app, { initializeInfrastructure } from "./app";
-import { env, isDevelopment } from "./config/env";
+import { env, isDevelopment } from "@shared/config/env";
 import {
   checkDatabaseConnection,
   closeDatabaseConnection,
-} from "./db/connection";
+} from "@shared/db/connection";
 
-import { redisCacheService } from "@/infrastructure/redis-cache.service";
-import { redisRateLimiterService } from "@/infrastructure/redis-rate-limiter.service";
-import logger from "@/logger";
-import { queueService } from "@/infrastructure/queue.service";
+import { redisCacheService } from "@shared/infrastructure/redis-cache.service";
+import { redisRateLimiterService } from "@shared/infrastructure/redis-rate-limiter.service";
+import logger from "@shared/logger";
+import { queueService } from "@shared/infrastructure/queue.service";
 
 let server: Server | null = null;
 
@@ -24,7 +24,7 @@ async function startServer() {
       }
       logger.info("Database connection successful");
     } catch (err) {
-      logger.error("Failed to connect to database");
+      logger.error(err, "Failed to connect to database");
       process.exit(1);
     }
 
@@ -125,7 +125,7 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 // Catch unhandled promise rejections — log and shut down gracefully
 process.on("unhandledRejection", (reason) => {
   logger.error({ err: reason }, "Unhandled promise rejection");
-  gracefulShutdown("unhandledRejection");
+  gracefulShutdown("unhandledRejection").catch(console.error);
 });
 
 // Catch uncaught exceptions — log and exit (state may be corrupted)

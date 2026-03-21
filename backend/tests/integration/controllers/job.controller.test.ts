@@ -238,7 +238,10 @@ describe("Job Controller Integration Tests", () => {
       });
 
       it("should allow recruiter role to create a job", async () => {
-        await seedUserWithRoleScenario("recruiter", "recruiter.user@example.com");
+        await seedUserWithRoleScenario(
+          "recruiter",
+          "recruiter.user@example.com",
+        );
 
         const loginResponse = await request
           .post("/api/auth/sign-in/email")

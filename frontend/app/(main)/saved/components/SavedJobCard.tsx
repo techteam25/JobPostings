@@ -1,26 +1,33 @@
 "use client";
 
+import { memo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { SavedJob } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { BsBookmarkFill } from "react-icons/bs";
-import { ImOffice } from "react-icons/im";
+import { Bookmark, Building2 } from "lucide-react";
 import { formatToRelativeDate } from "@/lib/utils";
-import { removeSavedJobForUser } from "@/lib/api";
+import { useUnsaveJobMutation } from "@/hooks/use-saved-jobs";
 
 interface SavedJobCardProps {
   savedJob: SavedJob;
 }
 
-export const SavedJobCard = ({ savedJob }: SavedJobCardProps) => {
+export const SavedJobCard = memo(function SavedJobCard({
+  savedJob,
+}: SavedJobCardProps) {
+  const unsaveJob = useUnsaveJobMutation();
+
+  const handleRemove = useCallback(() => {
+    unsaveJob.mutate(savedJob.job.id);
+  }, [savedJob.job.id, unsaveJob]);
   return (
     <Card className="group overflow-hidden transition-shadow duration-300 hover:shadow-lg">
       <div className="p-6">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center justify-start">
-            <div className="flex size-8 flex-shrink-0 justify-center rounded-full">
-              <ImOffice className="text-muted-foreground mr-2 size-5" />
+            <div className="flex size-8 shrink-0 justify-center rounded-full">
+              <Building2 className="text-muted-foreground mr-2 size-5" />
             </div>
             <span className="text-secondary-foreground line-clamp-1 text-sm text-ellipsis">
               {savedJob.job.employer.name}
@@ -30,9 +37,9 @@ export const SavedJobCard = ({ savedJob }: SavedJobCardProps) => {
             variant="ghost"
             size="icon"
             className="text-secondary-foreground hover:text-foreground cursor-pointer hover:bg-transparent"
-            onClick={() => removeSavedJobForUser(savedJob.job.id)}
+            onClick={handleRemove}
           >
-            <BsBookmarkFill />
+            <Bookmark />
           </Button>
         </div>
 
@@ -75,4 +82,5 @@ export const SavedJobCard = ({ savedJob }: SavedJobCardProps) => {
       </div>
     </Card>
   );
-};
+});
+SavedJobCard.displayName = "SavedJobCard";

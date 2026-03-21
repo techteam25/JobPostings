@@ -7,8 +7,6 @@ import {
   remoteOnlySlice,
   serviceRoleSlice,
   sortBySlice,
-  savedJobsSlice,
-  type SavedJobsState,
   applicationFormSlice,
   type ApplicationFormState,
 } from "./slices";
@@ -71,10 +69,6 @@ export const useFiltersStore = create<FiltersState>()(
       }),
     },
   ),
-);
-
-export const useSavedJobsStore = create<SavedJobsState>()((...args) =>
-  savedJobsSlice(...args),
 );
 
 export const useApplicationStore = create<ApplicationFormState>()((...args) =>

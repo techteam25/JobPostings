@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@/lib/utils";
-import { JobType } from "@/lib/types";
+import { JobTypeEnum } from "@/lib/types";
 import { useJobSaved } from "@/hooks/use-job-saved";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,21 +13,22 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import { Bookmark } from "lucide-react";
-import { ImOffice } from "react-icons/im";
+import { Bookmark, Building2 } from "lucide-react";
+import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 
 interface JobCardType {
   jobId: number;
   positionName: string;
   companyName: string;
   location: string;
-  jobType: JobType;
+  jobType: JobTypeEnum;
   experienceLevel: string;
   posted: string;
   jobDescription: string;
   logoUrl: string | null;
   onJobSelected: () => void;
   isSelected: boolean;
+  hasSaved: boolean;
 }
 
 export const JobCard = memo(
@@ -41,10 +42,15 @@ export const JobCard = memo(
     location,
     experienceLevel,
     onJobSelected,
-    logoUrl,
     isSelected,
+    hasSaved: initialHasSaved,
   }: JobCardType) => {
-    const { hasSaved, toggleSaved } = useJobSaved(jobId);
+    const { isAuthenticated } = useAuthenticationStatus();
+    const { hasSaved, toggleSaved } = useJobSaved(
+      jobId,
+      initialHasSaved,
+      isAuthenticated,
+    );
 
     const handleSaveJobChange = async () => {
       await toggleSaved();
@@ -53,7 +59,7 @@ export const JobCard = memo(
     return (
       <Card
         className={cn(
-          "border-l-border hover:bg-secondary my-2 cursor-pointer border-l-2 shadow-none transition-colors",
+          "border-l-border bg-background hover:bg-card my-2 cursor-pointer border-l-2 shadow-none transition-colors",
           isSelected && "border-accent border-2",
         )}
         onClick={onJobSelected}
@@ -61,7 +67,7 @@ export const JobCard = memo(
         <CardContent className="p-4">
           <div className="mb-2 flex items-start justify-between">
             <div className="flex items-center gap-2">
-              <div className="text-primary-foreground flex size-8 items-center justify-center rounded text-xs font-bold md:h-10 md:w-10">
+              <div className="text -foreground flex size-8 items-center justify-center rounded text-xs font-bold md:h-10 md:w-10">
                 {/*{logoUrl ? (*/}
                 {/*  <Image*/}
                 {/*    src={logoUrl}*/}
@@ -74,7 +80,7 @@ export const JobCard = memo(
                 {/*) : (*/}
                 {/*  <span>name.charAt(0)</span>*/}
                 {/*)}*/}
-                <ImOffice className="text-muted-foreground mr-2 size-5" />
+                <Building2 className="text-muted-foreground mr-2 size-5" />
               </div>
               <div>
                 <div className="text-sm font-semibold">{companyName}</div>

@@ -20,10 +20,8 @@ export const useSendInvitation = (organizationId: number) => {
       });
       toast.success("Invitation sent successfully");
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to send invitation",
-      );
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to send invitation");
     },
   });
 };
@@ -44,10 +42,8 @@ export const useCancelInvitation = (organizationId: number) => {
       });
       toast.success("Invitation cancelled");
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to cancel invitation",
-      );
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to cancel invitation");
     },
   });
 };
@@ -65,10 +61,8 @@ export const useAcceptInvitation = () => {
     onSuccess: () => {
       toast.success("Invitation accepted! Welcome to the organization.");
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to accept invitation",
-      );
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to accept invitation");
     },
   });
 };

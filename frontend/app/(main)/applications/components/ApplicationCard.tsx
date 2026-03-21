@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,12 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ImOffice } from "react-icons/im";
-import { MdCancelScheduleSend } from "react-icons/md";
-
-import { MoreVertical } from "lucide-react";
+import { Building2, MoreVertical, XCircle } from "lucide-react";
 import { formatToRelativeDate } from "@/lib/utils";
 import { withdrawJobApplication } from "@/lib/api";
+import { toast } from "sonner";
 
 interface ApplicationCardProps {
   application: {
@@ -54,7 +53,16 @@ const formatStatus = (status: string) => {
   return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
-export const ApplicationCard = ({ application }: ApplicationCardProps) => {
+export const ApplicationCard = memo(function ApplicationCard({
+  application,
+}: ApplicationCardProps) {
+  const handleWithdraw = useCallback(async () => {
+    const result = await withdrawJobApplication(application.applicationId);
+    if (!result.success) {
+      toast.error(result.message);
+    }
+  }, [application.applicationId]);
+
   return (
     <Card className="group overflow-hidden transition-shadow duration-300 hover:shadow-lg">
       <div className="p-6">
@@ -62,7 +70,7 @@ export const ApplicationCard = ({ application }: ApplicationCardProps) => {
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center justify-start">
             <div className="flex size-8 flex-shrink-0 justify-center rounded-full">
-              <ImOffice className="text-muted-foreground mr-2 size-5" />
+              <Building2 className="text-muted-foreground mr-2 size-5" />
             </div>
             <span className="text-secondary-foreground line-clamp-1 text-sm text-ellipsis">
               {application.companyName}
@@ -82,11 +90,9 @@ export const ApplicationCard = ({ application }: ApplicationCardProps) => {
               <DropdownMenuItem>
                 <Button
                   variant="ghost"
-                  onClick={async () =>
-                    await withdrawJobApplication(application.applicationId)
-                  }
+                  onClick={handleWithdraw}
                 >
-                  <MdCancelScheduleSend className="mr-1 size-4" />
+                  <XCircle className="mr-1 size-4" />
                   Withdraw Application
                 </Button>
               </DropdownMenuItem>
@@ -132,4 +138,5 @@ export const ApplicationCard = ({ application }: ApplicationCardProps) => {
       </div>
     </Card>
   );
-};
+});
+ApplicationCard.displayName = "ApplicationCard";

@@ -1,4 +1,4 @@
-import { ValidationError } from "@/utils/errors";
+import { ValidationError } from "@shared/errors";
 
 type Status =
   | "pending"

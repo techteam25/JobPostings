@@ -4,13 +4,14 @@ import { reset, seed } from "drizzle-seed";
 import { eq, sql } from "drizzle-orm";
 
 import * as schema from "./schema";
-import { userProfile, userEmailPreferences } from "@/db/schema";
+import { userProfile } from "@/db/schema";
 import { organizations, organizationMembers } from "@/db/schema";
 import { jobsDetails } from "@/db/schema";
-import { env } from "@/config/env";
+import { env } from "@shared/config/env";
 import { auth } from "@/utils/auth";
-import logger from "@/logger";
-import { userOnBoarding } from "./schema";
+import logger from "@shared/logger";
+import { userEmailPreferences, userOnBoarding } from "./schema";
+import crypto from "crypto";
 
 const connection = mysql.createPool({
   host: env.DB_HOST,
@@ -54,6 +55,22 @@ async function runSeed() {
         name: faker.person.firstName() + " " + faker.person.lastName(),
         image: faker.image.avatar(),
       },
+    });
+
+    const unsubscribeToken = crypto.randomBytes(32).toString("hex");
+
+    await db.insert(userEmailPreferences).values({
+      userId: idx + 1,
+      unsubscribeToken,
+      unsubscribeTokenExpiresAt: new Date(),
+      jobMatchNotifications: true,
+      applicationStatusNotifications: true,
+      savedJobUpdates: true,
+      weeklyJobDigest: true,
+      monthlyNewsletter: true,
+      marketingEmails: true,
+      accountSecurityAlerts: true,
+      globalUnsubscribe: false,
     });
   }
 
@@ -206,14 +223,17 @@ async function runSeed() {
       additionalMembers.push({
         userId: userId++,
         organizationId: orgId,
-        role: ["admin", "recruiter", "member"][j % 3],
+        role: ["admin", "recruiter", "member"][j % 3] as
+          | "owner"
+          | "admin"
+          | "recruiter"
+          | "member",
         isActive: true,
       });
     }
   }
 
   if (additionalMembers.length > 0) {
-    // @ts-ignore
     await db.insert(organizationMembers).values(additionalMembers);
   }
 

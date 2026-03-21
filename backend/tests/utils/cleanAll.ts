@@ -1,7 +1,5 @@
-import { sql } from "drizzle-orm";
-import { db } from "@/db/connection";
-import { connection } from "@/db/connection";
-import { redisCacheService } from "@/infrastructure/redis-cache.service";
+import { connection } from "@shared/db/connection";
+import { redisCacheService } from "@shared/infrastructure/redis-cache.service";
 
 const tableNames = [
   "job_alert_matches",

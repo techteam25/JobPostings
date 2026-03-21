@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,7 @@ interface JobAlertCardProps {
   isPauseLoading?: boolean;
 }
 
-export function JobAlertCard({ alert, onEdit, onDelete, onTogglePause, isPauseLoading }: JobAlertCardProps) {
+export const JobAlertCard = memo(function JobAlertCard({ alert, onEdit, onDelete, onTogglePause, isPauseLoading }: JobAlertCardProps) {
   const getStatusBadge = () => {
     if (!alert.isActive) {
       return <Badge variant="secondary">Inactive</Badge>;
@@ -149,4 +150,5 @@ export function JobAlertCard({ alert, onEdit, onDelete, onTogglePause, isPauseLo
       </CardFooter>
     </Card>
   );
-}
+});
+JobAlertCard.displayName = "JobAlertCard";

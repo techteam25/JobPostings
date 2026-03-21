@@ -19,9 +19,9 @@ interface LayoutProps {
 export default async function Layout({ children, params }: LayoutProps) {
   const { id } = await params;
 
-  const organization = await getOrganizationAction(Number(id));
+  const result = await getOrganizationAction(Number(id));
 
-  if (!organization) {
+  if (!result.success) {
     return (
       <Empty>
         <EmptyHeader>
@@ -40,9 +40,9 @@ export default async function Layout({ children, params }: LayoutProps) {
 
   return (
     <LayoutClient
-      organizationId={organization.id}
-      organizationName={organization.name}
-      organizationLogoUrl={organization.logoUrl}
+      organizationId={result.data.id}
+      organizationName={result.data.name}
+      organizationLogoUrl={result.data.logoUrl}
     >
       {children}
     </LayoutClient>

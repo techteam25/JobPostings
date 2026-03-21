@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import { formatPostedDate } from "@/lib/utils";
 import { JobCard } from "@/components/JobCard";
 
-import { JobType } from "@/lib/types";
-import type { JobsResponse, JobWithEmployer } from "@/schemas/responses/jobs";
+import { JobTypeEnum } from "@/lib/types";
+import type { JobWithEmployer } from "@/schemas/responses/jobs";
 
 interface JobsListProps {
   data: JobWithEmployer[];
@@ -19,11 +19,11 @@ export const JobsList = ({
 }: JobsListProps) => {
   const jobs = useMemo(
     () =>
-      data.map(({ job, employer }) => (
+      data.map(({ job, employer, hasSaved }) => (
         <JobCard
           key={job.id}
           jobId={job.id}
-          jobType={job.jobType as JobType}
+          jobType={job.jobType as JobTypeEnum}
           jobDescription={job.description}
           companyName={employer!.name}
           experienceLevel={job.experience || "Not Specified"}
@@ -33,6 +33,7 @@ export const JobsList = ({
           posted={formatPostedDate(job.createdAt)}
           logoUrl={employer?.logoUrl || null}
           onJobSelected={() => onJobSelected(job.id)}
+          hasSaved={hasSaved ?? false}
         />
       )),
     [data, selectedId, onJobSelected],

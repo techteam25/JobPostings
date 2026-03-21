@@ -9,9 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { MoreVertical } from "lucide-react";
-import { BsDownload, BsTrash3Fill } from "react-icons/bs";
-import { TbReplace } from "react-icons/tb";
+import { MoreVertical, Download, Trash2, ArrowLeftRight } from "lucide-react";
 
 const ResumeContextMenu = () => {
   return (
@@ -29,19 +27,19 @@ const ResumeContextMenu = () => {
         <DropdownMenuGroup className="flex flex-col space-y-2">
           <DropdownMenuItem className="hover:bg-secondary cursor-pointer rounded-lg p-2">
             <div className="grid grid-cols-[auto_1fr] items-center gap-2 font-medium">
-              <BsDownload className="text-secondary-foreground mr-2 size-5" />
+              <Download className="text-secondary-foreground mr-2 size-5" />
               <span>Download</span>
             </div>
           </DropdownMenuItem>
           <DropdownMenuItem className="hover:bg-secondary cursor-pointer rounded-lg p-2">
             <div className="grid grid-cols-[auto_1fr] items-center gap-2 font-medium">
-              <TbReplace className="text-secondary-foreground mr-2 size-5" />
+              <ArrowLeftRight className="text-secondary-foreground mr-2 size-5" />
               <span>Replace file</span>
             </div>
           </DropdownMenuItem>
           <DropdownMenuItem className="hover:bg-secondary cursor-pointer rounded-lg p-2">
             <div className="grid grid-cols-[auto_1fr] items-center gap-2 font-medium">
-              <BsTrash3Fill className="text-destructive mr-2 size-5" />
+              <Trash2 className="text-destructive mr-2 size-5" />
               <span className="text-destructive">Delete</span>
             </div>
           </DropdownMenuItem>

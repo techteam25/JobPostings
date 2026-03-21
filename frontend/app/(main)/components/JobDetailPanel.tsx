@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Bookmark, Menu } from "lucide-react";
+import { Bookmark, Building2, Menu } from "lucide-react";
 
 import { useFetchJobDetails } from "@/app/(main)/hooks/use-fetch-jobs";
 import { useJobSaved } from "@/hooks/use-job-saved";
@@ -15,26 +15,32 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ImOffice } from "react-icons/im";
 import Link from "next/link";
+import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 
 interface JobDetailPanelProps {
   jobId: number | undefined;
 }
 
 export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
+  const { isAuthenticated } = useAuthenticationStatus();
+
   const {
     data: jobDetails,
     fetchingJobDetails,
     fetchJobDetailsError,
   } = useFetchJobDetails(jobId);
 
-  const { hasSaved, toggleSaved } = useJobSaved(jobId);
-
   const jobData = useMemo(() => {
     if (!jobDetails?.success) return null;
     return jobDetails.data;
   }, [jobDetails]);
+
+  const { hasSaved, toggleSaved } = useJobSaved(
+    jobId,
+    jobData?.hasSaved ?? false,
+    isAuthenticated,
+  );
 
   if (fetchingJobDetails || !jobDetails) {
     return (
@@ -58,8 +64,8 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
       <CardContent className="max-h-screen p-6">
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="text-primary-foreground flex size-16 items-center justify-center rounded font-bold">
-              <ImOffice className="text-muted-foreground mr-2 size-5" />
+            <div className="text-foreground flex size-16 items-center justify-center rounded font-bold">
+              <Building2 className="text-muted-foreground mr-2 size-5" />
             </div>
             <div>
               <div className="font-semibold">{employer?.name}</div>
@@ -91,7 +97,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
             </Tooltip>
             <Button
               asChild
-              className="bg-foreground text-primary-foreground hover:bg-foreground/95 cursor-pointer"
+              className="bg-primary text-primary-foreground hover:bg-primary/95 cursor-pointer"
             >
               <Link href={`/applications/new?jobId=${job.id}`}>Apply Now</Link>
             </Button>
@@ -103,11 +109,11 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
           {job.city || ""}, {job.state || "" || job.country || ""}
         </div>
 
-        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-6">
-          <h2 className="mb-2 text-lg font-semibold">
+        <div className="bg-primary/10 border-border mb-6 rounded-lg border p-6">
+          <h2 className="text-foreground mb-2 text-lg font-semibold">
             Is your resume a good match?
           </h2>
-          <p className="mb-4 text-sm text-gray-700">
+          <p className="text-secondary-foreground mb-4 text-sm">
             Use AI to find out how well the skills on your resume fit this job
             description.
           </p>
@@ -117,7 +123,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
         </div>
 
         <div className="prose max-w-none">
-          <p className="mb-4 text-gray-700">{job.description || ""}</p>
+          <p className="text-card-foreground mb-4">{job.description || ""}</p>
         </div>
       </CardContent>
     </Card>
@@ -127,13 +133,13 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
 function SkeletonCard() {
   return (
     <div className="flex flex-col space-y-3">
-      <Skeleton className="h-[40px] w-auto rounded-xl" />
+      <Skeleton className="h-10 w-auto rounded-xl" />
       <div className="space-y-2">
         <div>
-          <Skeleton className="h-4 w-[250px]" />
+          <Skeleton className="h-4 w-62.5" />
         </div>
         <Skeleton className="h-4 w-auto" />
-        <Skeleton className="h-4 w-[200px]" />
+        <Skeleton className="h-4 w-50" />
       </div>
     </div>
   );

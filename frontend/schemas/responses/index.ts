@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const successResponseSchema = z.object({
+export const successResponseSchema = z.object({
   success: z.literal(true),
   message: z.string(),
   timestamp: z.string().optional(),

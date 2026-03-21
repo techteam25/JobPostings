@@ -2,6 +2,7 @@ import { z } from "@/swagger/registry";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { jobApplications, jobInsights, jobsDetails, skills } from "@/db/schema";
 import { Organization } from "@/validations/organization.validation";
+import { JobAlertMatch } from "@/validations/jobAlerts.validation";
 
 // Base schema WITHOUT refinements (for use with .partial())
 const insertJobBaseSchema = createInsertSchema(jobsDetails, {
@@ -10,7 +11,9 @@ const insertJobBaseSchema = createInsertSchema(jobsDetails, {
     .min(5, "Title must be at least 5 characters")
     .max(255)
     .trim(),
-  description: z.string().max(50_000, "Description must not exceed 50,000 characters"),
+  description: z
+    .string()
+    .max(50_000, "Description must not exceed 50,000 characters"),
   city: z.string().min(1, "City is required").max(255).trim(),
   state: z.string().max(50).trim().optional(),
   country: z.string().max(100).trim().optional().default("United States"),
@@ -45,7 +48,6 @@ export const insertJobInsightsSchema = createInsertSchema(jobInsights, {
 
 export const selectJobSchema = createSelectSchema(jobsDetails);
 export const selectJobInsightsSchema = createSelectSchema(jobInsights);
-export const selectJobApplicationSchema = createSelectSchema(jobApplications);
 export const selectJobSkillsSchema = createSelectSchema(skills);
 
 // Update schema: use base schema, apply partial FIRST, then add refinements
@@ -158,12 +160,12 @@ export type JobSkills = z.infer<typeof selectJobSkillsSchema>;
 export type JobInsight = z.infer<typeof selectJobInsightsSchema>;
 export type NewJob = z.infer<typeof insertJobSchema>;
 export type UpdateJob = z.infer<typeof updateJobInputSchema>;
-export type JobApplication = z.infer<typeof selectJobApplicationSchema>;
 export type NewJobApplication = z.infer<typeof insertJobApplicationSchema>;
 export type UpdateJobApplication = z.infer<typeof updateJobApplicationSchema>;
 export type UpdateJobInsights = z.infer<typeof updateJobInsightsSchema>;
 export type JobWithEmployer = {
   hasApplied: boolean;
+  hasSaved: boolean;
   job: Job;
   employer: Pick<
     Organization,
@@ -174,7 +176,28 @@ export type JobWithSkills = Job & {
   skills: JobSkills["name"][];
   employer: { name: string };
 };
+export type OrganizationJobInsightInterface = {
+  total: number;
+  active: number;
+  inactive: number;
+  totalViews: number;
+  totalApplications: number;
+};
 export type CreateJobSchema = z.infer<typeof createJobSchema>;
 export type GetJobSchema = z.infer<typeof getJobSchema>;
 export type UpdateJobSchema = z.infer<typeof updateJobSchema>;
 export type DeleteJobSchema = z.infer<typeof deleteJobSchema>;
+export type UnsentMatchesSchema = JobAlertMatch & {
+  job: Pick<
+    Job,
+    | "id"
+    | "jobType"
+    | "title"
+    | "city"
+    | "state"
+    | "country"
+    | "description"
+    | "experience"
+    | "createdAt"
+  > & { employer: { name: string } };
+};

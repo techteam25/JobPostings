@@ -8,8 +8,13 @@ import {
   organizationInvitations,
 } from "@/db/schema";
 import { getJobSchema } from "@/validations/job.validation";
-import { getJobApplicationSchema } from "@/validations/jobApplications.validation";
+import {
+  Application,
+  getJobApplicationSchema,
+} from "@/validations/jobApplications.validation";
 import { searchParams } from "@/validations/base.validation";
+import { PaginationMeta } from "@shared/types";
+import { User } from "@/validations/userProfile.validation";
 
 // Zod schemas for validation
 export const selectOrganizationSchema = createSelectSchema(organizations);
@@ -334,22 +339,6 @@ export type OrganizationMember = z.infer<
   typeof selectOrganizationMembersSchema
 >;
 
-export type OrganizationWithMembers = Organization & {
-  members: {
-    id: number;
-    organizationId: number;
-    userId: number;
-    role: "owner" | "admin" | "recruiter" | "member";
-    isActive: boolean;
-    createdAt: Date;
-    updatedAt: Date;
-    memberName: string;
-    memberEmail: string;
-    memberEmailVerified: boolean;
-    memberStatus: string;
-  }[];
-};
-
 export type GetOrganizationSchema = z.infer<typeof getOrganizationSchema>;
 export type CreateOrganizationSchema = z.infer<typeof createOrganizationSchema>;
 export type UploadOrganizationLogoSchema = z.infer<
@@ -389,7 +378,7 @@ export const selectOrganizationInvitationSchema = createSelectSchema(
 export const insertOrganizationInvitationSchema = createInsertSchema(
   organizationInvitations,
   {
-    email: z.string().email("Invalid email address").toLowerCase(),
+    email: z.email("Invalid email address").toLowerCase(),
     role: z.enum(["owner", "admin", "recruiter", "member"]),
   },
 ).omit({
@@ -457,3 +446,82 @@ export type GetOrganizationInvitationDetailsInput = z.infer<
 export type CancelOrganizationInvitationInput = z.infer<
   typeof cancelOrganizationInvitationSchema
 >;
+
+export type OrganizationWithMembersInterface = Organization & {
+  members: {
+    id: number;
+    userId: number;
+    organizationId: number;
+    role: "owner" | "admin" | "recruiter" | "member";
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+};
+
+export type OrganizationSearchResultInterface = {
+  items: Organization[];
+  pagination: PaginationMeta;
+};
+
+export type OrganizationMemberInterface = OrganizationMember & {
+  user: {
+    id: number;
+    status: string;
+    fullName: string;
+    email: string;
+    emailVerified: boolean;
+  };
+};
+
+export type UserOrganizationInterface = OrganizationMember & {
+  organization: Organization;
+};
+
+export type OrganizationWithMembers = {
+  organizations: Organization;
+  organization_members: OrganizationMember;
+  users: User;
+}[];
+
+export type JobApplicationsForOrganizationInterface = Pick<
+  Application,
+  "status" | "coverLetter" | "resumeUrl" | "appliedAt" | "reviewedAt"
+> & { applicant: { id: number; fullName: string; email: string } };
+
+export type ApplicationsForOrganizationInterface = {
+  items: {
+    applicationId: number;
+    jobId: number;
+    applicantName: string;
+    applicantEmail: string;
+    status:
+      | "pending"
+      | "reviewed"
+      | "shortlisted"
+      | "interviewing"
+      | "rejected"
+      | "hired"
+      | "withdrawn";
+    coverLetter: string | null;
+    resumeUrl: string | null;
+    appliedAt: Date;
+    reviewedAt: Date | null;
+    jobTitle: string;
+    organizationId: number;
+    organizationName: string;
+  }[];
+  pagination: PaginationMeta;
+};
+
+export type OrganizationInvitationDetailsInterface = OrganizationInvitation & {
+  organization: {
+    id: number;
+    name: string;
+  };
+  inviter: {
+    id: number;
+    fullName: string;
+    email: string;
+  };
+};

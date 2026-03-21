@@ -15,7 +15,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { RichTextEditor } from "@/components/common";
+import { DynamicRichTextEditor } from "@/components/common";
 
 const defaultValues: GeneralCompanyInfoData = {
   name: "",
@@ -187,8 +187,8 @@ const GeneralCompanyInfoForm = ({
                 return (
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>Mission *</FieldLabel>
-                    <RichTextEditor
-                      value={field.state.value}
+                    <DynamicRichTextEditor
+                      defaultValue={field.state.value}
                       onChange={(value) => field.handleChange(value)}
                       onBlur={field.handleBlur}
                       placeholder="Describe your company's mission..."

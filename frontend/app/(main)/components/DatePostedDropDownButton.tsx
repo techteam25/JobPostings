@@ -1,6 +1,7 @@
 "use client";
 
-import { BsChevronDown } from "react-icons/bs";
+import { memo } from "react";
+import { ChevronDown } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -12,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { DatePosted, useFiltersStore } from "@/context/store";
 
-export const DatePostedDropDownButton = () => {
+export const DatePostedDropDownButton = memo(function DatePostedDropDownButton() {
   const datePosted = useFiltersStore((state) => state.datePosted);
   const setDatePosted = useFiltersStore((state) => state.setDatePosted);
   return (
@@ -26,7 +27,7 @@ export const DatePostedDropDownButton = () => {
           className="hover:text-foreground cursor-pointer hover:bg-transparent"
         >
           Date Posted
-          <BsChevronDown className="ml-1" />
+          <ChevronDown className="ml-1" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">
@@ -50,4 +51,5 @@ export const DatePostedDropDownButton = () => {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+});
+DatePostedDropDownButton.displayName = "DatePostedDropDownButton";

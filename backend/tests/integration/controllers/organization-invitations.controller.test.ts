@@ -1,5 +1,5 @@
 import { eq, and } from "drizzle-orm";
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 import {
   organizationInvitations,
   organizationMembers,
@@ -8,10 +8,18 @@ import {
 
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { seedUserWithRoleScenario } from "@tests/utils/seedScenarios";
-import { expect, beforeEach, describe, it, beforeAll, afterAll, vi } from "vitest";
+import {
+  expect,
+  beforeEach,
+  describe,
+  it,
+  beforeAll,
+  afterAll,
+  vi,
+} from "vitest";
 import { auth } from "@/utils/auth";
 import { randomUUID } from "crypto";
-import { queueService } from "@/infrastructure/queue.service";
+import { queueService } from "@shared/infrastructure/queue.service";
 
 describe("Organization Invitations Controller Integration Tests", async () => {
   const { faker } = await import("@faker-js/faker");
@@ -63,7 +71,10 @@ describe("Organization Invitations Controller Integration Tests", async () => {
         expect(response.body).toHaveProperty("success", true);
         expect(response.body).toHaveProperty("data");
         expect(response.body.data).toHaveProperty("invitationId");
-        expect(response.body.data).toHaveProperty("message", "Invitation sent successfully");
+        expect(response.body.data).toHaveProperty(
+          "message",
+          "Invitation sent successfully",
+        );
       });
 
       it("should fail when inviting existing member", async () => {
@@ -230,9 +241,10 @@ describe("Organization Invitations Controller Integration Tests", async () => {
         throw new Error("Failed to create invitation");
       }
 
-      const createdInvitation = await db.query.organizationInvitations.findFirst({
-        where: eq(organizationInvitations.id, invitation.id),
-      });
+      const createdInvitation =
+        await db.query.organizationInvitations.findFirst({
+          where: eq(organizationInvitations.id, invitation.id),
+        });
       if (!createdInvitation) {
         throw new Error("Failed to find created invitation");
       }
@@ -365,7 +377,10 @@ describe("Organization Invitations Controller Integration Tests", async () => {
 
       TestHelpers.validateApiResponse(response, 200);
       expect(response.body).toHaveProperty("success", true);
-      expect(response.body.data).toHaveProperty("message", "Invitation accepted successfully");
+      expect(response.body.data).toHaveProperty(
+        "message",
+        "Invitation accepted successfully",
+      );
 
       // Verify membership was created
       const member = await db.query.organizationMembers.findFirst({
@@ -428,7 +443,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
         expiresAt: expiredDate,
       });
 
-      const expiredUser = await auth.api.signUpEmail({
+      await auth.api.signUpEmail({
         body: {
           email: "expired@example.com",
           password: "Password@123",
@@ -452,7 +467,7 @@ describe("Organization Invitations Controller Integration Tests", async () => {
 
     it("should fail for already accepted invitation returning 400", async () => {
       // Accept invitation first
-      const inviteeUser = await auth.api.signUpEmail({
+      await auth.api.signUpEmail({
         body: {
           email: inviteeEmail,
           password: "Password@123",

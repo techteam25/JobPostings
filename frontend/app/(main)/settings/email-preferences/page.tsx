@@ -10,7 +10,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { BsBookmarkFill } from "react-icons/bs";
+import { Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -26,7 +26,7 @@ export default async function EmailPreferencesPage() {
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <BsBookmarkFill />
+            <Bookmark />
           </EmptyMedia>
           <EmptyTitle>Failed to Fetch your preferences</EmptyTitle>
           <EmptyDescription>

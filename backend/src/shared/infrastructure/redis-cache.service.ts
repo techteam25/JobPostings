@@ -1,0 +1,196 @@
+import { createClient, RedisClientType } from "redis";
+import logger from "@shared/logger";
+import { env } from "@shared/config/env";
+
+class RedisCacheService {
+  private client: RedisClientType | null = null;
+  private isConnected: boolean = false;
+
+  async connect(): Promise<void> {
+    if (this.isConnected && this.client) {
+      logger.info("Redis Cache already connected");
+      return;
+    }
+
+    try {
+      this.client = createClient({
+        url: env.REDIS_CACHE_URL,
+        socket: {
+          connectTimeout: 10000,
+          reconnectStrategy: (retries) => {
+            const delay = Math.min(retries * 500, 30000);
+            if (retries <= 10 || retries % 10 === 0) {
+              logger.warn(`Redis Cache reconnecting in ${delay}ms`, {
+                attempt: retries,
+              });
+            }
+            return delay;
+          },
+        },
+      });
+
+      this.client.on("error", (err) => {
+        logger.error("Redis Cache Client Error", { error: err.message });
+      });
+
+      this.client.on("connect", () => {
+        logger.info("Redis Cache connecting...");
+      });
+
+      this.client.on("ready", () => {
+        logger.info("Redis Cache client ready");
+        this.isConnected = true;
+      });
+
+      this.client.on("reconnecting", () => {
+        logger.warn("Redis Cache reconnecting...");
+      });
+
+      this.client.on("end", () => {
+        logger.info("Redis Cache connection closed");
+        this.isConnected = false;
+      });
+
+      await this.client.connect();
+      logger.info("Redis Cache connected successfully", {
+        url: env.REDIS_CACHE_URL.replace(/\/\/.*@/, "//***@"),
+      });
+    } catch (error) {
+      logger.error("Failed to connect to Redis Cache", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  async disconnect(): Promise<void> {
+    if (this.client && this.isConnected && this.client.isOpen) {
+      await this.client.quit();
+      this.client = null;
+      this.isConnected = false;
+      logger.info("Redis Cache disconnected");
+    }
+  }
+
+  getClient(): RedisClientType {
+    if (!this.client || !this.isConnected) {
+      throw new Error("Redis Cache client not connected");
+    }
+    return this.client;
+  }
+
+  isReady(): boolean {
+    return this.isConnected && this.client !== null;
+  }
+
+  async get(key: string): Promise<string | null> {
+    try {
+      const result = await this.getClient().get(key);
+      return result ?? null;
+    } catch (error) {
+      logger.error("Redis Cache GET error", {
+        key,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return null;
+    }
+  }
+
+  async set(key: string, value: string, ttl?: number): Promise<string | null> {
+    try {
+      if (ttl) {
+        const result = await this.getClient().setEx(key, ttl, value);
+        return result ?? null;
+      }
+      const result = await this.getClient().set(key, value);
+      return result ?? null;
+    } catch (error) {
+      logger.error("Redis Cache SET error", {
+        key,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return null;
+    }
+  }
+
+  async del(key: string): Promise<number> {
+    try {
+      return await this.getClient().del(key);
+    } catch (error) {
+      logger.error("Redis Cache DEL error", {
+        key,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return 0;
+    }
+  }
+
+  async exists(key: string): Promise<number> {
+    try {
+      return await this.getClient().exists(key);
+    } catch (error) {
+      logger.error("Redis Cache EXISTS error", {
+        key,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return 0;
+    }
+  }
+
+  async setJSON(key: string, value: unknown, ttl?: number): Promise<boolean> {
+    try {
+      const serialized = JSON.stringify(value);
+      const result = await this.set(key, serialized, ttl);
+      return result !== null;
+    } catch (error) {
+      logger.error("Redis Cache setJSON error", {
+        key,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return false;
+    }
+  }
+
+  async getJSON<T>(key: string): Promise<T | null> {
+    try {
+      const value = await this.get(key);
+      if (!value) return null;
+      return JSON.parse(value) as T;
+    } catch (error) {
+      logger.error("Redis Cache getJSON error", {
+        key,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return null;
+    }
+  }
+
+  async invalidatePattern(pattern: string): Promise<number> {
+    try {
+      const client = this.getClient();
+      let deleted = 0;
+      let cursor = "0";
+
+      do {
+        const result = await client.scan(cursor, {
+          MATCH: pattern,
+          COUNT: 100,
+        });
+        cursor = result.cursor.toString();
+        if (result.keys.length > 0) {
+          deleted += await client.del(result.keys);
+        }
+      } while (cursor !== "0");
+
+      return deleted;
+    } catch (error) {
+      logger.error("Redis Cache invalidatePattern error", {
+        pattern,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      return 0;
+    }
+  }
+}
+
+export const redisCacheService = new RedisCacheService();

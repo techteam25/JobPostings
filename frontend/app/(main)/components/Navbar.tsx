@@ -1,13 +1,18 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { Bell, Loader2 } from "lucide-react";
-import { BsFillPersonFill } from "react-icons/bs";
-import { AiOutlineProfile } from "react-icons/ai";
-import { TbLogout, TbSettings } from "react-icons/tb";
+import {
+  Bell,
+  CircleUser,
+  Loader2,
+  LogIn,
+  LogOut,
+  Settings,
+  User,
+} from "lucide-react";
 
 import { useUserSession } from "@/app/(main)/hooks/use-user-session";
 
@@ -25,6 +30,8 @@ import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserSignOut } from "@/app/(main)/hooks/use-user-signout";
 import { NavbarMobile } from "@/app/(main)/components/NavbarMobile";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 export function SkeletonDemo() {
   return (
     <div className="flex items-center space-x-4">
@@ -35,12 +42,13 @@ export function SkeletonDemo() {
 
 export default function Navbar() {
   const { isPending, data } = useUserSession();
+  const { isAuthenticated } = useAuthenticationStatus();
   const { signOutAsyncAction, isPending: signOutPending } = useUserSignOut();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   const handleSignOut = useCallback(async () => {
     await signOutAsyncAction();
@@ -114,6 +122,9 @@ export default function Navbar() {
                   <Bell className="text-secondary-foreground h-6 w-6" />
                 </Button>
 
+                {/* Theme Toggle */}
+                <ThemeToggle />
+
                 {/* User Profile Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -135,64 +146,80 @@ export default function Navbar() {
                         </div>
                       ) : (
                         <div className="bg-background flex items-center justify-center rounded-full">
-                          <BsFillPersonFill className="" />
+                          <User />
                         </div>
                       )}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="flex w-[300px] flex-col items-start space-y-3"
+                    className="flex w-75 flex-col items-start space-y-3"
                   >
-                    <DropdownMenuItem className="">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">
-                          {data?.data?.user.name}
-                        </p>
-                        <p className="text-muted-foreground">
-                          {data?.data?.user.email}
-                        </p>
-                      </div>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      asChild
-                      className="hover:bg-muted/80 [&>svg]:size-5"
-                    >
-                      <Link href="/me/profile">
-                        <AiOutlineProfile className="text-foreground mr-2 size-8" />
-                        Profile
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      asChild
-                      className="hover:bg-muted/80 [&>svg]:size-5"
-                    >
-                      <Link href="/settings">
-                        <TbSettings className="text-foreground mr-2" />
-                        Settings
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      asChild
-                      className="hover:bg-muted/80 [&>svg]:size-5"
-                    >
-                      <Button
-                        variant="link"
-                        className="text-foreground cursor-pointer focus-visible:ring-0"
-                        onClick={handleSignOut}
-                      >
-                        <TbLogout className="text-foreground mr-2" />
-                        {signOutPending ? (
-                          <span>
-                            <Loader2 className="text-muted-foreground animate-spin" />{" "}
-                            Signing out...
-                          </span>
-                        ) : (
-                          <span>Sign out</span>
-                        )}
-                      </Button>
-                    </DropdownMenuItem>
+                    {isAuthenticated ? (
+                      <>
+                        <DropdownMenuItem className="">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">
+                              {data?.data?.user.name}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {data?.data?.user.email}
+                            </p>
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          asChild
+                          className="hover:bg-muted/80 [&>svg]:size-5"
+                        >
+                          <Link href="/me/profile">
+                            <CircleUser className="text-foreground mr-2 size-8" />
+                            Profile
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          asChild
+                          className="hover:bg-muted/80 [&>svg]:size-5"
+                        >
+                          <Link href="/settings">
+                            <Settings className="text-foreground mr-2" />
+                            Settings
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          asChild
+                          className="hover:bg-muted/80 [&>svg]:size-5"
+                        >
+                          <Button
+                            variant="link"
+                            className="text-foreground cursor-pointer focus-visible:ring-0"
+                            onClick={handleSignOut}
+                          >
+                            <LogOut className="text-foreground mr-2" />
+                            {signOutPending ? (
+                              <span>
+                                <Loader2 className="text-muted-foreground animate-spin" />{" "}
+                                Signing out...
+                              </span>
+                            ) : (
+                              <span>Sign out</span>
+                            )}
+                          </Button>
+                        </DropdownMenuItem>
+                      </>
+                    ) : (
+                      <DropdownMenuItem>
+                        <Button
+                          variant="link"
+                          className="text-foreground cursor-pointer focus-visible:ring-0"
+                        >
+                          <Link href="/sign-in" className="flex items-center">
+                            <LogIn className="text-foreground mr-2" />
+                            Sign in
+                          </Link>
+                        </Button>
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

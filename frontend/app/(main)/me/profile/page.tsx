@@ -11,13 +11,11 @@ import {
   Briefcase,
   DollarSign,
   Watch,
-  X,
-  ArrowRight,
+  FileText,
 } from "lucide-react";
-import { FaFilePdf } from "react-icons/fa6";
-import { FaSearch } from "react-icons/fa";
 
 import { getUserInformation } from "@/lib/api";
+import { FeatureErrorBoundary } from "@/components/common/FeatureErrorBoundary";
 import ProfileVisibilityDialog from "@/app/(main)/me/profile/components/ProfileVisibilityDialog";
 import Link from "next/link";
 import ResumeContextMenu from "@/app/(main)/me/profile/components/ResumeContextMenu";
@@ -39,239 +37,214 @@ export default async function ProfilePage() {
     <div className="bg-background min-h-screen">
       {/* Main Content */}
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Compact Profile Header - Indeed style with ZipRecruiter details */}
-        <div className="bg-background mb-6 rounded-lg border p-8">
-          <div className="mb-6 flex items-start justify-between">
-            <div className="flex items-start gap-6">
-              <Avatar className="h-20 w-20">
-                {profile.data.image && <AvatarImage src={profile.data.image} />}
-                <AvatarFallback className="bg-secondary text-primary-foreground text-xl">
-                  {avatarInitials}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-foreground mb-3 text-3xl font-bold">
-                  {profile.data.fullName}
-                </h1>
-                <div className="text-secondary-foreground space-y-1.5 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Mail className="size-5" />
-                    <span>{profile.data.email}</span>
-                    {/*  Todo: Add Email Verified banner if not verified */}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="size-5" />
-                    <span>{profile.data.profile?.phoneNumber}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="size-5" />
-                    <span>
-                      {profile.data.profile?.city},{" "}
+        <FeatureErrorBoundary featureName="profile">
+          {/* Compact Profile Header - Indeed style with ZipRecruiter details */}
+          <div className="bg-background mb-6 rounded-lg border p-8">
+            <div className="mb-6 flex items-start justify-between">
+              <div className="flex items-start gap-6">
+                <Avatar className="h-20 w-20">
+                  {profile.data.image && (
+                    <AvatarImage src={profile.data.image} />
+                  )}
+                  <AvatarFallback className="bg-secondary text-primary-foreground text-xl">
+                    {avatarInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="text-foreground mb-3 text-3xl font-bold">
+                    {profile.data.fullName}
+                  </h1>
+                  <div className="text-secondary-foreground space-y-1.5 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Mail className="size-5" />
+                      <span>{profile.data.email}</span>
+                      {/*  Todo: Add Email Verified banner if not verified */}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="size-5" />
+                      <span>{profile.data.profile?.phoneNumber}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="size-5" />
                       <span>
-                        {profile.data.profile?.state},{" "}
-                        <span>{profile.data.profile?.country}</span>
+                        {profile.data.profile?.city},{" "}
+                        <span>
+                          {profile.data.profile?.state},{" "}
+                          <span>{profile.data.profile?.country}</span>
+                        </span>
                       </span>
-                    </span>
+                    </div>
                   </div>
                 </div>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hover:bg-secondary hover:text-secondary-foreground"
+                asChild
+              >
+                <Link href="/me/profile/edit">
+                  <ChevronRight />
+                </Link>
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-secondary hover:text-secondary-foreground"
-              asChild
-            >
-              <Link href="/me/profile/edit">
-                <ChevronRight />
-              </Link>
-            </Button>
+
+            {/* Visibility Status */}
+            <ProfileVisibilityDialog
+              isVisible={profile.data.profile?.isProfilePublic || false}
+            />
           </div>
 
-          {/* Visibility Status */}
-          <ProfileVisibilityDialog
-            isVisible={profile.data.profile?.isProfilePublic || false}
-          />
-        </div>
-
-        {/* Resume Section - Hybrid approach */}
-        <div className="mb-6">
-          <h2 className="text-foreground mb-3 text-xl font-bold">Resume</h2>
-          <Card className="shadow-none">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 flex-shrink-0 items-center justify-center rounded">
-                    <FaFilePdf className="text-secondary-foreground size-8" />
+          {/* Resume Section - Hybrid approach */}
+          <div className="mb-6">
+            <h2 className="text-foreground mb-3 text-xl font-bold">Resume</h2>
+            <Card className="shadow-none">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded">
+                      <FileText className="text-secondary-foreground size-8" />
+                    </div>
+                    <div>
+                      <p className="text-foreground font-medium">
+                        {`Resume - ${profile.data.fullName}.pdf`}
+                      </p>
+                      <p className="text-xs text-gray-500">Added Nov 2, 2025</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-foreground font-medium">
-                      {`Resume - ${profile.data.fullName}.pdf`}
-                    </p>
-                    <p className="text-xs text-gray-500">Added Nov 2, 2025</p>
-                  </div>
+                  <ResumeContextMenu />
                 </div>
-                <ResumeContextMenu />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Resume CTA */}
-          <Card className="border-primary/20 mt-3 bg-blue-50 shadow-none">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">
-                    <FaSearch />
-                  </span>
-                  <div>
-                    <p className="text-foreground text-sm font-semibold">
-                      Get a resume that keeps employers calling
-                    </p>
-                    <a
-                      href="#"
-                      className="text-primary/80 hover:text-primary inline-flex items-center gap-1 text-sm font-medium"
+          {/* Improve Your Job Matches - Indeed style with better visual hierarchy */}
+          <div className="mb-6">
+            <h2 className="text-foreground mb-3 text-xl font-bold">
+              Improve your job matches
+            </h2>
+            <div className="space-y-3">
+              <Card className="cursor-pointer shadow-none">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex size-10 items-center justify-center rounded-lg bg-purple-100">
+                        <Briefcase className="size-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-foreground mb-1 font-semibold">
+                          Qualifications
+                        </h3>
+                        <p className="text-muted-foreground text-sm">
+                          Highlight your skills and experience.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="hover:bg-secondary hover:text-secondary-foreground"
+                      asChild
                     >
-                      Improve your resume <ArrowRight className="h-3 w-3" />
-                    </a>
+                      <Link href="/me/profile/qualifications">
+                        <ChevronRight />
+                      </Link>
+                    </Button>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer shadow-none">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex size-10 items-center justify-center rounded-lg bg-blue-100">
+                        <DollarSign className="size-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-foreground mb-1 font-semibold">
+                          Job preferences
+                        </h3>
+                        <p className="text-muted-foreground text-sm">
+                          Save specific details like minimum desired pay and
+                          schedule.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="hover:bg-secondary hover:text-secondary-foreground"
+                      asChild
+                    >
+                      <Link href="/me/profile/preferences">
+                        <ChevronRight />
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer shadow-none">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100">
+                        <Watch className="size-5 text-emerald-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-foreground mb-1 font-semibold">
+                          Ready to work
+                        </h3>
+                        <p className="text-secondary-foreground text-sm">
+                          Let employers know you&apos;re available to start
+                          immediately.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="hover:bg-secondary hover:text-secondary-foreground"
+                      asChild
+                    >
+                      <Link href="/me/profile/readytowork">
+                        <ChevronRight />
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Profile Strength Indicator - Unique addition */}
+          <Card className="border-border bg-secondary">
+            <CardContent className="p-6">
+              <div className="mb-4 flex items-start justify-between">
+                <div>
+                  <h3 className="text-foreground mb-1 font-bold">
+                    Profile Strength: Strong
+                  </h3>
+                  <p className="text-secondary-foreground text-sm">
+                    Your profile is 95% complete
+                  </p>
                 </div>
-                <Button variant="ghost" size="icon" className="flex-shrink-0">
-                  <X />
-                </Button>
+                <Badge className="text-primary-foreground bg-ring">95%</Badge>
               </div>
+              <div className="bg-input mb-3 h-2.5 w-full rounded-full">
+                <div
+                  className="bg-ring h-2.5 rounded-full"
+                  style={{ width: "95%" }}
+                ></div>
+              </div>
+              <p className="text-secondary-foreground text-xs">
+                Add work history to reach 100% and increase your visibility to
+                employers
+              </p>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Improve Your Job Matches - Indeed style with better visual hierarchy */}
-        <div className="mb-6">
-          <h2 className="text-foreground mb-3 text-xl font-bold">
-            Improve your job matches
-          </h2>
-          <div className="space-y-3">
-            <Card className="cursor-pointer shadow-none">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-purple-100">
-                      <Briefcase className="size-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-foreground mb-1 font-semibold">
-                        Qualifications
-                      </h3>
-                      <p className="text-muted-foreground text-sm">
-                        Highlight your skills and experience.
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hover:bg-secondary hover:text-secondary-foreground"
-                    asChild
-                  >
-                    <Link href="/me/profile/qualifications">
-                      <ChevronRight />
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="cursor-pointer shadow-none">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-blue-100">
-                      <DollarSign className="size-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-foreground mb-1 font-semibold">
-                        Job preferences
-                      </h3>
-                      <p className="text-muted-foreground text-sm">
-                        Save specific details like minimum desired pay and
-                        schedule.
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hover:bg-secondary hover:text-secondary-foreground"
-                    asChild
-                  >
-                    <Link href="/me/profile/preferences">
-                      <ChevronRight />
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="cursor-pointer shadow-none">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100">
-                      <Watch className="size-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-foreground mb-1 font-semibold">
-                        Ready to work
-                      </h3>
-                      <p className="text-secondary-foreground text-sm">
-                        Let employers know you're available to start
-                        immediately.
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hover:bg-secondary hover:text-secondary-foreground"
-                    asChild
-                  >
-                    <Link href="/me/profile/readytowork">
-                      <ChevronRight />
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Profile Strength Indicator - Unique addition */}
-        <Card className="border-green-200 bg-gradient-to-r from-green-50 to-blue-50">
-          <CardContent className="p-6">
-            <div className="mb-4 flex items-start justify-between">
-              <div>
-                <h3 className="text-foreground mb-1 font-bold">
-                  Profile Strength: Strong
-                </h3>
-                <p className="text-secondary-foreground text-sm">
-                  Your profile is 95% complete
-                </p>
-              </div>
-              <Badge className="text-primary-foreground bg-green-600">
-                95%
-              </Badge>
-            </div>
-            <div className="bg-input mb-3 h-2.5 w-full rounded-full">
-              <div
-                className="h-2.5 rounded-full bg-green-600"
-                style={{ width: "95%" }}
-              ></div>
-            </div>
-            <p className="text-secondary-foreground text-xs">
-              Add work history to reach 100% and increase your visibility to
-              employers
-            </p>
-          </CardContent>
-        </Card>
+        </FeatureErrorBoundary>
       </main>
     </div>
   );
@@ -363,7 +336,7 @@ function ProfileSkeleton() {
         </div>
 
         {/* Profile strength */}
-        <div className="rounded-lg border-green-200 bg-gradient-to-r from-green-50 to-blue-50">
+        <div className="rounded-lg border-green-200 bg-linear-to-r from-green-50 to-blue-50">
           <div className="p-6">
             <div className="mb-4 flex items-start justify-between">
               <div className="space-y-1">

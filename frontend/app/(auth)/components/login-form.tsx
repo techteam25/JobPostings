@@ -17,9 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldInfo } from "@/components/common/FieldInfo";
 
-import { BsEye, BsEyeSlash, BsLinkedin } from "react-icons/bs";
-import { FcGoogle } from "react-icons/fc";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { GoogleIcon, LinkedInIcon } from "@/components/common/icons";
 import { toast } from "sonner";
 
 import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
@@ -50,7 +49,10 @@ export default function LoginForm() {
             email: values.value.email,
             password: values.value.password,
             rememberMe: values.value.rememberMe,
-          })) as unknown as { error: any; data: LoginResponse | null };
+          })) as unknown as {
+            error: { message: string };
+            data: LoginResponse | null;
+          };
 
           if (error) {
             toast.error(error.message || "Login unsuccessful");
@@ -144,9 +146,9 @@ export default function LoginForm() {
                       size="icon"
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5 md:[&_svg]:size-6"
+                      className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 md:[&_svg]:size-5"
                     >
-                      {showPassword ? <BsEye /> : <BsEyeSlash />}
+                      {showPassword ? <Eye /> : <EyeOff />}
                     </Button>
                   </div>
                   <FieldInfo field={field} />
@@ -169,7 +171,7 @@ export default function LoginForm() {
                       onCheckedChange={(checked) =>
                         field.handleChange(checked === true)
                       }
-                      className="data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground border-accent mt-0.5 h-4 w-4 cursor-pointer md:h-5 md:w-5"
+                      className="data-[state=checked]:bg-background data-[state=checked]:text-accent-foreground border-border mt-0.5 h-4 w-4 cursor-pointer md:h-5 md:w-5"
                     />
                     <span className="text-secondary-foreground ml-2 text-xs sm:text-sm">
                       Remember me
@@ -193,7 +195,7 @@ export default function LoginForm() {
                   type="submit"
                   disabled={!canSubmit || isSubmitting}
                   className={cn(
-                    "bg-accent hover:bg-accent/90 text-accent-foreground w-full cursor-pointer rounded-lg py-3 font-semibold transition",
+                    "bg-primary hover:bg-accent/90 text-primary-foreground w-full cursor-pointer rounded-lg py-3 font-semibold transition",
                     {
                       "cursor-not-allowed": !canSubmit || isSubmitting,
                     },
@@ -230,7 +232,7 @@ export default function LoginForm() {
               className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
               onClick={async () => await handleSocialAuth("google")}
             >
-              <FcGoogle className="size-6" />
+              <GoogleIcon className="size-6" />
               Google
             </Button>
             <Button
@@ -240,18 +242,18 @@ export default function LoginForm() {
               className="border-border hover:bg-secondary hover:text-foreground flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 transition"
               onClick={async () => await handleSocialAuth("linkedin")}
             >
-              <BsLinkedin className="size-6 text-[#0072b1]" />
+              <LinkedInIcon className="size-6" />
               LinkedIn
             </Button>
           </div>
 
           {/* Sign Up Link */}
           <p className="text-secondary-foreground mt-6 text-center text-sm">
-            Don&apos;t have an account?{" "}
+            Don&apos;t have an account?
             <Button
               asChild
               variant="link"
-              className="text-accent hover:text-accent/90 cursor-pointer font-semibold"
+              className="text-accent-foreground hover:text-accent-foreground/90 cursor-pointer font-semibold"
             >
               <Link href="/sign-up">Sign up</Link>
             </Button>

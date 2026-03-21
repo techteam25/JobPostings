@@ -10,43 +10,27 @@ import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
 
 import type { Application, Request, Response, NextFunction } from "express";
 
-import logger from "@/logger";
+import logger from "@shared/logger";
 import { auth } from "@/utils/auth";
-import { env } from "@/config/env";
+import { env } from "@shared/config/env";
 
-import { checkDatabaseConnection } from "@/db/connection";
+import { checkDatabaseConnection } from "@shared/db/connection";
 import { registry } from "@/swagger/registry";
-import apiRoutes from "@/routes";
+import { createApiRoutes } from "@/routes";
+import { createCompositionRoot } from "@/composition-root";
 
 import { errorHandler } from "@/middleware/error.middleware";
 import { apiLimiter } from "@/middleware/rate-limit.middleware";
 import { requestLogger } from "@/middleware/request-logger.middleware";
 
-import { redisCacheService } from "@/infrastructure/redis-cache.service";
-import { redisRateLimiterService } from "@/infrastructure/redis-rate-limiter.service";
-import { queueService } from "@/infrastructure/queue.service";
-import { initializeTypesenseSchema } from "@/config/typesense-client";
-import { initializeEmailWorker } from "@/workers/send-email-worker";
-import { initializeTypesenseWorker } from "@/workers/typesense-job-indexer";
-import { initializeFileUploadWorker } from "@/workers/file-upload-worker";
-import {
-  initializeFileCleanupWorker,
-  scheduleCleanupJob,
-} from "@/workers/temp-file-cleanup-worker";
-import {
-  initializeJobAlertWorker,
-  scheduleDailyAlertProcessing,
-  scheduleMonthlyAlertProcessing,
-  scheduleWeeklyAlertProcessing,
-} from "@/workers/job-alert-processor";
-import {
-  initializeInactiveUserAlertWorker,
-  scheduleInactiveUserAlertPausing,
-} from "@/workers/inactive-user-alert-pauser";
-import {
-  initializeInvitationExpirationWorker,
-  scheduleInvitationExpirationJob,
-} from "@/workers/invitation-expiration-worker";
+import { redisCacheService } from "@shared/infrastructure/redis-cache.service";
+import { redisRateLimiterService } from "@shared/infrastructure/redis-rate-limiter.service";
+import { queueService } from "@shared/infrastructure/queue.service";
+import { initializeTypesenseSchema } from "@shared/config/typesense-client";
+
+// ─── Application Composition Root ───────────────────────────────────
+// Created once and shared between route setup and worker initialization.
+const root = createCompositionRoot();
 
 /**
  * Initialize all infrastructure services.
@@ -59,9 +43,12 @@ export async function initializeInfrastructure(): Promise<void> {
     await initializeTypesenseSchema();
     logger.info("Typesense schema initialized");
   } catch (error) {
-    logger.warn("Typesense schema initialization failed, continuing without search", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+    logger.warn(
+      "Typesense schema initialization failed, continuing without search",
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    );
   }
 
   // Redis Cache — non-critical
@@ -91,47 +78,26 @@ export async function initializeInfrastructure(): Promise<void> {
     logger.info("Queue service initialized");
     queueReady = true;
   } catch (error) {
-    logger.error("Queue service initialization failed, background jobs will not process", {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+    logger.error(
+      "Queue service initialization failed, background jobs will not process",
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    );
   }
 
   if (queueReady) {
-    // Workers — wrap in try/catch, log on failure
+    // Initialize all module-owned and shared workers
     try {
-      initializeTypesenseWorker();
-      initializeFileUploadWorker();
-      initializeEmailWorker();
-      initializeFileCleanupWorker();
-      initializeJobAlertWorker();
-      initializeInactiveUserAlertWorker();
-      initializeInvitationExpirationWorker();
-      logger.info("Workers initialized");
+      root.workers.initializeAll();
     } catch (error) {
       logger.warn("Worker initialization failed", {
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
 
-    // Scheduled jobs — non-critical, each should attempt independently
-    const results = await Promise.allSettled([
-      scheduleCleanupJob(),
-      scheduleDailyAlertProcessing(),
-      scheduleWeeklyAlertProcessing(),
-      scheduleMonthlyAlertProcessing(),
-      scheduleInactiveUserAlertPausing(),
-      scheduleInvitationExpirationJob(),
-    ]);
-    const failed = results.filter((r) => r.status === "rejected");
-    if (failed.length > 0) {
-      for (const f of failed) {
-        logger.warn("Failed to schedule a background job", {
-          error: (f as PromiseRejectedResult).reason?.message ?? "Unknown error",
-        });
-      }
-    } else {
-      logger.info("Background jobs scheduled");
-    }
+    // Schedule recurring background jobs
+    await root.workers.scheduleAllJobs();
   }
 }
 
@@ -225,58 +191,6 @@ if (env.NODE_ENV === "development") {
 }
 
 // Health check route
-/*
- * @swagger
- *  /health:
- *    get:
- *      summary: Health check endpoint
- *      description: Returns the health status of the server and database
- *      responses:
- *        '200':
- *          description: Server and database are healthy
- *          content:
- *            application/json:
- *              schema:
- *                type: object
- *                properties:
- *                  status:
- *                    type: string
- *                  message:
- *                    type: string
- *                  timestamp:
- *                    type: string
- *                  environment:
- *                    type: string
- *                  database:
- *                    type: object
- *                    properties:
- *                      connected:
- *                        type: boolean
- *                      host:
- *                        type: string
- *                      port:
- *                        type: string
- *                      name:
- *                        type: string
- *                  version:
- *                    type: string
- *        '503':
- *          description: Server or database is unhealthy
- *          content:
- *            application/json:
- *              schema:
- *                type: object
- *                properties:
- *                  status:
- *                    type: string
- *                  message:
- *                    type: string
- *                  timestamp:
- *                    type: string
- *                  error:
- *                    type: string
- *
- */
 app.get(
   "/health",
   apiLimiter,
@@ -309,7 +223,7 @@ app.get(
 );
 
 // Rate limiting middleware
-app.use("/api", apiLimiter, apiRoutes); // All routes
+app.use("/api", apiLimiter, createApiRoutes(root));
 
 // 404 handler
 app.use((req: Request, res: Response) => {

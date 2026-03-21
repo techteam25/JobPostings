@@ -1,11 +1,17 @@
 import { ReactNode } from "react";
+import { headers } from "next/headers";
+
 import Navbar from "@/app/(main)/components/Navbar";
 import { EmailVerificationBanner } from "@/components/common/EmailVerificationBanner";
+import { getServerSession } from "@/lib/auth-server";
 
-function Layout({ children }: { children: ReactNode }) {
+async function Layout({ children }: { children: ReactNode }) {
+  const { user } = await getServerSession((await headers()).get("cookie"));
+  const showBanner = !!user && !user.emailVerified;
+
   return (
     <div>
-      <EmailVerificationBanner />
+      {showBanner && <EmailVerificationBanner email={user.email} />}
       <Navbar />
       {children}
     </div>

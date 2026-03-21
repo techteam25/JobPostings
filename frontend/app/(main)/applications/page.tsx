@@ -6,7 +6,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { TbFileStack } from "react-icons/tb";
+import { Files } from "lucide-react";
 import MyApplications, {
   MyApplicationsSkeleton,
 } from "@/app/(main)/applications/components/MyApplications";
@@ -17,12 +17,12 @@ import Link from "next/link";
 export default async function MyApplicationsPage() {
   const applications = await getAllApplicationsByUser();
 
-  if (!applications || applications.data.length === 0) {
+  if (!applications.success || applications.data.length === 0) {
     return (
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <TbFileStack />
+            <Files />
           </EmptyMedia>
           <EmptyTitle>No job applications</EmptyTitle>
           <EmptyDescription>

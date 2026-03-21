@@ -1,14 +1,20 @@
 // noinspection DuplicatedCode
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { eq } from "drizzle-orm";
 
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 
-import {
-  userEmailPreferences,
-} from "@/db/schema";
+import { userEmailPreferences } from "@/db/schema";
 
 import {
   seedJobsScenario,
@@ -23,7 +29,7 @@ import {
   workExperiencesFixture,
 } from "@tests/utils/fixtures";
 import { auth } from "@/utils/auth";
-import { UserRepository } from "@/repositories/user.repository";
+import { NotificationsRepository } from "@/modules/notifications";
 const {
   mockSendAccountDeactivationConfirmation,
   mockSendAccountDeletionConfirmation,
@@ -32,19 +38,21 @@ const {
   mockSendAccountDeletionConfirmation: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/infrastructure/email.service", () => {
+vi.mock("@shared/infrastructure/email.service", () => {
   // noinspection JSUnusedGlobalSymbols
-  return {
-    EmailService: class {
-      sendAccountDeactivationConfirmation =
-        mockSendAccountDeactivationConfirmation;
-      sendAccountDeletionConfirmation = mockSendAccountDeletionConfirmation;
-    },
+  const MockEmailService = class {
+    sendAccountDeactivationConfirmation =
+      mockSendAccountDeactivationConfirmation;
+    sendAccountDeletionConfirmation = mockSendAccountDeletionConfirmation;
   };
+  return { EmailService: MockEmailService };
 });
 
-vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/infrastructure/queue.service")>();
+vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import("@shared/infrastructure/queue.service")
+    >();
   return {
     ...original,
     queueService: {
@@ -55,7 +63,9 @@ vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
 
 describe("User Controller Integration Tests", () => {
   beforeAll(() => {
-    vi.spyOn(auth.api, "deleteUser").mockResolvedValue({ success: true } as any);
+    vi.spyOn(auth.api, "deleteUser").mockResolvedValue({
+      success: true,
+    } as any);
   });
 
   afterAll(() => {
@@ -177,7 +187,10 @@ describe("User Controller Integration Tests", () => {
 
       it("should update user profile returning 200", async () => {
         // User already created by beforeEach(seedUserScenario); just add profile + prefs
-        const { createUserProfile: createProfile, createEmailPreferences: createPrefs } = await import("@tests/utils/seedBuilders");
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
         await createProfile(1);
         await createPrefs(1);
 
@@ -295,7 +308,6 @@ describe("User Controller Integration Tests", () => {
 
   describe("GET users/me/saved-jobs/:jobId/check", () => {
     beforeEach(async () => {
-      const { jobs } = await seedJobsScenario();
       const user = await createUser({ email: "normal.user@example.com" });
       await createUserProfile(user.id);
     });
@@ -574,7 +586,10 @@ describe("User Controller Integration Tests", () => {
 
       it("should return 404 if preferences not found", async () => {
         const preferencesSpy = vi
-          .spyOn(UserRepository.prototype, "findEmailPreferencesByUserId")
+          .spyOn(
+            NotificationsRepository.prototype,
+            "findEmailPreferencesByUserId",
+          )
           .mockResolvedValue(undefined);
 
         const loginResponse = await request
@@ -896,7 +911,10 @@ describe("User Controller Integration Tests", () => {
 
         it("should return 404 if preferences not found", async () => {
           const preferencesSpy = vi
-            .spyOn(UserRepository.prototype, "findEmailPreferencesByUserId")
+            .spyOn(
+              NotificationsRepository.prototype,
+              "findEmailPreferencesByUserId",
+            )
             .mockResolvedValueOnce(undefined);
 
           const loginResponse = await request

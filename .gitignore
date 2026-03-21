@@ -13,3 +13,7 @@
 
 # Documentation (local only)
 backend/documentation/
+
+# Production secrets (never commit)
+.env.production
+secrets/

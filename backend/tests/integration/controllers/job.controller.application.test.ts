@@ -1,24 +1,21 @@
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { seedJobsScenario } from "@tests/utils/seedScenarios";
-import { createUser } from "@tests/utils/seedBuilders";
+import { createUser, createUserProfile } from "@tests/utils/seedBuilders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { auth } from "@/utils/auth";
-import { JobService } from "@/services/job.service";
-import { ok } from "@/services/base.service";
-import { JobRepository } from "@/repositories/job.repository";
-import { queueService } from "@/infrastructure/queue.service";
+import { JobBoardRepository } from "@/modules/job-board";
+import { ApplicationsRepository } from "@/modules/applications";
+import { queueService } from "@shared/infrastructure/queue.service";
 
 describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
   let userCookie: string;
   let jobId: number;
 
   beforeEach(async () => {
-    const { faker } = await import("@faker-js/faker");
-
     await seedJobsScenario();
-    await createUser({ email: "normal.user@example.com" });
+    const normalUser = await createUser({ email: "normal.user@example.com" });
+    await createUserProfile(normalUser.id);
 
-    // Login as org member (email from seed: org.member@example.com)
+    // Login as normal user (job seeker with profile)
     const loginResponse = await request
       .post("/api/auth/sign-in/email")
       .send({ email: "normal.user@example.com", password: "Password@123" });
@@ -33,7 +30,8 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
   describe("Success Cases", () => {
     it("should successfully submit application with valid data", async () => {
       const applicationData = {
-        customAnswers: "I have 5 years of experience with TypeScript and Node.js.",
+        customAnswers:
+          "I have 5 years of experience with TypeScript and Node.js.",
         notes: "Available to start immediately.",
       };
 
@@ -153,7 +151,7 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
 
       // Spy on findJobById to return an inactive job
       const getJobByIdSpy = vi
-        .spyOn(JobRepository.prototype, "findJobById")
+        .spyOn(JobBoardRepository.prototype, "findJobById")
         .mockResolvedValue({
           job: {
             id: inactiveJobId,
@@ -240,7 +238,7 @@ describe("Job Application API - POST /api/jobs/:jobId/apply", () => {
 });
 
 describe("Withdraw Job Application Integration Tests", () => {
-  let jobRepository: JobRepository;
+  let applicationsRepository: ApplicationsRepository;
   let userCookie: string;
   let otherUserCookie: string;
   let jobId: number;
@@ -248,22 +246,22 @@ describe("Withdraw Job Application Integration Tests", () => {
   let otherUserApplicationId: number;
 
   beforeAll(() => {
-    jobRepository = new JobRepository();
+    applicationsRepository = new ApplicationsRepository();
 
     // Mock email queue to prevent actual email sending during tests
     vi.spyOn(queueService, "addJob").mockResolvedValue({} as any);
   });
 
   beforeEach(async () => {
-    const { faker } = await import("@faker-js/faker");
-
     await seedJobsScenario();
 
-    // Create first test user
-    await createUser({ email: "test.user1@example.com" });
+    // Create first test user (with profile for job-seeking)
+    const user1 = await createUser({ email: "test.user1@example.com" });
+    await createUserProfile(user1.id);
 
-    // Create second test user
-    await createUser({ email: "test.user2@example.com" });
+    // Create second test user (with profile for job-seeking)
+    const user2 = await createUser({ email: "test.user2@example.com" });
+    await createUserProfile(user2.id);
 
     // Login first user
     const loginResponse1 = await request
@@ -330,7 +328,7 @@ describe("Withdraw Job Application Integration Tests", () => {
 
       // Verify application status was updated in database
       const application =
-        await jobRepository.findApplicationById(applicationId);
+        await applicationsRepository.findApplicationById(applicationId);
       expect(application?.application.status).toBe("withdrawn");
     });
 

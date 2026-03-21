@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import { CacheService, CacheOptions } from "@/infrastructure/cache.service";
-import logger from "@/logger";
+import {
+  CacheService,
+  CacheOptions,
+} from "@shared/infrastructure/cache.service";
+import logger from "@shared/logger";
 
 export interface CacheMiddlewareOptions extends CacheOptions {
   keyGenerator?: (req: Request) => string;
@@ -40,7 +43,7 @@ export const cacheMiddleware = (options: CacheMiddlewareOptions) => {
       const originalJson = res.json.bind(res);
 
       // Override res.json to cache the response
-      res.json = function (data: any) {
+      res.json = function (data: unknown) {
         // Only cache successful responses
         if (res.statusCode === 200) {
           CacheService.set(cacheKey, data, {
@@ -92,12 +95,12 @@ export const invalidateCacheMiddleware = (
       };
 
       // Override response methods
-      res.json = function (data: any) {
+      res.json = function (data: unknown) {
         invalidateCache();
         return originalJson(data);
       };
 
-      res.send = function (data: any) {
+      res.send = function (data: unknown) {
         invalidateCache();
         return originalSend(data);
       };

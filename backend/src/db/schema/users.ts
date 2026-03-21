@@ -169,8 +169,11 @@ export const emailPreferenceAuditLog = mysqlTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     preferenceType: varchar("preference_type", { length: 100 }).notNull(),
-    context: mysqlEnum("context", ["job_seeker", "employer", "global"])
-      .notNull(),
+    context: mysqlEnum("context", [
+      "job_seeker",
+      "employer",
+      "global",
+    ]).notNull(),
     previousValue: boolean("previous_value"),
     newValue: boolean("new_value").notNull(),
     changeSource: mysqlEnum("change_source", [

@@ -1,10 +1,10 @@
 "use client";
 
 import { Fragment } from "react";
-import { Bell, ChevronRight, Mail } from "lucide-react";
-import { TbPasswordUser } from "react-icons/tb";
+import { Bell, ChevronRight, Mail, LockKeyhole } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
+import { FeatureErrorBoundary } from "@/components/common/FeatureErrorBoundary";
 import Link from "next/link";
 
 export default function SettingsPage() {
@@ -23,7 +23,7 @@ export default function SettingsPage() {
     },
     {
       id: "change-password",
-      icon: TbPasswordUser,
+      icon: LockKeyhole,
       title: "Change Password",
       description: "Update your password and security settings",
     },
@@ -41,47 +41,49 @@ export default function SettingsPage() {
         </div>
 
         {/* Settings Options */}
-        <div className="space-y-3">
-          {settingsOptions.map((option, idx) => {
-            const Icon = option.icon;
-            return (
-              <Fragment key={idx}>
-                <button className="group bg-background w-full cursor-pointer p-6 shadow-none transition-all">
-                  <Link href={`/settings/${option.id}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        {/* Icon Container */}
-                        <div className="bg-secondary flex h-12 w-12 items-center justify-center rounded-full">
-                          <Icon
-                            size={24}
-                            className="bg-secondary text-secondary-foreground"
-                          />
+        <FeatureErrorBoundary featureName="settings">
+          <div className="space-y-3">
+            {settingsOptions.map((option, idx) => {
+              const Icon = option.icon;
+              return (
+                <Fragment key={idx}>
+                  <button className="group bg-background w-full cursor-pointer p-6 shadow-none transition-all">
+                    <Link href={`/settings/${option.id}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          {/* Icon Container */}
+                          <div className="bg-secondary flex h-12 w-12 items-center justify-center rounded-full">
+                            <Icon
+                              size={24}
+                              className="bg-secondary text-secondary-foreground"
+                            />
+                          </div>
+
+                          {/* Text Content */}
+                          <div className="text-left">
+                            <h3 className="text-foreground mb-1 text-lg font-semibold">
+                              {option.title}
+                            </h3>
+                            <p className="text-muted-foreground text-sm">
+                              {option.description}
+                            </p>
+                          </div>
                         </div>
 
-                        {/* Text Content */}
-                        <div className="text-left">
-                          <h3 className="text-foreground mb-1 text-lg font-semibold">
-                            {option.title}
-                          </h3>
-                          <p className="text-muted-foreground text-sm">
-                            {option.description}
-                          </p>
-                        </div>
+                        {/* Chevron Arrow */}
+                        <ChevronRight
+                          size={24}
+                          className="group-hover:text-secondary-foreground text-muted-foreground transform transition-colors group-hover:translate-x-1"
+                        />
                       </div>
-
-                      {/* Chevron Arrow */}
-                      <ChevronRight
-                        size={24}
-                        className="group-hover:text-secondary-foreground text-muted-foreground transform transition-colors group-hover:translate-x-1"
-                      />
-                    </div>
-                  </Link>
-                </button>
-                <Separator className="border-border my-1.5" />
-              </Fragment>
-            );
-          })}
-        </div>
+                    </Link>
+                  </button>
+                  <Separator className="border-border my-1.5" />
+                </Fragment>
+              );
+            })}
+          </div>
+        </FeatureErrorBoundary>
       </div>
     </div>
   );

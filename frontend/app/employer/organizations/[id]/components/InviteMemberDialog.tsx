@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -21,6 +20,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { sendInvitationSchema } from "@/schemas/invitations";
 import { useSendInvitation } from "@/app/employer/organizations/hooks/use-manage-invitations";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 
 interface InviteMemberDialogProps {
   organizationId: number;
@@ -65,7 +65,7 @@ export function InviteMemberDialog({
             e.stopPropagation();
             await form.handleSubmit();
           }}
-          className="space-y-4"
+          className="flex flex-col gap-4"
         >
           <form.Field
             name="email"
@@ -81,8 +81,8 @@ export function InviteMemberDialog({
               const isInvalid =
                 field.state.meta.isTouched && !field.state.meta.isValid;
               return (
-                <div className="space-y-2">
-                  <Label htmlFor={field.name}>Email Address</Label>
+                <Field className="flex flex-col gap-2" data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={field.name}>Email Address</FieldLabel>
                   <Input
                     id={field.name}
                     name={field.name}
@@ -93,14 +93,14 @@ export function InviteMemberDialog({
                     onChange={(e) => field.handleChange(e.target.value)}
                     aria-invalid={isInvalid}
                   />
-                  {isInvalid && field.state.meta.errors.length > 0 && (
-                    <p className="text-destructive text-sm">
-                      {typeof field.state.meta.errors[0] === "string"
-                        ? field.state.meta.errors[0]
-                        : (field.state.meta.errors[0] as any).message}
-                    </p>
+                  {isInvalid && (
+                    <FieldError
+                      errors={field.state.meta.errors.map((e) =>
+                        typeof e === "string" ? { message: e } : e,
+                      )}
+                    />
                   )}
-                </div>
+                </Field>
               );
             }}
           />
@@ -108,8 +108,8 @@ export function InviteMemberDialog({
           <form.Field
             name="role"
             children={(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>Role</Label>
+              <Field className="flex flex-col gap-2">
+                <FieldLabel htmlFor={field.name}>Role</FieldLabel>
                 <Select
                   name={field.name}
                   value={field.state.value}
@@ -128,7 +128,7 @@ export function InviteMemberDialog({
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </Field>
             )}
           />
 
