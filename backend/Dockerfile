@@ -22,8 +22,13 @@ FROM oven/bun:1-slim
 WORKDIR /app
 
 # Create non-root user for security
-RUN addgroup --system --gid 1001 appgroup && \
-    adduser --system --uid 1001 --ingroup appgroup appuser
+# oven/bun:1-slim is Debian slim which lacks the adduser package;
+# groupadd/useradd (from passwd) are always present.
+RUN groupadd --system --gid 1001 appgroup && \
+    useradd --system --uid 1001 --gid appgroup --no-create-home --shell /usr/sbin/nologin appuser
+
+# Give appuser ownership of /app so Bun can write its runtime cache (.bun/)
+RUN chown appuser:appgroup /app
 
 # Copy only the bundled output (single file, ~13MB, no node_modules needed)
 COPY --from=builder --chown=appuser:appgroup /app/dist/server.js ./dist/server.js
