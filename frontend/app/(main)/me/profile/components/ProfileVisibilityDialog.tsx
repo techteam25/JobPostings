@@ -32,14 +32,14 @@ const ProfileVisibilityDialog = ({ isVisible }: { isVisible: boolean }) => {
   return (
     <Dialog>
       <DialogTrigger asChild className="w-full">
-        <Button className="flex cursor-pointer items-center justify-between rounded-lg border border-green-200 bg-green-50 p-3 shadow-none hover:bg-green-50">
+        <Button className="border-accent bg-accent hover:bg-accent flex cursor-pointer items-center justify-between rounded-lg border p-3 shadow-none">
           <div className="flex items-center gap-2">
-            <Eye className="h-4 w-4 text-green-600" />
+            <Eye className="text-accent-foreground h-4 w-4" />
             <span className="text-foreground text-sm font-medium">
               Employers can find you
             </span>
           </div>
-          <ChevronRight className="h-4 w-4 text-green-600" />
+          <ChevronRight className="text-accent-foreground h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="flex flex-col space-y-3 sm:max-w-md">
@@ -66,8 +66,8 @@ const ProfileVisibilityDialog = ({ isVisible }: { isVisible: boolean }) => {
               <RadioGroupItem
                 value="profile-invisible"
                 id="profile-invisible"
-                className="border-secondary-foreground size-5 focus-visible:ring-0 focus-visible:ring-transparent"
-                circleClassName="size-4 fill-secondary-foreground"
+                className="border-ring size-5 focus-visible:ring-0 focus-visible:ring-transparent"
+                circleClassName="size-4 fill-ring"
               />
             </div>
             <p className="text-muted-foreground text-sm">
@@ -87,8 +87,8 @@ const ProfileVisibilityDialog = ({ isVisible }: { isVisible: boolean }) => {
               <RadioGroupItem
                 value="profile-visible"
                 id="profile-visible"
-                className="border-secondary-foreground size-5 focus-visible:ring-0 focus-visible:ring-transparent"
-                circleClassName="size-4 fill-secondary-foreground"
+                className="border-ring size-5 focus-visible:ring-0 focus-visible:ring-transparent"
+                circleClassName="size-4 fill-ring"
               />
             </div>
             <p className="text-muted-foreground text-sm">

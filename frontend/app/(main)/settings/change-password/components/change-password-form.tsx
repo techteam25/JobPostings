@@ -12,11 +12,11 @@ import { authClient } from "@/lib/auth";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { FieldInfo } from "@/components/common/FieldInfo";
 
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { Field, FieldLabel } from "@/components/ui/field";
 
 const defaultValues: ChangePasswordData = {
   currentPassword: "",
@@ -123,13 +123,13 @@ export default function ChangePasswordForm() {
         <form.Field
           name="currentPassword"
           children={(field) => (
-            <div>
-              <Label
+            <Field>
+              <FieldLabel
                 htmlFor={field.name}
                 className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
               >
                 Old Password
-              </Label>
+              </FieldLabel>
               <div className="relative">
                 <Input
                   id={field.name}
@@ -151,7 +151,7 @@ export default function ChangePasswordForm() {
                 </Button>
               </div>
               <FieldInfo field={field} />
-            </div>
+            </Field>
           )}
         />
 
@@ -159,13 +159,13 @@ export default function ChangePasswordForm() {
         <form.Field
           name="newPassword"
           children={(field) => (
-            <div>
-              <Label
+            <Field>
+              <FieldLabel
                 htmlFor={field.name}
                 className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
               >
                 New Password
-              </Label>
+              </FieldLabel>
               <div className="relative">
                 <Input
                   id={field.name}
@@ -188,7 +188,7 @@ export default function ChangePasswordForm() {
               </div>
               <PasswordStrengthIndicator password={field.state.value} />
               <FieldInfo field={field} />
-            </div>
+            </Field>
           )}
         />
 
@@ -196,13 +196,13 @@ export default function ChangePasswordForm() {
         <form.Field
           name="confirmNewPassword"
           children={(field) => (
-            <div>
-              <Label
+            <Field>
+              <FieldLabel
                 htmlFor={field.name}
                 className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
               >
                 Confirm New Password
-              </Label>
+              </FieldLabel>
               <div className="relative">
                 <Input
                   id={field.name}
@@ -224,7 +224,7 @@ export default function ChangePasswordForm() {
                 </Button>
               </div>
               <FieldInfo field={field} />
-            </div>
+            </Field>
           )}
         />
 
@@ -236,7 +236,7 @@ export default function ChangePasswordForm() {
               type="submit"
               disabled={!canSubmit || isSubmitting || isPending}
               className={cn(
-                "bg-accent hover:bg-accent/90 text-accent-foreground w-full cursor-pointer rounded-lg py-3 font-semibold transition",
+                "bg-primary hover:bg-primary/90 text-primary-foreground w-full cursor-pointer rounded-lg py-3 font-semibold transition",
                 {
                   "cursor-not-allowed opacity-50":
                     !canSubmit || isSubmitting || isPending,

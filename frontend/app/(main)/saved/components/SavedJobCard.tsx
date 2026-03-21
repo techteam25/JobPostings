@@ -26,7 +26,7 @@ export const SavedJobCard = memo(function SavedJobCard({
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center justify-start">
-            <div className="flex size-8 flex-shrink-0 justify-center rounded-full">
+            <div className="flex size-8 shrink-0 justify-center rounded-full">
               <Building2 className="text-muted-foreground mr-2 size-5" />
             </div>
             <span className="text-secondary-foreground line-clamp-1 text-sm text-ellipsis">

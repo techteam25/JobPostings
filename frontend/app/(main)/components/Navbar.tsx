@@ -155,56 +155,60 @@ export default function Navbar() {
                     align="end"
                     className="flex w-75 flex-col items-start space-y-3"
                   >
-                    <DropdownMenuItem className="">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">
-                          {data?.data?.user.name}
-                        </p>
-                        <p className="text-muted-foreground">
-                          {data?.data?.user.email}
-                        </p>
-                      </div>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      asChild
-                      className="hover:bg-muted/80 [&>svg]:size-5"
-                    >
-                      <Link href="/me/profile">
-                        <CircleUser className="text-foreground mr-2 size-8" />
-                        Profile
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      asChild
-                      className="hover:bg-muted/80 [&>svg]:size-5"
-                    >
-                      <Link href="/settings">
-                        <Settings className="text-foreground mr-2" />
-                        Settings
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      asChild
-                      className="hover:bg-muted/80 [&>svg]:size-5"
-                    >
-                      {isAuthenticated ? (
-                        <Button
-                          variant="link"
-                          className="text-foreground cursor-pointer focus-visible:ring-0"
-                          onClick={handleSignOut}
+                    {isAuthenticated ? (
+                      <>
+                        <DropdownMenuItem className="">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">
+                              {data?.data?.user.name}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {data?.data?.user.email}
+                            </p>
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          asChild
+                          className="hover:bg-muted/80 [&>svg]:size-5"
                         >
-                          <LogOut className="text-foreground mr-2" />
-                          {signOutPending ? (
-                            <span>
-                              <Loader2 className="text-muted-foreground animate-spin" />{" "}
-                              Signing out...
-                            </span>
-                          ) : (
-                            <span>Sign out</span>
-                          )}
-                        </Button>
-                      ) : (
+                          <Link href="/me/profile">
+                            <CircleUser className="text-foreground mr-2 size-8" />
+                            Profile
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          asChild
+                          className="hover:bg-muted/80 [&>svg]:size-5"
+                        >
+                          <Link href="/settings">
+                            <Settings className="text-foreground mr-2" />
+                            Settings
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          asChild
+                          className="hover:bg-muted/80 [&>svg]:size-5"
+                        >
+                          <Button
+                            variant="link"
+                            className="text-foreground cursor-pointer focus-visible:ring-0"
+                            onClick={handleSignOut}
+                          >
+                            <LogOut className="text-foreground mr-2" />
+                            {signOutPending ? (
+                              <span>
+                                <Loader2 className="text-muted-foreground animate-spin" />{" "}
+                                Signing out...
+                              </span>
+                            ) : (
+                              <span>Sign out</span>
+                            )}
+                          </Button>
+                        </DropdownMenuItem>
+                      </>
+                    ) : (
+                      <DropdownMenuItem>
                         <Button
                           variant="link"
                           className="text-foreground cursor-pointer focus-visible:ring-0"
@@ -214,8 +218,8 @@ export default function Navbar() {
                             Sign in
                           </Link>
                         </Button>
-                      )}
-                    </DropdownMenuItem>
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

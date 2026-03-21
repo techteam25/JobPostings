@@ -22,9 +22,14 @@ export default function PreferenceToggle({
     <div className="flex items-center justify-between">
       <div className="flex-1">
         <Label className="text-base font-medium">{label}</Label>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <p className="text-muted-foreground text-sm">{description}</p>
       </div>
-      <Switch checked={enabled} disabled={disabled} onCheckedChange={onToggle} />
+      <Switch
+        checked={enabled}
+        disabled={disabled}
+        onCheckedChange={onToggle}
+        className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+      />
     </div>
   );
 }

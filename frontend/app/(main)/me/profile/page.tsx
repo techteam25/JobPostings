@@ -11,10 +11,7 @@ import {
   Briefcase,
   DollarSign,
   Watch,
-  X,
-  ArrowRight,
   FileText,
-  Search,
 } from "lucide-react";
 
 import { getUserInformation } from "@/lib/api";
@@ -116,33 +113,6 @@ export default async function ProfilePage() {
                     </div>
                   </div>
                   <ResumeContextMenu />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Resume CTA */}
-            <Card className="border-primary/20 mt-3 bg-blue-50 shadow-none">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">
-                      <Search />
-                    </span>
-                    <div>
-                      <p className="text-foreground text-sm font-semibold">
-                        Get a resume that keeps employers calling
-                      </p>
-                      <a
-                        href="#"
-                        className="text-primary/80 hover:text-primary inline-flex items-center gap-1 text-sm font-medium"
-                      >
-                        Improve your resume <ArrowRight className="h-3 w-3" />
-                      </a>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon" className="shrink-0">
-                    <X />
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -249,7 +219,7 @@ export default async function ProfilePage() {
           </div>
 
           {/* Profile Strength Indicator - Unique addition */}
-          <Card className="border-green-200 bg-linear-to-r from-green-50 to-blue-50">
+          <Card className="border-border bg-secondary">
             <CardContent className="p-6">
               <div className="mb-4 flex items-start justify-between">
                 <div>
@@ -260,13 +230,11 @@ export default async function ProfilePage() {
                     Your profile is 95% complete
                   </p>
                 </div>
-                <Badge className="text-primary-foreground bg-green-600">
-                  95%
-                </Badge>
+                <Badge className="text-primary-foreground bg-ring">95%</Badge>
               </div>
               <div className="bg-input mb-3 h-2.5 w-full rounded-full">
                 <div
-                  className="h-2.5 rounded-full bg-green-600"
+                  className="bg-ring h-2.5 rounded-full"
                   style={{ width: "95%" }}
                 ></div>
               </div>
