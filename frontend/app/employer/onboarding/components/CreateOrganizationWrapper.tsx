@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Image from "next/image";
 import DOMPurify from "isomorphic-dompurify";
 
 import { steps } from "@/app/employer/onboarding/steps";
@@ -10,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Stepper } from "@/app/employer/onboarding/components/Stepper";
 import { CreateOrganizationData } from "@/schemas/organizations";
 
-import CompanyProfileGraphic from "@/public/company-profile-graphic.png";
 import { useCreateOrganization } from "@/app/employer/onboarding/hooks/use-create-organization";
 import { Loader2 } from "lucide-react";
 import { AnyFormApi } from "@tanstack/form-core";
@@ -118,13 +116,6 @@ const CreateOrganizationWrapper = () => {
     <div className="flex w-full max-w-6xl gap-6">
       {/* Left Panel - Steps */}
       <div className="bg-background h-fit w-80 rounded-3xl p-8 shadow-xl backdrop-blur-sm">
-        <div className="mb-8">
-          <Image
-            src={CompanyProfileGraphic}
-            alt="Company Profile Graphic"
-            className="h16 mx-auto w-auto"
-          />
-        </div>
         <div className="space-y-6">
           <Stepper steps={steps} currentStep={currentStep} />
         </div>
@@ -133,7 +124,7 @@ const CreateOrganizationWrapper = () => {
         {/* Right Panel - Form */}
         <div className="bg-background flex-1 p-8">
           <h2 className="mb-2 text-2xl font-bold">Company&apos;s profile</h2>
-          <p className="mb-8 text-gray-500">
+          <p className="text-secondary-foreground mb-8">
             Provide information about your company and other details
           </p>
 
@@ -161,7 +152,7 @@ const CreateOrganizationWrapper = () => {
               onClick={handleBack}
               size="default"
               variant="outline"
-              className="text-primary hover:border-primary hover:text-primary w-full cursor-pointer rounded-lg py-3 font-medium shadow-none transition-colors hover:bg-transparent"
+              className="text-foreground hover:border-primary hover:text-primary w-full cursor-pointer rounded-lg py-3 font-medium shadow-none transition-colors hover:bg-transparent"
               disabled={!canGoBack}
             >
               Previous
