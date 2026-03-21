@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useState } from "react";
-import { useMediaQuery } from "usehooks-ts";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 import { Info, RefreshCcwIcon } from "lucide-react";
 import { useFetchJobs } from "@/app/(main)/hooks/use-fetch-jobs";
