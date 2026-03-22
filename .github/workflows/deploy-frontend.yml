@@ -24,12 +24,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      # - name: Check backend health before deployment
-      #   run: |
-      #     echo "Checking if backend is healthy before deploying frontend..."
-      #     curl -f https://api.getinvolved.team/health || \
-      #     (echo "Backend is not healthy, aborting frontend deployment" && exit 1)
-      #     echo "Backend is healthy, proceeding with frontend deployment"
+      - name: Check backend health before deployment
+        run: |
+          echo "Checking if backend is healthy before deploying frontend..."
+          curl -f https://api.getinvolved.team/health || \
+          (echo "Backend is not healthy, aborting frontend deployment" && exit 1)
+          echo "Backend is healthy, proceeding with frontend deployment"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4

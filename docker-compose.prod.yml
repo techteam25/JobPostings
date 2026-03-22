@@ -85,6 +85,19 @@ services:
       timeout: 10s
       retries: 3
 
+  # ===== Database Migrations =====
+
+  migrations:
+    image: ghcr.io/techteam25/jobpostings-backend:latest
+    container_name: jobpostings-migrations
+    env_file:
+      - .env.production
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["bun", "dist/migrate.js"]
+    restart: "no"
+
   # ===== Application =====
 
   backend:
@@ -99,6 +112,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
       redis-cache:
         condition: service_healthy
       redis-queue:

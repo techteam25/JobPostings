@@ -30,8 +30,12 @@ RUN groupadd --system --gid 1001 appgroup && \
 # Give appuser ownership of /app so Bun can write its runtime cache (.bun/)
 RUN chown appuser:appgroup /app
 
-# Copy only the bundled output (single file, ~13MB, no node_modules needed)
+# Copy bundled output (server + migrate scripts, no node_modules needed)
 COPY --from=builder --chown=appuser:appgroup /app/dist/server.js ./dist/server.js
+COPY --from=builder --chown=appuser:appgroup /app/dist/migrate.js ./dist/migrate.js
+
+# Copy SQL migration files for drizzle-orm programmatic migrator
+COPY --from=builder --chown=appuser:appgroup /app/src/db/migrations ./migrations
 
 ENV NODE_ENV=production
 
