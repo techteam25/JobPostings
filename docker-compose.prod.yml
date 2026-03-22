@@ -3,28 +3,6 @@
 # Env:   .env.production (copy from .env.production.example)
 
 services:
-  # ===== Infrastructure =====
-
-  db:
-    image: mysql:9.4.0
-    container_name: jobpostings-mysql
-    restart: unless-stopped
-    env_file:
-      - .env.production
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
   redis-cache:
     image: redis:8.2-alpine
     container_name: redis-cache
@@ -92,9 +70,8 @@ services:
     container_name: jobpostings-migrations
     env_file:
       - .env.production
-    depends_on:
-      db:
-        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: ["bun", "dist/migrate.js"]
     restart: "no"
 
@@ -106,12 +83,12 @@ services:
     restart: unless-stopped
     env_file:
       - .env.production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       # Mount Firebase service account key (never bake into image)
       - ./secrets/firebase-sa.json:/app/secrets/firebase-sa.json:ro
     depends_on:
-      db:
-        condition: service_healthy
       migrations:
         condition: service_completed_successfully
       redis-cache:
@@ -187,7 +164,6 @@ services:
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 volumes:
-  mysql_data:
   redis_cache_data:
     driver: local
   redis_queue_data:
