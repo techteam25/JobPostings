@@ -80,7 +80,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             cd /opt/jobpostings
             docker compose -f docker-compose.prod.yml pull frontend
-            docker compose -f docker-compose.prod.yml up -d frontend
+            docker compose --env-file .env.production -f docker-compose.prod.yml up -d frontend
           EOF
 
       - name: Health check
