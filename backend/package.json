@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun --watch src/server.ts",
     "start": "bun dist/server.js",
-    "build": "bun build src/server.ts --target=bun --outdir=dist",
+    "build": "bun build src/server.ts --target=bun --outdir=dist && bun build src/db/migrate.ts --target=bun --outdir=dist",
     "build:tsc": "tsc",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
