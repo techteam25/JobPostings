@@ -69,7 +69,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             cd /opt/jobpostings
-            docker compose -f docker-compose.prod.yml pull backend
+            docker compose --env-file .env.production -f docker-compose.prod.yml pull backend
             docker compose --env-file .env.production -f docker-compose.prod.yml up -d backend
           EOF
 
