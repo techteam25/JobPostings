@@ -22,17 +22,6 @@ const userEmailSchema = z.object({
   email: z.email({ error: "Email is required" }),
 });
 
-const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
-    ),
-});
-
 const getUsersQuerySchema = z.object({
   page: z
     .string()
@@ -147,12 +136,6 @@ export const userEmailPayloadSchema = z.object({
   query: z.object({}).strict(),
 });
 
-export const changeUserPasswordSchema = z.object({
-  body: changePasswordSchema,
-  params: z.object({}).strict(),
-  query: z.object({}).strict(),
-});
-
 export const createUserPayloadSchema = z.object({
   body: insertUserProfileSchema.omit({ userId: true }),
   params: z.object({}).strict(),
@@ -196,7 +179,6 @@ export const getUserSavedJobsQuerySchema = z.object({
 });
 
 export type GetUserSchema = z.infer<typeof getUserSchema>;
-export type ChangePasswordSchema = z.infer<typeof changeUserPasswordSchema>;
 export type UserEmailSchema = z.infer<typeof userEmailPayloadSchema>;
 export type UserEmailPreferencesSchema = z.infer<
   typeof selectUserEmailPreferencesSchema

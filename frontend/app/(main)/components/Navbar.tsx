@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -44,11 +44,6 @@ export default function Navbar() {
   const { isPending, data } = useUserSession();
   const { isAuthenticated } = useAuthenticationStatus();
   const { signOutAsyncAction, isPending: signOutPending } = useUserSignOut();
-  const isMounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
 
   const handleSignOut = useCallback(async () => {
     await signOutAsyncAction();
@@ -105,126 +100,122 @@ export default function Navbar() {
           </div>
 
           {/* Right Section */}
-          {isMounted && (
-            <>
-              <NavbarMobile
-                username={data?.data?.user.name}
-                email={data?.data?.user.email}
-                profileImage={data?.data?.user.image}
-              />
-              <div className="hidden items-center gap-4 lg:flex">
-                {/* Notification Bell */}
+          <NavbarMobile
+            username={data?.data?.user.name}
+            email={data?.data?.user.email}
+            profileImage={data?.data?.user.image}
+          />
+          <div className="hidden items-center gap-4 lg:flex">
+            {/* Notification Bell */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="hover:bg-secondary rounded-full p-2 transition"
+            >
+              <Bell className="text-secondary-foreground h-6 w-6" />
+            </Button>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
+            {/* User Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
-                  variant="outline"
-                  size="icon"
-                  className="hover:bg-secondary rounded-full p-2 transition"
+                  variant="ghost"
+                  className="hover:bg-secondary data-[state=open]:bg-secondary hover:text-secondary-foreground focus:bg-secondary focus:text-secondary-foreground cursor-pointer rounded-full p-2 transition focus-visible:ring-0 [&_svg]:size-6"
                 >
-                  <Bell className="text-secondary-foreground h-6 w-6" />
+                  {isPending ? (
+                    <SkeletonDemo />
+                  ) : data?.data?.user.image ? (
+                    <div className="relative h-10 w-10">
+                      <Image
+                        src={data?.data?.user.image}
+                        alt="User Profile Image"
+                        fill
+                        className="rounded-full object-cover"
+                        sizes="40px"
+                      />
+                    </div>
+                  ) : (
+                    <div className="bg-background flex items-center justify-center rounded-full">
+                      <User />
+                    </div>
+                  )}
                 </Button>
-
-                {/* Theme Toggle */}
-                <ThemeToggle />
-
-                {/* User Profile Dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="hover:bg-secondary data-[state=open]:bg-secondary hover:text-secondary-foreground focus:bg-secondary focus:text-secondary-foreground cursor-pointer rounded-full p-2 transition focus-visible:ring-0 [&_svg]:size-6"
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="flex w-75 flex-col items-start space-y-3"
+              >
+                {isAuthenticated ? (
+                  <>
+                    <DropdownMenuItem className="">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">
+                          {data?.data?.user.name}
+                        </p>
+                        <p className="text-muted-foreground">
+                          {data?.data?.user.email}
+                        </p>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      asChild
+                      className="hover:bg-muted/80 [&>svg]:size-5"
                     >
-                      {isPending ? (
-                        <SkeletonDemo />
-                      ) : data?.data?.user.image ? (
-                        <div className="relative h-10 w-10">
-                          <Image
-                            src={data?.data?.user.image}
-                            alt="User Profile Image"
-                            fill
-                            className="rounded-full object-cover"
-                            sizes="40px"
-                          />
-                        </div>
-                      ) : (
-                        <div className="bg-background flex items-center justify-center rounded-full">
-                          <User />
-                        </div>
-                      )}
+                      <Link href="/me/profile">
+                        <CircleUser className="text-foreground mr-2 size-8" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      asChild
+                      className="hover:bg-muted/80 [&>svg]:size-5"
+                    >
+                      <Link href="/settings">
+                        <Settings className="text-foreground mr-2" />
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      asChild
+                      className="hover:bg-muted/80 [&>svg]:size-5"
+                    >
+                      <Button
+                        variant="link"
+                        className="text-foreground cursor-pointer focus-visible:ring-0"
+                        onClick={handleSignOut}
+                      >
+                        <LogOut className="text-foreground mr-2" />
+                        {signOutPending ? (
+                          <span>
+                            <Loader2 className="text-muted-foreground animate-spin" />{" "}
+                            Signing out...
+                          </span>
+                        ) : (
+                          <span>Sign out</span>
+                        )}
+                      </Button>
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem>
+                    <Button
+                      variant="link"
+                      className="text-foreground cursor-pointer focus-visible:ring-0"
+                    >
+                      <Link href="/sign-in" className="flex items-center">
+                        <LogIn className="text-foreground mr-2" />
+                        Sign in
+                      </Link>
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="flex w-75 flex-col items-start space-y-3"
-                  >
-                    {isAuthenticated ? (
-                      <>
-                        <DropdownMenuItem className="">
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium">
-                              {data?.data?.user.name}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {data?.data?.user.email}
-                            </p>
-                          </div>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          asChild
-                          className="hover:bg-muted/80 [&>svg]:size-5"
-                        >
-                          <Link href="/me/profile">
-                            <CircleUser className="text-foreground mr-2 size-8" />
-                            Profile
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          asChild
-                          className="hover:bg-muted/80 [&>svg]:size-5"
-                        >
-                          <Link href="/settings">
-                            <Settings className="text-foreground mr-2" />
-                            Settings
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          asChild
-                          className="hover:bg-muted/80 [&>svg]:size-5"
-                        >
-                          <Button
-                            variant="link"
-                            className="text-foreground cursor-pointer focus-visible:ring-0"
-                            onClick={handleSignOut}
-                          >
-                            <LogOut className="text-foreground mr-2" />
-                            {signOutPending ? (
-                              <span>
-                                <Loader2 className="text-muted-foreground animate-spin" />{" "}
-                                Signing out...
-                              </span>
-                            ) : (
-                              <span>Sign out</span>
-                            )}
-                          </Button>
-                        </DropdownMenuItem>
-                      </>
-                    ) : (
-                      <DropdownMenuItem>
-                        <Button
-                          variant="link"
-                          className="text-foreground cursor-pointer focus-visible:ring-0"
-                        >
-                          <Link href="/sign-in" className="flex items-center">
-                            <LogIn className="text-foreground mr-2" />
-                            Sign in
-                          </Link>
-                        </Button>
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </>
-          )}
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
     </header>

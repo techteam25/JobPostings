@@ -9,10 +9,17 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Public routes that don't require authentication
-  const publicRoutes = ["/sign-in", "/sign-up", "/verify-email", "/email-verified"];
-  const isPublicRoute = pathname === "/" || publicRoutes.some((route) =>
-    pathname.startsWith(route),
-  );
+  const publicRoutes = [
+    "/sign-in",
+    "/sign-up",
+    "/verify-email",
+    "/email-verified",
+    "/forgot-password",
+    "/reset-password",
+  ];
+  const isPublicRoute =
+    pathname === "/" ||
+    publicRoutes.some((route) => pathname.startsWith(route));
 
   // Get cookies from the request - try multiple methods
   const cookieHeader = req.headers.get("cookie");

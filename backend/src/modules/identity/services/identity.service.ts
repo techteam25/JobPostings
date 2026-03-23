@@ -71,34 +71,6 @@ export class IdentityService
     }
   }
 
-  async changePassword(
-    userId: number,
-    currentPassword: string,
-    newPassword: string,
-  ) {
-    try {
-      const user = await this.identityRepository.findById(userId);
-      if (!user) {
-        return fail(new NotFoundError("User", userId));
-      }
-
-      const res = await auth.api.changePassword({
-        body: {
-          newPassword,
-          currentPassword,
-          revokeOtherSessions: true,
-        },
-      });
-
-      return ok({ message: "Password changed successfully", data: res });
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to change password"));
-    }
-  }
-
   async deactivateSelf(userId: number) {
     try {
       const user = await this.identityRepository.findById(userId);

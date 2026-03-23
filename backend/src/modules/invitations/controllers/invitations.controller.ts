@@ -117,11 +117,9 @@ export class InvitationsController extends BaseController {
     res: Response<ApiResponse<{ message: string }>>,
   ) => {
     // Note: Authentication is validated by middleware before this method is called.
-    const organizationId = parseInt(req.params.organizationId);
     const invitationId = parseInt(req.params.invitationId);
 
     const result = await this.invitationsService.cancelInvitation(
-      organizationId,
       invitationId,
       req.userId!,
     );

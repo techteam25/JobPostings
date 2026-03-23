@@ -15,7 +15,6 @@ vi.mock("@/utils/auth", () => ({
   auth: {
     api: {
       updateUser: vi.fn(),
-      changePassword: vi.fn(),
       deleteUser: vi.fn(),
     },
   },
@@ -161,38 +160,6 @@ describe("IdentityService", () => {
       mockIdentityRepository.findById.mockResolvedValue(undefined);
 
       const result = await identityService.activateUser(999);
-
-      expect(result.isSuccess).toBe(false);
-      if (!result.isSuccess) {
-        expect(result.error).toBeInstanceOf(NotFoundError);
-      }
-    });
-  });
-
-  describe("changePassword", () => {
-    it("should change password successfully", async () => {
-      mockIdentityRepository.findById.mockResolvedValue({
-        id: 1,
-        email: "test@example.com",
-      });
-      (auth.api.changePassword as any).mockResolvedValue({ status: true });
-
-      const result = await identityService.changePassword(
-        1,
-        "oldPassword",
-        "newPassword",
-      );
-
-      expect(result.isSuccess).toBe(true);
-      if (result.isSuccess) {
-        expect(result.value.message).toBe("Password changed successfully");
-      }
-    });
-
-    it("should fail when user not found", async () => {
-      mockIdentityRepository.findById.mockResolvedValue(undefined);
-
-      const result = await identityService.changePassword(999, "old", "new");
 
       expect(result.isSuccess).toBe(false);
       if (!result.isSuccess) {

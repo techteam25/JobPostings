@@ -27,12 +27,12 @@ vi.mock("@/composition-root", () => ({
   })),
 }));
 
-vi.mock("@/routes", () => ({
-  createApiRoutes: vi.fn(async () => {
-    const { Router } = await import("express");
-    return Router();
-  }),
-}));
+vi.mock("@/routes", async () => {
+  const { Router } = await import("express");
+  return {
+    createApiRoutes: vi.fn(() => Router()),
+  };
+});
 
 // Stub non-critical infra so initializeInfrastructure doesn't hit real services
 vi.mock("@shared/config/typesense-client", () => ({

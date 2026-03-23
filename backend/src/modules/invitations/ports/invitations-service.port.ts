@@ -42,7 +42,6 @@ export interface InvitationsServicePort {
    * Cancels an organization invitation (soft delete).
    */
   cancelInvitation(
-    organizationId: number,
     invitationId: number,
     requesterId: number,
   ): Promise<Result<{ message: string }, Error>>;

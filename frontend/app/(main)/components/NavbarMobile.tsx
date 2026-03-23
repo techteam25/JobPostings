@@ -11,11 +11,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, User } from "lucide-react";
+import { LogIn, Menu, User } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useUserSignOut } from "@/app/(main)/hooks/use-user-signout";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 
 interface NavbarMobileProps {
   username?: string;
@@ -29,6 +30,7 @@ export function NavbarMobile({
   email,
 }: NavbarMobileProps) {
   const { signOutAsyncAction, isPending } = useUserSignOut();
+  const { isAuthenticated } = useAuthenticationStatus();
 
   return (
     <Sheet>
@@ -38,75 +40,98 @@ export function NavbarMobile({
         </Button>
       </SheetTrigger>
       <SheetContent>
-        <SheetHeader>
-          <SheetTitle>
-            {profileImage ? (
-              <div className="relative h-10 w-10">
-                <Image
-                  src={profileImage!}
-                  alt="User Profile Image"
-                  fill
-                  className="mr-2 rounded-full object-cover"
-                />
-                {username}
+        {isAuthenticated ? (
+          <>
+            <SheetHeader>
+              <SheetTitle>
+                {profileImage ? (
+                  <div className="relative h-10 w-10">
+                    <Image
+                      src={profileImage!}
+                      alt="User Profile Image"
+                      fill
+                      className="mr-2 rounded-full object-cover"
+                    />
+                    {username}
+                  </div>
+                ) : (
+                  <div className="bg-background flex items-center rounded-full">
+                    <User className="mr-2" />
+                    {username}
+                  </div>
+                )}
+              </SheetTitle>
+              <SheetDescription>{email}</SheetDescription>
+            </SheetHeader>
+            <nav className="flex flex-col items-start gap-4 p-4">
+              <Button
+                variant="link"
+                className="text-secondary-foreground rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                asChild
+              >
+                <Link href="/">Explore Jobs</Link>
+              </Button>
+              <Button
+                variant="link"
+                className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+              >
+                Saved Jobs
+              </Button>
+              <Button
+                variant="link"
+                className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+              >
+                Applications
+              </Button>
+              <Button
+                variant="link"
+                className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+              >
+                Messages
+              </Button>
+              <Button
+                variant="link"
+                className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+              >
+                FAQ
+              </Button>
+              <div className="flex items-center gap-2 px-6">
+                <span className="text-secondary-foreground text-xs">Theme</span>
+                <ThemeToggle />
               </div>
-            ) : (
-              <div className="bg-background flex items-center rounded-full">
-                <User className="mr-2" />
-                {username}
-              </div>
-            )}
-          </SheetTitle>
-          <SheetDescription>{email}</SheetDescription>
-        </SheetHeader>
-        <nav className="flex flex-col items-start gap-4 p-4">
-          <Button
-            variant="link"
-            className="text-secondary-foreground rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-            asChild
-          >
-            <Link href="/">Explore Jobs</Link>
-          </Button>
-          <Button
-            variant="link"
-            className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-          >
-            Saved Jobs
-          </Button>
-          <Button
-            variant="link"
-            className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-          >
-            Applications
-          </Button>
-          <Button
-            variant="link"
-            className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-          >
-            Messages
-          </Button>
-          <Button
-            variant="link"
-            className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-          >
-            FAQ
-          </Button>
-          <div className="flex items-center gap-2 px-6">
-            <span className="text-secondary-foreground text-xs">Theme</span>
-            <ThemeToggle />
-          </div>
-        </nav>
-        <SheetFooter>
-          <SheetClose asChild>
-            <Button
-              className="bg-foreground"
-              onClick={() => signOutAsyncAction()}
-              disabled={isPending}
-            >
-              {isPending ? "Signing Out..." : "Sign Out"}
-            </Button>
-          </SheetClose>
-        </SheetFooter>
+            </nav>
+            <SheetFooter>
+              <SheetClose asChild>
+                <Button
+                  className="bg-foreground"
+                  onClick={() => signOutAsyncAction()}
+                  disabled={isPending}
+                >
+                  {isPending ? "Signing Out..." : "Sign Out"}
+                </Button>
+              </SheetClose>
+            </SheetFooter>
+          </>
+        ) : (
+          <>
+            <SheetHeader>
+              <SheetTitle></SheetTitle>
+            </SheetHeader>
+            <SheetFooter>
+              <SheetClose asChild>
+                <Button
+                  variant="link"
+                  className="text-foreground cursor-pointer focus-visible:ring-0"
+                >
+                  <Link href="/sign-in" className="flex items-center">
+                    <LogIn className="text-foreground mr-2" />
+                    Sign in
+                  </Link>
+                </Button>
+              </SheetClose>
+            </SheetFooter>
+          </>
+        )}
       </SheetContent>
     </Sheet>
   );
