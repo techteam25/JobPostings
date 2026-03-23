@@ -142,4 +142,32 @@ describe("Authentication Controller Integration Tests", () => {
       expect(response.body).toHaveProperty("message", "Invalid password");
     });
   });
+
+  describe("POST /request-password-reset", () => {
+    it("should return success for a valid email", async () => {
+      await seedUserScenario();
+
+      const response = await request
+        .post("/api/auth/request-password-reset")
+        .send({
+          email: "normal.user@example.com",
+          redirectTo: "http://localhost:3000/reset-password",
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("status", true);
+    });
+
+    it("should return success even for unknown email (no enumeration)", async () => {
+      const response = await request
+        .post("/api/auth/request-password-reset")
+        .send({
+          email: "nonexistent@example.com",
+          redirectTo: "http://localhost:3000/reset-password",
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("status", true);
+    });
+  });
 });

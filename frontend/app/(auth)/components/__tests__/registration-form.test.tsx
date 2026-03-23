@@ -71,9 +71,7 @@ describe("RegistrationForm", () => {
 
   it("renders terms checkbox and register button", () => {
     render(<RegistrationForm />);
-    expect(
-      screen.getByText(/terms & conditions/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/terms & conditions/i)).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /register/i }),
     ).toBeInTheDocument();
@@ -81,9 +79,7 @@ describe("RegistrationForm", () => {
 
   it("renders social auth buttons in register mode", () => {
     render(<RegistrationForm />);
-    expect(
-      screen.getByRole("button", { name: /google/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /google/i })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /linkedin/i }),
     ).toBeInTheDocument();
@@ -146,10 +142,7 @@ describe("RegistrationForm", () => {
       "john@example.com",
     );
     await user.type(screen.getByLabelText(/^password$/i), "password123");
-    await user.type(
-      screen.getByLabelText(/confirm password/i),
-      "password123",
-    );
+    await user.type(screen.getByLabelText(/confirm password/i), "password123");
 
     // Agree to terms
     const termsCheckbox = screen.getByRole("checkbox");
@@ -177,9 +170,13 @@ describe("RegistrationForm", () => {
   it("shows error toast on failed registration", async () => {
     const { toast } = await import("sonner");
     const user = userEvent.setup();
-    mockPost.mockRejectedValue({
-      response: { data: { message: "Email already exists" } },
-    });
+    const axiosError = new Error("Request failed") as Error & {
+      isAxiosError: boolean;
+      response: { data: { message: string } };
+    };
+    axiosError.isAxiosError = true;
+    axiosError.response = { data: { message: "Email already exists" } };
+    mockPost.mockRejectedValue(axiosError);
 
     render(<RegistrationForm />);
 
@@ -190,10 +187,7 @@ describe("RegistrationForm", () => {
       "john@example.com",
     );
     await user.type(screen.getByLabelText(/^password$/i), "password123");
-    await user.type(
-      screen.getByLabelText(/confirm password/i),
-      "password123",
-    );
+    await user.type(screen.getByLabelText(/confirm password/i), "password123");
 
     const termsCheckbox = screen.getByRole("checkbox");
     await user.click(termsCheckbox);

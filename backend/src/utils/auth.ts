@@ -68,6 +68,20 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: isProduction,
+    resetPasswordTokenExpiresIn: 1800, // 30 minutes
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      await queueService.addJob(
+        QUEUE_NAMES.EMAIL_QUEUE,
+        "sendPasswordResetEmail",
+        {
+          userId: Number(user.id),
+          email: user.email,
+          fullName: user.name,
+          resetUrl: url,
+        },
+      );
+    },
   },
   emailVerification: {
     sendOnSignUp: isProduction,
@@ -112,7 +126,9 @@ export const auth = betterAuth({
         required: true,
         defaultValue: "active",
         input: false,
-        validator: { input: z.enum(["active", "deactivated", "deleted"]) },
+        validator: {
+          input: z.enum(["active", "deactivated", "deleted"]),
+        },
       },
       deletedAt: { type: "date", required: false, input: false },
       lastLoginAt: { type: "date", required: false, input: false },
@@ -253,6 +269,35 @@ export const auth = betterAuth({
             );
           } catch (error) {
             logger.error(error, "Failed to queue password changed email");
+          }
+        }
+      } else if (
+        ctx.path === "/reset-password" &&
+        ctx.request?.method === "POST"
+      ) {
+        if (ctx.context.returned instanceof APIError) {
+          return;
+        }
+
+        // After a successful password reset, notify the user via email
+        const returned = ctx.context
+          .returned as BetterAuthSuccessResponseSchema;
+        if (returned?.user) {
+          try {
+            await queueService.addJob(
+              QUEUE_NAMES.EMAIL_QUEUE,
+              "sendPasswordChangedEmail",
+              {
+                userId: Number(returned.user.id),
+                email: returned.user.email,
+                fullName: returned.user.name,
+              },
+            );
+          } catch (error) {
+            logger.error(
+              error,
+              "Failed to queue password changed email after reset",
+            );
           }
         }
       }

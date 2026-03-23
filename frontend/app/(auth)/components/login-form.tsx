@@ -178,10 +178,11 @@ export default function LoginForm() {
                     </span>
                   </Label>
                   <Button
+                    asChild
                     variant="link"
                     className="text-muted-foreground cursor-pointer text-xs sm:text-sm"
                   >
-                    Forgot password?
+                    <Link href="/forgot-password">Forgot password?</Link>
                   </Button>
                 </div>
               )}

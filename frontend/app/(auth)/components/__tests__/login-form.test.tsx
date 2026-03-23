@@ -51,20 +51,16 @@ describe("LoginForm", () => {
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/remember me/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /login/i })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /login/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /forgot password/i }),
-    ).toBeInTheDocument();
+      screen.getByRole("link", { name: /forgot password/i }),
+    ).toHaveAttribute("href", "/forgot-password");
   });
 
   it("renders social auth buttons", () => {
     render(<LoginForm />);
 
-    expect(
-      screen.getByRole("button", { name: /google/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /google/i })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /linkedin/i }),
     ).toBeInTheDocument();
@@ -195,9 +191,7 @@ describe("LoginForm", () => {
     await user.click(screen.getByRole("button", { name: /login/i }));
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith(
-        "An unexpected error occurred",
-      );
+      expect(toast.error).toHaveBeenCalledWith("An unexpected error occurred");
     });
   });
 

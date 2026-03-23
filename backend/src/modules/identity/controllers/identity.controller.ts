@@ -2,13 +2,11 @@ import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
 import type { IdentityServicePort } from "@/modules/identity";
 import type {
-  ChangePasswordSchema,
   DeleteSelfSchema,
   DeleteUserSchema,
   GetUserSchema,
 } from "@/validations/user.validation";
 import type { UpdateUser, User } from "@/validations/userProfile.validation";
-import type { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 import type { EmptyBody } from "@shared/types";
 
 export class IdentityController extends BaseController {
@@ -32,28 +30,6 @@ export class IdentityController extends BaseController {
       );
     } else {
       return this.handleControllerError(res, user.error);
-    }
-  };
-
-  changePassword = async (
-    req: Request<EmptyBody, EmptyBody, ChangePasswordSchema["body"]>,
-    res: Response,
-  ) => {
-    const { currentPassword, newPassword } = req.body;
-
-    const result = await this.identityService.changePassword(
-      req.userId!,
-      currentPassword,
-      newPassword,
-    );
-
-    if (result.isSuccess) {
-      return this.sendSuccess<{
-        message: string;
-        data: BetterAuthSuccessResponseSchema;
-      }>(res, result.value, "Password changed successfully");
-    } else {
-      return this.handleControllerError(res, result.error);
     }
   };
 
