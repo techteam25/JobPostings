@@ -78,7 +78,9 @@ const jobAlertNotificationSchema = baseEmailSchema.extend({
 
 export const emailJobSchemas = {
   sendWelcomeEmail: baseEmailSchema,
-  sendPasswordResetEmail: baseEmailSchema,
+  sendPasswordResetEmail: baseEmailSchema.extend({
+    resetUrl: z.string().url(),
+  }),
   sendJobApplicationConfirmation: jobApplicationConfirmationSchema,
   sendApplicationWithdrawalConfirmation: applicationWithdrawalSchema,
   sendAccountDeletionConfirmation: baseEmailSchema,
@@ -127,8 +129,17 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
     switch (jobName) {
       case "sendWelcomeEmail":
         break;
-      case "sendPasswordResetEmail":
+      case "sendPasswordResetEmail": {
+        const d = data as z.infer<
+          (typeof emailJobSchemas)["sendPasswordResetEmail"]
+        >;
+        await deps.emailService.sendPasswordResetEmail(
+          d.email,
+          d.fullName,
+          d.resetUrl,
+        );
         break;
+      }
       case "sendJobApplicationConfirmation": {
         const d = data as z.infer<typeof jobApplicationConfirmationSchema>;
         await deps.emailService.sendJobApplicationConfirmation(

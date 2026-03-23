@@ -206,6 +206,7 @@ function createMockEmailService(): EmailServicePort {
     sendAccountDeactivationConfirmation: vi.fn(),
     sendAccountDeletionConfirmation: vi.fn(),
     sendDeleteAccountEmailVerification: vi.fn(),
+    sendPasswordResetEmail: vi.fn(),
   };
 }
 
@@ -335,6 +336,32 @@ describe("Email Job Contract Tests", () => {
       await service.withdrawApplication(100, 5);
 
       expectEmailDispatched("sendApplicationWithdrawalConfirmation");
+    });
+  });
+
+  describe("sendPasswordResetEmail schema", () => {
+    it("accepts valid password reset email payload", () => {
+      const payload = {
+        userId: 1,
+        email: "user@test.com",
+        fullName: "Test User",
+        resetUrl:
+          "https://example.com/api/auth/reset-password/abc123?callbackURL=https://frontend.com/reset-password",
+      };
+
+      expectValidPayload("sendPasswordResetEmail", payload);
+    });
+
+    it("rejects payload missing resetUrl", () => {
+      const payload = {
+        userId: 1,
+        email: "user@test.com",
+        fullName: "Test User",
+      };
+
+      const schema = emailJobSchemas.sendPasswordResetEmail;
+      const result = schema.safeParse(payload);
+      expect(result.success).toBe(false);
     });
   });
 

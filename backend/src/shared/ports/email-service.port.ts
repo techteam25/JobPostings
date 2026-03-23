@@ -14,6 +14,15 @@ export interface EmailServicePort {
   sendPasswordChangedEmail(email: string, fullName: string): Promise<void>;
 
   /**
+   * Sends a password reset link email to the user.
+   */
+  sendPasswordResetEmail(
+    email: string,
+    fullName: string,
+    resetUrl: string,
+  ): Promise<void>;
+
+  /**
    * Sends a job application confirmation email to the user.
    */
   sendJobApplicationConfirmation(

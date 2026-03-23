@@ -376,6 +376,48 @@ ${footer}`,
   }
 
   /**
+   * Sends a password reset link email to the user.
+   * This is a security email and bypasses email preferences.
+   * @param email The recipient's email address.
+   * @param fullName The recipient's full name.
+   * @param resetUrl The password reset URL.
+   */
+  async sendPasswordResetEmail(
+    email: string,
+    fullName: string,
+    resetUrl: string,
+  ): Promise<void> {
+    try {
+      const template = await this.loadTemplate("passwordResetEmail");
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+      const htmlContent = template
+        .replace("{{name}}", this.escapeHtml(fullName))
+        .replace("{{verificationLink}}", resetUrl)
+        .replace("{{logoPath}}", logoPath);
+
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: "Reset your password",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.handleError(error);
+      } else {
+        this.handleError(
+          new AppError(
+            "Unknown error occurred while sending password reset email",
+          ),
+        );
+      }
+    }
+  }
+
+  /**
    * Sends a job application confirmation email to the user.
    * @param userId The ID of the user.
    * @param email The recipient's email address.
