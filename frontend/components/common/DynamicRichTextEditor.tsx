@@ -12,7 +12,7 @@ const DynamicRichTextEditor = dynamic(() => import("./RichTextEditor"), {
           <Skeleton key={i} className="size-8 rounded-md" />
         ))}
       </div>
-      <Skeleton className="h-[200px] w-full rounded-md" />
+      <Skeleton className="h-50 w-full rounded-md" />
     </div>
   ),
 });
