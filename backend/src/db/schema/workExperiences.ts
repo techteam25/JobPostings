@@ -6,6 +6,7 @@ import {
   index,
   check,
   int,
+  text,
 } from "drizzle-orm/mysql-core";
 import { relations, sql } from "drizzle-orm";
 import { userProfile } from "./users";
@@ -24,7 +25,7 @@ export const workExperiences = mysqlTable(
       .notNull(),
     companyName: varchar("company_name", { length: 100 }).notNull(),
     jobTitle: varchar("job_title", { length: 100 }).default("").notNull(),
-    description: varchar("description", { length: 100 }),
+    description: text("description"),
     current: boolean("current").default(false).notNull(),
     startDate: timestamp("start_date").notNull(),
     endDate: timestamp("end_date"),
