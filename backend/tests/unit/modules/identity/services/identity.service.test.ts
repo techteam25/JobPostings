@@ -20,8 +20,6 @@ vi.mock("@/utils/auth", () => ({
   },
 }));
 
-import { auth } from "@/utils/auth";
-
 describe("IdentityService", () => {
   let identityService: IdentityService;
   let mockIdentityRepository: any;
