@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { useForm } from "@tanstack/react-form";
 import { Loader2, Upload } from "lucide-react";
+import { DynamicRichTextEditor } from "@/components/common";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -320,15 +321,12 @@ export function EditOrganizationForm() {
           return (
             <Field data-invalid={isInvalid || undefined}>
               <FieldLabel htmlFor={field.name}>Company Mission</FieldLabel>
-              <textarea
-                id={field.name}
-                value={field.state.value}
+              <DynamicRichTextEditor
+                defaultValue={field.state.value}
+                onChange={(value) => field.handleChange(value)}
                 onBlur={field.handleBlur}
-                onChange={(e) => field.handleChange(e.target.value)}
-                aria-invalid={isInvalid || undefined}
-                rows={5}
-                className="border-border bg-background focus:ring-ring w-full rounded-lg border px-4 py-2 text-sm focus:ring-2 focus:outline-none"
-                placeholder="Describe your company's mission"
+                placeholder="Describe your company's mission..."
+                height={150}
               />
               {isInvalid && (
                 <FieldError
