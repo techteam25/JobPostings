@@ -34,7 +34,7 @@ export const workExperiences = mysqlTable(
     index("program_idx").on(table.companyName),
     check(
       "resigned_end_date_check",
-      sql`(${table.current} = false OR ${table.endDate} IS NOT NULL)`,
+      sql`(${table.current} = true OR ${table.endDate} IS NOT NULL)`,
     ),
   ],
 );

@@ -190,6 +190,13 @@
       "when": 1774381448200,
       "tag": "0026_marvelous_prism",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "5",
+      "when": 1774381797339,
+      "tag": "0027_living_captain_marvel",
+      "breakpoints": true
     }
   ]
 }

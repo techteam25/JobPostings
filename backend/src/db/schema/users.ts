@@ -252,7 +252,7 @@ export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
   education: many(educations),
   workExperiences: many(workExperiences),
   certifications: many(userCertifications),
-  skills: many(skills),
+  skills: many(userSkills),
 }));
 
 /**
@@ -279,8 +279,15 @@ export const userEmailPreferencesRelations = relations(
 );
 
 /**
- * Relations for the userSkills table
+ * Relations for the userSkills table, defining many-to-one relationships with userProfile and skill.
  */
-export const userSkillsRelations = relations(userSkills, ({ many }) => ({
-  userProfiles: many(userProfile),
+export const userSkillsRelations = relations(userSkills, ({ one }) => ({
+  userProfile: one(userProfile, {
+    fields: [userSkills.userProfileId],
+    references: [userProfile.id],
+  }),
+  skill: one(skills, {
+    fields: [userSkills.skillId],
+    references: [skills.id],
+  }),
 }));
