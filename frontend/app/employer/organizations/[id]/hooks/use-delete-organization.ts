@@ -15,7 +15,7 @@ export const useDeleteOrganization = (organizationId: number) => {
     },
     onSuccess: () => {
       toast.success("Organization deleted successfully");
-      router.push("/employer/organizations");
+      router.replace("/employer/organizations");
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to delete organization");
