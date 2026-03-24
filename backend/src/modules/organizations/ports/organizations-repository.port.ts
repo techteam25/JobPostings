@@ -105,7 +105,7 @@ export interface OrganizationsRepositoryPort extends BaseRepositoryPort<
   validateOrganizationExists(orgId: number): Promise<boolean>;
 
   /**
-   * Checks if a user has delete permission for an organization.
+   * Checks if a user has `delete` permission for an organization.
    */
   hasDeletePermission(userId: number, orgId: number): Promise<boolean>;
 

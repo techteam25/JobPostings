@@ -13,7 +13,7 @@ import { calculatePagination } from "@shared/db/utils";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import { DatabaseError, NotFoundError } from "@shared/errors";
 import type { NewOrganization } from "@/validations/organization.validation";
-import type { OrganizationsRepositoryPort } from "../ports/organizations-repository.port";
+import type { OrganizationsRepositoryPort } from "@/modules/organizations";
 
 /**
  * Repository class for managing organization CRUD and membership operations.
@@ -397,10 +397,10 @@ export class OrganizationsRepository
   }
 
   /**
-   * Checks if a user has delete permission for an organization.
+   * Checks if a user has `delete` permission for an organization.
    * @param userId The ID of the user.
    * @param orgId The ID of the organization.
-   * @returns True if the user has delete permission, false otherwise.
+   * @returns True if the user has `delete` permission, false otherwise.
    */
   async hasDeletePermission(userId: number, orgId: number): Promise<boolean> {
     return await withDbErrorHandling(async () => {
