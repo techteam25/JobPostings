@@ -2,29 +2,23 @@
 
 import {
   BarChart3,
-  Building,
   Calendar,
   HelpCircle,
   Home,
   MessageSquare,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useOrganization } from "../context/organization-context";
+import { OrgSwitcher } from "./org-switcher";
 
-interface AppSidebarProps {
-  organizationId: number;
-  organizationName: string;
-  organizationLogoUrl: string | null;
-}
-export function AppSidebar({
-  organizationId,
-  organizationName,
-  organizationLogoUrl,
-}: AppSidebarProps) {
+export function AppSidebar() {
   const pathname = usePathname();
+  const { organization } = useOrganization();
 
-  const basePath = `/employer/organizations/${organizationId}`;
+  const basePath = `/employer/organizations/${organization.id}`;
 
   const isActive = (path: string) => {
     if (path === basePath) {
@@ -43,20 +37,13 @@ export function AppSidebar({
 
   return (
     <div className="bg-background flex h-full w-64 flex-col">
-      {/* Header */}
-      <div className="flex items-center gap-2 border-b p-4">
-        {organizationLogoUrl && (
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg">
-            <Building />
-          </div>
-        )}
-        <span className="flex-wrap font-bold">{organizationName}</span>
-      </div>
+      {/* Org Switcher Header */}
+      <OrgSwitcher />
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="flex flex-1 flex-col gap-1 p-3">
         <Link href={basePath} className={linkClass(basePath)}>
-          <Home size={20} />
+          <Home />
           <span>Home</span>
         </Link>
 
@@ -64,7 +51,7 @@ export function AppSidebar({
           href={`${basePath}/applications`}
           className={linkClass(`${basePath}/applications`)}
         >
-          <BarChart3 size={20} />
+          <BarChart3 />
           <span>Applications</span>
         </Link>
 
@@ -72,17 +59,25 @@ export function AppSidebar({
           href={`${basePath}/jobs`}
           className={linkClass(`${basePath}/jobs`)}
         >
-          <Calendar size={20} />
+          <Calendar />
           <span>Jobs</span>
         </Link>
 
+        <Link
+          href={`${basePath}/settings`}
+          className={linkClass(`${basePath}/settings`)}
+        >
+          <Settings />
+          <span>Settings</span>
+        </Link>
+
         <span className="text-muted-foreground flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2">
-          <HelpCircle size={20} />
+          <HelpCircle />
           <span>Help</span>
         </span>
 
         <span className="text-muted-foreground flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2">
-          <MessageSquare size={20} />
+          <MessageSquare />
           <span>Feedback</span>
         </span>
       </nav>
