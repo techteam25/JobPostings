@@ -4,10 +4,12 @@ import {
   educations,
   jobsDetails,
   savedJobs,
+  skills,
   user,
   userCertifications,
   userOnBoarding,
   userProfile,
+  userSkills,
   workExperiences,
 } from "@/db/schema";
 import { BaseRepository } from "@shared/base/base.repository";
@@ -21,6 +23,12 @@ import type {
   UpdateUserProfile,
   User,
 } from "@/validations/userProfile.validation";
+import type { InsertEducation } from "@/validations/educations.validation";
+import type { InsertWorkExperience } from "@/validations/workExperiences.validation";
+import type { NewCertification } from "@/validations/certifications.validation";
+
+/** Transaction type extracted from Drizzle's `db.transaction` callback */
+type DbTransaction = Parameters<Parameters<(typeof db)["transaction"]>[0]>[0];
 
 export class ProfileRepository
   extends BaseRepository<typeof user>
@@ -153,123 +161,395 @@ export class ProfileRepository
             .update(userProfile)
             .set({ ...userProfileData, userId })
             .where(eq(userProfile.userId, userId));
-          const userProfileId = await tx
-            .select({ id: userProfile.id })
-            .from(userProfile)
-            .where(eq(userProfile.userId, userId))
-            .then((rows) => (rows[0] ? rows[0].id : null));
 
-          if (!userProfileId) {
-            throw new DatabaseError(
-              `User profile not found for userId: ${userId}`,
-            );
-          }
+          const profileId = await this.getProfileId(tx, userId);
 
-          // Upsert Educations
-          if (educationsData && educationsData.length > 0) {
-            const edu = educationsData.map((e) => ({
-              ...e,
-              userProfileId,
-              startDate: new Date(e.startDate),
-              endDate: e.endDate ? new Date(e.endDate) : null,
-            }));
+          await this.upsertEducations(tx, profileId, educationsData);
+          await this.upsertWorkExperiences(tx, profileId, workExperiencesData);
+          await this.upsertCertifications(tx, profileId, certificationsData);
 
-            await tx
-              .insert(educations)
-              .values(edu)
-              .onDuplicateKeyUpdate({
-                set: {
-                  userProfileId,
-                  schoolName: sql`values(${educations.schoolName})`,
-                  program: sql`values(${educations.program})`,
-                  major: sql`values(${educations.major})`,
-                  graduated: sql`values(${educations.graduated})`,
-                  startDate: sql`values(${educations.startDate})`,
-                  endDate: sql`values(${educations.endDate})`,
-                },
-              });
-          }
-
-          // Upsert Work Experiences
-          if (workExperiencesData && workExperiencesData.length > 0) {
-            const work = workExperiencesData.map((we) => ({
-              ...we,
-              userProfileId,
-              startDate: new Date(we.startDate),
-              endDate: we.endDate ? new Date(we.endDate) : null,
-            }));
-
-            await tx
-              .insert(workExperiences)
-              .values(work)
-              .onDuplicateKeyUpdate({
-                set: {
-                  userProfileId,
-                  companyName: sql`values(${workExperiences.companyName})`,
-                  current: sql`values(${workExperiences.current})`,
-                  startDate: sql`values(${workExperiences.startDate})`,
-                  endDate: sql`values(${workExperiences.endDate})`,
-                },
-              });
-          }
-
-          // Upsert Certifications
-          if (certificationsData && certificationsData.length > 0) {
-            const [record] = await tx
-              .insert(certifications)
-              .values(certificationsData)
-              .onDuplicateKeyUpdate({
-                set: {
-                  certificationName: sql`values(${certifications.certificationName})`,
-                },
-              })
-              .$returningId();
-
-            // Link Certification to User Profile in Junction Table
-            if (record && record.id) {
-              await tx
-                .insert(userCertifications)
-                .values({
-                  certificationId: record.id,
-                  userId: userProfileId,
-                })
-                .onDuplicateKeyUpdate({
-                  set: {
-                    certificationId: sql`values(${userCertifications.certificationId})`,
-                  },
-                });
-            }
-          }
-
-          return await tx.query.user.findFirst({
-            where: eq(user.id, userId),
-            with: {
-              profile: {
-                with: {
-                  certifications: {
-                    columns: {},
-                    with: { certification: true },
-                  },
-                  education: true,
-                  workExperiences: true,
-                },
-              },
-            },
-            columns: {
-              id: true,
-              email: true,
-              fullName: true,
-              emailVerified: true,
-              image: true,
-              status: true,
-              deletedAt: true,
-              lastLoginAt: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          });
+          return await this.fetchFullUserProfile(tx, userId);
         }),
     );
+  }
+
+  // ─── Private composable methods ──────────────────────────────────────
+
+  private async getProfileId(
+    tx: DbTransaction,
+    userId: number,
+  ): Promise<number> {
+    const rows = await tx
+      .select({ id: userProfile.id })
+      .from(userProfile)
+      .where(eq(userProfile.userId, userId));
+
+    if (!rows[0]) {
+      throw new DatabaseError(`User profile not found for userId: ${userId}`);
+    }
+
+    return rows[0].id;
+  }
+
+  private async upsertEducations(
+    tx: DbTransaction,
+    userProfileId: number,
+    educationsData: UpdateUserProfile["educations"],
+  ): Promise<void> {
+    if (!educationsData?.length) return;
+
+    const edu = educationsData.map((e) => ({
+      ...e,
+      userProfileId,
+      startDate: new Date(e.startDate),
+      endDate: e.endDate ? new Date(e.endDate) : null,
+    }));
+
+    await tx
+      .insert(educations)
+      .values(edu)
+      .onDuplicateKeyUpdate({
+        set: {
+          userProfileId,
+          schoolName: sql`values(${educations.schoolName})`,
+          program: sql`values(${educations.program})`,
+          major: sql`values(${educations.major})`,
+          graduated: sql`values(${educations.graduated})`,
+          startDate: sql`values(${educations.startDate})`,
+          endDate: sql`values(${educations.endDate})`,
+        },
+      });
+  }
+
+  private async upsertWorkExperiences(
+    tx: DbTransaction,
+    userProfileId: number,
+    workExperiencesData: UpdateUserProfile["workExperiences"],
+  ): Promise<void> {
+    if (!workExperiencesData?.length) return;
+
+    const work = workExperiencesData.map((we) => ({
+      ...we,
+      userProfileId,
+      startDate: new Date(we.startDate),
+      endDate: we.endDate ? new Date(we.endDate) : null,
+    }));
+
+    await tx
+      .insert(workExperiences)
+      .values(work)
+      .onDuplicateKeyUpdate({
+        set: {
+          userProfileId,
+          companyName: sql`values(${workExperiences.companyName})`,
+          jobTitle: sql`values(${workExperiences.jobTitle})`,
+          description: sql`values(${workExperiences.description})`,
+          current: sql`values(${workExperiences.current})`,
+          startDate: sql`values(${workExperiences.startDate})`,
+          endDate: sql`values(${workExperiences.endDate})`,
+        },
+      });
+  }
+
+  private async upsertCertifications(
+    tx: DbTransaction,
+    userProfileId: number,
+    certificationsData: UpdateUserProfile["certifications"],
+  ): Promise<void> {
+    if (!certificationsData?.length) return;
+
+    const [record] = await tx
+      .insert(certifications)
+      .values(certificationsData)
+      .onDuplicateKeyUpdate({
+        set: {
+          certificationName: sql`values(${certifications.certificationName})`,
+        },
+      })
+      .$returningId();
+
+    if (record && record.id) {
+      await tx
+        .insert(userCertifications)
+        .values({
+          certificationId: record.id,
+          userId: userProfileId,
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            certificationId: sql`values(${userCertifications.certificationId})`,
+          },
+        });
+    }
+  }
+
+  private async fetchFullUserProfile(tx: DbTransaction, userId: number) {
+    return await tx.query.user.findFirst({
+      where: eq(user.id, userId),
+      with: {
+        profile: {
+          with: {
+            certifications: {
+              columns: {},
+              with: { certification: true },
+            },
+            education: true,
+            workExperiences: true,
+          },
+        },
+      },
+      columns: {
+        id: true,
+        email: true,
+        fullName: true,
+        emailVerified: true,
+        image: true,
+        status: true,
+        deletedAt: true,
+        lastLoginAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async addEducation(
+    userProfileId: number,
+    data: Omit<InsertEducation, "userProfileId">,
+  ) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .insert(educations)
+        .values({
+          ...data,
+          userProfileId,
+          startDate: new Date(data.startDate),
+          endDate: data.endDate ? new Date(data.endDate) : null,
+        })
+        .$returningId();
+
+      if (!result || isNaN(result.id)) {
+        throw new DatabaseError("Failed to add education");
+      }
+
+      const row = await db.query.educations.findFirst({
+        where: eq(educations.id, result.id),
+      });
+
+      if (!row) {
+        throw new DatabaseError("Failed to retrieve created education");
+      }
+
+      return row;
+    });
+  }
+
+  async updateEducation(
+    educationId: number,
+    data: Partial<Omit<InsertEducation, "userProfileId">>,
+  ) {
+    return await withDbErrorHandling(async () => {
+      const updateSet: Record<string, unknown> = { ...data };
+      if (data.startDate) updateSet.startDate = new Date(data.startDate);
+      if (data.endDate) updateSet.endDate = new Date(data.endDate);
+
+      const [result] = await db
+        .update(educations)
+        .set(updateSet)
+        .where(eq(educations.id, educationId));
+
+      if (!result.affectedRows || result.affectedRows === 0) {
+        throw new NotFoundError("Education", educationId);
+      }
+
+      return true;
+    });
+  }
+
+  async deleteEducation(educationId: number) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .delete(educations)
+        .where(eq(educations.id, educationId));
+
+      if (!result.affectedRows || result.affectedRows === 0) {
+        throw new NotFoundError("Education", educationId);
+      }
+
+      return true;
+    });
+  }
+
+  async addWorkExperience(
+    userProfileId: number,
+    data: Omit<InsertWorkExperience, "userProfileId">,
+  ) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .insert(workExperiences)
+        .values({
+          ...data,
+          userProfileId,
+          startDate: new Date(data.startDate),
+          endDate: data.endDate ? new Date(data.endDate) : null,
+        })
+        .$returningId();
+
+      if (!result || isNaN(result.id)) {
+        throw new DatabaseError("Failed to add work experience");
+      }
+
+      const row = await db.query.workExperiences.findFirst({
+        where: eq(workExperiences.id, result.id),
+      });
+
+      if (!row) {
+        throw new DatabaseError("Failed to retrieve created work experience");
+      }
+
+      return row;
+    });
+  }
+
+  async updateWorkExperience(
+    workExperienceId: number,
+    data: Partial<Omit<InsertWorkExperience, "userProfileId">>,
+  ) {
+    return await withDbErrorHandling(async () => {
+      const updateSet: Record<string, unknown> = { ...data };
+      if (data.startDate) updateSet.startDate = new Date(data.startDate);
+      if (data.endDate) updateSet.endDate = new Date(data.endDate);
+
+      const [result] = await db
+        .update(workExperiences)
+        .set(updateSet)
+        .where(eq(workExperiences.id, workExperienceId));
+
+      if (!result.affectedRows || result.affectedRows === 0) {
+        throw new NotFoundError("WorkExperience", workExperienceId);
+      }
+
+      return true;
+    });
+  }
+
+  async deleteWorkExperience(workExperienceId: number) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .delete(workExperiences)
+        .where(eq(workExperiences.id, workExperienceId));
+
+      if (!result.affectedRows || result.affectedRows === 0) {
+        throw new NotFoundError("WorkExperience", workExperienceId);
+      }
+
+      return true;
+    });
+  }
+
+  async linkCertification(
+    userProfileId: number,
+    certificationData: NewCertification,
+  ) {
+    return await withDbErrorHandling(
+      async () =>
+        await db.transaction(async (tx) => {
+          const [record] = await tx
+            .insert(certifications)
+            .values(certificationData)
+            .onDuplicateKeyUpdate({
+              set: {
+                certificationName: sql`values(${certifications.certificationName})`,
+              },
+            })
+            .$returningId();
+
+          if (!record || isNaN(record.id)) {
+            throw new DatabaseError("Failed to create certification");
+          }
+
+          await tx
+            .insert(userCertifications)
+            .values({
+              certificationId: record.id,
+              userId: userProfileId,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                certificationId: sql`values(${userCertifications.certificationId})`,
+              },
+            });
+
+          const row = await tx.query.certifications.findFirst({
+            where: eq(certifications.id, record.id),
+          });
+
+          if (!row) {
+            throw new DatabaseError("Failed to retrieve linked certification");
+          }
+
+          return row;
+        }),
+    );
+  }
+
+  async unlinkCertification(userProfileId: number, certificationId: number) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .delete(userCertifications)
+        .where(
+          and(
+            eq(userCertifications.userId, userProfileId),
+            eq(userCertifications.certificationId, certificationId),
+          ),
+        );
+
+      if (!result.affectedRows || result.affectedRows === 0) {
+        throw new NotFoundError("Certification", certificationId);
+      }
+
+      return true;
+    });
+  }
+
+  async linkSkill(userProfileId: number, skillId: number) {
+    return await withDbErrorHandling(async () => {
+      const skill = await db.query.skills.findFirst({
+        where: eq(skills.id, skillId),
+      });
+
+      if (!skill) {
+        throw new NotFoundError("Skill", skillId);
+      }
+
+      await db
+        .insert(userSkills)
+        .values({ userProfileId, skillId })
+        .onDuplicateKeyUpdate({
+          set: { skillId: sql`values(${userSkills.skillId})` },
+        });
+
+      return true;
+    });
+  }
+
+  async unlinkSkill(userProfileId: number, skillId: number) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .delete(userSkills)
+        .where(
+          and(
+            eq(userSkills.userProfileId, userProfileId),
+            eq(userSkills.skillId, skillId),
+          ),
+        );
+
+      if (!result.affectedRows || result.affectedRows === 0) {
+        throw new NotFoundError("Skill", skillId);
+      }
+
+      return true;
+    });
   }
 
   async searchUsers(

@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 export const userProfileFixture = async () => {
   const { faker } = await import("@faker-js/faker");
 
@@ -40,6 +42,7 @@ export const workExperiencesFixture = async () => {
   return [
     {
       companyName: faker.company.name(),
+      jobTitle: faker.person.jobTitle(),
       current: false,
       startDate: new Date("2020-01-01T00:00:00Z"),
       endDate: new Date("2022-01-01T00:00:00Z"),
@@ -118,7 +121,6 @@ export const jobPostingFixture = async () => {
 };
 
 export const emailPreferencesFixture = (userId: number) => {
-  const crypto = require("crypto");
   const token = crypto.randomBytes(32).toString("hex");
   const tokenExpiresAt = new Date();
   tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 30);
@@ -140,7 +142,6 @@ export const emailPreferencesFixture = (userId: number) => {
 };
 
 export const emailPreferencesDisabledFixture = (userId: number) => {
-  const crypto = require("crypto");
   const token = crypto.randomBytes(32).toString("hex");
   const tokenExpiresAt = new Date();
   tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 30);
@@ -162,7 +163,6 @@ export const emailPreferencesDisabledFixture = (userId: number) => {
 };
 
 export const emailPreferencesGlobalUnsubscribeFixture = (userId: number) => {
-  const crypto = require("crypto");
   const token = crypto.randomBytes(32).toString("hex");
   const tokenExpiresAt = new Date();
   tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 30);
