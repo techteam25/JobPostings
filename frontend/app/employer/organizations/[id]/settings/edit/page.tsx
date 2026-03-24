@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -16,16 +15,9 @@ import { DangerZone } from "./components/danger-zone";
 export default function EditOrganizationPage() {
   const { organization } = useOrganization();
   const isOwner = useIsOwner();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isOwner) {
-      router.replace(`/employer/organizations/${organization.id}/settings`);
-    }
-  }, [isOwner, organization.id, router]);
 
   if (!isOwner) {
-    return null;
+    redirect(`/employer/organizations/${organization.id}/settings`);
   }
 
   return (
