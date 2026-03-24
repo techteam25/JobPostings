@@ -12,6 +12,8 @@ import {
 export const selectWorkExperiencesSchema = createSelectSchema(workExperiences);
 export const insertWorkExperiencesSchema = createInsertSchema(workExperiences, {
   companyName: z.string().min(1, "Company name is required").max(100),
+  jobTitle: z.string().min(1, "Job title is required").max(100),
+  description: z.string().max(2000).optional(),
   current: z.boolean().default(false),
   startDate: z.iso.datetime(),
   endDate: z.iso.datetime().optional(),

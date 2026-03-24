@@ -23,6 +23,8 @@ export const workExperiences = mysqlTable(
       })
       .notNull(),
     companyName: varchar("company_name", { length: 100 }).notNull(),
+    jobTitle: varchar("job_title", { length: 100 }).default("").notNull(),
+    description: varchar("description", { length: 100 }),
     current: boolean("current").default(false).notNull(),
     startDate: timestamp("start_date").notNull(),
     endDate: timestamp("end_date"),
