@@ -10,6 +10,11 @@ import type {
   UserQuerySchema,
 } from "@/validations/user.validation";
 import type { GetJobSchema } from "@/validations/job.validation";
+import type {
+  BatchCreateEducationsInput,
+  UpdateEducationRouteInput,
+  DeleteEducationRouteInput,
+} from "@/validations/educations.validation";
 import type { ApiResponse, EmptyBody } from "@shared/types";
 import type {
   UpdateProfileVisibilityInput,
@@ -276,6 +281,74 @@ export class ProfileController extends BaseController {
 
     if (result.isSuccess) {
       return this.sendSuccess(res, null, "Job unsaved successfully", 200);
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  batchCreateEducations = async (
+    req: Request<EmptyBody, EmptyBody, BatchCreateEducationsInput["body"]>,
+    res: Response,
+  ) => {
+    const { educations } = req.body;
+
+    const result = await this.profileService.batchAddEducations(
+      req.userId!,
+      educations,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Education entries added successfully",
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  updateEducation = async (
+    req: Request<
+      UpdateEducationRouteInput["params"],
+      EmptyBody,
+      UpdateEducationRouteInput["body"]
+    >,
+    res: Response,
+  ) => {
+    const educationId = Number(req.params.educationId);
+
+    const result = await this.profileService.updateEducation(
+      educationId,
+      req.body,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Education updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  deleteEducation = async (
+    req: Request<DeleteEducationRouteInput["params"]>,
+    res: Response,
+  ) => {
+    const educationId = Number(req.params.educationId);
+
+    const result = await this.profileService.deleteEducation(educationId);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Education deleted successfully",
+      );
     } else {
       return this.handleControllerError(res, result.error);
     }

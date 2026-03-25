@@ -7,6 +7,10 @@ import type {
   UserProfile,
   UserWithProfile,
 } from "@/validations/userProfile.validation";
+import type {
+  Education,
+  InsertEducation,
+} from "@/validations/educations.validation";
 import type { PaginationMeta } from "@shared/types";
 import { SavedJobs } from "@/validations/user.validation";
 
@@ -77,4 +81,17 @@ export interface ProfileServicePort {
     userId: number,
     jobId: number,
   ): Promise<Result<{ success: boolean }, AppError>>;
+
+  // Education CRUD
+  batchAddEducations(
+    userId: number,
+    data: Omit<InsertEducation, "userProfileId">[],
+  ): Promise<Result<Education[], AppError>>;
+
+  updateEducation(
+    educationId: number,
+    data: Partial<Omit<InsertEducation, "userProfileId">>,
+  ): Promise<Result<boolean, AppError>>;
+
+  deleteEducation(educationId: number): Promise<Result<boolean, AppError>>;
 }

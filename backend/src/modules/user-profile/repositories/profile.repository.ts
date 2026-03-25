@@ -344,6 +344,39 @@ export class ProfileRepository
     });
   }
 
+  async batchAddEducations(
+    userProfileId: number,
+    data: Omit<InsertEducation, "userProfileId">[],
+  ) {
+    return await withDbErrorHandling(
+      async () =>
+        await db.transaction(async (tx) => {
+          const mapped = data.map((entry) => ({
+            ...entry,
+            userProfileId,
+            startDate: new Date(entry.startDate),
+            endDate: entry.endDate ? new Date(entry.endDate) : null,
+          }));
+
+          const insertedIds = await tx
+            .insert(educations)
+            .values(mapped)
+            .$returningId();
+
+          if (!insertedIds.length) {
+            throw new DatabaseError("Failed to add education entries");
+          }
+
+          const ids = insertedIds.map((r) => r.id);
+          const rows = await tx.query.educations.findMany({
+            where: inArray(educations.id, ids),
+          });
+
+          return rows;
+        }),
+    );
+  }
+
   async updateEducation(
     educationId: number,
     data: Partial<Omit<InsertEducation, "userProfileId">>,

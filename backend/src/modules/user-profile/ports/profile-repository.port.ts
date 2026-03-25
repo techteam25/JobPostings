@@ -74,6 +74,10 @@ export interface ProfileRepositoryPort {
     userProfileId: number,
     data: Omit<InsertEducation, "userProfileId">,
   ): Promise<Education>;
+  batchAddEducations(
+    userProfileId: number,
+    data: Omit<InsertEducation, "userProfileId">[],
+  ): Promise<Education[]>;
   updateEducation(
     educationId: number,
     data: Partial<Omit<InsertEducation, "userProfileId">>,

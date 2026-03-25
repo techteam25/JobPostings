@@ -12,6 +12,11 @@ import {
 } from "@/validations/user.validation";
 import { getJobSchema } from "@/validations/job.validation";
 import {
+  batchCreateEducationsSchema,
+  updateEducationRouteSchema,
+  deleteEducationRouteSchema,
+} from "@/validations/educations.validation";
+import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
@@ -72,6 +77,32 @@ export function createProfileRoutes({
     validate(createUserPayloadSchema),
     invalidateCacheMiddleware(() => "users/me"),
     profileController.createProfile,
+  );
+
+  // Education CRUD routes
+
+  // POST /users/me/educations/batch
+  router.post(
+    "/me/educations/batch",
+    validate(batchCreateEducationsSchema),
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.batchCreateEducations,
+  );
+
+  // PUT /users/me/educations/:educationId
+  router.put(
+    "/me/educations/:educationId",
+    validate(updateEducationRouteSchema),
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.updateEducation,
+  );
+
+  // DELETE /users/me/educations/:educationId
+  router.delete(
+    "/me/educations/:educationId",
+    validate(deleteEducationRouteSchema),
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.deleteEducation,
   );
 
   // Saved jobs routes
