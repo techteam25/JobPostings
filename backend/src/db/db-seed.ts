@@ -1,7 +1,10 @@
 import mysql from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
+import type { MySql2Database } from "drizzle-orm/mysql2";
 import { reset, seed } from "drizzle-seed";
 import { eq, sql } from "drizzle-orm";
+import type { Faker } from "@faker-js/faker";
+import crypto from "crypto";
 
 import * as schema from "./schema";
 import { userProfile } from "@/db/schema";
@@ -11,7 +14,10 @@ import { env } from "@shared/config/env";
 import { auth } from "@/utils/auth";
 import logger from "@shared/logger";
 import { userEmailPreferences, userOnBoarding } from "./schema";
-import crypto from "crypto";
+import { educations } from "./schema";
+import { workExperiences } from "./schema";
+
+type DB = MySql2Database<typeof schema>;
 
 const connection = mysql.createPool({
   host: env.DB_HOST,
@@ -21,33 +27,17 @@ const connection = mysql.createPool({
   database: env.DB_NAME,
 });
 
-/**
- * Seeds the database with fake data for development and testing purposes.
- * This function resets the database, creates users, user profiles, organizations, job postings, and organization members.
- * It uses Faker.js to generate realistic fake data and ensures data integrity with proper relationships.
- * The seeding process includes:
- * - 50 users with authentication accounts
- * - User profiles for all users
- * - 10 organizations with job postings (10 jobs each)
- * - Organization members including owners and additional roles
- * After seeding, it logs the completion and exits the process.
- */
-async function runSeed() {
-  const { faker } = await import("@faker-js/faker");
-  const db = drizzle(connection, { schema, mode: "default" });
+const USER_COUNT = 50;
+const ORG_COUNT = 10;
+const JOBS_PER_ORG = 10;
+const MEMBERS_PER_ORG = 3;
 
-  logger.info("Starting database reset...");
-  await reset(db, schema);
-  await db.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
-  await db.execute(sql`ALTER TABLE job_details AUTO_INCREMENT = 1`);
-  await db.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
-
-  logger.info("Starting database seeding...");
-
+async function seedUsers(db: DB, faker: Faker): Promise<{ userIds: number[] }> {
   logger.info("Seeding users...");
 
-  // Seed users sequentially to avoid race conditions with unique constraints
-  for (let idx = 0; idx < 50; idx++) {
+  const userIds: number[] = [];
+
+  for (let idx = 0; idx < USER_COUNT; idx++) {
     await auth.api.signUpEmail({
       body: {
         email: `user_${idx + 1}@example.com`,
@@ -57,10 +47,12 @@ async function runSeed() {
       },
     });
 
-    const unsubscribeToken = crypto.randomBytes(32).toString("hex");
+    const userId = idx + 1;
+    userIds.push(userId);
 
+    const unsubscribeToken = crypto.randomBytes(32).toString("hex");
     await db.insert(userEmailPreferences).values({
-      userId: idx + 1,
+      userId,
       unsubscribeToken,
       unsubscribeTokenExpiresAt: new Date(),
       jobMatchNotifications: true,
@@ -74,18 +66,28 @@ async function runSeed() {
     });
   }
 
-  // Verify users were inserted
   const userCount = await db.select().from(schema.user);
   logger.info(`✓ Verified ${userCount.length} users inserted`);
 
+  return { userIds };
+}
+
+async function seedUserProfiles(
+  db: DB,
+  faker: Faker,
+  userIds: number[],
+): Promise<{ profileIds: number[] }> {
   logger.info("Seeding user profiles...");
 
-  // Seed user profiles
   await seed(db, { userProfile }, { seed: 43 }).refine((f) => ({
     userProfile: {
-      count: 50,
+      count: userIds.length,
       columns: {
-        userId: f.int({ minValue: 1, maxValue: 50, isUnique: true }),
+        userId: f.int({
+          minValue: Math.min(...userIds),
+          maxValue: Math.max(...userIds),
+          isUnique: true,
+        }),
         bio: f.loremIpsum({ sentencesCount: 3 }),
         phoneNumber: f.phoneNumber({ template: "(###) ###-####" }),
         address: f.streetAddress(),
@@ -95,21 +97,27 @@ async function runSeed() {
         state: f.state(),
         zipCode: f.postcode(),
         country: f.country(),
-        isProfilePublic: f.valuesFromArray({
-          values: [true, false],
-        }),
-        isAvailableForWork: f.valuesFromArray({
-          values: [true, false],
-        }),
+        isProfilePublic: f.valuesFromArray({ values: [true, false] }),
+        isAvailableForWork: f.valuesFromArray({ values: [true, false] }),
       },
     },
   }));
 
+  const profiles = await db.select({ id: userProfile.id }).from(userProfile);
+  const profileIds = profiles.map((p) => p.id);
+
+  logger.info(`✓ ${profileIds.length} user profiles seeded`);
+  return { profileIds };
+}
+
+async function seedOrganizationsWithJobs(
+  db: DB,
+): Promise<{ orgIds: number[] }> {
   logger.info("Seeding organizations with job postings...");
 
   await seed(db, { organizations, jobsDetails }, { seed: 42 }).refine((f) => ({
     organizations: {
-      count: 10,
+      count: ORG_COUNT,
       columns: {
         name: f.companyName(),
         streetAddress: f.streetAddress(),
@@ -149,7 +157,7 @@ async function runSeed() {
         }),
       },
       with: {
-        jobsDetails: 10,
+        jobsDetails: JOBS_PER_ORG,
       },
     },
     jobsDetails: {
@@ -181,12 +189,8 @@ async function runSeed() {
         compensationType: f.valuesFromArray({
           values: ["paid", "missionary", "volunteer", "stipend"],
         }),
-        isRemote: f.valuesFromArray({
-          values: [true, false],
-        }),
-        isActive: f.valuesFromArray({
-          values: [true, false],
-        }),
+        isRemote: f.valuesFromArray({ values: [true, false] }),
+        isActive: f.valuesFromArray({ values: [true, false] }),
         applicationDeadline: f.date({
           minDate: "2025-12-31",
           maxDate: "2026-08-31",
@@ -195,39 +199,52 @@ async function runSeed() {
     },
   }));
 
+  const orgs = await db.select({ id: organizations.id }).from(organizations);
+  const orgIds = orgs.map((o) => o.id);
+
+  logger.info(
+    `✓ ${orgIds.length} organizations seeded with ${JOBS_PER_ORG} jobs each`,
+  );
+  return { orgIds };
+}
+
+async function seedOrganizationMembers(
+  db: DB,
+  userIds: number[],
+  orgIds: number[],
+): Promise<void> {
   logger.info("Seeding organization members (including owners)...");
 
-  // Seed owners first (users 1-10 as owners of orgs 1-10)
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 0; i < orgIds.length; i++) {
+    const userId = userIds[i]!;
+    const orgId = orgIds[i]!;
+
     await db.insert(organizationMembers).values({
-      userId: i,
-      organizationId: i,
+      userId,
+      organizationId: orgId,
       role: "owner",
       isActive: true,
     });
 
     await db
       .update(userOnBoarding)
-      .set({
-        intent: "employer",
-      })
-      .where(eq(userOnBoarding.userId, i));
+      .set({ intent: "employer" })
+      .where(eq(userOnBoarding.userId, userId));
   }
 
-  // Seed additional members manually to avoid unique constraint violations
-  const additionalMembers = [];
-  let userId = 11;
-  for (let orgId = 1; orgId <= 10; orgId++) {
-    // Add 3 members per organization
-    for (let j = 0; j < 3 && userId <= 50; j++) {
+  const additionalMembers: {
+    userId: number;
+    organizationId: number;
+    role: "admin" | "recruiter" | "member";
+    isActive: boolean;
+  }[] = [];
+  let userIdx = orgIds.length;
+  for (const orgId of orgIds) {
+    for (let j = 0; j < MEMBERS_PER_ORG && userIdx < userIds.length; j++) {
       additionalMembers.push({
-        userId: userId++,
+        userId: userIds[userIdx++]!,
         organizationId: orgId,
-        role: ["admin", "recruiter", "member"][j % 3] as
-          | "owner"
-          | "admin"
-          | "recruiter"
-          | "member",
+        role: (["admin", "recruiter", "member"] as const)[j % 3]!,
         isActive: true,
       });
     }
@@ -237,12 +254,146 @@ async function runSeed() {
     await db.insert(organizationMembers).values(additionalMembers);
   }
 
-  logger.info("✓ Users seeded: 50");
-  logger.info("✓ Organizations seeded: 10");
+  const ownerCount = orgIds.length;
+  const memberCount = additionalMembers.length;
   logger.info(
-    "✓ Organization members seeded: 40 (10 owners + 30 other members)",
+    `✓ Organization members seeded: ${ownerCount + memberCount} (${ownerCount} owners + ${memberCount} other members)`,
   );
-  logger.info("✓ Job postings seeded: ~100 (10 per organization)");
+}
+
+async function seedEducations(
+  db: DB,
+  faker: Faker,
+  profileIds: number[],
+): Promise<void> {
+  logger.info("Seeding educations...");
+
+  const programs = [
+    "GED",
+    "High School Diploma",
+    "Associate Degree",
+    "Bachelors",
+    "Masters",
+    "Doctorate",
+  ] as const;
+
+  const majors = [
+    "Computer Science",
+    "Business Administration",
+    "Mechanical Engineering",
+    "Psychology",
+    "Biology",
+    "Mathematics",
+    "English Literature",
+    "Marketing",
+    "Nursing",
+    "Electrical Engineering",
+  ];
+
+  const educationRecords = [];
+  const profilesToSeed = faker.helpers.arrayElements(
+    profileIds,
+    Math.floor(profileIds.length * 0.8),
+  );
+
+  for (const profileId of profilesToSeed) {
+    const count = faker.number.int({ min: 1, max: 3 });
+    for (let i = 0; i < count; i++) {
+      const graduated = faker.datatype.boolean();
+      const startDate = faker.date.between({
+        from: "2010-01-01",
+        to: "2022-01-01",
+      });
+      const endDate = graduated
+        ? faker.date.between({ from: startDate, to: "2025-12-31" })
+        : null;
+
+      educationRecords.push({
+        userProfileId: profileId,
+        schoolName: faker.company.name() + " University",
+        program: faker.helpers.arrayElement(programs),
+        major: faker.helpers.arrayElement(majors),
+        graduated,
+        startDate,
+        endDate,
+      });
+    }
+  }
+
+  if (educationRecords.length > 0) {
+    await db.insert(educations).values(educationRecords);
+  }
+
+  logger.info(
+    `✓ ${educationRecords.length} education records seeded for ${profilesToSeed.length} profiles`,
+  );
+}
+
+async function seedWorkExperiences(
+  db: DB,
+  faker: Faker,
+  profileIds: number[],
+): Promise<void> {
+  logger.info("Seeding work experiences...");
+
+  const experienceRecords = [];
+  const profilesToSeed = faker.helpers.arrayElements(
+    profileIds,
+    Math.floor(profileIds.length * 0.7),
+  );
+
+  for (const profileId of profilesToSeed) {
+    const count = faker.number.int({ min: 1, max: 4 });
+    for (let i = 0; i < count; i++) {
+      // Only the most recent entry (first) can be a current job
+      const current = i === 0 && faker.datatype.boolean();
+      const startDate = faker.date.between({
+        from: "2015-01-01",
+        to: "2024-06-01",
+      });
+      const endDate = current
+        ? null
+        : faker.date.between({ from: startDate, to: "2026-01-01" });
+
+      experienceRecords.push({
+        userProfileId: profileId,
+        companyName: faker.company.name(),
+        jobTitle: faker.person.jobTitle(),
+        description: faker.lorem.sentences(3),
+        current,
+        startDate,
+        endDate,
+      });
+    }
+  }
+
+  if (experienceRecords.length > 0) {
+    await db.insert(workExperiences).values(experienceRecords);
+  }
+
+  logger.info(
+    `✓ ${experienceRecords.length} work experience records seeded for ${profilesToSeed.length} profiles`,
+  );
+}
+
+async function runSeed() {
+  const { faker } = await import("@faker-js/faker");
+  const db = drizzle(connection, { schema, mode: "default" });
+
+  logger.info("Starting database reset...");
+  await reset(db, schema);
+  await db.execute(sql`ALTER TABLE organizations AUTO_INCREMENT = 1`);
+  await db.execute(sql`ALTER TABLE job_details AUTO_INCREMENT = 1`);
+  await db.execute(sql`ALTER TABLE users AUTO_INCREMENT = 1`);
+
+  logger.info("Starting database seeding...");
+
+  const { userIds } = await seedUsers(db, faker);
+  const { profileIds } = await seedUserProfiles(db, faker, userIds);
+  const { orgIds } = await seedOrganizationsWithJobs(db);
+  await seedOrganizationMembers(db, userIds, orgIds);
+  await seedEducations(db, faker, profileIds);
+  await seedWorkExperiences(db, faker, profileIds);
 }
 
 runSeed()

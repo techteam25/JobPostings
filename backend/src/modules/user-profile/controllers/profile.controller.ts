@@ -10,6 +10,26 @@ import type {
   UserQuerySchema,
 } from "@/validations/user.validation";
 import type { GetJobSchema } from "@/validations/job.validation";
+import type {
+  BatchCreateEducationsInput,
+  UpdateEducationRouteInput,
+  DeleteEducationRouteInput,
+} from "@/validations/educations.validation";
+import type {
+  BatchCreateWorkExperiencesInput,
+  UpdateWorkExperienceRouteInput,
+  DeleteWorkExperienceRouteInput,
+} from "@/validations/workExperiences.validation";
+import type {
+  LinkCertificationInput,
+  UnlinkCertificationInput,
+  SearchCertificationsInput,
+} from "@/validations/certifications.validation";
+import type {
+  LinkSkillInput,
+  UnlinkSkillInput,
+  SearchSkillsInput,
+} from "@/validations/skills.validation";
 import type { ApiResponse, EmptyBody } from "@shared/types";
 import type {
   UpdateProfileVisibilityInput,
@@ -276,6 +296,258 @@ export class ProfileController extends BaseController {
 
     if (result.isSuccess) {
       return this.sendSuccess(res, null, "Job unsaved successfully", 200);
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  batchCreateEducations = async (
+    req: Request<EmptyBody, EmptyBody, BatchCreateEducationsInput["body"]>,
+    res: Response,
+  ) => {
+    const { educations } = req.body;
+
+    const result = await this.profileService.batchAddEducations(
+      req.userId!,
+      educations,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Education entries added successfully",
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  updateEducation = async (
+    req: Request<
+      UpdateEducationRouteInput["params"],
+      EmptyBody,
+      UpdateEducationRouteInput["body"]
+    >,
+    res: Response,
+  ) => {
+    const educationId = Number(req.params.educationId);
+
+    const result = await this.profileService.updateEducation(
+      educationId,
+      req.body,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Education updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  deleteEducation = async (
+    req: Request<DeleteEducationRouteInput["params"]>,
+    res: Response,
+  ) => {
+    const educationId = Number(req.params.educationId);
+
+    const result = await this.profileService.deleteEducation(educationId);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Education deleted successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  // Work Experience CRUD
+
+  batchCreateWorkExperiences = async (
+    req: Request<EmptyBody, EmptyBody, BatchCreateWorkExperiencesInput["body"]>,
+    res: Response,
+  ) => {
+    const { workExperiences } = req.body;
+
+    const result = await this.profileService.batchAddWorkExperiences(
+      req.userId!,
+      workExperiences,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Work experience entries added successfully",
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  updateWorkExperience = async (
+    req: Request<
+      UpdateWorkExperienceRouteInput["params"],
+      EmptyBody,
+      UpdateWorkExperienceRouteInput["body"]
+    >,
+    res: Response,
+  ) => {
+    const workExperienceId = Number(req.params.workExperienceId);
+
+    const result = await this.profileService.updateWorkExperience(
+      workExperienceId,
+      req.body,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Work experience updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  deleteWorkExperience = async (
+    req: Request<DeleteWorkExperienceRouteInput["params"]>,
+    res: Response,
+  ) => {
+    const workExperienceId = Number(req.params.workExperienceId);
+
+    const result =
+      await this.profileService.deleteWorkExperience(workExperienceId);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Work experience deleted successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  // Certification CRUD
+
+  linkCertification = async (
+    req: Request<EmptyBody, EmptyBody, LinkCertificationInput["body"]>,
+    res: Response,
+  ) => {
+    const result = await this.profileService.linkCertification(
+      req.userId!,
+      req.body,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Certification linked successfully",
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  unlinkCertification = async (
+    req: Request<UnlinkCertificationInput["params"]>,
+    res: Response,
+  ) => {
+    const certificationId = Number(req.params.certificationId);
+
+    const result = await this.profileService.unlinkCertification(
+      req.userId!,
+      certificationId,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Certification unlinked successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  searchCertifications = async (
+    req: Request<
+      EmptyBody,
+      EmptyBody,
+      EmptyBody,
+      SearchCertificationsInput["query"]
+    >,
+    res: Response,
+  ) => {
+    const result = await this.profileService.searchCertifications(req.query.q);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, result.value, "Certifications found");
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  // Skill CRUD
+
+  linkSkill = async (
+    req: Request<EmptyBody, EmptyBody, LinkSkillInput["body"]>,
+    res: Response,
+  ) => {
+    const result = await this.profileService.linkSkill(req.userId!, {
+      name: req.body.skillName,
+    });
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Skill linked successfully",
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  unlinkSkill = async (
+    req: Request<UnlinkSkillInput["params"]>,
+    res: Response,
+  ) => {
+    const skillId = Number(req.params.skillId);
+
+    const result = await this.profileService.unlinkSkill(req.userId!, skillId);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, result.value, "Skill unlinked successfully");
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  searchSkills = async (
+    req: Request<EmptyBody, EmptyBody, EmptyBody, SearchSkillsInput["query"]>,
+    res: Response,
+  ) => {
+    const result = await this.profileService.searchSkills(req.query.q);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, result.value, "Skills found");
     } else {
       return this.handleControllerError(res, result.error);
     }

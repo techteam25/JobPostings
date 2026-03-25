@@ -5,6 +5,19 @@ import type {
   UserProfile,
   UserWithProfile,
 } from "@/validations/userProfile.validation";
+import type {
+  Education,
+  InsertEducation,
+} from "@/validations/educations.validation";
+import type {
+  InsertWorkExperience,
+  WorkExperience,
+} from "@/validations/workExperiences.validation";
+import type {
+  Certification,
+  NewCertification,
+} from "@/validations/certifications.validation";
+import type { NewSkill, Skill } from "@/validations/skills.validation";
 import { SavedJobs } from "@/validations/user.validation";
 import { PaginationMeta } from "@shared/types";
 
@@ -56,4 +69,53 @@ export interface ProfileRepositoryPort {
     userId: number,
     isPublic: boolean,
   ): Promise<UserProfile | undefined>;
+
+  // Education CRUD
+  addEducation(
+    userProfileId: number,
+    data: Omit<InsertEducation, "userProfileId">,
+  ): Promise<Education>;
+  batchAddEducations(
+    userProfileId: number,
+    data: Omit<InsertEducation, "userProfileId">[],
+  ): Promise<Education[]>;
+  updateEducation(
+    educationId: number,
+    data: Partial<Omit<InsertEducation, "userProfileId">>,
+  ): Promise<boolean>;
+  deleteEducation(educationId: number): Promise<boolean>;
+
+  // Work Experience CRUD
+  addWorkExperience(
+    userProfileId: number,
+    data: Omit<InsertWorkExperience, "userProfileId">,
+  ): Promise<WorkExperience>;
+  batchAddWorkExperiences(
+    userProfileId: number,
+    data: Omit<InsertWorkExperience, "userProfileId">[],
+  ): Promise<WorkExperience[]>;
+  updateWorkExperience(
+    workExperienceId: number,
+    data: Partial<Omit<InsertWorkExperience, "userProfileId">>,
+  ): Promise<boolean>;
+  deleteWorkExperience(workExperienceId: number): Promise<boolean>;
+
+  // Certification link/unlink
+  linkCertification(
+    userProfileId: number,
+    certificationData: NewCertification,
+  ): Promise<Certification>;
+  unlinkCertification(
+    userProfileId: number,
+    certificationId: number,
+  ): Promise<boolean>;
+
+  // Certification search
+  searchCertifications(query: string): Promise<Certification[]>;
+
+  // Skill link/unlink/search
+  linkSkill(userProfileId: number, skillData: NewSkill): Promise<Skill>;
+  unlinkSkill(userProfileId: number, skillId: number): Promise<boolean>;
+  searchSkills(query: string): Promise<Skill[]>;
+  countUserSkills(userProfileId: number): Promise<number>;
 }

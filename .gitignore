@@ -19,4 +19,4 @@ backend/documentation/
 secrets/
 
 # architecture docs
-docs/docker-deployment-guide.md
+docs/

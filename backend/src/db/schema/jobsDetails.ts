@@ -13,7 +13,7 @@ import {
   json,
 } from "drizzle-orm/mysql-core";
 import { relations, sql } from "drizzle-orm";
-import { user } from "./users";
+import { user, userSkills } from "./users";
 import { organizations } from "./organizations";
 import type { FileMetadata } from "@/validations/file.validation";
 import { jobAlertMatches } from "@/db/schema/jobAlerts";
@@ -320,10 +320,11 @@ export const jobSkillsRelations = relations(jobSkills, ({ one }) => ({
 }));
 
 /**
- * Relations for the skills table, defining many-to-many relationship with jobs through jobSkills.
+ * Relations for the skills table, defining many-to-many relationships with jobs through jobSkills and users through userSkills.
  */
 export const skillsRelations = relations(skills, ({ many }) => ({
   jobSkills: many(jobSkills),
+  userSkills: many(userSkills),
 }));
 
 /**

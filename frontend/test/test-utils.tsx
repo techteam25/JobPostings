@@ -18,11 +18,18 @@ function AllProviders({ children }: { children: ReactNode }) {
   );
 }
 
-function customRender(
-  ui: ReactElement,
-  options?: Omit<RenderOptions, "wrapper">,
-) {
-  return render(ui, { wrapper: AllProviders, ...options });
+function customRender(ui: ReactElement, options?: RenderOptions) {
+  const { wrapper: UserWrapper, ...rest } = options ?? {};
+
+  const Wrapper = UserWrapper
+    ? ({ children }: { children: ReactNode }) => (
+        <AllProviders>
+          <UserWrapper>{children}</UserWrapper>
+        </AllProviders>
+      )
+    : AllProviders;
+
+  return render(ui, { wrapper: Wrapper, ...rest });
 }
 
 export * from "@testing-library/react";

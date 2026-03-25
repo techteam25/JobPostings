@@ -9,6 +9,7 @@ import {
   check,
   index,
   mysqlEnum,
+  unique,
 } from "drizzle-orm/mysql-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -19,6 +20,7 @@ import { userCertifications } from "./certifications";
 import { organizationMembers } from "./organizations";
 import { FileMetadata } from "@/validations/file.validation";
 import { jobAlerts } from "@/db/schema/jobAlerts";
+import { skills } from "@/db/schema/jobsDetails";
 
 /**
  * Users table schema defining the structure for storing user account information.
@@ -88,6 +90,27 @@ export const userProfile = mysqlTable(
   (table) => [
     index("idx_user_profile_is_profile_public").on(table.isProfilePublic),
   ],
+);
+
+/**
+ * User skills schema defining the structure for storing the many-to-many relationship between users and skills, allowing users to have multiple skills and each skill to be associated with multiple users.
+ */
+export const userSkills = mysqlTable(
+  "user_skills",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    skillId: int("skill_id")
+      .references(() => skills.id, { onDelete: "cascade" })
+      .notNull(),
+    userProfileId: int("user_profile_id")
+      .references(() => userProfile.id, {
+        onDelete: "cascade",
+      })
+      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [unique().on(table.skillId, table.userProfileId)],
 );
 
 /**
@@ -229,6 +252,7 @@ export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
   education: many(educations),
   workExperiences: many(workExperiences),
   certifications: many(userCertifications),
+  skills: many(userSkills),
 }));
 
 /**
@@ -253,3 +277,17 @@ export const userEmailPreferencesRelations = relations(
     }),
   }),
 );
+
+/**
+ * Relations for the userSkills table, defining many-to-one relationships with userProfile and skill.
+ */
+export const userSkillsRelations = relations(userSkills, ({ one }) => ({
+  userProfile: one(userProfile, {
+    fields: [userSkills.userProfileId],
+    references: [userProfile.id],
+  }),
+  skill: one(skills, {
+    fields: [userSkills.skillId],
+    references: [skills.id],
+  }),
+}));

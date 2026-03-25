@@ -3,13 +3,22 @@ import { BaseService } from "@shared/base/base.service";
 import type { ProfileServicePort } from "@/modules/user-profile";
 import type { ProfileRepositoryPort } from "@/modules/user-profile";
 import type { OrgRoleQueryPort } from "@/modules/user-profile/ports/org-query.port";
-import { AppError, DatabaseError, NotFoundError } from "@shared/errors";
+import {
+  AppError,
+  DatabaseError,
+  NotFoundError,
+  ValidationError,
+} from "@shared/errors";
 import type { PaginationMeta } from "@shared/types";
 import { SecurityUtils } from "@shared/utils/security";
 import type {
   NewUserProfile,
   UpdateUserProfile,
 } from "@/validations/userProfile.validation";
+import type { InsertEducation } from "@/validations/educations.validation";
+import type { InsertWorkExperience } from "@/validations/workExperiences.validation";
+import type { NewCertification } from "@/validations/certifications.validation";
+import type { NewSkill } from "@/validations/skills.validation";
 
 export class ProfileService extends BaseService implements ProfileServicePort {
   constructor(
@@ -246,6 +255,271 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to unsave job"));
+    }
+  }
+
+  async batchAddEducations(
+    userId: number,
+    data: Omit<InsertEducation, "userProfileId">[],
+  ) {
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new DatabaseError("User profile not found"));
+      }
+
+      const result = await this.profileRepository.batchAddEducations(
+        user.profile.id,
+        data,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to add education entries"));
+    }
+  }
+
+  async updateEducation(
+    educationId: number,
+    data: Partial<Omit<InsertEducation, "userProfileId">>,
+  ) {
+    try {
+      const result = await this.profileRepository.updateEducation(
+        educationId,
+        data,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update education"));
+    }
+  }
+
+  async deleteEducation(educationId: number) {
+    try {
+      const result = await this.profileRepository.deleteEducation(educationId);
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to delete education"));
+    }
+  }
+
+  async batchAddWorkExperiences(
+    userId: number,
+    data: Omit<InsertWorkExperience, "userProfileId">[],
+  ) {
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new DatabaseError("User profile not found"));
+      }
+
+      const result = await this.profileRepository.batchAddWorkExperiences(
+        user.profile.id,
+        data,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to add work experience entries"));
+    }
+  }
+
+  async updateWorkExperience(
+    workExperienceId: number,
+    data: Partial<Omit<InsertWorkExperience, "userProfileId">>,
+  ) {
+    try {
+      const result = await this.profileRepository.updateWorkExperience(
+        workExperienceId,
+        data,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update work experience"));
+    }
+  }
+
+  async deleteWorkExperience(workExperienceId: number) {
+    try {
+      const result =
+        await this.profileRepository.deleteWorkExperience(workExperienceId);
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to delete work experience"));
+    }
+  }
+
+  // Certification link/unlink/search
+
+  async linkCertification(userId: number, certificationData: NewCertification) {
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new DatabaseError("User profile not found"));
+      }
+
+      const result = await this.profileRepository.linkCertification(
+        user.profile.id,
+        certificationData,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to link certification"));
+    }
+  }
+
+  async unlinkCertification(userId: number, certificationId: number) {
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new DatabaseError("User profile not found"));
+      }
+
+      const result = await this.profileRepository.unlinkCertification(
+        user.profile.id,
+        certificationId,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to unlink certification"));
+    }
+  }
+
+  async searchCertifications(query: string) {
+    try {
+      const result = await this.profileRepository.searchCertifications(query);
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to search certifications"));
+    }
+  }
+
+  // Skill link/unlink/search
+
+  private static readonly MAX_SKILLS = 30;
+
+  async linkSkill(userId: number, skillData: NewSkill) {
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new DatabaseError("User profile not found"));
+      }
+
+      const skillCount = await this.profileRepository.countUserSkills(
+        user.profile.id,
+      );
+
+      if (skillCount >= ProfileService.MAX_SKILLS) {
+        return fail(
+          new ValidationError(
+            `Maximum ${ProfileService.MAX_SKILLS} skills allowed. Remove a skill before adding a new one.`,
+          ),
+        );
+      }
+
+      const result = await this.profileRepository.linkSkill(
+        user.profile.id,
+        skillData,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to link skill"));
+    }
+  }
+
+  async unlinkSkill(userId: number, skillId: number) {
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new DatabaseError("User profile not found"));
+      }
+
+      const result = await this.profileRepository.unlinkSkill(
+        user.profile.id,
+        skillId,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to unlink skill"));
+    }
+  }
+
+  async searchSkills(query: string) {
+    try {
+      const result = await this.profileRepository.searchSkills(query);
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to search skills"));
     }
   }
 }
