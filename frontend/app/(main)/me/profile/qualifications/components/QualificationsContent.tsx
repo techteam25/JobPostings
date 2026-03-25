@@ -8,7 +8,7 @@ import type {
   Certification,
   UserSkill,
 } from "@/lib/types";
-import { WorkExperienceCard } from "./WorkExperienceCard";
+import { WorkExperienceSection } from "./WorkExperienceSection";
 import { CertificationCard } from "./CertificationCard";
 import { SkillBadges } from "./SkillBadges";
 import { EducationSection } from "./EducationSection";
@@ -83,19 +83,7 @@ export function QualificationsContent({
       </TabsList>
 
       <TabsContent value="work-experience" className="mt-0">
-        {workExperiences.length === 0 ? (
-          <QualificationEmptyState
-            title="No Work Experience Added"
-            description="Add your work history to showcase your professional experience to employers."
-            ctaLabel="Add Work Experience"
-          />
-        ) : (
-          <div className="space-y-3">
-            {workExperiences.map((exp) => (
-              <WorkExperienceCard key={exp.id} experience={exp} />
-            ))}
-          </div>
-        )}
+        <WorkExperienceSection workExperiences={workExperiences} />
       </TabsContent>
 
       <TabsContent value="education" className="mt-0">
