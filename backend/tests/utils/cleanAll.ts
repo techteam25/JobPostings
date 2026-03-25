@@ -8,6 +8,7 @@ const tableNames = [
   "job_applications",
   "saved_jobs",
   "job_skills",
+  "user_skills",
   "skills",
   "job_insights",
   "job_details",

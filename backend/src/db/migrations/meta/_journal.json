@@ -176,6 +176,27 @@
       "when": 1772164223310,
       "tag": "0024_famous_paper_doll",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "5",
+      "when": 1774380211280,
+      "tag": "0025_curved_marvex",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "5",
+      "when": 1774381448200,
+      "tag": "0026_marvelous_prism",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "5",
+      "when": 1774381797339,
+      "tag": "0027_living_captain_marvel",
+      "breakpoints": true
     }
   ]
 }

@@ -151,6 +151,55 @@ export type SavedJob = {
   };
 };
 
+export type Education = {
+  id: number;
+  userProfileId: number;
+  schoolName: string;
+  program:
+    | "GED"
+    | "High School Diploma"
+    | "Associate Degree"
+    | "Bachelors"
+    | "Masters"
+    | "Doctorate";
+  major: string;
+  graduated: boolean;
+  startDate: string;
+  endDate: string | null;
+};
+
+export type WorkExperience = {
+  id: number;
+  userProfileId: number;
+  companyName: string;
+  jobTitle: string;
+  description: string | null;
+  current: boolean;
+  startDate: string;
+  endDate: string | null;
+};
+
+export type Certification = {
+  id: number;
+  certificationName: string;
+};
+
+export type Skill = {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UserSkill = {
+  id: number;
+  skillId: number;
+  userProfileId: number;
+  skill: Skill;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type UserProfile = {
   id: number;
   userId: number;
@@ -191,7 +240,16 @@ export type UserWithProfile = {
   status: string;
   deletedAt: Date | null;
   lastLoginAt: Date | null;
-} & { profile: UserProfile | null };
+} & {
+  profile:
+    | (UserProfile & {
+        education: Education[];
+        workExperiences: WorkExperience[];
+        certifications: { certification: Certification }[];
+        skills: UserSkill[];
+      })
+    | null;
+};
 
 export type EmailPreferences = {
   jobMatchNotifications: boolean;

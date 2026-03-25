@@ -1,34 +1,58 @@
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
-import { Construction } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { Suspense } from "react";
+import { getUserInformation } from "@/lib/api";
+import { ProfileBreadcrumb } from "@/app/(main)/me/profile/components/ProfileBreadcrumb";
+import { QualificationsContent } from "./components/QualificationsContent";
+import { Skeleton } from "@/components/ui/skeleton";
 
-function Page() {
+export default async function QualificationsPage() {
+  const response = await getUserInformation();
+
+  if (!response.success) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        <ProfileBreadcrumb currentPage="Qualifications" />
+        <p className="text-muted-foreground text-sm">
+          Unable to load your qualifications. Please try again later.
+        </p>
+      </div>
+    );
+  }
+
+  const { profile } = response.data;
+  const education = profile?.education ?? [];
+  const workExperiences = profile?.workExperiences ?? [];
+  const certifications = profile?.certifications ?? [];
+  const skills = profile?.skills ?? [];
+
   return (
-    <Empty>
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <Construction className="size-16 text-amber-400" />
-        </EmptyMedia>
-        <EmptyTitle>Coming Soon</EmptyTitle>
-        <EmptyDescription>
-          Qualifications page is under construction. Please check back later.
-        </EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent>
-        <Button asChild>
-          <Link href="/">Browse Jobs</Link>
-        </Button>
-      </EmptyContent>
-    </Empty>
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      <ProfileBreadcrumb currentPage="Qualifications" />
+
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">Qualifications</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Manage your education, work experience, certifications, and skills.
+        </p>
+      </div>
+
+      <Suspense fallback={<QualificationsSkeleton />}>
+        <QualificationsContent
+          education={education}
+          workExperiences={workExperiences}
+          certifications={certifications}
+          skills={skills}
+        />
+      </Suspense>
+    </div>
   );
 }
 
-export default Page;
+function QualificationsSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-24 w-full" />
+    </div>
+  );
+}

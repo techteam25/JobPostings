@@ -8,8 +8,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Build:** `bun run build`
 - **Lint:** `bun run lint`
 - **Format:** Prettier with `prettier-plugin-tailwindcss` (see `prettier.config.mjs`)
-
-No test runner is configured in this project.
+- **Test:** `bun run test` (Vitest with jsdom environment)
+- **Test watch:** `bun run test:watch`
+- **Test coverage:** `bun run test:coverage`
+- **Test UI:** `bun run test:ui`
+- **E2E tests:** `bun run test:e2e` (Playwright)
+- **Run a single test file:** `bunx vitest run app/(main)/me/profile/qualifications/components/__tests__/CertificationCard.test.tsx`
 
 ## Architecture
 
