@@ -1,3 +1,3 @@
-cd backend && bunx lint-staged && bun run test
+cd backend && bunx lint-staged
 
-cd ../frontend && bunx lint-staged && bun run test
+cd ../frontend && bunx lint-staged

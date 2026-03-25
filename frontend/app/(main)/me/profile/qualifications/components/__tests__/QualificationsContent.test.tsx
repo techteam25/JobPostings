@@ -205,7 +205,7 @@ describe("QualificationsContent", () => {
     expect(screen.getByText(/no education added/i)).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /add education/i }),
-    ).toBeDisabled();
+    ).toBeEnabled();
   });
 
   it("shows empty state when certifications is empty", () => {

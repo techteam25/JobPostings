@@ -35,6 +35,10 @@ export const getUserInformation = async (): Promise<
   return handleApiResponse(res, "Failed to fetch user information");
 };
 
+export async function revalidateUserProfile() {
+  revalidatePath("/me/profile/qualifications");
+}
+
 export const updateProfileVisibility = async (
   isProfilePublic: boolean,
 ): Promise<ApiResponse<UserProfile>> => {

@@ -1,17 +1,38 @@
-import { GraduationCap, Calendar } from "lucide-react";
+import {
+  GraduationCap,
+  Calendar,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import type { Education } from "@/lib/types";
 import { formatDate } from "./utils";
 
 interface EducationCardProps {
   education: Education;
+  onEdit?: (education: Education) => void;
+  onDelete?: (education: Education) => void;
 }
 
-export function EducationCard({ education }: EducationCardProps) {
+export function EducationCard({
+  education,
+  onEdit,
+  onDelete,
+}: EducationCardProps) {
   const startFormatted = formatDate(education.startDate);
   const endFormatted = education.endDate
     ? formatDate(education.endDate)
     : "Present";
+
+  const hasActions = onEdit || onDelete;
 
   return (
     <div className="hover:bg-accent/50 flex gap-4 rounded-lg border p-4 transition-colors">
@@ -26,11 +47,38 @@ export function EducationCard({ education }: EducationCardProps) {
               {education.program} in {education.major}
             </p>
           </div>
-          {education.graduated && (
-            <Badge variant="secondary" className="shrink-0">
-              Graduated
-            </Badge>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {education.graduated && (
+              <Badge variant="secondary">Graduated</Badge>
+            )}
+            {hasActions && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-8">
+                    <MoreHorizontal />
+                    <span className="sr-only">Actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {onEdit && (
+                    <DropdownMenuItem onClick={() => onEdit(education)}>
+                      <Pencil className="mr-2 size-4" />
+                      Edit
+                    </DropdownMenuItem>
+                  )}
+                  {onDelete && (
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => onDelete(education)}
+                    >
+                      <Trash2 className="mr-2 size-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
         <div className="text-muted-foreground mt-1.5 flex items-center gap-1 text-xs">
           <Calendar className="size-3.5" />

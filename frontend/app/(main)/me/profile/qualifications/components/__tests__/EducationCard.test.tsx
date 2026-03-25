@@ -1,4 +1,5 @@
 import { render, screen } from "@/test/test-utils";
+import userEvent from "@testing-library/user-event";
 import { EducationCard } from "../EducationCard";
 import type { Education } from "@/lib/types";
 
@@ -61,5 +62,63 @@ describe("EducationCard", () => {
     render(<EducationCard education={notGraduated} />);
 
     expect(screen.queryByText(/graduated/i)).not.toBeInTheDocument();
+  });
+
+  it("renders kebab menu when onEdit and onDelete are provided", () => {
+    render(
+      <EducationCard
+        education={mockEducation}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /actions/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not render kebab menu when callbacks are not provided", () => {
+    render(<EducationCard education={mockEducation} />);
+
+    expect(
+      screen.queryByRole("button", { name: /actions/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("calls onEdit with education when Edit is clicked", async () => {
+    const user = userEvent.setup();
+    const onEdit = vi.fn();
+
+    render(
+      <EducationCard
+        education={mockEducation}
+        onEdit={onEdit}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /actions/i }));
+    await user.click(screen.getByText("Edit"));
+
+    expect(onEdit).toHaveBeenCalledWith(mockEducation);
+  });
+
+  it("calls onDelete with education when Delete is clicked", async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+
+    render(
+      <EducationCard
+        education={mockEducation}
+        onEdit={vi.fn()}
+        onDelete={onDelete}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /actions/i }));
+    await user.click(screen.getByText("Delete"));
+
+    expect(onDelete).toHaveBeenCalledWith(mockEducation);
   });
 });

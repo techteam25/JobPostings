@@ -12,12 +12,14 @@ interface QualificationEmptyStateProps {
   title: string;
   description: string;
   ctaLabel: string;
+  onAdd?: () => void;
 }
 
 export function QualificationEmptyState({
   title,
   description,
   ctaLabel,
+  onAdd,
 }: QualificationEmptyStateProps) {
   return (
     <Empty className="py-12">
@@ -26,8 +28,8 @@ export function QualificationEmptyState({
         <EmptyDescription>{description}</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button disabled variant="outline" size="sm">
-          <Plus className="mr-1.5 size-4" />
+        <Button disabled={!onAdd} variant="outline" size="sm" onClick={onAdd}>
+          <Plus data-icon="inline-start" />
           {ctaLabel}
         </Button>
       </EmptyContent>

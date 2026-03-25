@@ -8,10 +8,10 @@ import type {
   Certification,
   UserSkill,
 } from "@/lib/types";
-import { EducationCard } from "./EducationCard";
 import { WorkExperienceCard } from "./WorkExperienceCard";
 import { CertificationCard } from "./CertificationCard";
 import { SkillBadges } from "./SkillBadges";
+import { EducationSection } from "./EducationSection";
 import { QualificationEmptyState } from "./QualificationEmptyState";
 
 const TAB_VALUES = [
@@ -99,19 +99,7 @@ export function QualificationsContent({
       </TabsContent>
 
       <TabsContent value="education" className="mt-0">
-        {education.length === 0 ? (
-          <QualificationEmptyState
-            title="No Education Added"
-            description="Add your educational background to strengthen your profile."
-            ctaLabel="Add Education"
-          />
-        ) : (
-          <div className="space-y-3">
-            {education.map((edu) => (
-              <EducationCard key={edu.id} education={edu} />
-            ))}
-          </div>
-        )}
+        <EducationSection education={education} />
       </TabsContent>
 
       <TabsContent value="certifications" className="mt-0">
