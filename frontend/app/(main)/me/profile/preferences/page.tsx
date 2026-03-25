@@ -9,11 +9,13 @@ import {
 import { Construction } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { ProfileBreadcrumb } from "@/app/(main)/me/profile/components/ProfileBreadcrumb";
 
 function Page() {
   return (
     <Empty>
       <EmptyHeader>
+        <ProfileBreadcrumb />
         <EmptyMedia variant="icon">
           <Construction className="size-16 text-amber-400" />
         </EmptyMedia>

@@ -10,7 +10,7 @@ export default async function QualificationsPage() {
   if (!response.success) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        <ProfileBreadcrumb currentPage="Qualifications" />
+        <ProfileBreadcrumb />
         <p className="text-muted-foreground text-sm">
           Unable to load your qualifications. Please try again later.
         </p>
@@ -26,7 +26,7 @@ export default async function QualificationsPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <ProfileBreadcrumb currentPage="Qualifications" />
+      <ProfileBreadcrumb />
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Qualifications</h1>
