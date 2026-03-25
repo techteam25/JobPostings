@@ -9,7 +9,7 @@ import type {
   UserSkill,
 } from "@/lib/types";
 import { WorkExperienceSection } from "./WorkExperienceSection";
-import { CertificationCard } from "./CertificationCard";
+import { CertificationsSection } from "./CertificationsSection";
 import { SkillBadges } from "./SkillBadges";
 import { EducationSection } from "./EducationSection";
 import { QualificationEmptyState } from "./QualificationEmptyState";
@@ -91,22 +91,7 @@ export function QualificationsContent({
       </TabsContent>
 
       <TabsContent value="certifications" className="mt-0">
-        {certifications.length === 0 ? (
-          <QualificationEmptyState
-            title="No Certifications Added"
-            description="Add professional certifications to demonstrate your expertise."
-            ctaLabel="Add Certification"
-          />
-        ) : (
-          <div className="space-y-3">
-            {certifications.map((c) => (
-              <CertificationCard
-                key={c.certification.id}
-                certification={c.certification}
-              />
-            ))}
-          </div>
-        )}
+        <CertificationsSection certifications={certifications} />
       </TabsContent>
 
       <TabsContent value="skills" className="mt-0">

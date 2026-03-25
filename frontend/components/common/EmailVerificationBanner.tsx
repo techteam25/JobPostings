@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AlertTriangle, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,8 +14,11 @@ interface EmailVerificationBannerProps {
 export function EmailVerificationBanner({
   email,
 }: EmailVerificationBannerProps) {
+  const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [isSending, setIsSending] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const handleResend = useCallback(async () => {
     setIsSending(true);
@@ -32,14 +35,14 @@ export function EmailVerificationBanner({
     }
   }, [email]);
 
-  if (dismissed) {
+  if (dismissed || !mounted) {
     return null;
   }
 
   return (
     <div className="flex items-center justify-between gap-3 bg-amber-50 px-4 py-2.5 text-amber-800">
       <div className="flex w-full items-center justify-center gap-2 text-sm">
-        <AlertTriangle className="h-4 w-4 shrink-0" />
+        <AlertTriangle className="size-4 shrink-0" />
         <span>Please verify your email address to access all features.</span>
         <Button
           variant="link"
@@ -48,7 +51,7 @@ export function EmailVerificationBanner({
           disabled={isSending}
           className="h-auto cursor-pointer p-0 text-sm font-semibold text-amber-900 underline"
         >
-          {isSending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
+          {isSending ? <Loader2 className="mr-1 size-3 animate-spin" /> : null}
           Resend
         </Button>
       </div>
@@ -58,7 +61,7 @@ export function EmailVerificationBanner({
         onClick={() => setDismissed(true)}
         className="h-auto cursor-pointer p-1 text-amber-700 hover:bg-amber-100 hover:text-amber-900"
       >
-        <X className="h-4 w-4" />
+        <X className="size-4" />
       </Button>
     </div>
   );
