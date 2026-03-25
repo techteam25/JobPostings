@@ -980,4 +980,23 @@ export class ProfileRepository
       });
     });
   }
+
+  async updateWorkAvailability(userId: number, isAvailable: boolean) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(userProfile)
+        .set({ isAvailableForWork: isAvailable })
+        .where(eq(userProfile.userId, userId));
+
+      if (!result.affectedRows && result.affectedRows === 0) {
+        throw new DatabaseError(
+          `Failed to update work availability for userId: ${userId}`,
+        );
+      }
+
+      return db.query.userProfile.findFirst({
+        where: eq(userProfile.userId, userId),
+      });
+    });
+  }
 }

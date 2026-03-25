@@ -33,6 +33,7 @@ import type {
 import type { ApiResponse, EmptyBody } from "@shared/types";
 import type {
   UpdateProfileVisibilityInput,
+  UpdateWorkAvailabilityInput,
   UpdateUserProfile,
   User,
   UserProfile,
@@ -178,6 +179,28 @@ export class ProfileController extends BaseController {
         res,
         result.value,
         "Profile visibility updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  changeWorkAvailability = async (
+    req: Request<EmptyBody, EmptyBody, UpdateWorkAvailabilityInput["body"]>,
+    res: Response,
+  ) => {
+    const { isAvailableForWork } = req.body;
+
+    const result = await this.profileService.changeWorkAvailability(
+      req.userId!,
+      isAvailableForWork,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<UserProfile>(
+        res,
+        result.value,
+        "Work availability updated successfully",
       );
     } else {
       return this.handleControllerError(res, result.error);

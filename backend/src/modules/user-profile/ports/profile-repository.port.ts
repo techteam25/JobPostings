@@ -69,6 +69,10 @@ export interface ProfileRepositoryPort {
     userId: number,
     isPublic: boolean,
   ): Promise<UserProfile | undefined>;
+  updateWorkAvailability(
+    userId: number,
+    isAvailable: boolean,
+  ): Promise<UserProfile | undefined>;
 
   // Education CRUD
   addEducation(
