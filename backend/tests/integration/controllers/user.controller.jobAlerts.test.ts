@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { request } from "@tests/utils/testHelpers";
 import { db } from "@shared/db/connection";
-import { jobAlerts, user } from "@/db/schema";
+import { jobAlerts } from "@/db/schema";
 import { seedUserScenario } from "@tests/utils/seedScenarios";
 import { createUser, createUserProfile } from "@tests/utils/seedBuilders";
 import { eq } from "drizzle-orm";
