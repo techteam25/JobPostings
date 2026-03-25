@@ -51,6 +51,11 @@ export interface ProfileServicePort {
     isPublic?: boolean,
   ): Promise<Result<UserProfile, AppError>>;
 
+  changeWorkAvailability(
+    userId: number,
+    isAvailable?: boolean,
+  ): Promise<Result<UserProfile, AppError>>;
+
   canSeekJobs(sessionUserId: number): Promise<Result<boolean, AppError>>;
 
   hasPrerequisiteRoles(

@@ -87,3 +87,13 @@ export const updateProfileVisibilitySchema = z.object({
 export type UpdateProfileVisibilityInput = z.infer<
   typeof updateProfileVisibilitySchema
 >;
+
+export const updateWorkAvailabilitySchema = z.object({
+  body: updateUserProfileSchema.pick({ isAvailableForWork: true }),
+  params: z.object({}).strict(),
+  query: z.object({}).strict(),
+});
+
+export type UpdateWorkAvailabilityInput = z.infer<
+  typeof updateWorkAvailabilitySchema
+>;

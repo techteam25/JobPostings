@@ -142,6 +142,52 @@ registry.registerPath({
 });
 
 registry.registerPath({
+  method: "patch",
+  path: "/users/me/availability",
+  tags: ["Users"],
+  summary: "Change Current User Work Availability",
+  description:
+    "Update the work availability status of the currently logged-in user's profile. Lets employers know whether the user is available to start work immediately.",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            isAvailableForWork: z.boolean(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Work availability updated successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(selectUserProfileSchema),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Authentication required",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+registry.registerPath({
   method: "get",
   path: "/users/me/intent",
   tags: ["Users"],

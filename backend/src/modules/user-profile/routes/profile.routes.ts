@@ -35,6 +35,7 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import { updateWorkAvailabilitySchema } from "@/validations/userProfile.validation";
 
 export function createProfileRoutes({
   controller: profileController,
@@ -62,7 +63,19 @@ export function createProfileRoutes({
   router.get("/me/status", profileController.getUserProfileStatus);
 
   // PATCH /users/me/visibility
-  router.patch("/me/visibility", profileController.changeProfileVisibility);
+  router.patch(
+    "/me/visibility",
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.changeProfileVisibility,
+  );
+
+  // PATCH /users/me/availability
+  router.patch(
+    "/me/availability",
+    validate(updateWorkAvailabilitySchema),
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.changeWorkAvailability,
+  );
 
   // GET /users/me/intent
   router.get(
