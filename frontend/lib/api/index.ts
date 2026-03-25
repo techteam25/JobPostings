@@ -22,6 +22,7 @@ export {
   getUserIntent,
   getUserInformation,
   updateProfileVisibility,
+  updateWorkAvailability,
 } from "./users";
 
 export {

@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { env } from "@/env";
 import { ApiResponse, UserProfile, UserWithProfile } from "@/lib/types";
 import { UserIntentResponse } from "@/schemas/responses/users";
@@ -60,6 +60,35 @@ export const updateProfileVisibility = async (
 
   if (result.success) {
     revalidatePath("/profile");
+  }
+
+  return result;
+};
+
+export const updateWorkAvailability = async (
+  isAvailableForWork: boolean,
+): Promise<ApiResponse<UserProfile>> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/users/me/availability`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: cookieStore.toString(),
+      },
+      body: JSON.stringify({ isAvailableForWork }),
+    },
+  );
+
+  const result = await handleApiResponse<UserProfile>(
+    res,
+    "Failed to update work availability",
+  );
+
+  if (result.success) {
+    revalidateTag("user-bio-info");
   }
 
   return result;

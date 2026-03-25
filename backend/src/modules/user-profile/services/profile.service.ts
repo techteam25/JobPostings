@@ -161,6 +161,35 @@ export class ProfileService extends BaseService implements ProfileServicePort {
     }
   }
 
+  async changeWorkAvailability(
+    userId: number,
+    isAvailable: boolean | undefined = false,
+  ) {
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      const updatedProfile =
+        await this.profileRepository.updateWorkAvailability(
+          userId,
+          isAvailable,
+        );
+
+      if (!updatedProfile) {
+        return fail(new DatabaseError("Failed to update work availability"));
+      }
+
+      return ok(updatedProfile);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update work availability"));
+    }
+  }
+
   async canSeekJobs(sessionUserId: number) {
     try {
       return ok(await this.profileRepository.canSeekJobs(sessionUserId));
