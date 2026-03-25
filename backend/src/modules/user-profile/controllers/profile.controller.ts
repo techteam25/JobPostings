@@ -25,6 +25,11 @@ import type {
   UnlinkCertificationInput,
   SearchCertificationsInput,
 } from "@/validations/certifications.validation";
+import type {
+  LinkSkillInput,
+  UnlinkSkillInput,
+  SearchSkillsInput,
+} from "@/validations/skills.validation";
 import type { ApiResponse, EmptyBody } from "@shared/types";
 import type {
   UpdateProfileVisibilityInput,
@@ -493,6 +498,56 @@ export class ProfileController extends BaseController {
 
     if (result.isSuccess) {
       return this.sendSuccess(res, result.value, "Certifications found");
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  // Skill CRUD
+
+  linkSkill = async (
+    req: Request<EmptyBody, EmptyBody, LinkSkillInput["body"]>,
+    res: Response,
+  ) => {
+    const result = await this.profileService.linkSkill(req.userId!, {
+      name: req.body.skillName,
+    });
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Skill linked successfully",
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  unlinkSkill = async (
+    req: Request<UnlinkSkillInput["params"]>,
+    res: Response,
+  ) => {
+    const skillId = Number(req.params.skillId);
+
+    const result = await this.profileService.unlinkSkill(req.userId!, skillId);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, result.value, "Skill unlinked successfully");
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  searchSkills = async (
+    req: Request<EmptyBody, EmptyBody, EmptyBody, SearchSkillsInput["query"]>,
+    res: Response,
+  ) => {
+    const result = await this.profileService.searchSkills(req.query.q);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, result.value, "Skills found");
     } else {
       return this.handleControllerError(res, result.error);
     }

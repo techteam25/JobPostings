@@ -19,6 +19,7 @@ import type {
   Certification,
   NewCertification,
 } from "@/validations/certifications.validation";
+import type { NewSkill, Skill } from "@/validations/skills.validation";
 import type { PaginationMeta } from "@shared/types";
 import { SavedJobs } from "@/validations/user.validation";
 
@@ -132,4 +133,17 @@ export interface ProfileServicePort {
   searchCertifications(
     query: string,
   ): Promise<Result<Certification[], AppError>>;
+
+  // Skill link/unlink/search
+  linkSkill(
+    userId: number,
+    skillData: NewSkill,
+  ): Promise<Result<Skill, AppError>>;
+
+  unlinkSkill(
+    userId: number,
+    skillId: number,
+  ): Promise<Result<boolean, AppError>>;
+
+  searchSkills(query: string): Promise<Result<Skill[], AppError>>;
 }

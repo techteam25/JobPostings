@@ -13,6 +13,7 @@ import {
   insertWorkExperiencesSchema,
   WorkExperience,
 } from "@/validations/workExperiences.validation";
+import type { Skill } from "@/validations/skills.validation";
 
 // Zod schemas
 export const insertUserSchema = createInsertSchema(user, {
@@ -72,6 +73,7 @@ export type UserWithProfile = User & {
         certifications: { certification: Certification }[] | null;
         education: Education[] | null;
         workExperiences: WorkExperience[] | null;
+        skills: { skill: Skill }[] | null;
       })
     | null;
 };

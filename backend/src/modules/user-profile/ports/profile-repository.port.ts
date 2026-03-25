@@ -17,6 +17,7 @@ import type {
   Certification,
   NewCertification,
 } from "@/validations/certifications.validation";
+import type { NewSkill, Skill } from "@/validations/skills.validation";
 import { SavedJobs } from "@/validations/user.validation";
 import { PaginationMeta } from "@shared/types";
 
@@ -112,7 +113,9 @@ export interface ProfileRepositoryPort {
   // Certification search
   searchCertifications(query: string): Promise<Certification[]>;
 
-  // Skill link/unlink
-  linkSkill(userProfileId: number, skillId: number): Promise<boolean>;
+  // Skill link/unlink/search
+  linkSkill(userProfileId: number, skillData: NewSkill): Promise<Skill>;
   unlinkSkill(userProfileId: number, skillId: number): Promise<boolean>;
+  searchSkills(query: string): Promise<Skill[]>;
+  countUserSkills(userProfileId: number): Promise<number>;
 }

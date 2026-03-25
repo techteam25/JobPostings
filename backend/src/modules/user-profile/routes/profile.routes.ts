@@ -22,6 +22,11 @@ import {
   deleteWorkExperienceRouteSchema,
 } from "@/validations/workExperiences.validation";
 import {
+  linkSkillSchema,
+  unlinkSkillSchema,
+  searchSkillsSchema,
+} from "@/validations/skills.validation";
+import {
   linkCertificationSchema,
   unlinkCertificationSchema,
   searchCertificationsSchema,
@@ -164,6 +169,31 @@ export function createProfileRoutes({
     validate(unlinkCertificationSchema),
     invalidateCacheMiddleware(() => "users/me"),
     profileController.unlinkCertification,
+  );
+
+  // Skill routes
+
+  // GET /users/me/skills/search?q=
+  router.get(
+    "/me/skills/search",
+    validate(searchSkillsSchema),
+    profileController.searchSkills,
+  );
+
+  // POST /users/me/skills
+  router.post(
+    "/me/skills",
+    validate(linkSkillSchema),
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.linkSkill,
+  );
+
+  // DELETE /users/me/skills/:skillId
+  router.delete(
+    "/me/skills/:skillId",
+    validate(unlinkSkillSchema),
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.unlinkSkill,
   );
 
   // Saved jobs routes

@@ -246,45 +246,44 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
   // ─── Skill ────────────────────────────────────────────────────────────
 
   describe("Skill link/unlink", () => {
-    it("linkSkill should create junction entry for existing skill", async () => {
+    it("linkSkill should create or find skill and create junction entry", async () => {
       const { userProfileId } = await seedUserWithProfile();
-      const skillId = await seedSkill("TypeScript");
 
-      const result = await repository.linkSkill(userProfileId, skillId);
-      expect(result).toBe(true);
+      const result = await repository.linkSkill(userProfileId, {
+        name: "TypeScript",
+      });
+      expect(result).toHaveProperty("id");
+      expect(result).toHaveProperty("name", "TypeScript");
 
       // Verify junction entry exists
       const junction = await db.query.userSkills.findFirst({
         where: eq(userSkills.userProfileId, userProfileId),
       });
       expect(junction).toBeDefined();
-      expect(junction!.skillId).toBe(skillId);
-    });
-
-    it("linkSkill should throw NotFoundError for non-existent skill", async () => {
-      const { userProfileId } = await seedUserWithProfile();
-
-      await expect(repository.linkSkill(userProfileId, 99999)).rejects.toThrow(
-        NotFoundError,
-      );
+      expect(junction!.skillId).toBe(result.id);
     });
 
     it("linkSkill should be idempotent", async () => {
       const { userProfileId } = await seedUserWithProfile();
-      const skillId = await seedSkill("React");
 
-      await repository.linkSkill(userProfileId, skillId);
-      const result = await repository.linkSkill(userProfileId, skillId);
+      const first = await repository.linkSkill(userProfileId, {
+        name: "React",
+      });
+      const second = await repository.linkSkill(userProfileId, {
+        name: "React",
+      });
 
-      expect(result).toBe(true);
+      expect(second.name).toBe("React");
+      expect(second.id).toBe(first.id);
     });
 
     it("unlinkSkill should remove junction entry and return true", async () => {
       const { userProfileId } = await seedUserWithProfile();
-      const skillId = await seedSkill("Node.js");
 
-      await repository.linkSkill(userProfileId, skillId);
-      const result = await repository.unlinkSkill(userProfileId, skillId);
+      const skill = await repository.linkSkill(userProfileId, {
+        name: "Node.js",
+      });
+      const result = await repository.unlinkSkill(userProfileId, skill.id);
       expect(result).toBe(true);
 
       // Verify junction entry is gone

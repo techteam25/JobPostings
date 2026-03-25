@@ -3,7 +3,12 @@ import { BaseService } from "@shared/base/base.service";
 import type { ProfileServicePort } from "@/modules/user-profile";
 import type { ProfileRepositoryPort } from "@/modules/user-profile";
 import type { OrgRoleQueryPort } from "@/modules/user-profile/ports/org-query.port";
-import { AppError, DatabaseError, NotFoundError } from "@shared/errors";
+import {
+  AppError,
+  DatabaseError,
+  NotFoundError,
+  ValidationError,
+} from "@shared/errors";
 import type { PaginationMeta } from "@shared/types";
 import { SecurityUtils } from "@shared/utils/security";
 import type {
@@ -13,6 +18,7 @@ import type {
 import type { InsertEducation } from "@/validations/educations.validation";
 import type { InsertWorkExperience } from "@/validations/workExperiences.validation";
 import type { NewCertification } from "@/validations/certifications.validation";
+import type { NewSkill } from "@/validations/skills.validation";
 
 export class ProfileService extends BaseService implements ProfileServicePort {
   constructor(
@@ -435,6 +441,85 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to search certifications"));
+    }
+  }
+
+  // Skill link/unlink/search
+
+  private static readonly MAX_SKILLS = 30;
+
+  async linkSkill(userId: number, skillData: NewSkill) {
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new DatabaseError("User profile not found"));
+      }
+
+      const skillCount = await this.profileRepository.countUserSkills(
+        user.profile.id,
+      );
+
+      if (skillCount >= ProfileService.MAX_SKILLS) {
+        return fail(
+          new ValidationError(
+            `Maximum ${ProfileService.MAX_SKILLS} skills allowed. Remove a skill before adding a new one.`,
+          ),
+        );
+      }
+
+      const result = await this.profileRepository.linkSkill(
+        user.profile.id,
+        skillData,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to link skill"));
+    }
+  }
+
+  async unlinkSkill(userId: number, skillId: number) {
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new DatabaseError("User profile not found"));
+      }
+
+      const result = await this.profileRepository.unlinkSkill(
+        user.profile.id,
+        skillId,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to unlink skill"));
+    }
+  }
+
+  async searchSkills(query: string) {
+    try {
+      const result = await this.profileRepository.searchSkills(query);
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to search skills"));
     }
   }
 }

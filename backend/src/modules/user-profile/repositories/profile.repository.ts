@@ -26,6 +26,7 @@ import type {
 import type { InsertEducation } from "@/validations/educations.validation";
 import type { InsertWorkExperience } from "@/validations/workExperiences.validation";
 import type { NewCertification } from "@/validations/certifications.validation";
+import type { NewSkill } from "@/validations/skills.validation";
 
 /** Transaction type extracted from Drizzle's `db.transaction` callback */
 type DbTransaction = Parameters<Parameters<(typeof db)["transaction"]>[0]>[0];
@@ -52,6 +53,9 @@ export class ProfileRepository
                 },
                 education: true,
                 workExperiences: true,
+                skills: {
+                  with: { skill: true },
+                },
               },
             },
           },
@@ -140,6 +144,9 @@ export class ProfileRepository
               },
               education: true,
               workExperiences: true,
+              skills: {
+                with: { skill: true },
+              },
             },
           });
         }),
@@ -295,6 +302,9 @@ export class ProfileRepository
             },
             education: true,
             workExperiences: true,
+            skills: {
+              with: { skill: true },
+            },
           },
         },
       },
@@ -576,25 +586,42 @@ export class ProfileRepository
     });
   }
 
-  async linkSkill(userProfileId: number, skillId: number) {
-    return await withDbErrorHandling(async () => {
-      const skill = await db.query.skills.findFirst({
-        where: eq(skills.id, skillId),
-      });
+  async linkSkill(userProfileId: number, skillData: NewSkill) {
+    return await withDbErrorHandling(
+      async () =>
+        await db.transaction(async (tx) => {
+          await tx
+            .insert(skills)
+            .values(skillData)
+            .onDuplicateKeyUpdate({
+              set: {
+                name: sql`values(${skills.name})`,
+              },
+            });
 
-      if (!skill) {
-        throw new NotFoundError("Skill", skillId);
-      }
+          const skill = await tx.query.skills.findFirst({
+            where: eq(skills.name, skillData.name),
+          });
 
-      await db
-        .insert(userSkills)
-        .values({ userProfileId, skillId })
-        .onDuplicateKeyUpdate({
-          set: { skillId: sql`values(${userSkills.skillId})` },
-        });
+          if (!skill) {
+            throw new DatabaseError("Failed to create skill");
+          }
 
-      return true;
-    });
+          await tx
+            .insert(userSkills)
+            .values({
+              skillId: skill.id,
+              userProfileId,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                skillId: sql`values(${userSkills.skillId})`,
+              },
+            });
+
+          return skill;
+        }),
+    );
   }
 
   async unlinkSkill(userProfileId: number, skillId: number) {
@@ -624,6 +651,27 @@ export class ProfileRepository
         .from(certifications)
         .where(like(certifications.certificationName, `%${escaped}%`))
         .limit(20);
+    });
+  }
+
+  async searchSkills(query: string) {
+    return await withDbErrorHandling(async () => {
+      const escaped = SecurityUtils.escapeLikePattern(query);
+      return db
+        .select()
+        .from(skills)
+        .where(like(skills.name, `%${escaped}%`))
+        .limit(20);
+    });
+  }
+
+  async countUserSkills(userProfileId: number) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .select({ count: count() })
+        .from(userSkills)
+        .where(eq(userSkills.userProfileId, userProfileId));
+      return result?.count ?? 0;
     });
   }
 
@@ -709,6 +757,9 @@ export class ProfileRepository
               certifications: { columns: {}, with: { certification: true } },
               education: true,
               workExperiences: true,
+              skills: {
+                with: { skill: true },
+              },
             },
           },
         },
