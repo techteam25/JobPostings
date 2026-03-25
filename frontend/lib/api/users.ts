@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { env } from "@/env";
 import { ApiResponse, UserProfile, UserWithProfile } from "@/lib/types";
 import { UserIntentResponse } from "@/schemas/responses/users";
@@ -88,7 +88,7 @@ export const updateWorkAvailability = async (
   );
 
   if (result.success) {
-    revalidateTag("user-bio-info");
+    revalidatePath("user-bio-info");
   }
 
   return result;
