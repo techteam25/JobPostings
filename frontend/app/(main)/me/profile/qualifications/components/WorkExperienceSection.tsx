@@ -71,6 +71,7 @@ export function WorkExperienceSection({
         onOpenChange={setAddDialogOpen}
       />
       <EditWorkExperienceDialog
+        key={selectedExperience?.id}
         experience={selectedExperience}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}

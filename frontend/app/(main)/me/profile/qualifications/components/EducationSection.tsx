@@ -70,6 +70,7 @@ export function EducationSection({ education }: EducationSectionProps) {
         onOpenChange={setAddDialogOpen}
       />
       <EditEducationDialog
+        key={selectedEducation?.id}
         education={selectedEducation}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
