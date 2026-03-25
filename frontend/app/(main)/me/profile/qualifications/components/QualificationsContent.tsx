@@ -10,9 +10,8 @@ import type {
 } from "@/lib/types";
 import { WorkExperienceSection } from "./WorkExperienceSection";
 import { CertificationsSection } from "./CertificationsSection";
-import { SkillBadges } from "./SkillBadges";
+import { SkillsSection } from "./SkillsSection";
 import { EducationSection } from "./EducationSection";
-import { QualificationEmptyState } from "./QualificationEmptyState";
 
 const TAB_VALUES = [
   "work-experience",
@@ -95,15 +94,7 @@ export function QualificationsContent({
       </TabsContent>
 
       <TabsContent value="skills" className="mt-0">
-        {skills.length === 0 ? (
-          <QualificationEmptyState
-            title="No Skills Added"
-            description="Add skills to help employers find you for relevant opportunities."
-            ctaLabel="Add Skill"
-          />
-        ) : (
-          <SkillBadges skills={skills} />
-        )}
+        <SkillsSection skills={skills} />
       </TabsContent>
     </Tabs>
   );
