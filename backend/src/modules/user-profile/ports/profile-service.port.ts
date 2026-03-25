@@ -11,6 +11,10 @@ import type {
   Education,
   InsertEducation,
 } from "@/validations/educations.validation";
+import type {
+  InsertWorkExperience,
+  WorkExperience,
+} from "@/validations/workExperiences.validation";
 import type { PaginationMeta } from "@shared/types";
 import { SavedJobs } from "@/validations/user.validation";
 
@@ -94,4 +98,19 @@ export interface ProfileServicePort {
   ): Promise<Result<boolean, AppError>>;
 
   deleteEducation(educationId: number): Promise<Result<boolean, AppError>>;
+
+  // Work Experience CRUD
+  batchAddWorkExperiences(
+    userId: number,
+    data: Omit<InsertWorkExperience, "userProfileId">[],
+  ): Promise<Result<WorkExperience[], AppError>>;
+
+  updateWorkExperience(
+    workExperienceId: number,
+    data: Partial<Omit<InsertWorkExperience, "userProfileId">>,
+  ): Promise<Result<boolean, AppError>>;
+
+  deleteWorkExperience(
+    workExperienceId: number,
+  ): Promise<Result<boolean, AppError>>;
 }

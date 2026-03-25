@@ -89,6 +89,10 @@ export interface ProfileRepositoryPort {
     userProfileId: number,
     data: Omit<InsertWorkExperience, "userProfileId">,
   ): Promise<WorkExperience>;
+  batchAddWorkExperiences(
+    userProfileId: number,
+    data: Omit<InsertWorkExperience, "userProfileId">[],
+  ): Promise<WorkExperience[]>;
   updateWorkExperience(
     workExperienceId: number,
     data: Partial<Omit<InsertWorkExperience, "userProfileId">>,

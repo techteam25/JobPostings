@@ -17,6 +17,11 @@ import {
   deleteEducationRouteSchema,
 } from "@/validations/educations.validation";
 import {
+  batchCreateWorkExperiencesSchema,
+  updateWorkExperienceRouteSchema,
+  deleteWorkExperienceRouteSchema,
+} from "@/validations/workExperiences.validation";
+import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
@@ -103,6 +108,32 @@ export function createProfileRoutes({
     validate(deleteEducationRouteSchema),
     invalidateCacheMiddleware(() => "users/me"),
     profileController.deleteEducation,
+  );
+
+  // Work Experience CRUD routes
+
+  // POST /users/me/work-experiences/batch
+  router.post(
+    "/me/work-experiences/batch",
+    validate(batchCreateWorkExperiencesSchema),
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.batchCreateWorkExperiences,
+  );
+
+  // PUT /users/me/work-experiences/:workExperienceId
+  router.put(
+    "/me/work-experiences/:workExperienceId",
+    validate(updateWorkExperienceRouteSchema),
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.updateWorkExperience,
+  );
+
+  // DELETE /users/me/work-experiences/:workExperienceId
+  router.delete(
+    "/me/work-experiences/:workExperienceId",
+    validate(deleteWorkExperienceRouteSchema),
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.deleteWorkExperience,
   );
 
   // Saved jobs routes

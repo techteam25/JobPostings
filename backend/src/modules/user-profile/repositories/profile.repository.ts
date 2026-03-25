@@ -444,6 +444,39 @@ export class ProfileRepository
     });
   }
 
+  async batchAddWorkExperiences(
+    userProfileId: number,
+    data: Omit<InsertWorkExperience, "userProfileId">[],
+  ) {
+    return await withDbErrorHandling(
+      async () =>
+        await db.transaction(async (tx) => {
+          const mapped = data.map((entry) => ({
+            ...entry,
+            userProfileId,
+            startDate: new Date(entry.startDate),
+            endDate: entry.endDate ? new Date(entry.endDate) : null,
+          }));
+
+          const insertedIds = await tx
+            .insert(workExperiences)
+            .values(mapped)
+            .$returningId();
+
+          if (!insertedIds.length) {
+            throw new DatabaseError("Failed to add work experience entries");
+          }
+
+          const ids = insertedIds.map((r) => r.id);
+          const rows = await tx.query.workExperiences.findMany({
+            where: inArray(workExperiences.id, ids),
+          });
+
+          return rows;
+        }),
+    );
+  }
+
   async updateWorkExperience(
     workExperienceId: number,
     data: Partial<Omit<InsertWorkExperience, "userProfileId">>,

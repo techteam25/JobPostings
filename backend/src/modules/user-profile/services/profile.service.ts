@@ -11,6 +11,7 @@ import type {
   UpdateUserProfile,
 } from "@/validations/userProfile.validation";
 import type { InsertEducation } from "@/validations/educations.validation";
+import type { InsertWorkExperience } from "@/validations/workExperiences.validation";
 
 export class ProfileService extends BaseService implements ProfileServicePort {
   constructor(
@@ -307,6 +308,67 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to delete education"));
+    }
+  }
+
+  async batchAddWorkExperiences(
+    userId: number,
+    data: Omit<InsertWorkExperience, "userProfileId">[],
+  ) {
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new DatabaseError("User profile not found"));
+      }
+
+      const result = await this.profileRepository.batchAddWorkExperiences(
+        user.profile.id,
+        data,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to add work experience entries"));
+    }
+  }
+
+  async updateWorkExperience(
+    workExperienceId: number,
+    data: Partial<Omit<InsertWorkExperience, "userProfileId">>,
+  ) {
+    try {
+      const result = await this.profileRepository.updateWorkExperience(
+        workExperienceId,
+        data,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update work experience"));
+    }
+  }
+
+  async deleteWorkExperience(workExperienceId: number) {
+    try {
+      const result =
+        await this.profileRepository.deleteWorkExperience(workExperienceId);
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to delete work experience"));
     }
   }
 }

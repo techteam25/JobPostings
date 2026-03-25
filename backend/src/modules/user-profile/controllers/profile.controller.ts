@@ -15,6 +15,11 @@ import type {
   UpdateEducationRouteInput,
   DeleteEducationRouteInput,
 } from "@/validations/educations.validation";
+import type {
+  BatchCreateWorkExperiencesInput,
+  UpdateWorkExperienceRouteInput,
+  DeleteWorkExperienceRouteInput,
+} from "@/validations/workExperiences.validation";
 import type { ApiResponse, EmptyBody } from "@shared/types";
 import type {
   UpdateProfileVisibilityInput,
@@ -348,6 +353,77 @@ export class ProfileController extends BaseController {
         res,
         result.value,
         "Education deleted successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  // Work Experience CRUD
+
+  batchCreateWorkExperiences = async (
+    req: Request<EmptyBody, EmptyBody, BatchCreateWorkExperiencesInput["body"]>,
+    res: Response,
+  ) => {
+    const { workExperiences } = req.body;
+
+    const result = await this.profileService.batchAddWorkExperiences(
+      req.userId!,
+      workExperiences,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Work experience entries added successfully",
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  updateWorkExperience = async (
+    req: Request<
+      UpdateWorkExperienceRouteInput["params"],
+      EmptyBody,
+      UpdateWorkExperienceRouteInput["body"]
+    >,
+    res: Response,
+  ) => {
+    const workExperienceId = Number(req.params.workExperienceId);
+
+    const result = await this.profileService.updateWorkExperience(
+      workExperienceId,
+      req.body,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Work experience updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  deleteWorkExperience = async (
+    req: Request<DeleteWorkExperienceRouteInput["params"]>,
+    res: Response,
+  ) => {
+    const workExperienceId = Number(req.params.workExperienceId);
+
+    const result =
+      await this.profileService.deleteWorkExperience(workExperienceId);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Work experience deleted successfully",
       );
     } else {
       return this.handleControllerError(res, result.error);
