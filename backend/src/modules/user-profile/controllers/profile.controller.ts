@@ -20,6 +20,11 @@ import type {
   UpdateWorkExperienceRouteInput,
   DeleteWorkExperienceRouteInput,
 } from "@/validations/workExperiences.validation";
+import type {
+  LinkCertificationInput,
+  UnlinkCertificationInput,
+  SearchCertificationsInput,
+} from "@/validations/certifications.validation";
 import type { ApiResponse, EmptyBody } from "@shared/types";
 import type {
   UpdateProfileVisibilityInput,
@@ -425,6 +430,69 @@ export class ProfileController extends BaseController {
         result.value,
         "Work experience deleted successfully",
       );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  // Certification CRUD
+
+  linkCertification = async (
+    req: Request<EmptyBody, EmptyBody, LinkCertificationInput["body"]>,
+    res: Response,
+  ) => {
+    const result = await this.profileService.linkCertification(
+      req.userId!,
+      req.body,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Certification linked successfully",
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  unlinkCertification = async (
+    req: Request<UnlinkCertificationInput["params"]>,
+    res: Response,
+  ) => {
+    const certificationId = Number(req.params.certificationId);
+
+    const result = await this.profileService.unlinkCertification(
+      req.userId!,
+      certificationId,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Certification unlinked successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  searchCertifications = async (
+    req: Request<
+      EmptyBody,
+      EmptyBody,
+      EmptyBody,
+      SearchCertificationsInput["query"]
+    >,
+    res: Response,
+  ) => {
+    const result = await this.profileService.searchCertifications(req.query.q);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, result.value, "Certifications found");
     } else {
       return this.handleControllerError(res, result.error);
     }

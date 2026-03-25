@@ -15,6 +15,10 @@ import type {
   InsertWorkExperience,
   WorkExperience,
 } from "@/validations/workExperiences.validation";
+import type {
+  Certification,
+  NewCertification,
+} from "@/validations/certifications.validation";
 import type { PaginationMeta } from "@shared/types";
 import { SavedJobs } from "@/validations/user.validation";
 
@@ -113,4 +117,19 @@ export interface ProfileServicePort {
   deleteWorkExperience(
     workExperienceId: number,
   ): Promise<Result<boolean, AppError>>;
+
+  // Certification link/unlink/search
+  linkCertification(
+    userId: number,
+    certificationData: NewCertification,
+  ): Promise<Result<Certification, AppError>>;
+
+  unlinkCertification(
+    userId: number,
+    certificationId: number,
+  ): Promise<Result<boolean, AppError>>;
+
+  searchCertifications(
+    query: string,
+  ): Promise<Result<Certification[], AppError>>;
 }

@@ -109,6 +109,9 @@ export interface ProfileRepositoryPort {
     certificationId: number,
   ): Promise<boolean>;
 
+  // Certification search
+  searchCertifications(query: string): Promise<Certification[]>;
+
   // Skill link/unlink
   linkSkill(userProfileId: number, skillId: number): Promise<boolean>;
   unlinkSkill(userProfileId: number, skillId: number): Promise<boolean>;

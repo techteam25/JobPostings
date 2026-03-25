@@ -12,6 +12,7 @@ import type {
 } from "@/validations/userProfile.validation";
 import type { InsertEducation } from "@/validations/educations.validation";
 import type { InsertWorkExperience } from "@/validations/workExperiences.validation";
+import type { NewCertification } from "@/validations/certifications.validation";
 
 export class ProfileService extends BaseService implements ProfileServicePort {
   constructor(
@@ -369,6 +370,71 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to delete work experience"));
+    }
+  }
+
+  // Certification link/unlink/search
+
+  async linkCertification(userId: number, certificationData: NewCertification) {
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new DatabaseError("User profile not found"));
+      }
+
+      const result = await this.profileRepository.linkCertification(
+        user.profile.id,
+        certificationData,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to link certification"));
+    }
+  }
+
+  async unlinkCertification(userId: number, certificationId: number) {
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new DatabaseError("User profile not found"));
+      }
+
+      const result = await this.profileRepository.unlinkCertification(
+        user.profile.id,
+        certificationId,
+      );
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to unlink certification"));
+    }
+  }
+
+  async searchCertifications(query: string) {
+    try {
+      const result = await this.profileRepository.searchCertifications(query);
+
+      return ok(result);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to search certifications"));
     }
   }
 }

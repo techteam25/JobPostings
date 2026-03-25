@@ -131,7 +131,7 @@ export class ProfileRepository
             throw new DatabaseError(`Invalid insertId returned: ${result?.id}`);
           }
 
-          return await tx.query.userProfile.findFirst({
+          return tx.query.userProfile.findFirst({
             where: eq(userProfile.id, result.id),
             with: {
               certifications: {
@@ -284,7 +284,7 @@ export class ProfileRepository
   }
 
   private async fetchFullUserProfile(tx: DbTransaction, userId: number) {
-    return await tx.query.user.findFirst({
+    return tx.query.user.findFirst({
       where: eq(user.id, userId),
       with: {
         profile: {
@@ -368,11 +368,10 @@ export class ProfileRepository
           }
 
           const ids = insertedIds.map((r) => r.id);
-          const rows = await tx.query.educations.findMany({
+
+          return tx.query.educations.findMany({
             where: inArray(educations.id, ids),
           });
-
-          return rows;
         }),
     );
   }
@@ -468,11 +467,10 @@ export class ProfileRepository
           }
 
           const ids = insertedIds.map((r) => r.id);
-          const rows = await tx.query.workExperiences.findMany({
+
+          return tx.query.workExperiences.findMany({
             where: inArray(workExperiences.id, ids),
           });
-
-          return rows;
         }),
     );
   }
@@ -615,6 +613,17 @@ export class ProfileRepository
       }
 
       return true;
+    });
+  }
+
+  async searchCertifications(query: string) {
+    return await withDbErrorHandling(async () => {
+      const escaped = SecurityUtils.escapeLikePattern(query);
+      return db
+        .select()
+        .from(certifications)
+        .where(like(certifications.certificationName, `%${escaped}%`))
+        .limit(20);
     });
   }
 
@@ -892,7 +901,7 @@ export class ProfileRepository
 
   async getUserIntent(userId: number) {
     return await withDbErrorHandling(async () => {
-      return await db.query.userOnBoarding.findFirst({
+      return db.query.userOnBoarding.findFirst({
         where: eq(userOnBoarding.userId, userId),
         columns: {
           intent: true,
@@ -915,7 +924,7 @@ export class ProfileRepository
         );
       }
 
-      return await db.query.userProfile.findFirst({
+      return db.query.userProfile.findFirst({
         where: eq(userProfile.userId, userId),
       });
     });

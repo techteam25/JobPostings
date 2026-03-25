@@ -304,7 +304,48 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
     });
   });
 
-  // ─── updateProfile bug fix verification ───────────────────────────────
+  describe("searchCertifications", () => {
+    it("should return certifications matching query", async () => {
+      const { userProfileId } = await seedUserWithProfile();
+
+      // Seed certifications via link
+      await repository.linkCertification(userProfileId, {
+        certificationName: "AWS Solutions Architect",
+      });
+      await repository.linkCertification(userProfileId, {
+        certificationName: "AWS Developer Associate",
+      });
+      await repository.linkCertification(userProfileId, {
+        certificationName: "Google Cloud Professional",
+      });
+
+      const results = await repository.searchCertifications("AWS");
+
+      expect(results.length).toBeGreaterThanOrEqual(2);
+      expect(results.every((c) => c.certificationName.includes("AWS"))).toBe(
+        true,
+      );
+    });
+
+    it("should return empty array for no matches", async () => {
+      const results = await repository.searchCertifications("NonExistent12345");
+
+      expect(results).toHaveLength(0);
+    });
+
+    it("should handle special characters in search safely", async () => {
+      const { userProfileId } = await seedUserWithProfile();
+
+      await repository.linkCertification(userProfileId, {
+        certificationName: "Cert with % special",
+      });
+
+      // Search for the literal % character — should not break
+      const results = await repository.searchCertifications("%");
+
+      expect(results.some((c) => c.certificationName.includes("%"))).toBe(true);
+    });
+  });
 
   describe("updateProfile - jobTitle/description persistence", () => {
     it("should persist jobTitle and description on work experience upsert", async () => {

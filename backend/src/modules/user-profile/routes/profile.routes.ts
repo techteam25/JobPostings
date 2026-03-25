@@ -22,6 +22,11 @@ import {
   deleteWorkExperienceRouteSchema,
 } from "@/validations/workExperiences.validation";
 import {
+  linkCertificationSchema,
+  unlinkCertificationSchema,
+  searchCertificationsSchema,
+} from "@/validations/certifications.validation";
+import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
@@ -134,6 +139,31 @@ export function createProfileRoutes({
     validate(deleteWorkExperienceRouteSchema),
     invalidateCacheMiddleware(() => "users/me"),
     profileController.deleteWorkExperience,
+  );
+
+  // Certification routes
+
+  // GET /users/me/certifications/search?q=
+  router.get(
+    "/me/certifications/search",
+    validate(searchCertificationsSchema),
+    profileController.searchCertifications,
+  );
+
+  // POST /users/me/certifications
+  router.post(
+    "/me/certifications",
+    validate(linkCertificationSchema),
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.linkCertification,
+  );
+
+  // DELETE /users/me/certifications/:certificationId
+  router.delete(
+    "/me/certifications/:certificationId",
+    validate(unlinkCertificationSchema),
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.unlinkCertification,
   );
 
   // Saved jobs routes
