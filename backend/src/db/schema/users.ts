@@ -21,6 +21,7 @@ import { organizationMembers } from "./organizations";
 import { FileMetadata } from "@/validations/file.validation";
 import { jobAlerts } from "@/db/schema/jobAlerts";
 import { skills } from "@/db/schema/jobsDetails";
+import { jobPreferences } from "@/db/schema/jobPreferences";
 
 /**
  * Users table schema defining the structure for storing user account information.
@@ -253,6 +254,10 @@ export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
   workExperiences: many(workExperiences),
   certifications: many(userCertifications),
   skills: many(userSkills),
+  userJobPreferences: one(jobPreferences, {
+    fields: [userProfile.id],
+    references: [jobPreferences.userProfileId],
+  }),
 }));
 
 /**
