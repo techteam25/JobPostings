@@ -65,7 +65,10 @@ import logger from "@shared/logger";
 export type CompositionRoot = {
   authenticate: RequestHandler;
   identity: Pick<IdentityModule, "controller" | "guards">;
-  userProfile: Pick<UserProfileModule, "controller" | "guards">;
+  userProfile: Pick<
+    UserProfileModule,
+    "controller" | "preferenceController" | "guards"
+  >;
   notifications: Pick<NotificationsModule, "controller">;
   jobBoard: Pick<JobBoardModule, "controller" | "guards">;
   applications: Pick<ApplicationsModule, "controller" | "guards">;
