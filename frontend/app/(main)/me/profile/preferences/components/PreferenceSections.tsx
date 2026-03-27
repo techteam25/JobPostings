@@ -12,10 +12,16 @@ import {
   VOLUNTEER_HOURS_LABELS,
   WORK_SCHEDULE_DAY_LABELS,
   SCHEDULE_TYPE_LABELS,
+  WORK_ARRANGEMENT_LABELS,
+  COMMUTE_TIME_LABELS,
+  WILLINGNESS_TO_RELOCATE_LABELS,
 } from "@/schemas/job-preferences";
 import { JobTypesDialog } from "./JobTypesDialog";
 import { CompensationTypesDialog } from "./CompensationTypesDialog";
 import { WorkScheduleDialog } from "./WorkScheduleDialog";
+import { WorkArrangementDialog } from "./WorkArrangementDialog";
+import { CommuteTimeDialog } from "./CommuteTimeDialog";
+import { RelocationDialog } from "./RelocationDialog";
 
 interface PreferenceSectionsProps {
   preferences: JobPreference | null;
@@ -59,12 +65,19 @@ export function PreferenceSections({ preferences }: PreferenceSectionsProps) {
   const [jobTypesDialogOpen, setJobTypesDialogOpen] = useState(false);
   const [compTypesDialogOpen, setCompTypesDialogOpen] = useState(false);
   const [workScheduleDialogOpen, setWorkScheduleDialogOpen] = useState(false);
+  const [workArrangementDialogOpen, setWorkArrangementDialogOpen] =
+    useState(false);
+  const [commuteTimeDialogOpen, setCommuteTimeDialogOpen] = useState(false);
+  const [relocationDialogOpen, setRelocationDialogOpen] = useState(false);
 
   const jobTypes = preferences?.jobTypes ?? [];
   const compensationTypes = preferences?.compensationTypes ?? [];
   const volunteerHours = preferences?.volunteerHoursPerWeek ?? null;
   const workScheduleDays = preferences?.workScheduleDays ?? [];
   const scheduleTypes = preferences?.scheduleTypes ?? [];
+  const workArrangements = preferences?.workArrangements ?? [];
+  const commuteTime = preferences?.commuteTime ?? null;
+  const willingnessToRelocate = preferences?.willingnessToRelocate ?? null;
 
   return (
     <div className="divide-border divide-y rounded-lg border p-2 sm:p-4">
@@ -139,16 +152,55 @@ export function PreferenceSections({ preferences }: PreferenceSectionsProps) {
         )}
       </SectionRow>
 
+      <Separator className="my-0" />
+
+      {/* Work Arrangement */}
+      <SectionRow
+        label="Work Arrangement"
+        onEdit={() => setWorkArrangementDialogOpen(true)}
+      >
+        {workArrangements.length > 0 ? (
+          workArrangements.map((arrangement) => (
+            <Badge key={arrangement} variant="secondary">
+              {WORK_ARRANGEMENT_LABELS[arrangement] ?? arrangement}
+            </Badge>
+          ))
+        ) : (
+          <NotSet />
+        )}
+      </SectionRow>
+
+      {/* Commute Time */}
+      <SectionRow
+        label="Commute Time"
+        onEdit={() => setCommuteTimeDialogOpen(true)}
+      >
+        {commuteTime ? (
+          <Badge variant="secondary">
+            {COMMUTE_TIME_LABELS[commuteTime] ?? commuteTime}
+          </Badge>
+        ) : (
+          <NotSet />
+        )}
+      </SectionRow>
+
+      {/* Relocation */}
+      <SectionRow
+        label="Relocation"
+        onEdit={() => setRelocationDialogOpen(true)}
+      >
+        {willingnessToRelocate ? (
+          <Badge variant="secondary">
+            {WILLINGNESS_TO_RELOCATE_LABELS[willingnessToRelocate] ??
+              willingnessToRelocate}
+          </Badge>
+        ) : (
+          <NotSet />
+        )}
+      </SectionRow>
+
       {/* Future sections — placeholders */}
-      <SectionRow label="Location Preferences">
-        <NotSet />
-      </SectionRow>
-
       <SectionRow label="Salary Expectations">
-        <NotSet />
-      </SectionRow>
-
-      <SectionRow label="Remote Work">
         <NotSet />
       </SectionRow>
 
@@ -179,6 +231,24 @@ export function PreferenceSections({ preferences }: PreferenceSectionsProps) {
         onOpenChange={setWorkScheduleDialogOpen}
         defaultWorkScheduleDays={workScheduleDays}
         defaultScheduleTypes={scheduleTypes}
+      />
+
+      <WorkArrangementDialog
+        open={workArrangementDialogOpen}
+        onOpenChange={setWorkArrangementDialogOpen}
+        defaultWorkArrangements={workArrangements}
+      />
+
+      <CommuteTimeDialog
+        open={commuteTimeDialogOpen}
+        onOpenChange={setCommuteTimeDialogOpen}
+        defaultCommuteTime={commuteTime}
+      />
+
+      <RelocationDialog
+        open={relocationDialogOpen}
+        onOpenChange={setRelocationDialogOpen}
+        defaultWillingnessToRelocate={willingnessToRelocate}
       />
     </div>
   );
