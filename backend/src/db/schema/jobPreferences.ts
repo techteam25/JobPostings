@@ -43,6 +43,21 @@ export const jobPreferences = mysqlTable("job_preferences", {
         | "on_call_as_needed"
       )[]
     >(),
+  workArrangements:
+    json("work_arrangements").$type<("remote" | "hybrid" | "in_person")[]>(),
+  commuteTime: mysqlEnum("commute_time", [
+    "up_to_15_minutes",
+    "up_to_30_minutes",
+    "up_to_45_minutes",
+    "up_to_60_minutes",
+    "up_to_90_minutes_or_more",
+  ]),
+  willingnessToRelocate: mysqlEnum("willingness_to_relocate", [
+    "willing_anywhere",
+    "willing_domestically",
+    "willing_specific_regions",
+    "not_willing",
+  ]),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });

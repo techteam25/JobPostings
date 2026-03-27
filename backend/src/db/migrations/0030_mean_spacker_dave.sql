@@ -1,0 +1,3 @@
+ALTER TABLE `job_preferences` ADD `work_arrangements` json;--> statement-breakpoint
+ALTER TABLE `job_preferences` ADD `commute_time` enum('up_to_15_minutes','up_to_30_minutes','up_to_45_minutes','up_to_60_minutes','up_to_90_minutes_or_more');--> statement-breakpoint
+ALTER TABLE `job_preferences` ADD `willingness_to_relocate` enum('willing_anywhere','willing_domestically','willing_specific_regions','not_willing');
