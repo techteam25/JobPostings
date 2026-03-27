@@ -38,6 +38,9 @@ export class PreferenceRepository
       volunteerHoursPerWeek?: JobPreference["volunteerHoursPerWeek"];
       workScheduleDays?: JobPreference["workScheduleDays"];
       scheduleTypes?: JobPreference["scheduleTypes"];
+      workArrangements?: JobPreference["workArrangements"];
+      commuteTime?: JobPreference["commuteTime"];
+      willingnessToRelocate?: JobPreference["willingnessToRelocate"];
     },
   ): Promise<JobPreference> {
     return await withDbErrorHandling(async () => {
@@ -50,6 +53,9 @@ export class PreferenceRepository
           volunteerHoursPerWeek: data.volunteerHoursPerWeek ?? null,
           workScheduleDays: data.workScheduleDays ?? null,
           scheduleTypes: data.scheduleTypes ?? null,
+          workArrangements: data.workArrangements ?? null,
+          commuteTime: data.commuteTime ?? null,
+          willingnessToRelocate: data.willingnessToRelocate ?? null,
         })
         .onDuplicateKeyUpdate({
           set: {
@@ -58,6 +64,9 @@ export class PreferenceRepository
             volunteerHoursPerWeek: sql`values(${jobPreferences.volunteerHoursPerWeek})`,
             workScheduleDays: sql`values(${jobPreferences.workScheduleDays})`,
             scheduleTypes: sql`values(${jobPreferences.scheduleTypes})`,
+            workArrangements: sql`values(${jobPreferences.workArrangements})`,
+            commuteTime: sql`values(${jobPreferences.commuteTime})`,
+            willingnessToRelocate: sql`values(${jobPreferences.willingnessToRelocate})`,
           },
         });
 

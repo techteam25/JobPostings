@@ -42,6 +42,29 @@ const scheduleTypeEnum = z.enum([
   "on_call_as_needed",
 ]);
 
+const workArrangementEnum = z.enum(["remote", "hybrid", "in_person"]);
+
+const commuteTimeEnum = z.enum(
+  [
+    "up_to_15_minutes",
+    "up_to_30_minutes",
+    "up_to_45_minutes",
+    "up_to_60_minutes",
+    "up_to_90_minutes_or_more",
+  ],
+  { message: "Invalid commute time value" },
+);
+
+const willingnessToRelocateEnum = z.enum(
+  [
+    "willing_anywhere",
+    "willing_domestically",
+    "willing_specific_regions",
+    "not_willing",
+  ],
+  { message: "Invalid willingness to relocate value" },
+);
+
 const noDuplicates = (items: string[]) => new Set(items).size === items.length;
 
 export const insertJobPreferenceSchema = z
@@ -71,6 +94,14 @@ export const insertJobPreferenceSchema = z
         message: "Schedule types must not contain duplicates",
       })
       .optional(),
+    workArrangements: z
+      .array(workArrangementEnum)
+      .refine(noDuplicates, {
+        message: "Work arrangements must not contain duplicates",
+      })
+      .optional(),
+    commuteTime: commuteTimeEnum.optional(),
+    willingnessToRelocate: willingnessToRelocateEnum.optional(),
   })
   .refine(
     (data) => {
@@ -113,16 +144,26 @@ const patchBodySchema = z
         message: "Schedule types must not contain duplicates",
       })
       .optional(),
+    workArrangements: z
+      .array(workArrangementEnum)
+      .refine(noDuplicates, {
+        message: "Work arrangements must not contain duplicates",
+      })
+      .optional(),
+    commuteTime: commuteTimeEnum.optional(),
+    willingnessToRelocate: willingnessToRelocateEnum.optional(),
   })
   .refine(
     (data) =>
       data.jobTypes ||
       data.compensationTypes ||
       data.workScheduleDays ||
-      data.scheduleTypes,
+      data.scheduleTypes ||
+      data.workArrangements ||
+      data.commuteTime ||
+      data.willingnessToRelocate,
     {
-      message:
-        "At least one of jobTypes, compensationTypes, workScheduleDays, or scheduleTypes must be provided",
+      message: "At least one preference field must be provided",
     },
   )
   .refine(

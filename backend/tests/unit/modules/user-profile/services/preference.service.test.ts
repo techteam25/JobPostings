@@ -125,6 +125,9 @@ describe("PreferenceService", () => {
         volunteerHoursPerWeek: null,
         workScheduleDays: [],
         scheduleTypes: [],
+        workArrangements: [],
+        commuteTime: null,
+        willingnessToRelocate: null,
       });
     });
 
@@ -150,6 +153,9 @@ describe("PreferenceService", () => {
         volunteerHoursPerWeek: null,
         workScheduleDays: [],
         scheduleTypes: [],
+        workArrangements: [],
+        commuteTime: null,
+        willingnessToRelocate: null,
       });
     });
 
@@ -175,6 +181,9 @@ describe("PreferenceService", () => {
         volunteerHoursPerWeek: null,
         workScheduleDays: [],
         scheduleTypes: [],
+        workArrangements: [],
+        commuteTime: null,
+        willingnessToRelocate: null,
       });
     });
 
@@ -201,6 +210,9 @@ describe("PreferenceService", () => {
         volunteerHoursPerWeek: null,
         workScheduleDays: [],
         scheduleTypes: [],
+        workArrangements: [],
+        commuteTime: null,
+        willingnessToRelocate: null,
       });
     });
 
@@ -291,6 +303,9 @@ describe("PreferenceService", () => {
         volunteerHoursPerWeek: null,
         workScheduleDays: [],
         scheduleTypes: [],
+        workArrangements: [],
+        commuteTime: null,
+        willingnessToRelocate: null,
       });
     });
 
@@ -316,6 +331,9 @@ describe("PreferenceService", () => {
         volunteerHoursPerWeek: null,
         workScheduleDays: [],
         scheduleTypes: [],
+        workArrangements: [],
+        commuteTime: null,
+        willingnessToRelocate: null,
       });
     });
 
@@ -341,6 +359,9 @@ describe("PreferenceService", () => {
         volunteerHoursPerWeek: null,
         workScheduleDays: [],
         scheduleTypes: [],
+        workArrangements: [],
+        commuteTime: null,
+        willingnessToRelocate: null,
       });
     });
 
@@ -369,6 +390,9 @@ describe("PreferenceService", () => {
         volunteerHoursPerWeek: null,
         workScheduleDays: [WorkScheduleDay.Monday, WorkScheduleDay.Wednesday],
         scheduleTypes: [ScheduleType.Fixed],
+        workArrangements: [],
+        commuteTime: null,
+        willingnessToRelocate: null,
       });
     });
 
@@ -398,6 +422,9 @@ describe("PreferenceService", () => {
         volunteerHoursPerWeek: null,
         workScheduleDays: [WorkScheduleDay.Monday, WorkScheduleDay.Friday],
         scheduleTypes: [ScheduleType.Rotating],
+        workArrangements: [],
+        commuteTime: null,
+        willingnessToRelocate: null,
       });
     });
 
@@ -423,6 +450,9 @@ describe("PreferenceService", () => {
         volunteerHoursPerWeek: null,
         workScheduleDays: [WorkScheduleDay.Tuesday, WorkScheduleDay.Thursday],
         scheduleTypes: [],
+        workArrangements: [],
+        commuteTime: null,
+        willingnessToRelocate: null,
       });
     });
 

@@ -85,3 +85,47 @@ export const ScheduleType = {
   SeasonalProjectBased: "seasonal_project_based",
   OnCallAsNeeded: "on_call_as_needed",
 } as const satisfies Record<string, ScheduleType>;
+
+export const WORK_ARRANGEMENTS = ["remote", "hybrid", "in_person"] as const;
+
+export type WorkArrangement = (typeof WORK_ARRANGEMENTS)[number];
+
+export const WorkArrangement = {
+  Remote: "remote",
+  Hybrid: "hybrid",
+  InPerson: "in_person",
+} as const satisfies Record<string, WorkArrangement>;
+
+export const COMMUTE_TIMES = [
+  "up_to_15_minutes",
+  "up_to_30_minutes",
+  "up_to_45_minutes",
+  "up_to_60_minutes",
+  "up_to_90_minutes_or_more",
+] as const;
+
+export type CommuteTime = (typeof COMMUTE_TIMES)[number];
+
+export const CommuteTime = {
+  UpTo15Minutes: "up_to_15_minutes",
+  UpTo30Minutes: "up_to_30_minutes",
+  UpTo45Minutes: "up_to_45_minutes",
+  UpTo60Minutes: "up_to_60_minutes",
+  UpTo90MinutesOrMore: "up_to_90_minutes_or_more",
+} as const satisfies Record<string, CommuteTime>;
+
+export const WILLINGNESS_TO_RELOCATE = [
+  "willing_anywhere",
+  "willing_domestically",
+  "willing_specific_regions",
+  "not_willing",
+] as const;
+
+export type WillingnessToRelocate = (typeof WILLINGNESS_TO_RELOCATE)[number];
+
+export const WillingnessToRelocate = {
+  WillingAnywhere: "willing_anywhere",
+  WillingDomestically: "willing_domestically",
+  WillingSpecificRegions: "willing_specific_regions",
+  NotWilling: "not_willing",
+} as const satisfies Record<string, WillingnessToRelocate>;
