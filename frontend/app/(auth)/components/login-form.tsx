@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
 import { useSocialAuth } from "@/app/(auth)/sign-in/hooks/use-social";
 import { LoginResponse } from "@/schemas/responses/auth";
+import { useQueryClient } from "@tanstack/react-query";
 
 const loginInput: LoginInput = {
   email: "",
@@ -36,6 +37,7 @@ export default function LoginForm() {
   const { handleSocialAuth, isSocialPending } = useSocialAuth();
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const form = useForm({
     defaultValues: loginInput,
@@ -60,6 +62,11 @@ export default function LoginForm() {
           }
 
           toast.success("Login successful!");
+          queryClient
+            .invalidateQueries({
+              queryKey: ["get-user-session"],
+            })
+            .catch(() => {});
           form.reset();
 
           router.replace(data?.user.redirectUrl || "/");
