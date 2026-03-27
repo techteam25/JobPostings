@@ -11,6 +11,9 @@ export const useUpdateJobPreferences = () => {
       volunteerHoursPerWeek?: string;
       workScheduleDays?: string[];
       scheduleTypes?: string[];
+      workArrangements?: string[];
+      commuteTime?: string;
+      willingnessToRelocate?: string;
     }) => {
       const result = await updateJobPreferences(data);
       if (!result.success) {
