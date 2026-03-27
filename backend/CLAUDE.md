@@ -116,33 +116,3 @@ All API routes mounted at `/api` via `src/routes/index.ts`:
 ## Architecture Roadmap: Modular Monolith Refactoring
 
 > **Full details**: `docs/ADR-0001-architecture-audit-and-modular-monolith-evaluation.md`
-
-An architecture audit (2026-03-10) identified that the codebase uses **manual constructor instantiation** (not true DI), has **no domain boundary enforcement**, and suffers from **cross-domain coupling** and **God-class services**. The decision is to incrementally refactor toward a Modular Monolith.
-
-### Current Status: Complete — All 10 phases (0-9) finished
-
-### Execution Order (Azure Boards IDs)
-
-| Phase | User Story ID | Title                                                                    | Status |
-| ----- | ------------- | ------------------------------------------------------------------------ | ------ |
-| 0     | **955**       | Introduce interfaces/ports for repositories and services                 | Done   |
-| 1     | **956**       | Extract shared kernel (Result type, errors, base classes, config)        | Done   |
-| 2     | **957**       | Split UserService into identity, user-profile, and notifications modules | Done   |
-| 3     | **958**       | Split JobService into job-board and applications modules                 | Done   |
-| 4     | **959**       | Extract organizations and invitations into separate modules              | Done   |
-| 5     | **960**       | Refactor AuthMiddleware — separate authentication from authorization     | Done   |
-| 6     | **961**       | Introduce composition roots per module and remove manual instantiation   | Done   |
-| 7     | **962**       | Add module-level public APIs (facades) and enforce import boundaries     | Done   |
-| 8     | **963**       | Migrate workers to module-owned background processors                    | Done   |
-| 9     | **964**       | Update all tests to use injected dependencies                            | Done   |
-
-### Architecture Overview (Post-Refactoring)
-
-- **Module structure**: `src/modules/{identity, user-profile, job-board, applications, organizations, invitations, notifications}` + `src/shared/`
-- **Central composition root** (`src/composition-root.ts`): Single point that instantiates all concrete repositories and wires module dependencies — no module creates its own concrete classes
-- **Port/Adapter pattern**: Modules define port interfaces; cross-module communication via adapters in `src/shared/adapters/`
-- **Constructor injection**: All services receive dependencies via constructor parameters
-- **Module public APIs**: Each module exports only its public surface (controller, guards, types) via barrel `index.ts`
-- **ESLint boundary enforcement**: `no-restricted-imports` rule prevents direct cross-module imports
-- **Test DI pattern**: Tests create mock objects matching port interfaces, inject via constructor — no `vi.mock()` module interception for module-internal dependencies
-- **Azure DevOps**: `tech-team.job-board` project at `https://dev.azure.com/rumbani` — use `az boards` CLI to query/update work items
