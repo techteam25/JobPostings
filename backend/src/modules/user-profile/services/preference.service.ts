@@ -62,19 +62,6 @@ export class PreferenceService
       const mergedCompensationTypes =
         data.compensationTypes ?? existing?.compensationTypes ?? [];
 
-      // Only validate "at least one" for fields the user explicitly provided
-      if (data.jobTypes !== undefined && !mergedJobTypes.length) {
-        return fail(new ValidationError("At least one job type is required"));
-      }
-      if (
-        data.compensationTypes !== undefined &&
-        !mergedCompensationTypes.length
-      ) {
-        return fail(
-          new ValidationError("At least one compensation type is required"),
-        );
-      }
-
       const includesVolunteer = mergedJobTypes.includes(JobType.Volunteer);
       const volunteerHours =
         data.volunteerHoursPerWeek ?? existing?.volunteerHoursPerWeek;

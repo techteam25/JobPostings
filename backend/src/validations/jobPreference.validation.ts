@@ -1,22 +1,23 @@
 import { z } from "zod";
 
-const jobTypesSchema = z
-  .array(
-    z.enum(["full-time", "part-time", "contract", "volunteer", "internship"]),
-  )
-  .min(1, "At least one job type is required")
-  .refine((items) => new Set(items).size === items.length, {
-    message: "Job types must not contain duplicates",
-  });
+// ─── Shared enum schemas ─────────────────────────────────────────────
 
-const compensationTypesSchema = z
-  .array(z.enum(["paid", "missionary", "volunteer", "stipend"]))
-  .min(1, "At least one compensation type is required")
-  .refine((items) => new Set(items).size === items.length, {
-    message: "Compensation types must not contain duplicates",
-  });
+const jobTypeEnum = z.enum([
+  "full-time",
+  "part-time",
+  "contract",
+  "volunteer",
+  "internship",
+]);
 
-const volunteerHoursPerWeekSchema = z.enum(
+const compensationTypeEnum = z.enum([
+  "paid",
+  "missionary",
+  "volunteer",
+  "stipend",
+]);
+
+const volunteerHoursPerWeekEnum = z.enum(
   [
     "less_than_10_hours",
     "10-20_hours",
@@ -27,11 +28,25 @@ const volunteerHoursPerWeekSchema = z.enum(
   { message: "Invalid volunteer hours per week value" },
 );
 
+const noDuplicates = (items: string[]) => new Set(items).size === items.length;
+
+// ─── Insert Schema (full create) ────────────────────────────────────
+
 export const insertJobPreferenceSchema = z
   .object({
-    jobTypes: jobTypesSchema,
-    compensationTypes: compensationTypesSchema,
-    volunteerHoursPerWeek: volunteerHoursPerWeekSchema.optional(),
+    jobTypes: z
+      .array(jobTypeEnum)
+      .min(1, "At least one job type is required")
+      .refine(noDuplicates, {
+        message: "Job types must not contain duplicates",
+      }),
+    compensationTypes: z
+      .array(compensationTypeEnum)
+      .min(1, "At least one compensation type is required")
+      .refine(noDuplicates, {
+        message: "Compensation types must not contain duplicates",
+      }),
+    volunteerHoursPerWeek: volunteerHoursPerWeekEnum.optional(),
   })
   .refine(
     (data) => {
@@ -47,11 +62,23 @@ export const insertJobPreferenceSchema = z
     },
   );
 
+// ─── Patch Schema (partial update — empty arrays allowed to clear) ──
+
 const patchBodySchema = z
   .object({
-    jobTypes: jobTypesSchema.optional(),
-    compensationTypes: compensationTypesSchema.optional(),
-    volunteerHoursPerWeek: volunteerHoursPerWeekSchema.optional(),
+    jobTypes: z
+      .array(jobTypeEnum)
+      .refine(noDuplicates, {
+        message: "Job types must not contain duplicates",
+      })
+      .optional(),
+    compensationTypes: z
+      .array(compensationTypeEnum)
+      .refine(noDuplicates, {
+        message: "Compensation types must not contain duplicates",
+      })
+      .optional(),
+    volunteerHoursPerWeek: volunteerHoursPerWeekEnum.optional(),
   })
   .refine((data) => data.jobTypes || data.compensationTypes, {
     message: "At least one of jobTypes or compensationTypes must be provided",

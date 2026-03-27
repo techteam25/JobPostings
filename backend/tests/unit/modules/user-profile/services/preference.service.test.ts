@@ -280,6 +280,52 @@ describe("PreferenceService", () => {
       });
     });
 
+    it("allows clearing all job types with empty array", async () => {
+      const clearedPref = {
+        ...mockPreference,
+        jobTypes: [],
+      };
+      mockProfileRepo.findByIdWithProfile.mockResolvedValue(
+        mockUserWithProfile,
+      );
+      mockPreferenceRepo.getPreferences.mockResolvedValue(mockPreference);
+      mockPreferenceRepo.upsertPreferences.mockResolvedValue(clearedPref);
+
+      const result = await service.updateJobPreferences(1, {
+        jobTypes: [],
+      });
+
+      expect(result.isSuccess).toBe(true);
+      expect(mockPreferenceRepo.upsertPreferences).toHaveBeenCalledWith(42, {
+        jobTypes: [],
+        compensationTypes: [CompensationType.Paid],
+        volunteerHoursPerWeek: null,
+      });
+    });
+
+    it("allows clearing all compensation types with empty array", async () => {
+      const clearedPref = {
+        ...mockPreference,
+        compensationTypes: [],
+      };
+      mockProfileRepo.findByIdWithProfile.mockResolvedValue(
+        mockUserWithProfile,
+      );
+      mockPreferenceRepo.getPreferences.mockResolvedValue(mockPreference);
+      mockPreferenceRepo.upsertPreferences.mockResolvedValue(clearedPref);
+
+      const result = await service.updateJobPreferences(1, {
+        compensationTypes: [],
+      });
+
+      expect(result.isSuccess).toBe(true);
+      expect(mockPreferenceRepo.upsertPreferences).toHaveBeenCalledWith(42, {
+        jobTypes: [JobType.FullTime],
+        compensationTypes: [],
+        volunteerHoursPerWeek: null,
+      });
+    });
+
     it("returns fail(NotFoundError) when user has no profile", async () => {
       mockProfileRepo.findByIdWithProfile.mockResolvedValue({
         ...mockUserWithProfile,
