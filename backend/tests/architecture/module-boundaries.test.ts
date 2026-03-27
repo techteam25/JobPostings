@@ -60,6 +60,28 @@ describe("Architecture: Module Boundaries", () => {
     });
   });
 
+  // Modules can import own internals.
+  // Cross-module VALUE imports are forbidden — modules define
+  // their own ports, implemented by adapters in shared/adapters/.
+  describe("cross-module isolation", () => {
+    for (const source of MODULES) {
+      for (const target of MODULES) {
+        if (source === target) continue;
+
+        it(`${source} → ${target} is forbidden`, async () => {
+          const rule = filesOfProject()
+            .inFolder(`src/modules/${source}`)
+            .shouldNot()
+            .dependOnFiles()
+            .inFolder(`src/modules/${target}`);
+
+          const violations = await rule.check();
+          expect(violations).toEqual([]);
+        });
+      }
+    }
+  });
+
   describe("modules are cycle-free", () => {
     for (const mod of MODULES) {
       it(`${mod} has no circular dependencies`, async () => {

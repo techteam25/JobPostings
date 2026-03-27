@@ -53,8 +53,9 @@ export default defineConfig([
         {
           default: "disallow",
           rules: [
-            // Modules → same/other modules (public API enforced by entry-point),
-            // shared, validations, db schemas, middleware, swagger, utils
+            // Modules can import own internals + shared infrastructure.
+            // Cross-module VALUE imports are forbidden — modules define
+            // their own ports, implemented by adapters in shared/adapters/.
             {
               from: { type: "module" },
               allow: {
@@ -67,6 +68,13 @@ export default defineConfig([
                   { type: "swagger" },
                   { type: "utils" },
                 ],
+              },
+              disallow: {
+                to: {
+                  type: "module",
+                  captured: { moduleName: "!{{ from.moduleName }}" },
+                },
+                dependency: { kind: "value" },
               },
             },
             // Adapters bridge modules via port interfaces
