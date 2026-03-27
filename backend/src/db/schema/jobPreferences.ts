@@ -29,6 +29,20 @@ export const jobPreferences = mysqlTable("job_preferences", {
     "30-40_hours",
     "over_40_hours",
   ]),
+  workScheduleDays:
+    json("work_schedule_days").$type<
+      ("monday" | "tuesday" | "wednesday" | "thursday" | "friday")[]
+    >(),
+  scheduleTypes:
+    json("schedule_types").$type<
+      (
+        | "fixed"
+        | "flexible"
+        | "rotating"
+        | "seasonal_project_based"
+        | "on_call_as_needed"
+      )[]
+    >(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });

@@ -49,3 +49,39 @@ export const VolunteerHoursPerWeek = {
   ThirtyToForty: "30-40_hours",
   OverForty: "over_40_hours",
 } as const satisfies Record<string, VolunteerHoursPerWeek>;
+
+export const WORK_SCHEDULE_DAYS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+] as const;
+
+export type WorkScheduleDay = (typeof WORK_SCHEDULE_DAYS)[number];
+
+export const WorkScheduleDay = {
+  Monday: "monday",
+  Tuesday: "tuesday",
+  Wednesday: "wednesday",
+  Thursday: "thursday",
+  Friday: "friday",
+} as const satisfies Record<string, WorkScheduleDay>;
+
+export const SCHEDULE_TYPES = [
+  "fixed",
+  "flexible",
+  "rotating",
+  "seasonal_project_based",
+  "on_call_as_needed",
+] as const;
+
+export type ScheduleType = (typeof SCHEDULE_TYPES)[number];
+
+export const ScheduleType = {
+  Fixed: "fixed",
+  Flexible: "flexible",
+  Rotating: "rotating",
+  SeasonalProjectBased: "seasonal_project_based",
+  OnCallAsNeeded: "on_call_as_needed",
+} as const satisfies Record<string, ScheduleType>;

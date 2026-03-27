@@ -26,6 +26,22 @@ const volunteerHoursPerWeekEnum = z.enum(
   { message: "Invalid volunteer hours per week value" },
 );
 
+const workScheduleDayEnum = z.enum([
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+]);
+
+const scheduleTypeEnum = z.enum([
+  "fixed",
+  "flexible",
+  "rotating",
+  "seasonal_project_based",
+  "on_call_as_needed",
+]);
+
 const noDuplicates = (items: string[]) => new Set(items).size === items.length;
 
 export const insertJobPreferenceSchema = z
@@ -43,6 +59,18 @@ export const insertJobPreferenceSchema = z
         message: "Compensation types must not contain duplicates",
       }),
     volunteerHoursPerWeek: volunteerHoursPerWeekEnum.optional(),
+    workScheduleDays: z
+      .array(workScheduleDayEnum)
+      .refine(noDuplicates, {
+        message: "Work schedule days must not contain duplicates",
+      })
+      .optional(),
+    scheduleTypes: z
+      .array(scheduleTypeEnum)
+      .refine(noDuplicates, {
+        message: "Schedule types must not contain duplicates",
+      })
+      .optional(),
   })
   .refine(
     (data) => {
@@ -73,10 +101,30 @@ const patchBodySchema = z
       })
       .optional(),
     volunteerHoursPerWeek: volunteerHoursPerWeekEnum.optional(),
+    workScheduleDays: z
+      .array(workScheduleDayEnum)
+      .refine(noDuplicates, {
+        message: "Work schedule days must not contain duplicates",
+      })
+      .optional(),
+    scheduleTypes: z
+      .array(scheduleTypeEnum)
+      .refine(noDuplicates, {
+        message: "Schedule types must not contain duplicates",
+      })
+      .optional(),
   })
-  .refine((data) => data.jobTypes || data.compensationTypes, {
-    message: "At least one of jobTypes or compensationTypes must be provided",
-  })
+  .refine(
+    (data) =>
+      data.jobTypes ||
+      data.compensationTypes ||
+      data.workScheduleDays ||
+      data.scheduleTypes,
+    {
+      message:
+        "At least one of jobTypes, compensationTypes, workScheduleDays, or scheduleTypes must be provided",
+    },
+  )
   .refine(
     (data) => {
       if (data.jobTypes?.includes("volunteer")) {

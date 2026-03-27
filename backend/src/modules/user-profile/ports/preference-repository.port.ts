@@ -10,6 +10,8 @@ export interface PreferenceRepositoryPort {
       jobTypes: JobPreference["jobTypes"];
       compensationTypes: JobPreference["compensationTypes"];
       volunteerHoursPerWeek?: JobPreference["volunteerHoursPerWeek"];
+      workScheduleDays?: JobPreference["workScheduleDays"];
+      scheduleTypes?: JobPreference["scheduleTypes"];
     },
   ): Promise<JobPreference>;
 }

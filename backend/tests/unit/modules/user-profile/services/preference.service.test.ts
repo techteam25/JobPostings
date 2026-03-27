@@ -5,6 +5,8 @@ import {
   JobType,
   CompensationType,
   VolunteerHoursPerWeek,
+  WorkScheduleDay,
+  ScheduleType,
 } from "@/modules/user-profile/constants/job-preference.constants";
 
 describe("PreferenceService", () => {
@@ -25,6 +27,8 @@ describe("PreferenceService", () => {
     jobTypes: [JobType.FullTime],
     compensationTypes: [CompensationType.Paid],
     volunteerHoursPerWeek: null,
+    workScheduleDays: [],
+    scheduleTypes: [],
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -119,6 +123,8 @@ describe("PreferenceService", () => {
         jobTypes: [JobType.FullTime],
         compensationTypes: [CompensationType.Paid],
         volunteerHoursPerWeek: null,
+        workScheduleDays: [],
+        scheduleTypes: [],
       });
     });
 
@@ -142,6 +148,8 @@ describe("PreferenceService", () => {
         jobTypes: [JobType.FullTime],
         compensationTypes: [],
         volunteerHoursPerWeek: null,
+        workScheduleDays: [],
+        scheduleTypes: [],
       });
     });
 
@@ -165,6 +173,8 @@ describe("PreferenceService", () => {
         jobTypes: [],
         compensationTypes: [CompensationType.Paid],
         volunteerHoursPerWeek: null,
+        workScheduleDays: [],
+        scheduleTypes: [],
       });
     });
 
@@ -189,6 +199,8 @@ describe("PreferenceService", () => {
         jobTypes: [JobType.FullTime],
         compensationTypes: [CompensationType.Missionary],
         volunteerHoursPerWeek: null,
+        workScheduleDays: [],
+        scheduleTypes: [],
       });
     });
 
@@ -277,6 +289,8 @@ describe("PreferenceService", () => {
         jobTypes: [JobType.FullTime],
         compensationTypes: [CompensationType.Paid],
         volunteerHoursPerWeek: null,
+        workScheduleDays: [],
+        scheduleTypes: [],
       });
     });
 
@@ -300,6 +314,8 @@ describe("PreferenceService", () => {
         jobTypes: [],
         compensationTypes: [CompensationType.Paid],
         volunteerHoursPerWeek: null,
+        workScheduleDays: [],
+        scheduleTypes: [],
       });
     });
 
@@ -323,6 +339,90 @@ describe("PreferenceService", () => {
         jobTypes: [JobType.FullTime],
         compensationTypes: [],
         volunteerHoursPerWeek: null,
+        workScheduleDays: [],
+        scheduleTypes: [],
+      });
+    });
+
+    it("saves workScheduleDays and scheduleTypes alongside existing fields", async () => {
+      const prefWithSchedule = {
+        ...mockPreference,
+        workScheduleDays: [WorkScheduleDay.Monday, WorkScheduleDay.Wednesday],
+        scheduleTypes: [ScheduleType.Fixed],
+      };
+      mockProfileRepo.findByIdWithProfile.mockResolvedValue(
+        mockUserWithProfile,
+      );
+      mockPreferenceRepo.upsertPreferences.mockResolvedValue(prefWithSchedule);
+
+      const result = await service.updateJobPreferences(1, {
+        jobTypes: [JobType.FullTime],
+        compensationTypes: [CompensationType.Paid],
+        workScheduleDays: [WorkScheduleDay.Monday, WorkScheduleDay.Wednesday],
+        scheduleTypes: [ScheduleType.Fixed],
+      });
+
+      expect(result.isSuccess).toBe(true);
+      expect(mockPreferenceRepo.upsertPreferences).toHaveBeenCalledWith(42, {
+        jobTypes: [JobType.FullTime],
+        compensationTypes: [CompensationType.Paid],
+        volunteerHoursPerWeek: null,
+        workScheduleDays: [WorkScheduleDay.Monday, WorkScheduleDay.Wednesday],
+        scheduleTypes: [ScheduleType.Fixed],
+      });
+    });
+
+    it("merges workScheduleDays with existing on partial update", async () => {
+      const existingWithSchedule = {
+        ...mockPreference,
+        workScheduleDays: [WorkScheduleDay.Monday, WorkScheduleDay.Friday],
+        scheduleTypes: [ScheduleType.Flexible],
+      };
+      mockProfileRepo.findByIdWithProfile.mockResolvedValue(
+        mockUserWithProfile,
+      );
+      mockPreferenceRepo.getPreferences.mockResolvedValue(existingWithSchedule);
+      mockPreferenceRepo.upsertPreferences.mockResolvedValue({
+        ...existingWithSchedule,
+        scheduleTypes: [ScheduleType.Rotating],
+      });
+
+      const result = await service.updateJobPreferences(1, {
+        scheduleTypes: [ScheduleType.Rotating],
+      });
+
+      expect(result.isSuccess).toBe(true);
+      expect(mockPreferenceRepo.upsertPreferences).toHaveBeenCalledWith(42, {
+        jobTypes: [JobType.FullTime],
+        compensationTypes: [CompensationType.Paid],
+        volunteerHoursPerWeek: null,
+        workScheduleDays: [WorkScheduleDay.Monday, WorkScheduleDay.Friday],
+        scheduleTypes: [ScheduleType.Rotating],
+      });
+    });
+
+    it("allows partial save with only workScheduleDays", async () => {
+      const partialPref = {
+        ...mockPreference,
+        workScheduleDays: [WorkScheduleDay.Tuesday, WorkScheduleDay.Thursday],
+      };
+      mockProfileRepo.findByIdWithProfile.mockResolvedValue(
+        mockUserWithProfile,
+      );
+      mockPreferenceRepo.getPreferences.mockResolvedValue(undefined);
+      mockPreferenceRepo.upsertPreferences.mockResolvedValue(partialPref);
+
+      const result = await service.updateJobPreferences(1, {
+        workScheduleDays: [WorkScheduleDay.Tuesday, WorkScheduleDay.Thursday],
+      });
+
+      expect(result.isSuccess).toBe(true);
+      expect(mockPreferenceRepo.upsertPreferences).toHaveBeenCalledWith(42, {
+        jobTypes: [],
+        compensationTypes: [],
+        volunteerHoursPerWeek: null,
+        workScheduleDays: [WorkScheduleDay.Tuesday, WorkScheduleDay.Thursday],
+        scheduleTypes: [],
       });
     });
 

@@ -61,6 +61,10 @@ export class PreferenceService
       const mergedJobTypes = data.jobTypes ?? existing?.jobTypes ?? [];
       const mergedCompensationTypes =
         data.compensationTypes ?? existing?.compensationTypes ?? [];
+      const mergedWorkScheduleDays =
+        data.workScheduleDays ?? existing?.workScheduleDays ?? [];
+      const mergedScheduleTypes =
+        data.scheduleTypes ?? existing?.scheduleTypes ?? [];
 
       const includesVolunteer = mergedJobTypes.includes(JobType.Volunteer);
       const volunteerHours =
@@ -80,6 +84,8 @@ export class PreferenceService
         jobTypes: mergedJobTypes,
         compensationTypes: mergedCompensationTypes,
         volunteerHoursPerWeek: includesVolunteer ? volunteerHours : null,
+        workScheduleDays: mergedWorkScheduleDays,
+        scheduleTypes: mergedScheduleTypes,
       };
 
       const result = await this.preferenceRepository.upsertPreferences(
