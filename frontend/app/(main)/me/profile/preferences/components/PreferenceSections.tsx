@@ -10,9 +10,12 @@ import {
   JOB_TYPE_LABELS,
   COMPENSATION_TYPE_LABELS,
   VOLUNTEER_HOURS_LABELS,
+  WORK_SCHEDULE_DAY_LABELS,
+  SCHEDULE_TYPE_LABELS,
 } from "@/schemas/job-preferences";
 import { JobTypesDialog } from "./JobTypesDialog";
 import { CompensationTypesDialog } from "./CompensationTypesDialog";
+import { WorkScheduleDialog } from "./WorkScheduleDialog";
 
 interface PreferenceSectionsProps {
   preferences: JobPreference | null;
@@ -55,10 +58,13 @@ function NotSet() {
 export function PreferenceSections({ preferences }: PreferenceSectionsProps) {
   const [jobTypesDialogOpen, setJobTypesDialogOpen] = useState(false);
   const [compTypesDialogOpen, setCompTypesDialogOpen] = useState(false);
+  const [workScheduleDialogOpen, setWorkScheduleDialogOpen] = useState(false);
 
   const jobTypes = preferences?.jobTypes ?? [];
   const compensationTypes = preferences?.compensationTypes ?? [];
   const volunteerHours = preferences?.volunteerHoursPerWeek ?? null;
+  const workScheduleDays = preferences?.workScheduleDays ?? [];
+  const scheduleTypes = preferences?.scheduleTypes ?? [];
 
   return (
     <div className="divide-border divide-y rounded-lg border p-2 sm:p-4">
@@ -108,6 +114,31 @@ export function PreferenceSections({ preferences }: PreferenceSectionsProps) {
         )}
       </SectionRow>
 
+      <Separator className="my-0" />
+
+      {/* Work Schedule */}
+      <SectionRow
+        label="Work Schedule"
+        onEdit={() => setWorkScheduleDialogOpen(true)}
+      >
+        {workScheduleDays.length > 0 || scheduleTypes.length > 0 ? (
+          <>
+            {workScheduleDays.map((day) => (
+              <Badge key={day} variant="secondary">
+                {WORK_SCHEDULE_DAY_LABELS[day] ?? day}
+              </Badge>
+            ))}
+            {scheduleTypes.map((type) => (
+              <Badge key={type} variant="secondary">
+                {SCHEDULE_TYPE_LABELS[type] ?? type}
+              </Badge>
+            ))}
+          </>
+        ) : (
+          <NotSet />
+        )}
+      </SectionRow>
+
       {/* Future sections — placeholders */}
       <SectionRow label="Location Preferences">
         <NotSet />
@@ -141,6 +172,13 @@ export function PreferenceSections({ preferences }: PreferenceSectionsProps) {
         open={compTypesDialogOpen}
         onOpenChange={setCompTypesDialogOpen}
         defaultCompensationTypes={compensationTypes}
+      />
+
+      <WorkScheduleDialog
+        open={workScheduleDialogOpen}
+        onOpenChange={setWorkScheduleDialogOpen}
+        defaultWorkScheduleDays={workScheduleDays}
+        defaultScheduleTypes={scheduleTypes}
       />
     </div>
   );

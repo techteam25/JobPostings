@@ -9,6 +9,8 @@ export const useUpdateJobPreferences = () => {
       jobTypes?: string[];
       compensationTypes?: string[];
       volunteerHoursPerWeek?: string;
+      workScheduleDays?: string[];
+      scheduleTypes?: string[];
     }) => {
       const result = await updateJobPreferences(data);
       if (!result.success) {

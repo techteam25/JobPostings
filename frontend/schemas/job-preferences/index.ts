@@ -23,6 +23,22 @@ export const VOLUNTEER_HOURS_OPTIONS = [
   { value: "over_40_hours", label: "Over 40 hours" },
 ] as const;
 
+export const WORK_SCHEDULE_DAY_OPTIONS = [
+  { value: "monday", label: "Monday" },
+  { value: "tuesday", label: "Tuesday" },
+  { value: "wednesday", label: "Wednesday" },
+  { value: "thursday", label: "Thursday" },
+  { value: "friday", label: "Friday" },
+] as const;
+
+export const SCHEDULE_TYPE_OPTIONS = [
+  { value: "fixed", label: "Fixed Schedule" },
+  { value: "flexible", label: "Flexible Schedule" },
+  { value: "rotating", label: "Rotating Schedule" },
+  { value: "seasonal_project_based", label: "Seasonal / Project-Based" },
+  { value: "on_call_as_needed", label: "On-Call / As Needed" },
+] as const;
+
 export const JOB_TYPE_LABELS: Record<string, string> = Object.fromEntries(
   JOB_TYPE_OPTIONS.map((o) => [o.value, o.label]),
 );
@@ -33,9 +49,18 @@ export const COMPENSATION_TYPE_LABELS: Record<string, string> =
 export const VOLUNTEER_HOURS_LABELS: Record<string, string> =
   Object.fromEntries(VOLUNTEER_HOURS_OPTIONS.map((o) => [o.value, o.label]));
 
+export const WORK_SCHEDULE_DAY_LABELS: Record<string, string> =
+  Object.fromEntries(WORK_SCHEDULE_DAY_OPTIONS.map((o) => [o.value, o.label]));
+
+export const SCHEDULE_TYPE_LABELS: Record<string, string> = Object.fromEntries(
+  SCHEDULE_TYPE_OPTIONS.map((o) => [o.value, o.label]),
+);
+
 const jobTypeValues = JOB_TYPE_OPTIONS.map((o) => o.value);
 const compensationTypeValues = COMPENSATION_TYPE_OPTIONS.map((o) => o.value);
 const volunteerHoursValues = VOLUNTEER_HOURS_OPTIONS.map((o) => o.value);
+const workScheduleDayValues = WORK_SCHEDULE_DAY_OPTIONS.map((o) => o.value);
+const scheduleTypeValues = SCHEDULE_TYPE_OPTIONS.map((o) => o.value);
 
 export const jobTypesFormSchema = z.object({
   jobTypes: z
@@ -50,10 +75,16 @@ export const compensationTypesFormSchema = z.object({
     .min(1, "Select at least one compensation type"),
 });
 
+export const workScheduleFormSchema = z.object({
+  workScheduleDays: z.array(z.enum(workScheduleDayValues)),
+  scheduleTypes: z.array(z.enum(scheduleTypeValues)),
+});
+
 export type JobTypesFormData = z.infer<typeof jobTypesFormSchema>;
 export type CompensationTypesFormData = z.infer<
   typeof compensationTypesFormSchema
 >;
+export type WorkScheduleFormData = z.infer<typeof workScheduleFormSchema>;
 
 export interface JobPreference {
   id: number;
@@ -61,6 +92,8 @@ export interface JobPreference {
   jobTypes: string[];
   compensationTypes: string[];
   volunteerHoursPerWeek: string | null;
+  workScheduleDays: string[] | null;
+  scheduleTypes: string[] | null;
   createdAt: string;
   updatedAt: string;
 }

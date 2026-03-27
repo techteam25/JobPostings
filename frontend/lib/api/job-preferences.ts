@@ -29,6 +29,8 @@ export const updateJobPreferences = async (data: {
   jobTypes?: string[];
   compensationTypes?: string[];
   volunteerHoursPerWeek?: string;
+  workScheduleDays?: string[];
+  scheduleTypes?: string[];
 }): Promise<ApiResponse<JobPreference>> => {
   const cookieStore = await cookies();
   const res = await fetch(

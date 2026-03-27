@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { AlertTriangle, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,11 +14,8 @@ interface EmailVerificationBannerProps {
 export function EmailVerificationBanner({
   email,
 }: EmailVerificationBannerProps) {
-  const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [isSending, setIsSending] = useState(false);
-
-  useEffect(() => setMounted(true), []);
 
   const handleResend = useCallback(async () => {
     setIsSending(true);
@@ -35,7 +32,7 @@ export function EmailVerificationBanner({
     }
   }, [email]);
 
-  if (dismissed || !mounted) {
+  if (dismissed) {
     return null;
   }
 
