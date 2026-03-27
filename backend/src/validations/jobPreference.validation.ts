@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-// ─── Shared enum schemas ─────────────────────────────────────────────
-
 const jobTypeEnum = z.enum([
   "full-time",
   "part-time",
@@ -29,8 +27,6 @@ const volunteerHoursPerWeekEnum = z.enum(
 );
 
 const noDuplicates = (items: string[]) => new Set(items).size === items.length;
-
-// ─── Insert Schema (full create) ────────────────────────────────────
 
 export const insertJobPreferenceSchema = z
   .object({
@@ -61,8 +57,6 @@ export const insertJobPreferenceSchema = z
       path: ["volunteerHoursPerWeek"],
     },
   );
-
-// ─── Patch Schema (partial update — empty arrays allowed to clear) ──
 
 const patchBodySchema = z
   .object({
