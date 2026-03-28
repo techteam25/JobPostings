@@ -3,7 +3,7 @@ import { BaseService } from "@shared/base/base.service";
 import type { PreferenceServicePort } from "@/modules/user-profile";
 import type { PreferenceRepositoryPort } from "@/modules/user-profile";
 import type { ProfileRepositoryPort } from "@/modules/user-profile";
-import type { WorkAreaQueryPort } from "../ports/work-area-repository.port";
+import type { WorkAreaQueryPort } from "@/modules/user-profile";
 import {
   AppError,
   DatabaseError,

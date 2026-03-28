@@ -1,6 +1,6 @@
 import type { Result } from "@shared/result";
 import type { AppError } from "@shared/errors";
-import type { WorkArea } from "./work-area-repository.port";
+import type { WorkArea } from "@/modules/user-profile";
 
 export interface WorkAreaServicePort {
   getAllWorkAreas(): Promise<Result<WorkArea[], AppError>>;

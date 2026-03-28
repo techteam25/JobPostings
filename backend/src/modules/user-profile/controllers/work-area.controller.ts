@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
-import type { WorkAreaServicePort } from "../ports/work-area-service.port";
-import type { WorkArea } from "../ports/work-area-repository.port";
+import type { WorkAreaServicePort } from "@/modules/user-profile";
+import type { WorkArea } from "@/modules/user-profile";
 import type { UpdateWorkAreasBody } from "@/validations/workArea.validation";
 import type { ApiResponse, EmptyBody } from "@shared/types";
 

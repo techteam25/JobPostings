@@ -3,10 +3,7 @@ import { workAreas, jobPreferenceWorkAreas } from "@/db/schema";
 import { BaseRepository } from "@shared/base/base.repository";
 import { db } from "@shared/db/connection";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
-import type {
-  WorkArea,
-  WorkAreaRepositoryPort,
-} from "../ports/work-area-repository.port";
+import type { WorkArea, WorkAreaRepositoryPort } from "@/modules/user-profile";
 
 export class WorkAreaRepository
   extends BaseRepository<typeof workAreas>

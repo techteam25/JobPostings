@@ -6,10 +6,10 @@ import {
   NotFoundError,
   ValidationError,
 } from "@shared/errors";
-import type { WorkAreaServicePort } from "../ports/work-area-service.port";
-import type { WorkAreaRepositoryPort } from "../ports/work-area-repository.port";
-import type { PreferenceRepositoryPort } from "../ports/preference-repository.port";
-import type { ProfileRepositoryPort } from "../ports/profile-repository.port";
+import type { WorkAreaServicePort } from "@/modules/user-profile";
+import type { WorkAreaRepositoryPort } from "@/modules/user-profile";
+import type { PreferenceRepositoryPort } from "@/modules/user-profile";
+import type { ProfileRepositoryPort } from "@/modules/user-profile";
 
 export class WorkAreaService
   extends BaseService
