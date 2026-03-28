@@ -1,19 +1,7 @@
-import { headers } from "next/headers";
-
-import { EmailVerificationBanner } from "@/components/common/EmailVerificationBanner";
-import { getServerSession } from "@/lib/auth-server";
 import { ReactNode } from "react";
 
-async function Layout({ children }: { children: ReactNode }) {
-  const { user } = await getServerSession((await headers()).get("cookie"));
-  const showBanner = !!user && !user.emailVerified;
-
-  return (
-    <div>
-      {showBanner && <EmailVerificationBanner email={user.email} />}
-      {children}
-    </div>
-  );
+function Layout({ children }: { children: ReactNode }) {
+  return <div>{children}</div>;
 }
 
 export default Layout;

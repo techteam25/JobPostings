@@ -103,11 +103,21 @@ export default function Navbar() {
           </div>
 
           {/* Right Section */}
-          <NavbarMobile
-            username={data?.data?.user.name}
-            email={data?.data?.user.email}
-            profileImage={data?.data?.user.image}
-          />
+          <div className="flex items-center gap-2 lg:hidden">
+            {/* Notification Bell - visible on mobile */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="hover:bg-secondary rounded-full p-2 transition"
+            >
+              <Bell className="text-secondary-foreground size-5" />
+            </Button>
+            <NavbarMobile
+              username={data?.data?.user.name}
+              email={data?.data?.user.email}
+              profileImage={data?.data?.user.image}
+            />
+          </div>
           <div className="hidden items-center gap-4 lg:flex">
             {/* Notification Bell */}
             <Button
@@ -188,7 +198,7 @@ export default function Navbar() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      className="hover:bg-secondary cursor-pointer rounded-lg p-2"
+                      className="hover:bg-secondary cursor-pointer rounded-lg p-2 [&>svg]:size-5"
                       asChild
                     >
                       <Link
@@ -200,7 +210,7 @@ export default function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="hover:bg-secondary cursor-pointer rounded-lg p-2"
+                      className="hover:bg-secondary cursor-pointer rounded-lg p-2 [&>svg]:size-5"
                       asChild
                     >
                       <Link

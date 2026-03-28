@@ -35,30 +35,35 @@ export const SortByMobileButton = ({ defaultSort, onSortChange }: Props) => {
           />
         </Button>
       </DrawerTrigger>
-      <DrawerContent className="h-1/3 px-4">
-        <DrawerHeader className="p-0 px-4 text-left">
-          <DrawerTitle className="text-base font-medium">
-            <div className="flex items-center justify-between">
-              <span>Sort By</span>
-              <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
-                <X />
-              </Button>
-            </div>
-          </DrawerTitle>
+      <DrawerContent>
+        <DrawerHeader className="pb-1">
+          <div className="flex items-center justify-between">
+            <DrawerTitle className="text-base font-medium">Sort By</DrawerTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground size-8 rounded-full"
+              onClick={() => setOpen(false)}
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
           <DrawerDescription className="sr-only">
             Change job results sorting options
           </DrawerDescription>
         </DrawerHeader>
-        <CheckmarkOption
-          label="Most Recent"
-          checked={defaultSort === "Most Recent"}
-          onCheckedChange={onSortChange}
-        />
-        <CheckmarkOption
-          label="Most Relevant"
-          checked={defaultSort === "Most Relevant"}
-          onCheckedChange={onSortChange}
-        />
+        <div className="px-4 pb-6">
+          <CheckmarkOption
+            label="Most Recent"
+            checked={defaultSort === "Most Recent"}
+            onCheckedChange={onSortChange}
+          />
+          <CheckmarkOption
+            label="Most Relevant"
+            checked={defaultSort === "Most Relevant"}
+            onCheckedChange={onSortChange}
+          />
+        </div>
       </DrawerContent>
     </Drawer>
   );
