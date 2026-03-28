@@ -66,7 +66,7 @@ export type CompositionRoot = {
   identity: Pick<IdentityModule, "controller" | "guards">;
   userProfile: Pick<
     UserProfileModule,
-    "controller" | "preferenceController" | "guards"
+    "controller" | "preferenceController" | "workAreaController" | "guards"
   >;
   notifications: Pick<NotificationsModule, "controller">;
   jobBoard: Pick<JobBoardModule, "controller" | "guards">;

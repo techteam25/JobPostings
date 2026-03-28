@@ -29,6 +29,7 @@ import { createIdentityRoutes } from "@/modules/identity";
 import {
   createProfileRoutes,
   createJobPreferenceRoutes,
+  createWorkAreaRoutes,
 } from "@/modules/user-profile";
 import { createNotificationsRoutes } from "@/modules/notifications";
 
@@ -1042,6 +1043,11 @@ export function createUserRoutes(deps: UserRoutesDeps): Router {
       controller: deps.identity.controller,
       identityGuards: deps.identity.guards,
       orgGuards: deps.organizations.guards,
+    }),
+  );
+  router.use(
+    createWorkAreaRoutes({
+      controller: deps.userProfile.workAreaController,
     }),
   );
   router.use(
