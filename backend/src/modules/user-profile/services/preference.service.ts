@@ -3,6 +3,7 @@ import { BaseService } from "@shared/base/base.service";
 import type { PreferenceServicePort } from "@/modules/user-profile";
 import type { PreferenceRepositoryPort } from "@/modules/user-profile";
 import type { ProfileRepositoryPort } from "@/modules/user-profile";
+import type { WorkAreaQueryPort } from "../ports/work-area-repository.port";
 import {
   AppError,
   DatabaseError,
@@ -22,6 +23,7 @@ export class PreferenceService
       ProfileRepositoryPort,
       "findByIdWithProfile"
     >,
+    private workAreaQuery: WorkAreaQueryPort,
   ) {
     super();
   }
@@ -37,7 +39,15 @@ export class PreferenceService
         user.profile.id,
       );
 
-      return ok(preference ?? null);
+      if (!preference) {
+        return ok(null);
+      }
+
+      const workAreas = await this.workAreaQuery.getSelectedWorkAreas(
+        preference.id,
+      );
+
+      return ok({ ...preference, workAreas });
     } catch (error) {
       if (error instanceof AppError) {
         return this.handleError(error);

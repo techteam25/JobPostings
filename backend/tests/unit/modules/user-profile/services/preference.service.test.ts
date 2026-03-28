@@ -45,7 +45,15 @@ describe("PreferenceService", () => {
       findByIdWithProfile: vi.fn(),
     };
 
-    service = new PreferenceService(mockPreferenceRepo, mockProfileRepo);
+    const mockWorkAreaQuery = {
+      getSelectedWorkAreas: vi.fn().mockResolvedValue([]),
+    };
+
+    service = new PreferenceService(
+      mockPreferenceRepo,
+      mockProfileRepo,
+      mockWorkAreaQuery,
+    );
   });
 
   describe("getJobPreferences", () => {
@@ -73,7 +81,7 @@ describe("PreferenceService", () => {
 
       expect(result.isSuccess).toBe(true);
       if (result.isSuccess) {
-        expect(result.value).toEqual(mockPreference);
+        expect(result.value).toEqual({ ...mockPreference, workAreas: [] });
       }
     });
 

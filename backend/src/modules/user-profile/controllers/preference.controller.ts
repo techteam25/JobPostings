@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
 import type { PreferenceServicePort } from "@/modules/user-profile";
 import type { JobPreference } from "@/modules/user-profile";
+import type { JobPreferenceWithWorkAreas } from "../ports/preference-service.port";
 import type { PatchJobPreferenceBody } from "@/validations/jobPreference.validation";
 import type { ApiResponse, EmptyBody } from "@shared/types";
 
@@ -12,7 +13,7 @@ export class PreferenceController extends BaseController {
 
   getJobPreferences = async (
     req: Request,
-    res: Response<ApiResponse<JobPreference | null>>,
+    res: Response<ApiResponse<JobPreferenceWithWorkAreas | null>>,
   ) => {
     const result = await this.preferenceService.getJobPreferences(req.userId!);
 
