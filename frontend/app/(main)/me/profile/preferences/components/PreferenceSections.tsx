@@ -5,7 +5,7 @@ import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import type { JobPreference } from "@/schemas/job-preferences";
+import type { JobPreference, WorkArea } from "@/schemas/job-preferences";
 import {
   JOB_TYPE_LABELS,
   COMPENSATION_TYPE_LABELS,
@@ -22,9 +22,11 @@ import { WorkScheduleDialog } from "./WorkScheduleDialog";
 import { WorkArrangementDialog } from "./WorkArrangementDialog";
 import { CommuteTimeDialog } from "./CommuteTimeDialog";
 import { RelocationDialog } from "./RelocationDialog";
+import { WorkAreasDialog } from "./WorkAreasDialog";
 
 interface PreferenceSectionsProps {
   preferences: JobPreference | null;
+  availableWorkAreas: WorkArea[];
 }
 
 function SectionRow({
@@ -49,7 +51,7 @@ function SectionRow({
           onClick={onEdit}
           className="text-muted-foreground hover:text-foreground shrink-0"
         >
-          <Pencil />
+          <Pencil data-icon="inline-start" />
           <span className="sr-only">Edit {label}</span>
         </Button>
       )}
@@ -61,7 +63,10 @@ function NotSet() {
   return <span className="text-muted-foreground text-sm">Not set</span>;
 }
 
-export function PreferenceSections({ preferences }: PreferenceSectionsProps) {
+export function PreferenceSections({
+  preferences,
+  availableWorkAreas,
+}: PreferenceSectionsProps) {
   const [jobTypesDialogOpen, setJobTypesDialogOpen] = useState(false);
   const [compTypesDialogOpen, setCompTypesDialogOpen] = useState(false);
   const [workScheduleDialogOpen, setWorkScheduleDialogOpen] = useState(false);
@@ -69,6 +74,7 @@ export function PreferenceSections({ preferences }: PreferenceSectionsProps) {
     useState(false);
   const [commuteTimeDialogOpen, setCommuteTimeDialogOpen] = useState(false);
   const [relocationDialogOpen, setRelocationDialogOpen] = useState(false);
+  const [workAreasDialogOpen, setWorkAreasDialogOpen] = useState(false);
 
   const jobTypes = preferences?.jobTypes ?? [];
   const compensationTypes = preferences?.compensationTypes ?? [];
@@ -78,6 +84,7 @@ export function PreferenceSections({ preferences }: PreferenceSectionsProps) {
   const workArrangements = preferences?.workArrangements ?? [];
   const commuteTime = preferences?.commuteTime ?? null;
   const willingnessToRelocate = preferences?.willingnessToRelocate ?? null;
+  const workAreas = preferences?.workAreas ?? [];
 
   return (
     <div className="divide-border divide-y rounded-lg border p-2 sm:p-4">
@@ -199,6 +206,24 @@ export function PreferenceSections({ preferences }: PreferenceSectionsProps) {
         )}
       </SectionRow>
 
+      <Separator className="my-0" />
+
+      {/* Work Areas */}
+      <SectionRow
+        label="Work Areas"
+        onEdit={() => setWorkAreasDialogOpen(true)}
+      >
+        {workAreas.length > 0 ? (
+          workAreas.map((area) => (
+            <Badge key={area.id} variant="secondary">
+              {area.name}
+            </Badge>
+          ))
+        ) : (
+          <NotSet />
+        )}
+      </SectionRow>
+
       {/* Future sections — placeholders */}
       <SectionRow label="Salary Expectations">
         <NotSet />
@@ -249,6 +274,13 @@ export function PreferenceSections({ preferences }: PreferenceSectionsProps) {
         open={relocationDialogOpen}
         onOpenChange={setRelocationDialogOpen}
         defaultWillingnessToRelocate={willingnessToRelocate}
+      />
+
+      <WorkAreasDialog
+        open={workAreasDialogOpen}
+        onOpenChange={setWorkAreasDialogOpen}
+        defaultWorkAreaIds={workAreas.map((area) => area.id)}
+        availableWorkAreas={availableWorkAreas}
       />
     </div>
   );

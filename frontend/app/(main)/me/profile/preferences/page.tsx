@@ -1,10 +1,20 @@
 import { ProfileBreadcrumb } from "@/app/(main)/me/profile/components/ProfileBreadcrumb";
-import { getJobPreferences } from "@/lib/api/job-preferences";
+import {
+  getJobPreferences,
+  getAvailableWorkAreas,
+} from "@/lib/api/job-preferences";
 import { PreferenceSections } from "./components/PreferenceSections";
 
 export default async function PreferencesPage() {
-  const result = await getJobPreferences();
-  const preferences = result.success ? result.data : null;
+  const [preferencesResult, workAreasResult] = await Promise.all([
+    getJobPreferences(),
+    getAvailableWorkAreas(),
+  ]);
+
+  const preferences = preferencesResult.success ? preferencesResult.data : null;
+  const availableWorkAreas = workAreasResult.success
+    ? workAreasResult.data
+    : [];
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -16,7 +26,10 @@ export default async function PreferencesPage() {
         Set your job preferences to help us match you with the right
         opportunities.
       </p>
-      <PreferenceSections preferences={preferences} />
+      <PreferenceSections
+        preferences={preferences}
+        availableWorkAreas={availableWorkAreas}
+      />
     </main>
   );
 }

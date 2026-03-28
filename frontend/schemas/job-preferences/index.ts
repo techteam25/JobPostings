@@ -142,6 +142,17 @@ export type WorkArrangementFormData = z.infer<typeof workArrangementFormSchema>;
 export type CommuteTimeFormData = z.infer<typeof commuteTimeFormSchema>;
 export type RelocationFormData = z.infer<typeof relocationFormSchema>;
 
+export const workAreasFormSchema = z.object({
+  workAreaIds: z.array(z.number()),
+});
+
+export type WorkAreasFormData = z.infer<typeof workAreasFormSchema>;
+
+export interface WorkArea {
+  id: number;
+  name: string;
+}
+
 export interface JobPreference {
   id: number;
   userProfileId: number;
@@ -153,6 +164,7 @@ export interface JobPreference {
   workArrangements: string[] | null;
   commuteTime: string | null;
   willingnessToRelocate: string | null;
+  workAreas: WorkArea[] | null;
   createdAt: string;
   updatedAt: string;
 }
