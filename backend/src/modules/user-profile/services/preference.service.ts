@@ -10,7 +10,13 @@ import {
   NotFoundError,
   ValidationError,
 } from "@shared/errors";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
+import logger from "@shared/logger";
 import { JobType } from "../constants/job-preference.constants";
+import { buildUserProfileDocument } from "../helpers/build-user-profile-document";
 import type { PatchJobPreferenceBody } from "@/validations/jobPreference.validation";
 
 export class PreferenceService
@@ -111,6 +117,24 @@ export class PreferenceService
         user.profile.id,
         sanitizedData,
       );
+
+      // Fire-and-forget: sync to Typesense asynchronously
+      try {
+        const workAreas = await this.workAreaQuery.getSelectedWorkAreas(
+          result.id,
+        );
+        const doc = buildUserProfileDocument(userId, result, workAreas);
+        await queueService.addJob(
+          QUEUE_NAMES.TYPESENSE_USER_PROFILE_QUEUE,
+          "indexUserProfile",
+          { ...doc, correlationId: crypto.randomUUID() },
+        );
+      } catch (error) {
+        logger.error("Failed to enqueue user profile Typesense sync", {
+          userId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
 
       return ok(result);
     } catch (error) {

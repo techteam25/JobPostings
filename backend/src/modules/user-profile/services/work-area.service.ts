@@ -6,10 +6,16 @@ import {
   NotFoundError,
   ValidationError,
 } from "@shared/errors";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
+import logger from "@shared/logger";
 import type { WorkAreaServicePort } from "@/modules/user-profile";
 import type { WorkAreaRepositoryPort } from "@/modules/user-profile";
 import type { PreferenceRepositoryPort } from "@/modules/user-profile";
 import type { ProfileRepositoryPort } from "@/modules/user-profile";
+import { buildUserProfileDocument } from "../helpers/build-user-profile-document";
 
 export class WorkAreaService
   extends BaseService
@@ -104,6 +110,28 @@ export class WorkAreaService
         preference.id,
         workAreaIds,
       );
+
+      // Fire-and-forget: sync to Typesense asynchronously
+      try {
+        const updatedWorkAreas =
+          await this.workAreaRepository.getSelectedWorkAreas(preference.id);
+        const doc = buildUserProfileDocument(
+          userId,
+          preference,
+          updatedWorkAreas,
+        );
+        await queueService.addJob(
+          QUEUE_NAMES.TYPESENSE_USER_PROFILE_QUEUE,
+          "updateUserProfile",
+          { ...doc, correlationId: crypto.randomUUID() },
+        );
+      } catch (error) {
+        logger.error("Failed to enqueue user profile Typesense sync", {
+          userId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+
       return ok(undefined);
     } catch (error) {
       if (error instanceof AppError) {
