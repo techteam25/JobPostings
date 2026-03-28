@@ -26,7 +26,11 @@ import {
   togglePauseJobAlertSchema,
 } from "@/validations/jobAlerts.validation";
 import { createIdentityRoutes } from "@/modules/identity";
-import { createProfileRoutes } from "@/modules/user-profile";
+import {
+  createProfileRoutes,
+  createJobPreferenceRoutes,
+  createWorkAreaRoutes,
+} from "@/modules/user-profile";
 import { createNotificationsRoutes } from "@/modules/notifications";
 
 import type { CompositionRoot } from "@/composition-root";
@@ -1039,6 +1043,16 @@ export function createUserRoutes(deps: UserRoutesDeps): Router {
       controller: deps.identity.controller,
       identityGuards: deps.identity.guards,
       orgGuards: deps.organizations.guards,
+    }),
+  );
+  router.use(
+    createWorkAreaRoutes({
+      controller: deps.userProfile.workAreaController,
+    }),
+  );
+  router.use(
+    createJobPreferenceRoutes({
+      controller: deps.userProfile.preferenceController,
     }),
   );
   router.use(

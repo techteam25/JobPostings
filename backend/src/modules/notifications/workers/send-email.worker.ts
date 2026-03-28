@@ -76,10 +76,21 @@ const jobAlertNotificationSchema = baseEmailSchema.extend({
   totalMatches: z.number(),
 });
 
+const emailVerificationSchema = baseEmailSchema.extend({
+  token: z.string(),
+});
+
+const deleteAccountEmailVerificationSchema = baseEmailSchema.extend({
+  url: z.url(),
+  token: z.string(),
+});
+
 export const emailJobSchemas = {
   sendWelcomeEmail: baseEmailSchema,
+  sendEmailVerification: emailVerificationSchema,
+  sendDeleteAccountEmailVerification: deleteAccountEmailVerificationSchema,
   sendPasswordResetEmail: baseEmailSchema.extend({
-    resetUrl: z.string().url(),
+    resetUrl: z.url(),
   }),
   sendJobApplicationConfirmation: jobApplicationConfirmationSchema,
   sendApplicationWithdrawalConfirmation: applicationWithdrawalSchema,
@@ -129,10 +140,27 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
     switch (jobName) {
       case "sendWelcomeEmail":
         break;
+      case "sendEmailVerification": {
+        const d = data as EmailJobPayload<"sendEmailVerification">;
+        await deps.emailService.sendEmailVerification(
+          d.email,
+          d.fullName,
+          d.token,
+        );
+        break;
+      }
+      case "sendDeleteAccountEmailVerification": {
+        const d = data as EmailJobPayload<"sendDeleteAccountEmailVerification">;
+        await deps.emailService.sendDeleteAccountEmailVerification(
+          d.email,
+          d.fullName,
+          d.url,
+          d.token,
+        );
+        break;
+      }
       case "sendPasswordResetEmail": {
-        const d = data as z.infer<
-          (typeof emailJobSchemas)["sendPasswordResetEmail"]
-        >;
+        const d = data as EmailJobPayload<"sendPasswordResetEmail">;
         await deps.emailService.sendPasswordResetEmail(
           d.email,
           d.fullName,
@@ -141,7 +169,7 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
         break;
       }
       case "sendJobApplicationConfirmation": {
-        const d = data as z.infer<typeof jobApplicationConfirmationSchema>;
+        const d = data as EmailJobPayload<"sendJobApplicationConfirmation">;
         await deps.emailService.sendJobApplicationConfirmation(
           d.userId,
           d.email,
@@ -151,7 +179,8 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
         break;
       }
       case "sendApplicationWithdrawalConfirmation": {
-        const d = data as z.infer<typeof applicationWithdrawalSchema>;
+        const d =
+          data as EmailJobPayload<"sendApplicationWithdrawalConfirmation">;
         await deps.emailService.sendApplicationWithdrawalConfirmation(
           d.userId,
           d.email,
@@ -161,7 +190,7 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
         break;
       }
       case "sendAccountDeletionConfirmation": {
-        const d = data as z.infer<typeof baseEmailSchema>;
+        const d = data as EmailJobPayload<"sendAccountDeletionConfirmation">;
         await deps.emailService.sendAccountDeletionConfirmation(
           d.userId,
           d.email,
@@ -170,7 +199,8 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
         break;
       }
       case "sendAccountDeactivationConfirmation": {
-        const d = data as z.infer<typeof baseEmailSchema>;
+        const d =
+          data as EmailJobPayload<"sendAccountDeactivationConfirmation">;
         await deps.emailService.sendAccountDeactivationConfirmation(
           d.userId,
           d.email,
@@ -179,7 +209,7 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
         break;
       }
       case "sendJobDeletionEmail": {
-        const d = data as z.infer<typeof jobDeletionSchema>;
+        const d = data as EmailJobPayload<"sendJobDeletionEmail">;
         await deps.emailService.sendJobDeletionEmail(
           d.email,
           d.fullName,
@@ -189,7 +219,7 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
         break;
       }
       case "sendOrganizationInvitation": {
-        const d = data as z.infer<typeof organizationInvitationSchema>;
+        const d = data as EmailJobPayload<"sendOrganizationInvitation">;
         await deps.emailService.sendOrganizationInvitation(
           d.email,
           d.organizationName,
@@ -201,7 +231,7 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
         break;
       }
       case "sendOrganizationWelcome": {
-        const d = data as z.infer<typeof organizationWelcomeSchema>;
+        const d = data as EmailJobPayload<"sendOrganizationWelcome">;
         await deps.emailService.sendOrganizationWelcome(
           d.email,
           d.name,
@@ -211,7 +241,7 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
         break;
       }
       case "sendApplicationStatusUpdate": {
-        const d = data as z.infer<typeof applicationStatusUpdateSchema>;
+        const d = data as EmailJobPayload<"sendApplicationStatusUpdate">;
         await deps.emailService.sendApplicationStatusUpdate(
           d.email,
           d.fullName,
@@ -222,13 +252,13 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
         break;
       }
       case "sendPasswordChangedEmail": {
-        const d = data as z.infer<typeof baseEmailSchema>;
+        const d = data as EmailJobPayload<"sendPasswordChangedEmail">;
         await deps.emailService.sendPasswordChangedEmail(d.email, d.fullName);
         break;
       }
       case "sendJobAlertNotification":
       case "job-alert-notification": {
-        const d = data as z.infer<typeof jobAlertNotificationSchema>;
+        const d = data as EmailJobPayload<"sendJobAlertNotification">;
         await deps.emailService.sendJobAlertNotification(
           d.userId,
           d.email,

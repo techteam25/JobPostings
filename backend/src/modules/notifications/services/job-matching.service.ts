@@ -6,13 +6,13 @@ import { JobAlert } from "@/validations/jobAlerts.validation";
 import { TypesenseQueryBuilder } from "@shared/infrastructure/typesense.service/typesense-queryBuilder";
 import logger from "@shared/logger";
 import type { JobMatchingServicePort } from "../ports/job-matching-service.port";
-import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
+import type { TypesenseJobServicePort } from "@shared/ports/typesense-service.port";
 
 export class JobMatchingService
   extends BaseService
   implements JobMatchingServicePort
 {
-  constructor(private typesenseService: TypesenseServicePort) {
+  constructor(private typesenseService: TypesenseJobServicePort) {
     super();
   }
 

@@ -12,6 +12,7 @@ import {
 import { instance } from "@/lib/axios-instance";
 import { useSocialAuth } from "@/app/(auth)/sign-in/hooks/use-social";
 import { isAxiosError } from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function useRegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -34,6 +35,7 @@ export function useRegistrationForm() {
     hasAgreedToTerms: false,
   };
 
+  const queryClient = useQueryClient();
   const form = useForm({
     defaultValues: registrationInput,
     validators: {
@@ -53,6 +55,11 @@ export function useRegistrationForm() {
             toast.success(
               "Account created! Please check your email to verify your account.",
             );
+            queryClient
+              .invalidateQueries({
+                queryKey: ["get-user-session"],
+              })
+              .catch(() => {});
             form.reset();
 
             router.replace(

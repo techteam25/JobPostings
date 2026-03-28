@@ -18,7 +18,8 @@ const connection: ConnectionOptions = {
 
 // Queue names
 export const QUEUE_NAMES = {
-  TYPESENSE_QUEUE: "jobIndexQueue",
+  TYPESENSE_JOB_QUEUE: "jobIndexQueue",
+  TYPESENSE_USER_PROFILE_QUEUE: "userProfileIndexQueue",
   EMAIL_QUEUE: "emailQueue",
   FILE_UPLOAD_QUEUE: "fileUploadQueue",
   TEMP_FILE_CLEANUP_QUEUE: "tempFileCleanupQueue",
@@ -60,7 +61,8 @@ class QueueService {
 
     try {
       // Create queues
-      this.createQueue(QUEUE_NAMES.TYPESENSE_QUEUE);
+      this.createQueue(QUEUE_NAMES.TYPESENSE_JOB_QUEUE);
+      this.createQueue(QUEUE_NAMES.TYPESENSE_USER_PROFILE_QUEUE);
       this.createQueue(QUEUE_NAMES.EMAIL_QUEUE);
       this.createQueue(QUEUE_NAMES.FILE_UPLOAD_QUEUE);
       this.createQueue(QUEUE_NAMES.TEMP_FILE_CLEANUP_QUEUE);

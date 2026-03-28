@@ -16,7 +16,7 @@ export function createTestDatabase() {
   }
 
   // Create test database connection with suffix
-  const testDbName = `${env.DB_NAME}`;
+  const testDbName = "jobpostings_test";
 
   testConnection = mysql.createPool({
     host: env.DB_HOST,
