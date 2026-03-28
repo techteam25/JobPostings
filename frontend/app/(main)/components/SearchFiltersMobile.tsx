@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, X } from "lucide-react";
 
 import {
   Drawer,
   DrawerClose,
   DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -22,27 +21,44 @@ export const SearchFiltersMobile = () => {
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger className="w-full lg:hidden" asChild>
-        <Button className="w-auto justify-end bg-transparent shadow-none">
+        <Button className="w-auto justify-end bg-transparent shadow-none hover:bg-transparent">
           <SlidersHorizontal className="text-muted-foreground" />
         </Button>
       </DrawerTrigger>
-      <DrawerContent className="h-[90%]">
-        <DrawerHeader>
-          <DrawerTitle>Filter Jobs</DrawerTitle>
+      <DrawerContent>
+        <DrawerHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <DrawerTitle>Filter Jobs</DrawerTitle>
+            <DrawerClose asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground size-8 rounded-full"
+              >
+                <X className="size-4" />
+              </Button>
+            </DrawerClose>
+          </div>
           <DrawerDescription className="sr-only">Filter Jobs</DrawerDescription>
         </DrawerHeader>
-        <div className="bg-muted-foreground/80 mb-4 h-px w-full" />
+
         <div className="px-4">
           <FilterOptionsContent />
         </div>
-        <DrawerFooter>
-          <Button className="bg-foreground hover:bg-foreground/90">
+
+        <div className="flex flex-col gap-2 px-4 pt-4 pb-6">
+          <Button className="bg-foreground hover:bg-foreground/90 h-12 w-full rounded-full text-base">
             Apply Filters
           </Button>
           <DrawerClose asChild>
-            <Button variant="outline">Clear</Button>
+            <Button
+              variant="ghost"
+              className="text-muted-foreground h-10 text-sm"
+            >
+              Clear All
+            </Button>
           </DrawerClose>
-        </DrawerFooter>
+        </div>
       </DrawerContent>
     </Drawer>
   );

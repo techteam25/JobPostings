@@ -11,11 +11,20 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { LogIn, Menu, User } from "lucide-react";
+import {
+  CircleUser,
+  LogIn,
+  Menu,
+  Moon,
+  Settings,
+  Sun,
+  User,
+} from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import { useTheme } from "next-themes";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUserSignOut } from "@/app/(main)/hooks/use-user-signout";
-import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { Separator } from "@/components/ui/separator";
 import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 
 interface NavbarMobileProps {
@@ -31,10 +40,11 @@ export function NavbarMobile({
 }: NavbarMobileProps) {
   const { signOutAsyncAction, isPending } = useUserSignOut();
   const { isAuthenticated } = useAuthenticationStatus();
+  const { theme, setTheme } = useTheme();
 
   return (
     <Sheet>
-      <SheetTrigger className="items-center lg:hidden" asChild>
+      <SheetTrigger className="items-center" asChild>
         <Button variant="outline" className="border-0 shadow-none">
           <Menu className="text-foreground" />
         </Button>
@@ -43,25 +53,34 @@ export function NavbarMobile({
         {isAuthenticated ? (
           <>
             <SheetHeader>
-              <SheetTitle>
-                {profileImage ? (
-                  <div className="relative h-10 w-10">
-                    <Image
-                      src={profileImage!}
-                      alt="User Profile Image"
-                      fill
-                      className="mr-2 rounded-full object-cover"
-                    />
+              <div className="flex items-center gap-3">
+                <Avatar className="size-10">
+                  <AvatarImage
+                    src={profileImage ?? undefined}
+                    alt={username ?? "User"}
+                  />
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                    {username ? (
+                      username
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)
+                    ) : (
+                      <User className="size-4" />
+                    )}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col items-start">
+                  <SheetTitle className="text-sm font-medium">
                     {username}
-                  </div>
-                ) : (
-                  <div className="bg-background flex items-center rounded-full">
-                    <User className="mr-2" />
-                    {username}
-                  </div>
-                )}
-              </SheetTitle>
-              <SheetDescription>{email}</SheetDescription>
+                  </SheetTitle>
+                  <SheetDescription className="text-xs">
+                    {email}
+                  </SheetDescription>
+                </div>
+              </div>
             </SheetHeader>
             <nav className="flex flex-col items-start gap-4 p-4">
               <Button
@@ -95,10 +114,48 @@ export function NavbarMobile({
               >
                 FAQ
               </Button>
-              <div className="flex items-center gap-2 px-6">
-                <span className="text-secondary-foreground text-xs">Theme</span>
-                <ThemeToggle />
-              </div>
+
+              <Separator className="my-1" />
+
+              <SheetClose asChild>
+                <Button
+                  variant="link"
+                  className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                  asChild
+                >
+                  <Link href="/me/profile">
+                    <CircleUser className="size-4" />
+                    Profile
+                  </Link>
+                </Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button
+                  variant="link"
+                  className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                  asChild
+                >
+                  <Link href="/settings">
+                    <Settings className="size-4" />
+                    Settings
+                  </Link>
+                </Button>
+              </SheetClose>
+
+              <Separator className="my-1" />
+
+              <Button
+                variant="link"
+                className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              >
+                {theme === "dark" ? (
+                  <Sun className="size-4" />
+                ) : (
+                  <Moon className="size-4" />
+                )}
+                Theme
+              </Button>
             </nav>
             <SheetFooter>
               <SheetClose asChild>
