@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import {
   Bell,
+  ChevronDown,
   CircleUser,
   Loader2,
   LogIn,
@@ -16,11 +17,13 @@ import {
 
 import { useUserSession } from "@/app/(main)/hooks/use-user-session";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -123,94 +126,122 @@ export default function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="hover:bg-secondary data-[state=open]:bg-secondary hover:text-secondary-foreground focus:bg-secondary focus:text-secondary-foreground cursor-pointer rounded-full p-2 transition focus-visible:ring-0 [&_svg]:size-6"
+                  className="flex items-center gap-2 rounded-full p-1 pr-3"
                 >
                   {isPending ? (
                     <SkeletonDemo />
-                  ) : data?.data?.user.image ? (
-                    <div className="relative h-10 w-10">
-                      <Image
-                        src={data?.data?.user.image}
-                        alt="User Profile Image"
-                        fill
-                        className="rounded-full object-cover"
-                        sizes="40px"
-                      />
-                    </div>
                   ) : (
-                    <div className="bg-background flex items-center justify-center rounded-full">
-                      <User />
-                    </div>
+                    <>
+                      <Avatar className="size-9">
+                        <AvatarImage
+                          src={data?.data?.user.image ?? undefined}
+                          alt={data?.data?.user.name ?? "User"}
+                        />
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                          {data?.data?.user.name ? (
+                            data.data.user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2)
+                          ) : (
+                            <User className="size-4" />
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
+                      <ChevronDown className="text-muted-foreground size-4" />
+                    </>
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="flex w-75 flex-col items-start space-y-3"
-              >
+              <DropdownMenuContent align="end" className="w-64" sideOffset={8}>
                 {isAuthenticated ? (
                   <>
-                    <DropdownMenuItem className="">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">
+                    <DropdownMenuLabel className="flex items-center gap-3 p-3">
+                      <Avatar className="size-10">
+                        <AvatarImage
+                          src={data?.data?.user.image ?? undefined}
+                          alt={data?.data?.user.name ?? "User"}
+                        />
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                          {data?.data?.user.name ? (
+                            data.data.user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2)
+                          ) : (
+                            <User className="size-4" />
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col space-y-0.5">
+                        <p className="text-sm leading-none font-medium">
                           {data?.data?.user.name}
                         </p>
-                        <p className="text-muted-foreground">
+                        <p className="text-muted-foreground text-xs leading-none">
                           {data?.data?.user.email}
                         </p>
                       </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="hover:bg-secondary cursor-pointer rounded-lg p-2"
+                      asChild
+                    >
+                      <Link
+                        href="/me/profile"
+                        className="grid cursor-pointer grid-cols-[auto_1fr] items-center gap-2 font-medium"
+                      >
+                        <CircleUser className="text-secondary-foreground mr-2 size-5" />
+                        <span>Profile</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="hover:bg-secondary cursor-pointer rounded-lg p-2"
+                      asChild
+                    >
+                      <Link
+                        href="/settings"
+                        className="grid cursor-pointer grid-cols-[auto_1fr] items-center gap-2 font-medium"
+                      >
+                        <Settings className="text-secondary-foreground mr-2 size-5" />
+                        <span>Settings</span>
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      asChild
-                      className="hover:bg-muted/80 [&>svg]:size-5"
+                      onClick={handleSignOut}
+                      disabled={signOutPending}
+                      className="hover:bg-secondary cursor-pointer rounded-lg p-2"
                     >
-                      <Link href="/me/profile">
-                        <CircleUser className="text-foreground mr-2 size-8" />
-                        Profile
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      asChild
-                      className="hover:bg-muted/80 [&>svg]:size-5"
-                    >
-                      <Link href="/settings">
-                        <Settings className="text-foreground mr-2" />
-                        Settings
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      asChild
-                      className="hover:bg-muted/80 [&>svg]:size-5"
-                    >
-                      <Button
-                        variant="link"
-                        className="text-foreground cursor-pointer focus-visible:ring-0"
-                        onClick={handleSignOut}
-                      >
-                        <LogOut className="text-foreground mr-2" />
-                        {signOutPending ? (
-                          <span>
-                            <Loader2 className="text-muted-foreground animate-spin" />{" "}
-                            Signing out...
-                          </span>
-                        ) : (
-                          <span>Sign out</span>
-                        )}
-                      </Button>
+                      {signOutPending ? (
+                        <div className="grid grid-cols-[auto_1fr] items-center gap-2 font-medium">
+                          <Loader2 className="text-secondary-foreground mr-2 size-5 animate-spin" />
+                          Signing out...
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-[auto_1fr] items-center gap-2 font-medium">
+                          <LogOut className="text-secondary-foreground mr-2 size-5" />
+                          Sign out
+                        </div>
+                      )}
                     </DropdownMenuItem>
                   </>
                 ) : (
-                  <DropdownMenuItem>
-                    <Button
-                      variant="link"
-                      className="text-foreground cursor-pointer focus-visible:ring-0"
+                  <DropdownMenuItem
+                    className="hover:bg-secondary cursor-pointer rounded-lg p-2"
+                    asChild
+                  >
+                    <Link
+                      href="/sign-in"
+                      className="grid cursor-pointer grid-cols-[auto_1fr] items-center gap-2 font-medium"
                     >
-                      <Link href="/sign-in" className="flex items-center">
-                        <LogIn className="text-foreground mr-2" />
-                        Sign in
-                      </Link>
-                    </Button>
+                      <LogIn className="text-secondary-foreground mr-2 size-5" />
+                      Sign in
+                    </Link>
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>

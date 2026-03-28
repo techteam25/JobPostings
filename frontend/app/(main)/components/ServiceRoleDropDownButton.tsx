@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
+  DropdownMenuGroup,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -45,39 +46,45 @@ export const ServiceRoleDropDownButton = memo(
             <ChevronDown className="ml-1" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56">
-          <DropdownMenuCheckboxItem
-            checked={serviceRoles.includes("paid") as Checked}
-            onCheckedChange={(checked) =>
-              handleServiceRoleChange("paid", checked)
-            }
-          >
-            Paid
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={serviceRoles.includes("missionary") as Checked}
-            onCheckedChange={(checked) =>
-              handleServiceRoleChange("missionary", checked)
-            }
-          >
-            Missionary
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={serviceRoles.includes("volunteer") as Checked}
-            onCheckedChange={(checked) =>
-              handleServiceRoleChange("volunteer", checked)
-            }
-          >
-            Volunteer
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={serviceRoles.includes("stipend") as Checked}
-            onCheckedChange={(checked) =>
-              handleServiceRoleChange("stipend", checked)
-            }
-          >
-            Stipend
-          </DropdownMenuCheckboxItem>
+        <DropdownMenuContent className="w-56" align="end" side="bottom">
+          <DropdownMenuGroup className="flex flex-col space-y-2">
+            <DropdownMenuCheckboxItem
+              checked={serviceRoles.includes("paid") as Checked}
+              onCheckedChange={(checked) =>
+                handleServiceRoleChange("paid", checked)
+              }
+              className="hover:bg-secondary cursor-pointer rounded-lg py-2 pr-2 pl-8 font-medium"
+            >
+              Paid
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={serviceRoles.includes("missionary") as Checked}
+              onCheckedChange={(checked) =>
+                handleServiceRoleChange("missionary", checked)
+              }
+              className="hover:bg-secondary cursor-pointer rounded-lg py-2 pr-2 pl-8 font-medium"
+            >
+              Missionary
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={serviceRoles.includes("volunteer") as Checked}
+              onCheckedChange={(checked) =>
+                handleServiceRoleChange("volunteer", checked)
+              }
+              className="hover:bg-secondary cursor-pointer rounded-lg py-2 pr-2 pl-8 font-medium"
+            >
+              Volunteer
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={serviceRoles.includes("stipend") as Checked}
+              onCheckedChange={(checked) =>
+                handleServiceRoleChange("stipend", checked)
+              }
+              className="hover:bg-secondary cursor-pointer rounded-lg py-2 pr-2 pl-8 font-medium"
+            >
+              Stipend
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
     );
