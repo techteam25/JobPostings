@@ -28,3 +28,6 @@ jobs:
 
       - name: Architecture tests
         run: bun run test:arch
+
+      - name: Run tests
+        run: bun run test:unit
