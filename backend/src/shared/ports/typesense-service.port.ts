@@ -7,7 +7,7 @@ import type {
 import type { JobWithSkills } from "@/validations/job.validation";
 import type { JobDocumentType } from "@/validations/base.validation";
 
-export interface TypesenseServicePort {
+export interface TypesenseJobServicePort {
   /**
    * Indexes a single job document in Typesense.
    */

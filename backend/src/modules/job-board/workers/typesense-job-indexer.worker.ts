@@ -1,6 +1,6 @@
 import { Job as BullMqJob } from "bullmq";
 import { JobWithSkills } from "@/validations/job.validation";
-import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
+import type { TypesenseJobServicePort } from "@shared/ports/typesense-service.port";
 import logger from "@shared/logger";
 import {
   QUEUE_NAMES,
@@ -9,7 +9,7 @@ import {
 import type { ModuleWorkers } from "@shared/types/module-workers";
 
 interface TypesenseJobIndexerDeps {
-  typesenseService: TypesenseServicePort;
+  typesenseService: TypesenseJobServicePort;
 }
 
 function createTypesenseHandler(deps: TypesenseJobIndexerDeps) {
@@ -74,7 +74,7 @@ export function createTypesenseJobIndexerWorker(
       queueService.registerWorker<
         JobWithSkills & { correlationId: string },
         void
-      >(QUEUE_NAMES.TYPESENSE_QUEUE, createTypesenseHandler(deps), {
+      >(QUEUE_NAMES.TYPESENSE_JOB_QUEUE, createTypesenseHandler(deps), {
         concurrency: 5,
         limiter: {
           max: 50,

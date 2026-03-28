@@ -17,7 +17,7 @@ import logger from "@shared/logger";
 import type { JobBoardServicePort } from "@/modules/job-board";
 import type { JobBoardRepositoryPort } from "@/modules/job-board";
 import type { JobInsightsRepositoryPort } from "@/modules/job-board";
-import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
+import type { TypesenseJobServicePort } from "@shared/ports/typesense-service.port";
 import type { ApplicationStatusQueryPort } from "@/modules/job-board/ports/application-status-query.port";
 import type { SavedJobsStatusQueryPort } from "@/modules/job-board/ports/saved-jobs-status-query.port";
 import type { OrgMembershipForJobPort } from "@/modules/job-board/ports/org-membership-for-job.port";
@@ -39,7 +39,7 @@ export class JobBoardService
   constructor(
     private jobBoardRepository: JobBoardRepositoryPort,
     private jobInsightsRepository: JobInsightsRepositoryPort,
-    private typesenseService: TypesenseServicePort,
+    private typesenseService: TypesenseJobServicePort,
     private applicationStatusQuery: ApplicationStatusQueryPort,
     private savedJobsStatusQuery: SavedJobsStatusQueryPort,
     private orgMembershipForJob: OrgMembershipForJobPort,
@@ -258,7 +258,7 @@ export class JobBoardService
       }
 
       await queueService.addJob(
-        QUEUE_NAMES.TYPESENSE_QUEUE,
+        QUEUE_NAMES.TYPESENSE_JOB_QUEUE,
         "indexJob",
         jobWithSkills,
       );
@@ -331,10 +331,14 @@ export class JobBoardService
         return fail(new DatabaseError("Failed to retrieve updated job"));
       }
 
-      await queueService.addJob(QUEUE_NAMES.TYPESENSE_QUEUE, "updateJobIndex", {
-        id,
-        updatedJob,
-      });
+      await queueService.addJob(
+        QUEUE_NAMES.TYPESENSE_JOB_QUEUE,
+        "updateJobIndex",
+        {
+          id,
+          updatedJob,
+        },
+      );
 
       return ok(updatedJob);
     } catch {
@@ -367,9 +371,13 @@ export class JobBoardService
         return fail(new DatabaseError("Failed to delete job"));
       }
 
-      await queueService.addJob(QUEUE_NAMES.TYPESENSE_QUEUE, "deleteJobIndex", {
-        id,
-      });
+      await queueService.addJob(
+        QUEUE_NAMES.TYPESENSE_JOB_QUEUE,
+        "deleteJobIndex",
+        {
+          id,
+        },
+      );
 
       const userContact =
         await this.userContactQuery.getUserContactInfo(requesterId);

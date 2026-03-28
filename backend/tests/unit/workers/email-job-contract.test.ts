@@ -16,7 +16,7 @@ import { IdentityService } from "@/modules/identity/services/identity.service";
 
 import type { JobBoardRepositoryPort } from "@/modules/job-board/ports/job-board-repository.port";
 import type { JobInsightsRepositoryPort } from "@/modules/job-board/ports/job-insights-repository.port";
-import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
+import type { TypesenseJobServicePort } from "@shared/ports/typesense-service.port";
 import type { ApplicationStatusQueryPort } from "@/modules/job-board/ports/application-status-query.port";
 import type { SavedJobsStatusQueryPort } from "@/modules/job-board/ports/saved-jobs-status-query.port";
 import type { OrgMembershipForJobPort } from "@/modules/job-board/ports/org-membership-for-job.port";
@@ -100,7 +100,7 @@ function createMockJobInsightsRepository(): JobInsightsRepositoryPort {
   } as unknown as JobInsightsRepositoryPort;
 }
 
-function createMockTypesenseService(): TypesenseServicePort {
+function createMockTypesenseService(): TypesenseJobServicePort {
   return {
     indexJobDocument: vi.fn(),
     indexManyJobDocuments: vi.fn(),
@@ -110,7 +110,7 @@ function createMockTypesenseService(): TypesenseServicePort {
     deleteJobDocumentByTitle: vi.fn(),
     searchJobsCollection: vi.fn(),
     searchJobsForAlert: vi.fn(),
-  } as unknown as TypesenseServicePort;
+  } as unknown as TypesenseJobServicePort;
 }
 
 function createMockApplicationStatusQuery(): ApplicationStatusQueryPort {

@@ -1,5 +1,5 @@
 import type { EmailServicePort } from "@shared/ports/email-service.port";
-import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
+import type { TypesenseJobServicePort } from "@shared/ports/typesense-service.port";
 import type { UserActivityQueryPort } from "./ports/user-activity-query.port";
 import type { NotificationsRepositoryPort } from "./ports/notifications-repository.port";
 import type { ModuleWorkers } from "@shared/types/module-workers";
@@ -14,7 +14,7 @@ import { createInactiveUserAlertPauserWorker } from "./workers/inactive-user-ale
 interface NotificationsModuleDeps {
   emailService: EmailServicePort;
   userActivityQuery: UserActivityQueryPort;
-  typesenseService: TypesenseServicePort;
+  typesenseService: TypesenseJobServicePort;
   notificationsRepository: NotificationsRepositoryPort;
 }
 
