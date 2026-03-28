@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "frontend-dev",
-      "runtimeExecutable": "bun",
+      "runtimeExecutable": "/opt/homebrew/bin/bun",
       "runtimeArgs": ["--cwd", "frontend", "dev"],
       "port": 3000
     }

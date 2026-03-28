@@ -1,7 +1,7 @@
-import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
+import { TypesenseJobService } from "@shared/infrastructure/typesense.service/typesense.service";
 import logger from "@shared/logger";
 
-const typesenseService = new TypesenseService();
+const typesenseService = new TypesenseJobService();
 
 export async function waitForJobIndexing(
   jobId: number,

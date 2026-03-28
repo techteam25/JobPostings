@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 
 import { db } from "@shared/db/connection";
 import { jobsDetails, jobSkills, skills } from "@/db/schema";
-import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
+import { TypesenseJobService } from "@shared/infrastructure/typesense.service/typesense.service";
 import { request } from "@tests/utils/testHelpers";
 import { seedAdminScenario } from "@tests/utils/seedScenarios";
 import { jobPostingFixture } from "@tests/utils/fixtures";
@@ -18,7 +18,7 @@ vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
   return await importOriginal();
 });
 
-const typesenseService = new TypesenseService();
+const typesenseService = new TypesenseJobService();
 
 describe("Job Search Integration Tests", () => {
   let cookie: string;
@@ -51,7 +51,7 @@ describe("Job Search Integration Tests", () => {
     await db.execute(sql.raw(`ALTER TABLE job_skills AUTO_INCREMENT = 1`));
     await db.execute(sql.raw(`ALTER TABLE skills AUTO_INCREMENT = 1`));
     await db.execute(sql.raw(`ALTER TABLE job_details AUTO_INCREMENT = 1`));
-    await queueService.obliterateQueue(QUEUE_NAMES.TYPESENSE_QUEUE);
+    await queueService.obliterateQueue(QUEUE_NAMES.TYPESENSE_JOB_QUEUE);
 
     const res = await Promise.all([
       request

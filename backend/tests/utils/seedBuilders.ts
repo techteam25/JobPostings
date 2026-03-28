@@ -6,7 +6,7 @@
 import { eq, sql } from "drizzle-orm";
 
 import { auth } from "@/utils/auth";
-import { db } from "@shared/db/connection";
+import { createTestDatabase } from "./testDatabase";
 import {
   jobApplications,
   jobsDetails,
@@ -17,6 +17,8 @@ import {
   userProfile,
 } from "@/db/schema";
 import { userProfileFixture } from "@tests/utils/fixtures";
+
+const { db } = createTestDatabase();
 
 // ─── User Builders ───────────────────────────────────────────────────
 

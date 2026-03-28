@@ -1,6 +1,7 @@
 import { AuthMiddleware } from "@/middleware/auth.middleware";
 import { EmailService } from "@shared/infrastructure/email.service";
-import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
+import { TypesenseJobService } from "@shared/infrastructure/typesense.service/typesense.service";
+import { TypesenseUserProfileService } from "@shared/infrastructure/typesense.service/typesense-user-profile.service";
 import { BullMqEventBus } from "@shared/events";
 
 // Module composition roots
@@ -53,7 +54,6 @@ import type { JobBoardModule } from "@/modules/job-board";
 import type { ApplicationsModule } from "@/modules/applications";
 import type { OrganizationsModule } from "@/modules/organizations";
 import type { InvitationsModule } from "@/modules/invitations";
-import type { EmailServicePort } from "@shared/ports/email-service.port";
 import type { ModuleWorkers } from "@shared/types/module-workers";
 
 import logger from "@shared/logger";
@@ -65,13 +65,15 @@ import logger from "@shared/logger";
 export type CompositionRoot = {
   authenticate: RequestHandler;
   identity: Pick<IdentityModule, "controller" | "guards">;
-  userProfile: Pick<UserProfileModule, "controller" | "guards">;
+  userProfile: Pick<
+    UserProfileModule,
+    "controller" | "preferenceController" | "workAreaController" | "guards"
+  >;
   notifications: Pick<NotificationsModule, "controller">;
   jobBoard: Pick<JobBoardModule, "controller" | "guards">;
   applications: Pick<ApplicationsModule, "controller" | "guards">;
   organizations: Pick<OrganizationsModule, "controller" | "guards">;
   invitations: Pick<InvitationsModule, "controller" | "guards">;
-  emailService: EmailServicePort;
   workers: {
     initializeAll(): void;
     scheduleAllJobs(): Promise<void>;
@@ -99,7 +101,8 @@ export function createCompositionRoot(): CompositionRoot {
 
   const authMiddleware = new AuthMiddleware();
   const eventBus = new BullMqEventBus();
-  const typesenseService = new TypesenseService();
+  const typesenseService = new TypesenseJobService();
+  const typesenseUserProfileService = new TypesenseUserProfileService();
 
   // ─── 2. Concrete Repositories ───────────────────────────────────────
   // All repositories are created here and injected into modules.
@@ -168,6 +171,7 @@ export function createCompositionRoot(): CompositionRoot {
   const userProfile = createUserProfileModule({
     orgRoleQuery: orgsToProfileAdapter,
     userOrgsQuery: orgsToProfileAdapter,
+    typesenseUserProfileService,
   });
 
   // Profile → Job-board (saved jobs enrichment)
@@ -211,7 +215,6 @@ export function createCompositionRoot(): CompositionRoot {
 
   setAuthDependencies({
     notificationsService: notifications.service,
-    emailService,
   });
 
   // ─── 7. Shared Workers ─────────────────────────────────────────────
@@ -228,6 +231,7 @@ export function createCompositionRoot(): CompositionRoot {
   // Collect all module and shared workers
   const allWorkers: ModuleWorkers[] = [
     jobBoard.workers,
+    userProfile.workers,
     notifications.workers,
     invitations.workers,
     fileUploadWorker,
@@ -248,9 +252,6 @@ export function createCompositionRoot(): CompositionRoot {
     applications,
     organizations,
     invitations,
-
-    // Shared infrastructure (for route files that need it)
-    emailService,
 
     // Worker orchestrator
     workers: {

@@ -9,7 +9,7 @@ import { typesenseClient } from "@shared/config/typesense-client";
 
 import type { JobDocumentType } from "@/validations/base.validation";
 import logger from "@shared/logger";
-import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
+import type { TypesenseJobServicePort } from "@shared/ports/typesense-service.port";
 
 type SortDirection = "asc" | "desc";
 type MetaSearchParams = {
@@ -23,7 +23,7 @@ type MetaSearchParams = {
 /**
  * Service class for interacting with Typesense search engine for job documents.
  */
-export class TypesenseService implements TypesenseServicePort {
+export class TypesenseJobService implements TypesenseJobServicePort {
   /**
    * Indexes a single job document in Typesense.
    * @param doc The job document to index.

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { JobMatchingService } from "@/modules/notifications/services/job-matching.service";
-import { TypesenseService } from "@shared/infrastructure/typesense.service/typesense.service";
+import { TypesenseJobService } from "@shared/infrastructure/typesense.service/typesense.service";
 import type { SearchResponse } from "typesense/lib/Typesense/Documents";
 import type { JobDocumentType } from "@/validations/base.validation";
 
@@ -9,11 +9,11 @@ vi.mock("@shared/infrastructure/typesense.service/typesense.service");
 
 describe("JobMatchingService - Alert Matching Logic", () => {
   let jobMatchingService: JobMatchingService;
-  let mockTypesenseService: TypesenseService;
+  let mockTypesenseJobService: TypesenseJobService;
 
   beforeEach(() => {
-    mockTypesenseService = new TypesenseService() as any;
-    jobMatchingService = new JobMatchingService(mockTypesenseService);
+    mockTypesenseJobService = new TypesenseJobService() as any;
+    jobMatchingService = new JobMatchingService(mockTypesenseJobService);
     vi.clearAllMocks();
   });
 
@@ -52,13 +52,13 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         search_time_ms: 10,
       };
 
-      vi.spyOn(mockTypesenseService, "searchJobsForAlert").mockResolvedValue(
+      vi.spyOn(mockTypesenseJobService, "searchJobsForAlert").mockResolvedValue(
         mockSearchResponse,
       );
 
       await jobMatchingService.findMatchingJobsForAlert(alert, 50);
 
-      expect(mockTypesenseService.searchJobsForAlert).toHaveBeenCalledWith(
+      expect(mockTypesenseJobService.searchJobsForAlert).toHaveBeenCalledWith(
         null,
         expect.stringContaining("city:Seattle"),
         null,
@@ -96,13 +96,13 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         search_time_ms: 10,
       };
 
-      vi.spyOn(mockTypesenseService, "searchJobsForAlert").mockResolvedValue(
+      vi.spyOn(mockTypesenseJobService, "searchJobsForAlert").mockResolvedValue(
         mockSearchResponse,
       );
 
       await jobMatchingService.findMatchingJobsForAlert(alert, 50);
 
-      expect(mockTypesenseService.searchJobsForAlert).toHaveBeenCalledWith(
+      expect(mockTypesenseJobService.searchJobsForAlert).toHaveBeenCalledWith(
         null,
         expect.stringContaining("state:California"),
         null,
@@ -140,14 +140,14 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         search_time_ms: 10,
       };
 
-      vi.spyOn(mockTypesenseService, "searchJobsForAlert").mockResolvedValue(
+      vi.spyOn(mockTypesenseJobService, "searchJobsForAlert").mockResolvedValue(
         mockSearchResponse,
       );
 
       await jobMatchingService.findMatchingJobsForAlert(alert, 50);
 
-      const filterCall = (mockTypesenseService.searchJobsForAlert as any).mock
-        .calls[0][1];
+      const filterCall = (mockTypesenseJobService.searchJobsForAlert as any)
+        .mock.calls[0][1];
       expect(filterCall).toContain("isRemote:true");
     });
 
@@ -181,14 +181,14 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         search_time_ms: 10,
       };
 
-      vi.spyOn(mockTypesenseService, "searchJobsForAlert").mockResolvedValue(
+      vi.spyOn(mockTypesenseJobService, "searchJobsForAlert").mockResolvedValue(
         mockSearchResponse,
       );
 
       await jobMatchingService.findMatchingJobsForAlert(alert, 50);
 
-      const filterCall = (mockTypesenseService.searchJobsForAlert as any).mock
-        .calls[0][1];
+      const filterCall = (mockTypesenseJobService.searchJobsForAlert as any)
+        .mock.calls[0][1];
       expect(filterCall).toContain("skills:");
     });
   });
@@ -224,14 +224,14 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         search_time_ms: 10,
       };
 
-      vi.spyOn(mockTypesenseService, "searchJobsForAlert").mockResolvedValue(
+      vi.spyOn(mockTypesenseJobService, "searchJobsForAlert").mockResolvedValue(
         mockSearchResponse,
       );
 
       await jobMatchingService.findMatchingJobsForAlert(alert, 50);
 
-      const filterCall = (mockTypesenseService.searchJobsForAlert as any).mock
-        .calls[0][1];
+      const filterCall = (mockTypesenseJobService.searchJobsForAlert as any)
+        .mock.calls[0][1];
 
       // Check that filters are combined with &&
       expect(filterCall.split(" && ").length).toBeGreaterThan(1);
@@ -272,14 +272,14 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         search_time_ms: 10,
       };
 
-      vi.spyOn(mockTypesenseService, "searchJobsForAlert").mockResolvedValue(
+      vi.spyOn(mockTypesenseJobService, "searchJobsForAlert").mockResolvedValue(
         mockSearchResponse,
       );
 
       await jobMatchingService.findMatchingJobsForAlert(alert, 50);
 
-      const filterCall = (mockTypesenseService.searchJobsForAlert as any).mock
-        .calls[0][1];
+      const filterCall = (mockTypesenseJobService.searchJobsForAlert as any)
+        .mock.calls[0][1];
 
       // Should have hyphens, not underscores
       expect(filterCall).toContain("full-time");
@@ -344,7 +344,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         search_time_ms: 10,
       };
 
-      vi.spyOn(mockTypesenseService, "searchJobsForAlert").mockResolvedValue(
+      vi.spyOn(mockTypesenseJobService, "searchJobsForAlert").mockResolvedValue(
         mockSearchResponse,
       );
 
@@ -461,7 +461,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         search_time_ms: 10,
       };
 
-      vi.spyOn(mockTypesenseService, "searchJobsForAlert").mockResolvedValue(
+      vi.spyOn(mockTypesenseJobService, "searchJobsForAlert").mockResolvedValue(
         mockSearchResponse,
       );
 
@@ -513,7 +513,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         search_time_ms: 10,
       };
 
-      vi.spyOn(mockTypesenseService, "searchJobsForAlert").mockResolvedValue(
+      vi.spyOn(mockTypesenseJobService, "searchJobsForAlert").mockResolvedValue(
         mockSearchResponse,
       );
 
@@ -551,7 +551,7 @@ describe("JobMatchingService - Alert Matching Logic", () => {
         updatedAt: new Date(),
       };
 
-      vi.spyOn(mockTypesenseService, "searchJobsForAlert").mockRejectedValue(
+      vi.spyOn(mockTypesenseJobService, "searchJobsForAlert").mockRejectedValue(
         new Error("Typesense connection failed"),
       );
 

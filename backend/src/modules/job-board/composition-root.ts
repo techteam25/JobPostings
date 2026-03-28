@@ -1,4 +1,4 @@
-import type { TypesenseServicePort } from "@shared/ports/typesense-service.port";
+import type { TypesenseJobServicePort } from "@shared/ports/typesense-service.port";
 import type { ApplicationStatusQueryPort } from "./ports/application-status-query.port";
 import type { SavedJobsStatusQueryPort } from "./ports/saved-jobs-status-query.port";
 import type { OrgMembershipForJobPort } from "./ports/org-membership-for-job.port";
@@ -12,7 +12,7 @@ import { createJobBoardGuards } from "./guards/job-board.guards";
 import { createTypesenseJobIndexerWorker } from "./workers/typesense-job-indexer.worker";
 
 interface JobBoardModuleDeps {
-  typesenseService: TypesenseServicePort;
+  typesenseService: TypesenseJobServicePort;
   applicationStatusQuery: ApplicationStatusQueryPort;
   savedJobsStatusQuery: SavedJobsStatusQueryPort;
   orgMembershipForJob: OrgMembershipForJobPort;
