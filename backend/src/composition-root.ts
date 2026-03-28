@@ -53,7 +53,6 @@ import type { JobBoardModule } from "@/modules/job-board";
 import type { ApplicationsModule } from "@/modules/applications";
 import type { OrganizationsModule } from "@/modules/organizations";
 import type { InvitationsModule } from "@/modules/invitations";
-import type { EmailServicePort } from "@shared/ports/email-service.port";
 import type { ModuleWorkers } from "@shared/types/module-workers";
 
 import logger from "@shared/logger";
@@ -74,7 +73,6 @@ export type CompositionRoot = {
   applications: Pick<ApplicationsModule, "controller" | "guards">;
   organizations: Pick<OrganizationsModule, "controller" | "guards">;
   invitations: Pick<InvitationsModule, "controller" | "guards">;
-  emailService: EmailServicePort;
   workers: {
     initializeAll(): void;
     scheduleAllJobs(): Promise<void>;
@@ -214,7 +212,6 @@ export function createCompositionRoot(): CompositionRoot {
 
   setAuthDependencies({
     notificationsService: notifications.service,
-    emailService,
   });
 
   // ─── 7. Shared Workers ─────────────────────────────────────────────
@@ -251,9 +248,6 @@ export function createCompositionRoot(): CompositionRoot {
     applications,
     organizations,
     invitations,
-
-    // Shared infrastructure (for route files that need it)
-    emailService,
 
     // Worker orchestrator
     workers: {

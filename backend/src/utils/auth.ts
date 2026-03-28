@@ -9,7 +9,6 @@ import { db } from "@shared/db/connection";
 import { env, isProduction } from "@shared/config/env";
 
 import type { NotificationsServicePort } from "@/modules/notifications";
-import type { EmailServicePort } from "@shared/ports/email-service.port";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
 import { userOnBoarding } from "@/db/schema";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
@@ -26,7 +25,6 @@ import {
 // module-level variables via closures.
 
 let notificationsService: NotificationsServicePort | null = null;
-let emailService: EmailServicePort | null = null;
 
 /**
  * Injects dependencies into the auth module. Must be called by the
@@ -34,10 +32,8 @@ let emailService: EmailServicePort | null = null;
  */
 export function setAuthDependencies(deps: {
   notificationsService: NotificationsServicePort;
-  emailService: EmailServicePort;
 }) {
   notificationsService = deps.notificationsService;
-  emailService = deps.emailService;
 }
 
 type UserRegistrationPayload = {
@@ -87,7 +83,16 @@ export const auth = betterAuth({
     sendOnSignUp: isProduction,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, token }) => {
-      await emailService?.sendEmailVerification(user.email, user.name, token);
+      await queueService.addJob(
+        QUEUE_NAMES.EMAIL_QUEUE,
+        "sendEmailVerification",
+        {
+          userId: Number(user.id),
+          email: user.email,
+          fullName: user.name,
+          token,
+        },
+      );
     },
   },
   account: {
@@ -109,11 +114,16 @@ export const auth = betterAuth({
     deleteUser: {
       enabled: isProduction,
       sendDeleteAccountVerification: async ({ user, url, token }) => {
-        await emailService?.sendDeleteAccountEmailVerification(
-          user.email,
-          user.name,
-          url,
-          token,
+        await queueService.addJob(
+          QUEUE_NAMES.EMAIL_QUEUE,
+          "sendDeleteAccountEmailVerification",
+          {
+            userId: Number(user.id),
+            email: user.email,
+            fullName: user.name,
+            url,
+            token,
+          },
         );
       },
     },
