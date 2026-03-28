@@ -22,13 +22,15 @@ export const FilterOptionsContent = () => {
   const setServiceRoles = useFiltersStore((state) => state.setServiceRoles);
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-1">
       <RemoteOnlyFilter />
 
-      <Accordion type="single" collapsible className="my-2 w-full">
+      <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="date-posted" className="border-secondary">
-          <AccordionTrigger className="p-1">Date Posted</AccordionTrigger>
-          <AccordionContent className="flex flex-col space-y-3 pb-1">
+          <AccordionTrigger className="py-3 text-sm font-semibold">
+            Date Posted
+          </AccordionTrigger>
+          <AccordionContent className="flex flex-col space-y-3 pb-3">
             <RadioGroup
               value={datePosted || ""}
               onValueChange={(value) =>
@@ -92,10 +94,12 @@ export const FilterOptionsContent = () => {
         </AccordionItem>
       </Accordion>
 
-      <Accordion type="single" collapsible className="my-2 w-full">
+      <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="job-type" className="border-secondary">
-          <AccordionTrigger className="p-1">Job Type</AccordionTrigger>
-          <AccordionContent className="flex flex-col space-y-3 pb-1">
+          <AccordionTrigger className="py-3 text-sm font-semibold">
+            Job Type
+          </AccordionTrigger>
+          <AccordionContent className="flex flex-col space-y-3 pb-3">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="full-time"
@@ -177,10 +181,12 @@ export const FilterOptionsContent = () => {
         </AccordionItem>
       </Accordion>
 
-      <Accordion type="single" collapsible className="my-2 w-full">
+      <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="service-role" className="border-secondary">
-          <AccordionTrigger className="p-1">Service Role</AccordionTrigger>
-          <AccordionContent className="flex flex-col space-y-3 pb-1">
+          <AccordionTrigger className="py-3 text-sm font-semibold">
+            Service Role
+          </AccordionTrigger>
+          <AccordionContent className="flex flex-col space-y-3 pb-3">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="paid"

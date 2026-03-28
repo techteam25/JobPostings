@@ -4,6 +4,7 @@ import { memo } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -40,20 +41,28 @@ export const SortByDropDownButton = memo(function SortByDropDownButton() {
           </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56">
+      <DropdownMenuContent className="w-56" align="end" side="bottom">
         <DropdownMenuLabel>Sort By</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup
-          value={sortBy}
-          onValueChange={(val) => setSortBy(val as SortBy)}
-        >
-          <DropdownMenuRadioItem value="recent">
-            Most Recent
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="relevant">
-            Most Relevant
-          </DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
+        <DropdownMenuGroup className="flex flex-col space-y-2">
+          <DropdownMenuRadioGroup
+            value={sortBy}
+            onValueChange={(val) => setSortBy(val as SortBy)}
+          >
+            <DropdownMenuRadioItem
+              value="recent"
+              className="hover:bg-secondary cursor-pointer rounded-lg py-2 pr-2 pl-8 font-medium"
+            >
+              Most Recent
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem
+              value="relevant"
+              className="hover:bg-secondary cursor-pointer rounded-lg py-2 pr-2 pl-8 font-medium"
+            >
+              Most Relevant
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
