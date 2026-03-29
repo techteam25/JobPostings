@@ -51,7 +51,7 @@ export async function middleware(req: NextRequest) {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        next: { revalidate: 300 },
+        cache: "no-store",
       },
     );
 
