@@ -2,14 +2,23 @@ import { render, screen, waitFor } from "@/test/test-utils";
 import userEvent from "@testing-library/user-event";
 import LoginForm from "../login-form";
 
-const mockReplace = vi.fn();
-const mockRefresh = vi.fn();
 const mockHandleSocialAuth = vi.fn();
 const mockSignInEmail = vi.fn();
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: mockReplace, refresh: mockRefresh }),
-}));
+// Login now uses window.location.href for hard navigation
+const originalLocation = window.location;
+beforeEach(() => {
+  Object.defineProperty(window, "location", {
+    writable: true,
+    value: { ...originalLocation, href: "" },
+  });
+});
+afterEach(() => {
+  Object.defineProperty(window, "location", {
+    writable: true,
+    value: originalLocation,
+  });
+});
 
 vi.mock("next/image", () => ({
   // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element, @typescript-eslint/no-explicit-any
@@ -151,7 +160,7 @@ describe("LoginForm", () => {
     await user.click(screen.getByRole("button", { name: /login/i }));
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith("/dashboard");
+      expect(window.location.href).toBe("/dashboard");
     });
   });
 

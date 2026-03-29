@@ -1,5 +1,4 @@
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 
 import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
@@ -23,8 +22,6 @@ export function useRegistrationForm() {
     "intent",
     "seeker",
   );
-  const router = useRouter();
-
   const registrationInput: RegistrationData = {
     firstName: "",
     lastName: "",
@@ -60,10 +57,7 @@ export function useRegistrationForm() {
             });
             form.reset();
 
-            router.refresh();
-            router.replace(
-              `/verify-email?email=${encodeURIComponent(values.value.email)}`,
-            );
+            window.location.href = `/verify-email?email=${encodeURIComponent(values.value.email)}`;
           } else {
             toast.error(
               response.data.message || "Account creation unsuccessful",
