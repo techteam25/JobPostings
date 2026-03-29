@@ -38,9 +38,7 @@ COPY --from=builder --chown=appuser:appgroup /app/dist/typesense-migrate.js ./di
 # Copy SQL migration files for drizzle-orm programmatic migrator
 COPY --from=builder --chown=appuser:appgroup /app/src/db/migrations ./migrations
 
-# Copy email templates and assets (loaded at runtime by EmailService).
-# Bun's bundler preserves build-time __dirname, so paths must match the source layout.
-# EmailService: path.join(__dirname, "../..", "email-templates|assets") → /app/src/
+# Copy email templates and assets (loaded at runtime by EmailService via process.cwd()/src/)
 COPY --from=builder --chown=appuser:appgroup /app/src/email-templates ./src/email-templates
 COPY --from=builder --chown=appuser:appgroup /app/src/assets ./src/assets
 
