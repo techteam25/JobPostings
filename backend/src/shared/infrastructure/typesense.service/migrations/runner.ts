@@ -10,7 +10,9 @@ import { collectionExists } from "./helpers";
 import type { TypesenseMigration, MigrationRecord } from "./types";
 import { MIGRATIONS_COLLECTION } from "./types";
 
-const MIGRATIONS_DIR = dirname(fileURLToPath(import.meta.url));
+const MIGRATIONS_DIR =
+  process.env.TYPESENSE_MIGRATIONS_DIR ||
+  dirname(fileURLToPath(import.meta.url));
 
 async function ensureMigrationsCollection(client: Client): Promise<void> {
   const exists = await collectionExists(client, MIGRATIONS_COLLECTION);
