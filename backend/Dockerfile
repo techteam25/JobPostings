@@ -33,9 +33,20 @@ RUN chown appuser:appgroup /app
 # Copy bundled output (server + migrate scripts, no node_modules needed)
 COPY --from=builder --chown=appuser:appgroup /app/dist/server.js ./dist/server.js
 COPY --from=builder --chown=appuser:appgroup /app/dist/migrate.js ./dist/migrate.js
+COPY --from=builder --chown=appuser:appgroup /app/dist/typesense-migrate.js ./dist/typesense-migrate.js
 
 # Copy SQL migration files for drizzle-orm programmatic migrator
 COPY --from=builder --chown=appuser:appgroup /app/src/db/migrations ./migrations
+
+# Copy email templates and assets (loaded at runtime by EmailService)
+COPY --from=builder --chown=appuser:appgroup /app/src/email-templates ./email-templates
+COPY --from=builder --chown=appuser:appgroup /app/src/assets ./assets
+
+# Copy Typesense migration .ts files (discovered and imported dynamically at runtime).
+# Preserves the relative directory structure so imports (../constants, ./types, ./helpers) resolve.
+# TYPESENSE_MIGRATIONS_DIR env var tells the bundled runner where to find these files.
+COPY --from=builder --chown=appuser:appgroup /app/src/shared/infrastructure/typesense.service/migrations/*.ts ./typesense-migrations/migrations/
+COPY --from=builder --chown=appuser:appgroup /app/src/shared/infrastructure/typesense.service/constants.ts ./typesense-migrations/constants.ts
 
 ENV NODE_ENV=production
 

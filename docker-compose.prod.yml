@@ -75,6 +75,21 @@ services:
     command: ["bun", "dist/migrate.js"]
     restart: "no"
 
+  typesense-migrations:
+    image: ghcr.io/techteam25/jobpostings-backend:latest
+    container_name: jobpostings-typesense-migrations
+    env_file:
+      - .env.production
+    environment:
+      TYPESENSE_MIGRATIONS_DIR: /app/typesense-migrations/migrations
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["bun", "dist/typesense-migrate.js"]
+    restart: "no"
+    depends_on:
+      typesense:
+        condition: service_healthy
+
   # ===== Application =====
 
   backend:
@@ -90,6 +105,8 @@ services:
       - ./secrets/firebase-sa.json:/app/secrets/firebase-sa.json:ro
     depends_on:
       migrations:
+        condition: service_completed_successfully
+      typesense-migrations:
         condition: service_completed_successfully
       redis-cache:
         condition: service_healthy
