@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 
 import { useForm } from "@tanstack/react-form";
 import { cn } from "@/lib/utils";
@@ -36,7 +35,6 @@ export default function LoginForm() {
   const [isPending, startTransition] = useTransition();
   const { handleSocialAuth, isSocialPending } = useSocialAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
   const queryClient = useQueryClient();
 
   const form = useForm({
@@ -67,8 +65,7 @@ export default function LoginForm() {
           });
           form.reset();
 
-          router.refresh();
-          router.replace(data?.user.redirectUrl || "/");
+          window.location.href = data?.user.redirectUrl || "/";
         } catch (error) {
           toast.error("An unexpected error occurred");
           console.error("Login error:", error);

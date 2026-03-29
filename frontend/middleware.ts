@@ -21,17 +21,11 @@ export async function middleware(req: NextRequest) {
     pathname === "/" ||
     publicRoutes.some((route) => pathname.startsWith(route));
 
-  // Get cookies from the request - try multiple methods
+  // Use the raw Cookie header — reconstructing from parsed cookies can corrupt
+  // token values containing special characters (e.g. better-auth session tokens)
   const cookieHeader = req.headers.get("cookie");
 
-  // Extract all cookies and build cookie string
-  const cookies = req.cookies.getAll();
-  const cookieString = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
-
-  // Use better-auth server-side session verification - try cookieString first, fallback to cookieHeader
-  const { session, user } = await getServerSession(
-    cookieString || cookieHeader,
-  );
+  const { session, user } = await getServerSession(cookieHeader);
 
   // If user is not authenticated, redirect to '/sign-in'
   if (!session || !user) {
@@ -47,7 +41,7 @@ export async function middleware(req: NextRequest) {
       `${env.NEXT_PUBLIC_SERVER_URL}/users/me/intent`,
       {
         headers: {
-          cookie: cookieString || cookieHeader || "",
+          cookie: cookieHeader || "",
           "Content-Type": "application/json",
         },
         credentials: "include",

@@ -145,6 +145,17 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         return fail(new NotFoundError("User", userId));
       }
 
+      // Auto-create profile if one doesn't exist yet
+      if (!user.profile) {
+        const created = await this.profileRepository.createProfile(userId, {
+          isProfilePublic: isPublic,
+        });
+        if (!created) {
+          return fail(new DatabaseError("Failed to create profile for user"));
+        }
+        return ok(created);
+      }
+
       const updatedProfile =
         await this.profileRepository.updateProfileVisibility(userId, isPublic);
 
