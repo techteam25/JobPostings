@@ -75,6 +75,13 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Sync config files to server
+        run: |
+          scp -i ~/.ssh/deploy_key docker-compose.prod.yml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/jobpostings/docker-compose.prod.yml
+
       - name: Pull image and restart frontend
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
