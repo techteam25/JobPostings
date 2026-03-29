@@ -3,11 +3,12 @@ import userEvent from "@testing-library/user-event";
 import LoginForm from "../login-form";
 
 const mockReplace = vi.fn();
+const mockRefresh = vi.fn();
 const mockHandleSocialAuth = vi.fn();
 const mockSignInEmail = vi.fn();
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: mockReplace }),
+  useRouter: () => ({ replace: mockReplace, refresh: mockRefresh }),
 }));
 
 vi.mock("next/image", () => ({

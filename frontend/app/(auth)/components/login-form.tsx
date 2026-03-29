@@ -62,13 +62,12 @@ export default function LoginForm() {
           }
 
           toast.success("Login successful!");
-          queryClient
-            .invalidateQueries({
-              queryKey: ["get-user-session"],
-            })
-            .catch(() => {});
+          await queryClient.invalidateQueries({
+            queryKey: ["get-user-session"],
+          });
           form.reset();
 
+          router.refresh();
           router.replace(data?.user.redirectUrl || "/");
         } catch (error) {
           toast.error("An unexpected error occurred");

@@ -3,11 +3,12 @@ import userEvent from "@testing-library/user-event";
 import RegistrationForm from "../registration-form";
 
 const mockReplace = vi.fn();
+const mockRefresh = vi.fn();
 const mockPost = vi.fn();
 const mockHandleSocialAuth = vi.fn();
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: mockReplace }),
+  useRouter: () => ({ replace: mockReplace, refresh: mockRefresh }),
 }));
 
 vi.mock("@/lib/axios-instance", () => ({

@@ -55,13 +55,12 @@ export function useRegistrationForm() {
             toast.success(
               "Account created! Please check your email to verify your account.",
             );
-            queryClient
-              .invalidateQueries({
-                queryKey: ["get-user-session"],
-              })
-              .catch(() => {});
+            await queryClient.invalidateQueries({
+              queryKey: ["get-user-session"],
+            });
             form.reset();
 
+            router.refresh();
             router.replace(
               `/verify-email?email=${encodeURIComponent(values.value.email)}`,
             );
