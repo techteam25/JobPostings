@@ -60,6 +60,7 @@ export class EmailService extends BaseService implements EmailServicePort {
     const templatePath = path.join(
       __dirname,
       "..",
+      "..",
       "email-templates",
       `${templateName}.html`,
     );
@@ -72,7 +73,7 @@ export class EmailService extends BaseService implements EmailServicePort {
    * @returns The base64 encoded image string.
    */
   private async getImageAsBase64(imageName: string): Promise<string> {
-    const logoPath = path.join(__dirname, "..", "assets", imageName);
+    const logoPath = path.join(__dirname, "..", "..", "assets", imageName);
 
     const logoBuffer = await fs.promises.readFile(logoPath);
     const base64Logo = logoBuffer.toString("base64");
