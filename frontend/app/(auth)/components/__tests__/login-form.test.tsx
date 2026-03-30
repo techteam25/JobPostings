@@ -30,6 +30,9 @@ vi.mock("@/lib/auth", () => ({
     signIn: {
       email: (...args: unknown[]) => mockSignInEmail(...args),
     },
+    getSession: vi.fn().mockResolvedValue({
+      data: { session: { id: "1" }, user: { id: "1", name: "Test" } },
+    }),
   },
 }));
 

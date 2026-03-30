@@ -1,7 +1,7 @@
 // middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 
-import { getServerSession } from "@/lib/auth-server";
+import { parseSessionCookie } from "@/lib/session-cookie";
 import { env } from "@/env";
 import { UserIntentResponse } from "@/schemas/responses/users";
 
@@ -21,21 +21,21 @@ export async function middleware(req: NextRequest) {
     pathname === "/" ||
     publicRoutes.some((route) => pathname.startsWith(route));
 
-  // Use the raw Cookie header — reconstructing from parsed cookies can corrupt
-  // token values containing special characters (e.g. better-auth session tokens)
+  // Parse session directly from cookies — zero HTTP calls.
+  // The backend API middleware remains the real security gate.
   const cookieHeader = req.headers.get("cookie");
-
-  const { session, user } = await getServerSession(cookieHeader);
+  const parsed = parseSessionCookie(cookieHeader);
 
   // If user is not authenticated, redirect to '/sign-in'
-  if (!session || !user) {
+  if (!parsed) {
     if (!isPublicRoute) {
       return NextResponse.redirect(new URL("/sign-in", req.url));
     }
     return NextResponse.next();
   }
 
-  // User is authenticated - fetch their intent/onboarding status
+  // User is authenticated - fetch their intent/onboarding status.
+  // Cached for 60s to avoid hammering the backend on every navigation.
   try {
     const onboardingResponse = await fetch(
       `${env.NEXT_PUBLIC_SERVER_URL}/users/me/intent`,
@@ -45,7 +45,7 @@ export async function middleware(req: NextRequest) {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        cache: "no-store",
+        next: { revalidate: 60 },
       },
     );
 
