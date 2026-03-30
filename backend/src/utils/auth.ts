@@ -186,6 +186,24 @@ export const auth = betterAuth({
     }),
 
     after: createAuthMiddleware(async (ctx) => {
+      // Debug: log get-session outcomes to diagnose middleware redirect issue
+      if (ctx.path === "/get-session") {
+        const returned = ctx.context.returned;
+        if (returned instanceof APIError) {
+          logger.warn(
+            {
+              path: ctx.path,
+              errorCode: returned.statusCode,
+              errorMessage: returned.message,
+              userAgent: ctx.headers?.get("user-agent"),
+              hasCookie: !!ctx.headers?.get("cookie"),
+            },
+            "get-session failed",
+          );
+        }
+        return;
+      }
+
       if (ctx.path === "/sign-up/email") {
         // check if response status is 200
         if (ctx.context.returned) {
