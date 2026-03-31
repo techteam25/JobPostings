@@ -215,6 +215,7 @@ export function createCompositionRoot(): CompositionRoot {
 
   setAuthDependencies({
     notificationsService: notifications.service,
+    profileService: userProfile.service,
   });
 
   // ─── 7. Shared Workers ─────────────────────────────────────────────

@@ -61,6 +61,7 @@ export function createUserProfileModule(deps: UserProfileModuleDeps) {
     workAreaController,
     guards,
     repository,
+    service,
     workers,
   };
 }

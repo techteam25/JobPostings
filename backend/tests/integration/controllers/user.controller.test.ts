@@ -141,7 +141,9 @@ describe("User Controller Integration Tests", () => {
         await seedUserScenario();
       });
 
-      it("should create user profile returning 201", async () => {
+      it("should reject creating a duplicate profile returning 500", async () => {
+        // Registration auto-creates a profile, so POST should fail for
+        // users who already have one.
         const loginResponse = await request
           .post("/api/auth/sign-in/email")
           .send({
@@ -160,29 +162,7 @@ describe("User Controller Integration Tests", () => {
           .set("Cookie", cookie!)
           .send(profileData);
 
-        TestHelpers.validateApiResponse(response, 201);
-
-        expect(response.body).toHaveProperty("success", true);
-        expect(response.body).toHaveProperty("message", "User profile created");
-        expect(response.body.data).toHaveProperty("id", 1);
-        expect(response.body.data).toHaveProperty("userId", 1);
-        expect(response.body.data).toHaveProperty(
-          "profilePicture",
-          profileData.profilePicture,
-        );
-        expect(response.body.data).toHaveProperty("bio", profileData.bio);
-        expect(response.body.data).toHaveProperty(
-          "profilePicture",
-          profileData.profilePicture,
-        );
-        expect(response.body.data).toHaveProperty(
-          "address",
-          profileData.address,
-        );
-        expect(response.body.data).toHaveProperty(
-          "linkedinUrl",
-          profileData.linkedinUrl,
-        );
+        TestHelpers.validateApiResponse(response, 500);
       });
 
       it("should update user profile returning 200", async () => {
@@ -301,7 +281,7 @@ describe("User Controller Integration Tests", () => {
           .send({ currentPassword: "Password@123", confirm: true });
 
         expect(response.status).toBe(204);
-        // expect(auth.api.deleteUser).toHaveBeenCalledWith({ body: { token } });
+        // expect(index.api.deleteUser).toHaveBeenCalledWith({ body: { token } });
       });
     });
   });

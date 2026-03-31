@@ -127,6 +127,8 @@ export class ProfileRepository
             .insert(userProfile)
             .values({
               ...profileData,
+              isProfilePublic: profileData?.isProfilePublic ?? true,
+              isAvailableForWork: profileData?.isAvailableForWork ?? true,
               userId,
             })
             .$returningId();
