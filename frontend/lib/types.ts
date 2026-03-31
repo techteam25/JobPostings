@@ -200,6 +200,21 @@ export type UserSkill = {
   updatedAt: string;
 };
 
+export type UpdateProfileData = {
+  bio?: string;
+  resumeUrl?: string;
+  linkedinUrl?: string;
+  portfolioUrl?: string;
+  phoneNumber?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  isProfilePublic?: boolean;
+  isAvailableForWork?: boolean;
+};
+
 export type UserProfile = {
   id: number;
   userId: number;

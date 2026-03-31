@@ -3,7 +3,12 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { env } from "@/env";
-import { ApiResponse, UserProfile, UserWithProfile } from "@/lib/types";
+import {
+  ApiResponse,
+  UpdateProfileData,
+  UserProfile,
+  UserWithProfile,
+} from "@/lib/types";
 import { UserIntentResponse } from "@/schemas/responses/users";
 import { handleApiResponse } from "./helpers";
 
@@ -39,6 +44,32 @@ export async function revalidateUserProfile() {
   revalidatePath("/me/profile/qualifications");
 }
 
+export const updateProfile = async (
+  data: UpdateProfileData,
+): Promise<ApiResponse<UserProfile>> => {
+  const cookieStore = await cookies();
+  const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/users/me/profile`, {
+    method: "PUT",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: cookieStore.toString(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  const result = await handleApiResponse<UserProfile>(
+    res,
+    "Failed to update profile",
+  );
+
+  if (result.success) {
+    revalidatePath("/user-bio-info");
+  }
+
+  return result;
+};
+
 export const updateProfileVisibility = async (
   isProfilePublic: boolean,
 ): Promise<ApiResponse<UserProfile>> => {
@@ -65,6 +96,24 @@ export const updateProfileVisibility = async (
   return result;
 };
 
+export const completeOnboarding = async (): Promise<
+  ApiResponse<{ status: "completed" }>
+> => {
+  const cookieStore = await cookies();
+  const res = await fetch(
+    `${env.NEXT_PUBLIC_SERVER_URL}/users/me/onboarding/complete`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: {
+        Cookie: cookieStore.toString(),
+      },
+    },
+  );
+
+  return handleApiResponse(res, "Failed to complete onboarding");
+};
+
 export const updateWorkAvailability = async (
   isAvailableForWork: boolean,
 ): Promise<ApiResponse<UserProfile>> => {
@@ -88,7 +137,7 @@ export const updateWorkAvailability = async (
   );
 
   if (result.success) {
-    revalidatePath("user-bio-info");
+    revalidatePath("/user-bio-info");
   }
 
   return result;
