@@ -73,6 +73,11 @@ export interface ProfileServicePort {
     >
   >;
 
+  completeOnboarding(
+    userId: number,
+    userInfo: { email: string; fullName: string },
+  ): Promise<Result<{ status: "completed" }, AppError>>;
+
   getSavedJobsForUser(
     userId: number,
     page?: number,

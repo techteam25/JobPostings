@@ -6,9 +6,14 @@ import type { OrgRoleQueryPort } from "@/modules/user-profile/ports/org-query.po
 import {
   AppError,
   DatabaseError,
+  ForbiddenError,
   NotFoundError,
   ValidationError,
 } from "@shared/errors";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 import type { PaginationMeta } from "@shared/types";
 import { SecurityUtils } from "@shared/utils/security";
 import type {
@@ -238,6 +243,41 @@ export class ProfileService extends BaseService implements ProfileServicePort {
       return fail(
         new DatabaseError("Failed to retrieve user onboarding intent"),
       );
+    }
+  }
+
+  async completeOnboarding(
+    userId: number,
+    userInfo: { email: string; fullName: string },
+  ) {
+    try {
+      const intent = await this.profileRepository.getUserIntent(userId);
+
+      if (intent?.intent !== "seeker") {
+        return fail(
+          new ForbiddenError(
+            "Only job seekers can complete onboarding via this endpoint",
+          ),
+        );
+      }
+
+      const transitioned =
+        await this.profileRepository.completeOnboarding(userId);
+
+      if (transitioned) {
+        await queueService.addJob(QUEUE_NAMES.EMAIL_QUEUE, "sendWelcomeEmail", {
+          userId,
+          email: userInfo.email,
+          fullName: userInfo.fullName,
+        });
+      }
+
+      return ok({ status: "completed" as const });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to complete onboarding"));
     }
   }
 

@@ -84,6 +84,13 @@ export function createProfileRoutes({
     profileController.getCurrentUserIntent,
   );
 
+  // PATCH /users/me/onboarding/complete
+  router.patch(
+    "/me/onboarding/complete",
+    invalidateCacheMiddleware(() => "users/me/intent"),
+    profileController.completeOnboarding,
+  );
+
   // GET /users/me/organizations
   router.get(
     "/me/organizations",

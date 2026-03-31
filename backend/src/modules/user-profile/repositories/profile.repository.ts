@@ -964,6 +964,21 @@ export class ProfileRepository
     });
   }
 
+  async completeOnboarding(userId: number): Promise<boolean> {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(userOnBoarding)
+        .set({ status: "completed" })
+        .where(
+          and(
+            eq(userOnBoarding.userId, userId),
+            eq(userOnBoarding.status, "pending"),
+          ),
+        );
+      return result.affectedRows > 0;
+    });
+  }
+
   async updateProfileVisibility(userId: number, isPublic: boolean) {
     return await withDbErrorHandling(async () => {
       const [result] = await db

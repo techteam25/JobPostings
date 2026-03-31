@@ -207,6 +207,7 @@ function createMockEmailService(): EmailServicePort {
     sendAccountDeletionConfirmation: vi.fn(),
     sendDeleteAccountEmailVerification: vi.fn(),
     sendPasswordResetEmail: vi.fn(),
+    sendWelcomeEmail: vi.fn(),
   };
 }
 

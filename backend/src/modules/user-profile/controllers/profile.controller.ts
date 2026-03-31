@@ -222,6 +222,23 @@ export class ProfileController extends BaseController {
     }
   };
 
+  completeOnboarding = async (req: Request, res: Response) => {
+    const result = await this.profileService.completeOnboarding(req.userId!, {
+      email: req.user!.email,
+      fullName: req.user!.fullName,
+    });
+
+    if (result.isSuccess) {
+      return this.sendSuccess<{ status: "completed" }>(
+        res,
+        result.value,
+        "Onboarding completed successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
   getUserOrganizations = async (req: Request, res: Response) => {
     const result = await this.userOrgsQuery.getUserOrganizations(req.userId!);
 
