@@ -16,9 +16,9 @@ export const useUpdateProfile = () => {
       });
       return response.data;
     },
-    onSuccess: () => {
-      revalidateUserProfile();
+    onSuccess: async () => {
       toast.success("Profile updated successfully");
+      await revalidateUserProfile();
       router.replace("/me/profile");
     },
     onError: (error: Error) => {

@@ -41,7 +41,9 @@ export const getUserInformation = async (): Promise<
 };
 
 export async function revalidateUserProfile() {
+  revalidateTag("user-bio-info", "max");
   revalidatePath("/me/profile");
+  revalidatePath("/me/profile/edit");
   revalidatePath("/me/profile/qualifications");
 }
 

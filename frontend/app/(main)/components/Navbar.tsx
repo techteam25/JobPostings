@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { useUserSession } from "@/app/(main)/hooks/use-user-session";
+import { useCurrentUserProfile } from "@/app/(main)/hooks/use-current-user-profile";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -45,8 +46,14 @@ export function SkeletonDemo() {
 
 export default function Navbar() {
   const { isPending, data } = useUserSession();
+  const { data: profileData } = useCurrentUserProfile();
   const { isAuthenticated } = useAuthenticationStatus();
   const { signOutAsyncAction, isPending: signOutPending } = useUserSignOut();
+
+  const profilePicture = profileData?.success
+    ? profileData.data.profile?.profilePicture
+    : undefined;
+  const avatarSrc = profilePicture ?? data?.data?.user.image ?? undefined;
 
   const handleSignOut = useCallback(async () => {
     await signOutAsyncAction();
@@ -115,7 +122,7 @@ export default function Navbar() {
             <NavbarMobile
               username={data?.data?.user.name}
               email={data?.data?.user.email}
-              profileImage={data?.data?.user.image}
+              profileImage={avatarSrc}
             />
           </div>
           <div className="hidden items-center gap-4 lg:flex">
@@ -144,7 +151,7 @@ export default function Navbar() {
                     <>
                       <Avatar className="size-9">
                         <AvatarImage
-                          src={data?.data?.user.image ?? undefined}
+                          src={avatarSrc}
                           alt={data?.data?.user.name ?? "User"}
                         />
                         <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
@@ -171,7 +178,7 @@ export default function Navbar() {
                     <DropdownMenuLabel className="flex items-center gap-3 p-3">
                       <Avatar className="size-10">
                         <AvatarImage
-                          src={data?.data?.user.image ?? undefined}
+                          src={avatarSrc}
                           alt={data?.data?.user.name ?? "User"}
                         />
                         <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">

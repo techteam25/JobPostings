@@ -1,17 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm, useStore } from "@tanstack/react-form";
 import { countries } from "countries-list";
 import states from "states-us";
 import { toast } from "sonner";
+import { Loader2, Pencil } from "lucide-react";
 
 import { isPossiblePhoneNumber } from "libphonenumber-js";
 
 import type { UserWithProfile } from "@/lib/types";
 import { profileEditSchema } from "../schemas/profile-edit.schema";
 import { useUpdateProfile } from "../hooks/use-update-profile";
+import { useUploadProfilePicture } from "../hooks/use-upload-profile-picture";
+import { useCurrentUserProfile } from "@/app/(main)/hooks/use-current-user-profile";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Field,
   FieldError,
@@ -45,7 +49,36 @@ const BIO_MIN = 10;
 export default function ProfileEditForm({ user }: ProfileEditFormProps) {
   const profile = user.profile;
   const { mutateAsync: updateProfile, isPending } = useUpdateProfile();
+  const { mutateAsync: uploadPicture, isPending: isUploading } =
+    useUploadProfilePicture();
   const [bioCharCount, setBioCharCount] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const avatarInitials = user.fullName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+
+  const { data: freshProfile } = useCurrentUserProfile();
+
+  const freshProfilePicture = freshProfile?.success
+    ? freshProfile.data.profile?.profilePicture
+    : undefined;
+  const avatarSrc =
+    freshProfilePicture || profile?.profilePicture || user.image || undefined;
+
+  const handleProfilePictureUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5MB");
+      return;
+    }
+    await uploadPicture(file);
+  };
 
   const form = useForm({
     defaultValues: {
@@ -84,6 +117,54 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
       }}
       className="flex flex-col gap-8"
     >
+      {/* Profile Picture */}
+      <div className="flex flex-col items-center gap-2">
+        <div className="relative">
+          <Avatar className="h-24 w-24">
+            {avatarSrc && <AvatarImage src={avatarSrc} alt={user.fullName} />}
+            <AvatarFallback className="bg-secondary text-primary-foreground text-2xl">
+              {avatarInitials}
+            </AvatarFallback>
+          </Avatar>
+
+          {/* Loading overlay */}
+          {isUploading && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+              <Loader2 className="size-6 animate-spin text-white" />
+            </div>
+          )}
+
+          {/* Pencil edit button */}
+          <Button
+            type="button"
+            variant="default"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="border-background absolute -right-1 -bottom-1 size-8 rounded-full border-2 shadow-sm"
+            aria-label="Change profile picture"
+          >
+            <Pencil className="size-3.5" />
+          </Button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept="image/png,image/jpeg,image/jpg"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              // Reset so the same file can be re-selected
+              e.target.value = "";
+              if (file) await handleProfilePictureUpload(file);
+            }}
+          />
+        </div>
+        <p className="text-muted-foreground text-xs">
+          PNG, JPG or JPEG, max 5MB
+        </p>
+      </div>
+
       {/* Display Name */}
       <FieldGroup>
         <form.Field

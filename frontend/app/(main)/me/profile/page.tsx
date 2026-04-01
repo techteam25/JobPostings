@@ -43,8 +43,14 @@ export default async function ProfilePage() {
             <div className="mb-6 flex items-start justify-between">
               <div className="flex items-start gap-6">
                 <Avatar className="h-20 w-20">
-                  {profile.data.image && (
-                    <AvatarImage src={profile.data.image} />
+                  {(profile.data.profile?.profilePicture ||
+                    profile.data.image) && (
+                    <AvatarImage
+                      src={
+                        profile.data.profile?.profilePicture ||
+                        profile.data.image!
+                      }
+                    />
                   )}
                   <AvatarFallback className="bg-secondary text-primary-foreground text-xl">
                     {avatarInitials}
