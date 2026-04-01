@@ -50,6 +50,12 @@ export class ValidationError extends AppError {
   }
 }
 
+export class BadRequestError extends AppError {
+  constructor(message: string, details?: unknown) {
+    super(message, 400, ErrorCode.BAD_REQUEST, true, details);
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(message: string);
   constructor(resource: string, identifier: string | number);

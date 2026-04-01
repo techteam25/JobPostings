@@ -7,6 +7,7 @@ import {
 
 import {
   AppError,
+  BadRequestError,
   ConflictError,
   DatabaseError,
   ForbiddenError,
@@ -17,6 +18,7 @@ import type { FileUploadJobData } from "@/validations/file.validation";
 import type { NewOrganization } from "@/validations/organization.validation";
 import type { OrganizationsServicePort } from "@/modules/organizations";
 import type { OrganizationsRepositoryPort } from "@/modules/organizations";
+import { OrganizationsLogoFile } from "@/modules/organizations/types/organizations.module.types";
 
 /**
  * Service class for managing organization CRUD and membership operations.
@@ -155,9 +157,12 @@ export class OrganizationsService
   async uploadOrganizationLogo(
     userId: number,
     organizationId: number,
-    logoFile: Express.Multer.File,
+    logoFile: OrganizationsLogoFile | undefined,
     correlationId: string,
   ) {
+    if (!logoFile) {
+      return fail(new BadRequestError("No file uploaded"));
+    }
     try {
       await queueService.addJob<FileUploadJobData>(
         QUEUE_NAMES.FILE_UPLOAD_QUEUE,

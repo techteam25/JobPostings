@@ -163,6 +163,60 @@ export class ProfileController extends BaseController {
     }
   };
 
+  uploadProfilePicture = async (req: Request, res: Response) => {
+    const file = req.file;
+
+    const result = await this.profileService.uploadProfilePicture(
+      req.userId!,
+      file,
+      req.correlationId!,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<{ message: string }>(
+        res,
+        result.value,
+        "Profile picture upload initiated",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  uploadResume = async (req: Request, res: Response) => {
+    const file = req.file;
+
+    const result = await this.profileService.uploadResume(
+      req.userId!,
+      file,
+      req.correlationId!,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<{ message: string }>(
+        res,
+        result.value,
+        "Resume upload initiated",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  deleteResume = async (req: Request, res: Response) => {
+    const result = await this.profileService.deleteResume(req.userId!);
+
+    if (result.isSuccess) {
+      return this.sendSuccess<{ message: string }>(
+        res,
+        result.value,
+        "Resume deleted",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
   changeProfileVisibility = async (
     req: Request<EmptyBody, EmptyBody, UpdateProfileVisibilityInput["body"]>,
     res: Response,
@@ -219,6 +273,23 @@ export class ProfileController extends BaseController {
       }>(res, intentResult.value, "User intent retrieved successfully");
     } else {
       return this.handleControllerError(res, intentResult.error);
+    }
+  };
+
+  completeOnboarding = async (req: Request, res: Response) => {
+    const result = await this.profileService.completeOnboarding(req.userId!, {
+      email: req.user!.email,
+      fullName: req.user!.fullName,
+    });
+
+    if (result.isSuccess) {
+      return this.sendSuccess<{ status: "completed" }>(
+        res,
+        result.value,
+        "Onboarding completed successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
     }
   };
 

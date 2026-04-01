@@ -1,34 +1,65 @@
+import { getUserInformation } from "@/lib/api";
+import { FeatureErrorBoundary } from "@/components/common/FeatureErrorBoundary";
+import ProfileEditForm from "./components/ProfileEditForm";
 import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
-import { Construction } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
-function Page() {
+export default async function ProfileEditPage() {
+  const response = await getUserInformation();
+
+  if (!response || !response.success) {
+    return <ProfileEditSkeleton />;
+  }
+
   return (
-    <Empty>
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <Construction className="size-16 text-amber-400" />
-        </EmptyMedia>
-        <EmptyTitle>Coming Soon</EmptyTitle>
-        <EmptyDescription>
-          Edit profile page is under construction. Please check back later.
-        </EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent>
-        <Button asChild>
-          <Link href="/">Browse Jobs</Link>
-        </Button>
-      </EmptyContent>
-    </Empty>
+    <FeatureErrorBoundary featureName="Profile Edit">
+      <div className="mx-auto max-w-3xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>Edit Profile</CardTitle>
+            <CardDescription>
+              Update your personal information, contact details, and social
+              links.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProfileEditForm user={response.data} />
+          </CardContent>
+        </Card>
+      </div>
+    </FeatureErrorBoundary>
   );
 }
 
-export default Page;
+function ProfileEditSkeleton() {
+  return (
+    <div className="mx-auto max-w-3xl">
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-7 w-32" />
+          <Skeleton className="h-5 w-64" />
+        </CardHeader>
+        <CardContent className="flex flex-col gap-6">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-40 w-full" />
+          <div className="grid gap-6 md:grid-cols-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

@@ -199,7 +199,7 @@ export default function LoginForm() {
                   type="submit"
                   disabled={!canSubmit || isSubmitting}
                   className={cn(
-                    "bg-primary hover:bg-accent/90 text-primary-foreground w-full cursor-pointer rounded-lg py-3 font-semibold transition",
+                    "bg-primary hover:bg-primary/90 text-primary-foreground w-full cursor-pointer rounded-lg py-3 font-semibold transition",
                     {
                       "cursor-not-allowed": !canSubmit || isSubmitting,
                     },

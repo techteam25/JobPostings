@@ -138,8 +138,11 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
     const data = parsed.data;
 
     switch (jobName) {
-      case "sendWelcomeEmail":
+      case "sendWelcomeEmail": {
+        const d = data as EmailJobPayload<"sendWelcomeEmail">;
+        await deps.emailService.sendWelcomeEmail(d.userId, d.email, d.fullName);
         break;
+      }
       case "sendEmailVerification": {
         const d = data as EmailJobPayload<"sendEmailVerification">;
         await deps.emailService.sendEmailVerification(

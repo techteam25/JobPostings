@@ -2,6 +2,7 @@ import type {
   OrgRoleQueryPort,
   UserOrganizationsQueryPort,
 } from "./ports/org-query.port";
+import type { IdentityWritePort } from "./ports/identity-write.port";
 import type { TypesenseUserProfileServicePort } from "@shared/ports/typesense-user-profile-service.port";
 
 import { ProfileRepository } from "./repositories/profile.repository";
@@ -19,6 +20,7 @@ import { createTypesenseUserProfileIndexerWorker } from "./workers/typesense-use
 interface UserProfileModuleDeps {
   orgRoleQuery: OrgRoleQueryPort;
   userOrgsQuery: UserOrganizationsQueryPort;
+  identityWrite: IdentityWritePort;
   typesenseUserProfileService: TypesenseUserProfileServicePort;
 }
 
@@ -33,7 +35,11 @@ export function createUserProfileModule(deps: UserProfileModuleDeps) {
   const preferenceRepository = new PreferenceRepository();
   const workAreaRepository = new WorkAreaRepository();
 
-  const service = new ProfileService(repository, deps.orgRoleQuery);
+  const service = new ProfileService(
+    repository,
+    deps.orgRoleQuery,
+    deps.identityWrite,
+  );
   const preferenceService = new PreferenceService(
     preferenceRepository,
     repository,
@@ -61,6 +67,7 @@ export function createUserProfileModule(deps: UserProfileModuleDeps) {
     workAreaController,
     guards,
     repository,
+    service,
     workers,
   };
 }

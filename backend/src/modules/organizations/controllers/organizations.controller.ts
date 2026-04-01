@@ -5,7 +5,6 @@ import {
   type EmptyBody,
   type PaginatedResponse,
 } from "@shared/types";
-import { AppError, ErrorCode } from "@shared/errors";
 import type {
   CreateOrganizationSchema,
   DeleteOrganizationSchema,
@@ -155,15 +154,6 @@ export class OrganizationsController extends BaseController {
   ) => {
     const organizationId = parseInt(req.params.organizationId);
     const file = req.file;
-
-    if (!file) {
-      const error = new AppError(
-        "No file uploaded",
-        400,
-        ErrorCode.BAD_REQUEST,
-      );
-      return this.sendError(res, error);
-    }
 
     const result = await this.organizationsService.uploadOrganizationLogo(
       req.userId!,

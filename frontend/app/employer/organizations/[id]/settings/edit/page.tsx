@@ -9,8 +9,8 @@ import {
   useOrganization,
   useIsOwner,
 } from "../../context/organization-context";
-import { EditOrganizationForm } from "./components/edit-organization-form";
-import { DangerZone } from "./components/danger-zone";
+import { EditOrganizationForm } from "./components/EditOrganizationForm";
+import { DangerZone } from "./components/DangerZone";
 
 export default function EditOrganizationPage() {
   const { organization } = useOrganization();

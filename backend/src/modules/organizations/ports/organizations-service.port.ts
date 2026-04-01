@@ -8,6 +8,7 @@ import type {
   OrganizationWithMembers,
   UserOrganizationInterface,
 } from "@/validations/organization.validation";
+import { OrganizationsLogoFile } from "@/modules/organizations/types/organizations.module.types";
 
 /**
  * Port interface for OrganizationsService.
@@ -35,7 +36,7 @@ export interface OrganizationsServicePort {
   uploadOrganizationLogo(
     userId: number,
     organizationId: number,
-    logoFile: Express.Multer.File,
+    logoFile: OrganizationsLogoFile | undefined,
     correlationId: string,
   ): Promise<Result<{ message: string }, Error>>;
 

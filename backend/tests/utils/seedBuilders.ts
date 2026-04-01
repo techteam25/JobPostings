@@ -366,18 +366,41 @@ export async function createUserProfile(
 ): Promise<CreatedUserProfile> {
   const profileData = await userProfileFixture();
 
-  const [inserted] = await db
+  const values = {
+    ...profileData,
+    ...overrides,
+    userId,
+  };
+
+  await db
     .insert(userProfile)
-    .values({
-      ...profileData,
-      ...overrides,
-      userId,
-    })
-    .$returningId();
+    .values(values)
+    .onDuplicateKeyUpdate({
+      set: {
+        bio: sql`values(${userProfile.bio})`,
+        resumeUrl: sql`values(${userProfile.resumeUrl})`,
+        linkedinUrl: sql`values(${userProfile.linkedinUrl})`,
+        portfolioUrl: sql`values(${userProfile.portfolioUrl})`,
+        phoneNumber: sql`values(${userProfile.phoneNumber})`,
+        address: sql`values(${userProfile.address})`,
+        city: sql`values(${userProfile.city})`,
+        state: sql`values(${userProfile.state})`,
+        zipCode: sql`values(${userProfile.zipCode})`,
+        country: sql`values(${userProfile.country})`,
+        isProfilePublic: sql`values(${userProfile.isProfilePublic})`,
+        isAvailableForWork: sql`values(${userProfile.isAvailableForWork})`,
+      },
+    });
 
-  if (!inserted) throw new Error("Failed to create user profile");
+  const [existing] = await db
+    .select({ id: userProfile.id })
+    .from(userProfile)
+    .where(eq(userProfile.userId, userId))
+    .limit(1);
 
-  return { id: inserted.id, userId };
+  if (!existing) throw new Error("Failed to create user profile");
+
+  return { id: existing.id, userId };
 }
 
 // ─── Email Preferences Builders ──────────────────────────────────────

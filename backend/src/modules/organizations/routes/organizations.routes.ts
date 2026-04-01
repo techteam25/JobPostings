@@ -87,15 +87,16 @@ export function createOrganizationsRoutes({
    * Requires authentication and owner role.
    * @route POST /:organizationId/logo
    */
+  // No cache invalidation here — the upload is async (BullMQ worker).
+  // Invalidating now would cause the frontend to re-cache stale data
+  // since the worker hasn't updated the DB yet. The worker invalidates
+  // the "organizations/{id}" cache pattern after the DB update.
   router.post(
     "/:organizationId/logo",
     authenticate,
     orgGuards.requireAdminOrOwnerRole(["owner"]),
     uploadMiddleware.organizationLogo,
     validate(uploadOrganizationLogoSchema),
-    invalidateCacheMiddleware(
-      (req) => `/organizations/${req.params.organizationId}`,
-    ),
     controller.uploadOrganizationLogo,
   );
 

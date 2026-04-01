@@ -92,6 +92,11 @@ export async function middleware(req: NextRequest) {
           return NextResponse.redirect(new URL("/", req.url));
         }
       }
+
+      // Prevent completed seekers from accessing /welcome
+      if (pathname === "/welcome") {
+        return NextResponse.redirect(new URL("/", req.url));
+      }
     }
 
     return NextResponse.next();

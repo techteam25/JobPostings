@@ -24,6 +24,7 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUserSignOut } from "@/app/(main)/hooks/use-user-signout";
+import { useCurrentUserProfile } from "@/app/(main)/hooks/use-current-user-profile";
 import { Separator } from "@/components/ui/separator";
 import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 
@@ -39,8 +40,14 @@ export function NavbarMobile({
   email,
 }: NavbarMobileProps) {
   const { signOutAsyncAction, isPending } = useUserSignOut();
+  const { data: freshProfile } = useCurrentUserProfile();
   const { isAuthenticated } = useAuthenticationStatus();
   const { theme, setTheme } = useTheme();
+
+  const freshProfilePicture = freshProfile?.success
+    ? freshProfile.data.profile?.profilePicture
+    : undefined;
+  const avatarSrc = freshProfilePicture ?? profileImage ?? undefined;
 
   return (
     <Sheet>
@@ -55,10 +62,7 @@ export function NavbarMobile({
             <SheetHeader>
               <div className="flex items-center gap-3">
                 <Avatar className="size-10">
-                  <AvatarImage
-                    src={profileImage ?? undefined}
-                    alt={username ?? "User"}
-                  />
+                  <AvatarImage src={avatarSrc} alt={username ?? "User"} />
                   <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
                     {username ? (
                       username

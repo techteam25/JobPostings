@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to GetInvolved</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background-color: #000000;
+        padding: 40px 20px;
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .logo {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .logo img {
+        max-width: 300px;
+        height: auto;
+      }
+
+      .content-box {
+        background-color: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 40px;
+        color: #ffffff;
+      }
+
+      .content-box h1 {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #e0e0e0;
+      }
+
+      .content-box p {
+        font-size: 16px;
+        margin-bottom: 20px;
+        color: #b0b0b0;
+      }
+
+      .content-box a.site-link {
+        color: #4a7fff;
+        text-decoration: underline;
+      }
+
+      .button-container {
+        text-align: center;
+        margin: 28px 0;
+      }
+
+      .button {
+        display: inline-block;
+        background-color: #001b71;
+        color: #ffffff;
+        text-decoration: none;
+        padding: 14px 32px;
+        border-radius: 4px;
+        font-size: 16px;
+        font-weight: 600;
+        transition: background-color 0.3s ease;
+      }
+
+      .button:hover {
+        background-color: #002494;
+      }
+
+      .footer-text {
+        font-size: 14px;
+        color: #808080;
+        margin-top: 20px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">
+        <img src="{{logoPath}}" alt="getInvolved Logo" />
+      </div>
+
+      <div class="content-box">
+        <h1>Welcome to GetInvolved, {{name}}!</h1>
+
+        <p>
+          Thank you for joining
+          <a href="https://site.getinvolved.team/" class="site-link"
+            >GetInvolved</a
+          >. We're excited to have you on board and can't wait to help you
+          discover opportunities that match your skills and passions.
+        </p>
+
+        <p>
+          Your account is all set up and ready to go. Start exploring job
+          listings from missions organizations looking for talented people just
+          like you.
+        </p>
+
+        <div class="button-container">
+          <a href="{{frontendUrl}}" class="button">Browse Jobs</a>
+        </div>
+
+        <p class="footer-text">
+          If you have any questions or need help getting started, our team is
+          here to support you.
+        </p>
+
+        <p class="footer-text">
+          Welcome aboard! We're thrilled to have you with us.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
