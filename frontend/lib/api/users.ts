@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { env } from "@/env";
 import {
   ApiResponse,
@@ -34,13 +34,14 @@ export const getUserInformation = async (): Promise<
     headers: {
       Cookie: cookieStore.toString(),
     },
-    next: { revalidate: 300, tags: [`user-bio-info`] },
+    next: { revalidate: 300, tags: ["user-bio-info"] },
   });
 
   return handleApiResponse(res, "Failed to fetch user information");
 };
 
 export async function revalidateUserProfile() {
+  revalidatePath("/me/profile");
   revalidatePath("/me/profile/qualifications");
 }
 
@@ -64,7 +65,7 @@ export const updateProfile = async (
   );
 
   if (result.success) {
-    revalidatePath("/user-bio-info");
+    revalidateTag("user-bio-info", "max");
   }
 
   return result;
@@ -137,7 +138,7 @@ export const updateWorkAvailability = async (
   );
 
   if (result.success) {
-    revalidatePath("/user-bio-info");
+    revalidateTag("user-bio-info", "max");
   }
 
   return result;

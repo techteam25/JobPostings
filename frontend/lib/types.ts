@@ -201,6 +201,7 @@ export type UserSkill = {
 };
 
 export type UpdateProfileData = {
+  fullName?: string;
   bio?: string;
   resumeUrl?: string;
   linkedinUrl?: string;
