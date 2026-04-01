@@ -10,6 +10,7 @@ import {
   ForbiddenError,
   NotFoundError,
   ValidationError,
+  BadRequestError,
 } from "@shared/errors";
 import {
   QUEUE_NAMES,
@@ -21,10 +22,13 @@ import type {
   NewUserProfile,
   UpdateUserProfile,
 } from "@/validations/userProfile.validation";
+import type { FileUploadJobData } from "@/validations/file.validation";
+import { StorageFolder } from "@shared/constants/storage-folders";
 import type { InsertEducation } from "@/validations/educations.validation";
 import type { InsertWorkExperience } from "@/validations/workExperiences.validation";
 import type { NewCertification } from "@/validations/certifications.validation";
 import type { NewSkill } from "@/validations/skills.validation";
+import { ProfilePictureFile } from "@/modules/user-profile/types/profile.module.types";
 
 export class ProfileService extends BaseService implements ProfileServicePort {
   constructor(
@@ -152,6 +156,55 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to update user profile"));
+    }
+  }
+
+  async uploadProfilePicture(
+    userId: number,
+    file: ProfilePictureFile | undefined,
+    correlationId: string,
+  ) {
+    if (!file) {
+      return fail(new BadRequestError("No file uploaded"));
+    }
+
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new NotFoundError("Profile", userId));
+      }
+
+      await queueService.addJob<FileUploadJobData>(
+        QUEUE_NAMES.FILE_UPLOAD_QUEUE,
+        "uploadFile",
+        {
+          entityType: "user",
+          entityId: user.profile.id.toString(),
+          mergeWithExisting: true,
+          tempFiles: [
+            {
+              originalname: file.originalname,
+              tempPath: file.path,
+              size: file.size,
+              mimetype: file.mimetype,
+            },
+          ],
+          userId: userId.toString(),
+          folder: StorageFolder.PROFILE_PICTURES,
+          correlationId,
+        },
+      );
+
+      return ok({ message: "Profile picture upload initiated" });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to upload profile picture"));
     }
   }
 

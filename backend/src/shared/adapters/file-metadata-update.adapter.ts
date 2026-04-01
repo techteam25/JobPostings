@@ -78,13 +78,14 @@ export class FileMetadataUpdateAdapter implements FileMetadataUpdatePort {
             where: eq(userProfile.id, id),
             columns: { fileMetadata: true },
           });
-          const existingMetadata =
-            (existing?.fileMetadata as FileMetadata[]) || [];
+          const existingMetadata = Array.isArray(existing?.fileMetadata)
+            ? (existing.fileMetadata as FileMetadata[])
+            : [];
           metadata = [...existingMetadata, ...metadata];
         }
         await db
           .update(userProfile)
-          .set({ fileMetadata: metadata })
+          .set({ fileMetadata: metadata, profilePicture: urls[0] || null })
           .where(eq(userProfile.id, id));
         break;
       }

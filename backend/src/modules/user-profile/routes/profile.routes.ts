@@ -35,7 +35,11 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
-import { updateWorkAvailabilitySchema } from "@/validations/userProfile.validation";
+import {
+  updateWorkAvailabilitySchema,
+  uploadProfilePictureSchema,
+} from "@/validations/userProfile.validation";
+import { uploadMiddleware } from "@/middleware/multer.middleware";
 
 export function createProfileRoutes({
   controller: profileController,
@@ -112,6 +116,17 @@ export function createProfileRoutes({
     validate(createUserPayloadSchema),
     invalidateCacheMiddleware(() => "users/me"),
     profileController.createProfile,
+  );
+
+  // POST /users/me/profile-picture
+  // No cache invalidation here — the upload is async (BullMQ worker).
+  // Invalidating now would cause the frontend to re-cache stale data
+  // since the worker hasn't updated the DB yet.
+  router.post(
+    "/me/profile-picture",
+    uploadMiddleware.profilePicture,
+    validate(uploadProfilePictureSchema),
+    profileController.uploadProfilePicture,
   );
 
   // Education CRUD routes

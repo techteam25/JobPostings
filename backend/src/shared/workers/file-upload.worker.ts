@@ -1,6 +1,7 @@
 import logger from "@shared/logger";
 import { Job as BullMqJob } from "bullmq";
 import { firebaseUploadService } from "@shared/infrastructure/firebase-upload.service";
+import { CacheService } from "@shared/infrastructure/cache.service";
 import {
   FileUploadJobData,
   FileUploadResult,
@@ -63,6 +64,20 @@ function createFileUploadHandler(deps: FileUploadWorkerDeps) {
           mergeWithExisting,
           tempFiles,
         );
+
+        // Invalidate relevant caches now that the DB is updated
+        const cachePatterns: Record<string, string> = {
+          user: "users/me",
+          organization: `organizations/${entityId}`,
+        };
+        const pattern = cachePatterns[entityType];
+        if (pattern) {
+          await CacheService.invalidate(pattern);
+          logger.debug(
+            { correlationId, pattern },
+            "Cache invalidated after file upload",
+          );
+        }
       }
 
       await job.updateProgress(100);

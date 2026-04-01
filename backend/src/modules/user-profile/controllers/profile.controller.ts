@@ -163,6 +163,26 @@ export class ProfileController extends BaseController {
     }
   };
 
+  uploadProfilePicture = async (req: Request, res: Response) => {
+    const file = req.file;
+
+    const result = await this.profileService.uploadProfilePicture(
+      req.userId!,
+      file,
+      req.correlationId!,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<{ message: string }>(
+        res,
+        result.value,
+        "Profile picture upload initiated",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
   changeProfileVisibility = async (
     req: Request<EmptyBody, EmptyBody, UpdateProfileVisibilityInput["body"]>,
     res: Response,

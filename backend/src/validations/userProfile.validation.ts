@@ -146,3 +146,59 @@ export const updateWorkAvailabilitySchema = z.object({
 export type UpdateWorkAvailabilityInput = z.infer<
   typeof updateWorkAvailabilitySchema
 >;
+
+// ─── Profile Picture Upload ─────────────────────────────────────────
+
+const profilePictureFileSchema = z.object({
+  profilePicture: z
+    .custom<Express.Multer.File>(
+      (val) =>
+        val != null &&
+        typeof val === "object" &&
+        "mimetype" in val &&
+        "size" in val,
+      {
+        message: "Expected a valid Multer file",
+      },
+    )
+    .optional()
+    .openapi({
+      type: "string",
+      format: "binary",
+      description: "Profile picture image file (max size 5MB)",
+    }),
+});
+
+export const uploadProfilePictureSchema = z.object({
+  body: profilePictureFileSchema
+    .refine(
+      (data) => {
+        if (data.profilePicture) {
+          return data.profilePicture.mimetype.startsWith("image/");
+        }
+        return true;
+      },
+      {
+        message: "File must be an image",
+        path: ["profilePicture", "mimetype"],
+      },
+    )
+    .refine(
+      (data) => {
+        if (data.profilePicture) {
+          return data.profilePicture.size <= 5 * 1024 * 1024;
+        }
+        return true;
+      },
+      {
+        message: "File size must be under 5MB",
+        path: ["profilePicture", "size"],
+      },
+    ),
+  params: z.object({}).strict(),
+  query: z.object({}).strict(),
+});
+
+export type UploadProfilePictureSchema = z.infer<
+  typeof uploadProfilePictureSchema
+>;
