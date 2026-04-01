@@ -22,6 +22,7 @@ export const QUEUE_NAMES = {
   TYPESENSE_USER_PROFILE_QUEUE: "userProfileIndexQueue",
   EMAIL_QUEUE: "emailQueue",
   FILE_UPLOAD_QUEUE: "fileUploadQueue",
+  FILE_DELETE_QUEUE: "fileDeleteQueue",
   TEMP_FILE_CLEANUP_QUEUE: "tempFileCleanupQueue",
   JOB_ALERT_QUEUE: "jobAlertQueue",
   INVITATION_EXPIRATION_QUEUE: "invitationExpirationQueue",
@@ -65,6 +66,7 @@ class QueueService {
       this.createQueue(QUEUE_NAMES.TYPESENSE_USER_PROFILE_QUEUE);
       this.createQueue(QUEUE_NAMES.EMAIL_QUEUE);
       this.createQueue(QUEUE_NAMES.FILE_UPLOAD_QUEUE);
+      this.createQueue(QUEUE_NAMES.FILE_DELETE_QUEUE);
       this.createQueue(QUEUE_NAMES.TEMP_FILE_CLEANUP_QUEUE);
       this.createQueue(QUEUE_NAMES.JOB_ALERT_QUEUE);
       this.createQueue(QUEUE_NAMES.INVITATION_EXPIRATION_QUEUE);

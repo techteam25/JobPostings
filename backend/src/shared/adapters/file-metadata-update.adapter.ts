@@ -83,9 +83,26 @@ export class FileMetadataUpdateAdapter implements FileMetadataUpdatePort {
             : [];
           metadata = [...existingMetadata, ...metadata];
         }
+
+        const updateData: Record<string, unknown> = { fileMetadata: metadata };
+
+        if (tempFiles) {
+          tempFiles.forEach((file, index) => {
+            if (urls[index]) {
+              if (file.fieldName === "resume") {
+                updateData.resumeUrl = urls[index];
+              } else {
+                updateData.profilePicture = urls[index];
+              }
+            }
+          });
+        } else {
+          updateData.profilePicture = urls[0] || null;
+        }
+
         await db
           .update(userProfile)
-          .set({ fileMetadata: metadata, profilePicture: urls[0] || null })
+          .set(updateData)
           .where(eq(userProfile.id, id));
         break;
       }

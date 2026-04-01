@@ -183,6 +183,40 @@ export class ProfileController extends BaseController {
     }
   };
 
+  uploadResume = async (req: Request, res: Response) => {
+    const file = req.file;
+
+    const result = await this.profileService.uploadResume(
+      req.userId!,
+      file,
+      req.correlationId!,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<{ message: string }>(
+        res,
+        result.value,
+        "Resume upload initiated",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  deleteResume = async (req: Request, res: Response) => {
+    const result = await this.profileService.deleteResume(req.userId!);
+
+    if (result.isSuccess) {
+      return this.sendSuccess<{ message: string }>(
+        res,
+        result.value,
+        "Resume deleted",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
   changeProfileVisibility = async (
     req: Request<EmptyBody, EmptyBody, UpdateProfileVisibilityInput["body"]>,
     res: Response,

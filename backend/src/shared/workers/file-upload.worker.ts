@@ -3,6 +3,7 @@ import { Job as BullMqJob } from "bullmq";
 import { firebaseUploadService } from "@shared/infrastructure/firebase-upload.service";
 import { CacheService } from "@shared/infrastructure/cache.service";
 import {
+  FileDeleteJobData,
   FileUploadJobData,
   FileUploadResult,
   sanitizeFilename,
@@ -112,6 +113,35 @@ function createFileUploadHandler(deps: FileUploadWorkerDeps) {
   };
 }
 
+function createFileDeleteHandler() {
+  return async function processFileDeleteJob(
+    job: BullMqJob<FileDeleteJobData>,
+  ) {
+    const { fileUrl, entityType, entityId, correlationId } = job.data;
+
+    logger.info(
+      { correlationId, entityType, entityId, fileUrl },
+      "Starting file delete job",
+    );
+
+    const deleted = await firebaseUploadService.deleteFile(fileUrl);
+
+    if (deleted) {
+      logger.info(
+        { correlationId, fileUrl },
+        "File deleted from storage successfully",
+      );
+    } else {
+      logger.warn(
+        { correlationId, fileUrl },
+        "File delete returned false — file may not exist in storage",
+      );
+    }
+
+    return { deleted };
+  };
+}
+
 export function createFileUploadWorker(
   deps: FileUploadWorkerDeps,
 ): ModuleWorkers {
@@ -128,11 +158,19 @@ export function createFileUploadWorker(
         },
       });
 
-      logger.info("File upload worker initialized");
+      queueService.registerWorker<FileDeleteJobData, { deleted: boolean }>(
+        QUEUE_NAMES.FILE_DELETE_QUEUE,
+        createFileDeleteHandler(),
+        {
+          concurrency: 3,
+        },
+      );
+
+      logger.info("File upload and delete workers initialized");
     },
 
     async scheduleJobs() {
-      // File upload worker has no scheduled jobs — jobs are enqueued on demand
+      // File workers have no scheduled jobs — jobs are enqueued on demand
     },
   };
 }

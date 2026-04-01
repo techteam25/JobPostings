@@ -1,6 +1,6 @@
 import { Readable } from "node:stream";
 
-export interface ProfilePictureFile {
+interface File {
   fieldname: string;
   originalname: string;
   encoding: string;
@@ -12,3 +12,6 @@ export interface ProfilePictureFile {
   path: string;
   buffer: Buffer;
 }
+
+export type ProfilePictureFile = File;
+export type ResumeFile = File;

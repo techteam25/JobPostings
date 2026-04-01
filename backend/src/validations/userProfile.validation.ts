@@ -202,3 +202,61 @@ export const uploadProfilePictureSchema = z.object({
 export type UploadProfilePictureSchema = z.infer<
   typeof uploadProfilePictureSchema
 >;
+
+const ALLOWED_RESUME_MIMES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
+const resumeFileSchema = z.object({
+  resume: z
+    .custom<Express.Multer.File>(
+      (val) =>
+        val != null &&
+        typeof val === "object" &&
+        "mimetype" in val &&
+        "size" in val,
+      {
+        message: "Expected a valid Multer file",
+      },
+    )
+    .optional()
+    .openapi({
+      type: "string",
+      format: "binary",
+      description: "Resume file — PDF or Word document (max 10 MB)",
+    }),
+});
+
+export const uploadResumeSchema = z.object({
+  body: resumeFileSchema
+    .refine(
+      (data) => {
+        if (data.resume) {
+          return ALLOWED_RESUME_MIMES.includes(data.resume.mimetype);
+        }
+        return true;
+      },
+      {
+        message: "File must be a PDF or Word document (.pdf, .doc, .docx)",
+        path: ["resume", "mimetype"],
+      },
+    )
+    .refine(
+      (data) => {
+        if (data.resume) {
+          return data.resume.size <= 10 * 1024 * 1024;
+        }
+        return true;
+      },
+      {
+        message: "File size must be under 10 MB",
+        path: ["resume", "size"],
+      },
+    ),
+  params: z.object({}).strict(),
+  query: z.object({}).strict(),
+});
+
+export type UploadResumeSchema = z.infer<typeof uploadResumeSchema>;

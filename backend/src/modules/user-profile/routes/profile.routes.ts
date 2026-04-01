@@ -38,6 +38,7 @@ import {
 import {
   updateWorkAvailabilitySchema,
   uploadProfilePictureSchema,
+  uploadResumeSchema,
 } from "@/validations/userProfile.validation";
 import { uploadMiddleware } from "@/middleware/multer.middleware";
 
@@ -127,6 +128,22 @@ export function createProfileRoutes({
     uploadMiddleware.profilePicture,
     validate(uploadProfilePictureSchema),
     profileController.uploadProfilePicture,
+  );
+
+  // POST /users/me/resume
+  // No cache invalidation — async BullMQ worker (same reason as profile picture).
+  router.post(
+    "/me/resume",
+    uploadMiddleware.resume,
+    validate(uploadResumeSchema),
+    profileController.uploadResume,
+  );
+
+  // DELETE /users/me/resume
+  router.delete(
+    "/me/resume",
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.deleteResume,
   );
 
   // Education CRUD routes

@@ -22,7 +22,10 @@ import type {
 import type { NewSkill, Skill } from "@/validations/skills.validation";
 import type { PaginationMeta } from "@shared/types";
 import { SavedJobs } from "@/validations/user.validation";
-import { ProfilePictureFile } from "@/modules/user-profile/types/profile.module.types";
+import {
+  ProfilePictureFile,
+  ResumeFile,
+} from "@/modules/user-profile/types/profile.module.types";
 
 export interface ProfileServicePort {
   getAllUsers(
@@ -164,4 +167,14 @@ export interface ProfileServicePort {
     file: ProfilePictureFile | undefined,
     correlationId: string,
   ): Promise<Result<{ message: string }, AppError>>;
+
+  // Resume upload
+  uploadResume(
+    userId: number,
+    file: ResumeFile | undefined,
+    correlationId: string,
+  ): Promise<Result<{ message: string }, AppError>>;
+
+  // Resume delete
+  deleteResume(userId: number): Promise<Result<{ message: string }, AppError>>;
 }
