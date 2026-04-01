@@ -188,6 +188,7 @@ function createMockIdentityRepository(): IdentityRepositoryPort {
     update: vi.fn(),
     findById: vi.fn(),
     findDeactivatedUserIds: vi.fn(),
+    updateFullName: vi.fn(),
   };
 }
 

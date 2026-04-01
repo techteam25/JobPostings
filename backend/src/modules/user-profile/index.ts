@@ -22,3 +22,4 @@ export type {
   WorkArea,
 } from "./ports/work-area-repository.port";
 export type { WorkAreaServicePort } from "./ports/work-area-service.port";
+export type { IdentityWritePort } from "./ports/identity-write.port";

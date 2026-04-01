@@ -3,6 +3,7 @@ import { BaseService } from "@shared/base/base.service";
 import type { ProfileServicePort } from "@/modules/user-profile";
 import type { ProfileRepositoryPort } from "@/modules/user-profile";
 import type { OrgRoleQueryPort } from "@/modules/user-profile/ports/org-query.port";
+import type { IdentityWritePort } from "@/modules/user-profile/ports/identity-write.port";
 import {
   AppError,
   DatabaseError,
@@ -29,6 +30,7 @@ export class ProfileService extends BaseService implements ProfileServicePort {
   constructor(
     private profileRepository: ProfileRepositoryPort,
     private orgRoleQuery: OrgRoleQueryPort,
+    private identityWrite: IdentityWritePort,
   ) {
     super();
   }
@@ -122,9 +124,22 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         return fail(new NotFoundError("User", userId));
       }
 
+      const { fullName, ...profileFields } = profileData;
+
+      // Update display name via the identity module (synchronous cross-module call).
+      if (fullName) {
+        const identityResult = await this.identityWrite.updateUserDisplayName(
+          userId,
+          fullName,
+        );
+        if (identityResult.isFailure) {
+          return fail(identityResult.error);
+        }
+      }
+
       const updatedProfile = await this.profileRepository.updateProfile(
         userId,
-        profileData,
+        profileFields,
       );
 
       if (!updatedProfile) {

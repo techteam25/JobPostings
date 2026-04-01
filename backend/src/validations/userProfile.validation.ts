@@ -14,6 +14,16 @@ import {
   WorkExperience,
 } from "@/validations/workExperiences.validation";
 import type { Skill } from "@/validations/skills.validation";
+import { isPossiblePhoneNumber } from "libphonenumber-js";
+
+/**
+ * Strips HTML tags from a string and returns the plain-text content.
+ * Used to validate bio length against the actual text the user typed,
+ * since TipTap outputs HTML.
+ */
+export function stripHtmlTags(html: string): string {
+  return html.replace(/<[^>]*>/g, "").trim();
+}
 
 // Zod schemas
 export const insertUserSchema = createInsertSchema(user, {
@@ -45,9 +55,21 @@ export const updateUserSchema = insertUserSchema.partial().omit({
   deletedAt: true,
 });
 
-export const updateUserProfileSchema = insertUserProfileSchema
+/**
+ * Base schema without refinements — used for .pick() operations
+ * (e.g., visibility and availability sub-schemas).
+ */
+const updateUserProfileBaseSchema = insertUserProfileSchema
   .omit({ userId: true })
   .extend({
+    fullName: z
+      .string()
+      .min(1, "Display name is required")
+      .max(100)
+      .trim()
+      .optional(),
+    bio: z.string().optional(),
+    phoneNumber: z.string().optional(),
     educations: insertEducationsSchema
       .omit({ userProfileId: true })
       .array()
@@ -58,6 +80,33 @@ export const updateUserProfileSchema = insertUserProfileSchema
       .default([]),
     certifications: insertCertificationsSchema.array().default([]),
   });
+
+/**
+ * Full update schema with refinements for bio (HTML-stripped length)
+ * and phoneNumber (libphonenumber-js validation).
+ */
+export const updateUserProfileSchema = updateUserProfileBaseSchema
+  .refine(
+    (data) => {
+      if (!data.bio) return true;
+      return stripHtmlTags(data.bio).length >= 10;
+    },
+    { message: "Bio must be at least 10 characters", path: ["bio"] },
+  )
+  .refine(
+    (data) => {
+      if (!data.bio) return true;
+      return stripHtmlTags(data.bio).length <= 1000;
+    },
+    { message: "Bio must not exceed 1000 characters", path: ["bio"] },
+  )
+  .refine(
+    (data) => {
+      if (!data.phoneNumber) return true;
+      return isPossiblePhoneNumber(data.phoneNumber, "US");
+    },
+    { message: "Invalid phone number", path: ["phoneNumber"] },
+  );
 
 // Type exports
 export type User = z.infer<typeof selectUserSchema>;
@@ -79,7 +128,7 @@ export type UserWithProfile = User & {
 };
 
 export const updateProfileVisibilitySchema = z.object({
-  body: updateUserProfileSchema.pick({ isProfilePublic: true }),
+  body: updateUserProfileBaseSchema.pick({ isProfilePublic: true }),
   params: z.object({}).strict(),
   query: z.object({}).strict(),
 });
@@ -89,7 +138,7 @@ export type UpdateProfileVisibilityInput = z.infer<
 >;
 
 export const updateWorkAvailabilitySchema = z.object({
-  body: updateUserProfileSchema.pick({ isAvailableForWork: true }),
+  body: updateUserProfileBaseSchema.pick({ isAvailableForWork: true }),
   params: z.object({}).strict(),
   query: z.object({}).strict(),
 });

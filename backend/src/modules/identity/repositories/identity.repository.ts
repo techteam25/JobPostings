@@ -94,6 +94,16 @@ export class IdentityRepository
     });
   }
 
+  async updateFullName(userId: number, fullName: string): Promise<boolean> {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(user)
+        .set({ fullName })
+        .where(eq(user.id, userId));
+      return result.affectedRows > 0;
+    });
+  }
+
   async deactivateUserAccount(
     id: number,
     data: { status: "active" | "deactivated" | "deleted" },
@@ -113,7 +123,7 @@ export class IdentityRepository
             tx.rollback();
           }
 
-          return await tx.query.user.findFirst({
+          return tx.query.user.findFirst({
             where: eq(user.id, id),
           });
         }),
