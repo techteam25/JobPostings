@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { useForm } from "@tanstack/react-form";
-import { Loader2, Upload } from "lucide-react";
+import { Building2, Loader2, Upload } from "lucide-react";
 import { DynamicRichTextEditor } from "@/components/common";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useOrganization } from "../../../context/organization-context";
 import { useUpdateOrganization } from "../../../hooks/use-update-organization";
 import { useUploadLogo } from "@/app/employer/organizations/hooks/use-upload-logo";
+import { useFetchOrganization } from "@/app/employer/organizations/hooks/use-fetch-organization";
 import { editOrganizationSchema } from "@/schemas/organizations/edit-organization";
 import Link from "next/link";
 
@@ -24,6 +25,13 @@ export function EditOrganizationForm() {
     organization.id,
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Read from the same React Query cache the upload mutation writes to,
+  // so the optimistic blob URL is picked up instantly.
+  const { organization: freshOrg } = useFetchOrganization(
+    String(organization.id),
+  );
+  const logoUrl = freshOrg?.logoUrl ?? organization.logoUrl;
 
   const form = useForm({
     defaultValues: {
@@ -278,6 +286,26 @@ export function EditOrganizationForm() {
       {/* Logo Upload */}
       <div>
         <h3 className="mb-3 font-semibold">Upload Logo</h3>
+
+        {/* Current logo preview */}
+        <div className="mb-3 flex items-center gap-3">
+          <div className="bg-muted flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt={organization.name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <Building2 className="text-muted-foreground h-8 w-8" />
+            )}
+          </div>
+          {isUploading && (
+            <p className="text-muted-foreground text-sm">Uploading...</p>
+          )}
+        </div>
+
         <div
           className="border-border bg-background cursor-pointer rounded-lg border-2 border-dashed p-12 text-center"
           onClick={() => fileInputRef.current?.click()}
@@ -295,6 +323,8 @@ export function EditOrganizationForm() {
             accept="image/png,image/jpeg,image/jpg"
             onChange={(e) => {
               const file = e.target.files?.[0];
+              // Reset so the same file can be re-selected
+              e.target.value = "";
               if (file) handleLogoUpload(file);
             }}
           />
