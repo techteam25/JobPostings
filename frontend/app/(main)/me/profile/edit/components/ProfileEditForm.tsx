@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useForm, useStore } from "@tanstack/react-form";
 import { countries } from "countries-list";
 import states from "states-us";
 import { toast } from "sonner";
-import { Loader2, Pencil } from "lucide-react";
+import { Loader2, Pencil, FileText, Upload } from "lucide-react";
 
 import { isPossiblePhoneNumber } from "libphonenumber-js";
 
@@ -13,6 +13,7 @@ import type { UserWithProfile } from "@/lib/types";
 import { profileEditSchema } from "../schemas/profile-edit.schema";
 import { useUpdateProfile } from "../hooks/use-update-profile";
 import { useUploadProfilePicture } from "../hooks/use-upload-profile-picture";
+import { useUploadResume } from "../hooks/use-upload-resume";
 import { useCurrentUserProfile } from "@/app/(main)/hooks/use-current-user-profile";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -46,13 +47,22 @@ interface ProfileEditFormProps {
 const BIO_MAX = 1000;
 const BIO_MIN = 10;
 
+const ALLOWED_RESUME_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
 export default function ProfileEditForm({ user }: ProfileEditFormProps) {
   const profile = user.profile;
   const { mutateAsync: updateProfile, isPending } = useUpdateProfile();
   const { mutateAsync: uploadPicture, isPending: isUploading } =
     useUploadProfilePicture();
+  const { mutateAsync: uploadResume, isPending: isUploadingResume } =
+    useUploadResume();
   const [bioCharCount, setBioCharCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
 
   const avatarInitials = user.fullName
     .split(" ")
@@ -79,6 +89,31 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
     }
     await uploadPicture(file);
   };
+
+  const handleResumeUpload = useCallback(
+    async (file: File) => {
+      if (!ALLOWED_RESUME_TYPES.includes(file.type)) {
+        toast.error("Please upload a PDF or Word document");
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File must be under 10 MB");
+        return;
+      }
+      await uploadResume(file);
+    },
+    [uploadResume],
+  );
+
+  const currentResumeUrl = freshProfile?.success
+    ? freshProfile.data.profile?.resumeUrl
+    : profile?.resumeUrl;
+
+  const resumeMetadata = freshProfile?.success
+    ? freshProfile.data.profile?.fileMetadata?.find(
+        (m) => m.url === currentResumeUrl,
+      )
+    : profile?.fileMetadata?.find((m) => m.url === currentResumeUrl);
 
   const form = useForm({
     defaultValues: {
@@ -254,6 +289,62 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
           }}
         />
       </FieldGroup>
+
+      {/* Resume Upload */}
+      <div className="flex flex-col gap-2">
+        <p className="text-sm font-medium">Resume</p>
+        <div className="border-border flex items-center justify-between rounded-lg border p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded bg-blue-50">
+              <FileText className="size-5 text-blue-600" />
+            </div>
+            <div>
+              {currentResumeUrl && resumeMetadata ? (
+                <>
+                  <p className="text-foreground text-sm font-medium">
+                    {resumeMetadata.filename}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {(resumeMetadata.size / 1024).toFixed(0)} KB
+                  </p>
+                </>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  No resume uploaded
+                </p>
+              )}
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => resumeInputRef.current?.click()}
+            disabled={isUploadingResume}
+          >
+            {isUploadingResume ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 size-4" />
+            )}
+            {currentResumeUrl ? "Replace" : "Upload"}
+          </Button>
+          <input
+            ref={resumeInputRef}
+            type="file"
+            className="hidden"
+            accept=".pdf,.doc,.docx"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) await handleResumeUpload(file);
+            }}
+          />
+        </div>
+        <p className="text-muted-foreground text-xs">
+          PDF, DOC or DOCX, max 10 MB
+        </p>
+      </div>
 
       <Separator />
 

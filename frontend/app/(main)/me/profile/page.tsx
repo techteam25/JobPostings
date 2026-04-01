@@ -101,25 +101,59 @@ export default async function ProfilePage() {
             />
           </div>
 
-          {/* Resume Section - Hybrid approach */}
+          {/* Resume Section */}
           <div className="mb-6">
             <h2 className="text-foreground mb-3 text-xl font-bold">Resume</h2>
             <Card className="shadow-none">
               <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded">
-                      <FileText className="text-secondary-foreground size-8" />
-                    </div>
-                    <div>
-                      <p className="text-foreground font-medium">
-                        {`Resume - ${profile.data.fullName}.pdf`}
-                      </p>
-                      <p className="text-xs text-gray-500">Added Nov 2, 2025</p>
-                    </div>
+                {profile.data.profile?.resumeUrl ? (
+                  (() => {
+                    const resumeMetadata =
+                      profile.data.profile.fileMetadata?.find(
+                        (m) => m.url === profile.data.profile?.resumeUrl,
+                      );
+                    return (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-10 shrink-0 items-center justify-center rounded">
+                            <FileText className="text-secondary-foreground size-8" />
+                          </div>
+                          <div>
+                            <p className="text-foreground font-medium">
+                              {resumeMetadata?.filename ??
+                                `Resume - ${profile.data.fullName}.pdf`}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {resumeMetadata?.uploadedAt
+                                ? `Added ${new Date(
+                                    resumeMetadata.uploadedAt,
+                                  ).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  })}`
+                                : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <ResumeContextMenu
+                          resumeUrl={profile.data.profile.resumeUrl}
+                        />
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <p className="text-muted-foreground text-sm">
+                      No resume uploaded yet
+                    </p>
+                    <Link href="/me/profile/edit">
+                      <Button variant="outline" size="sm">
+                        Upload resume
+                      </Button>
+                    </Link>
                   </div>
-                  <ResumeContextMenu />
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
