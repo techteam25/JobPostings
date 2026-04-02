@@ -25,10 +25,19 @@ describe("OrganizationsService", () => {
       })),
     );
   });
+
+  function createMockIntentSync() {
+    return {
+      syncIntentToUser: vi.fn(async () => {}),
+    };
+  }
+
   describe("isRolePermitted", () => {
     it("should return true when user has job posting role", async () => {
+      const mockIntentSync = createMockIntentSync();
       const organizationsService = new OrganizationsService(
         new OrganizationsRepository(),
+        mockIntentSync,
       );
 
       const result = await organizationsService.isRolePermitted(1);
@@ -39,8 +48,10 @@ describe("OrganizationsService", () => {
       }
     });
     it("should return false when user does not have job posting role", async () => {
+      const mockIntentSync = createMockIntentSync();
       const organizationsService = new OrganizationsService(
         new OrganizationsRepository(),
+        mockIntentSync,
       );
 
       const result = await organizationsService.isRolePermitted(999);

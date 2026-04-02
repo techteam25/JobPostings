@@ -109,11 +109,12 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
     ? freshProfile.data.profile?.resumeUrl
     : profile?.resumeUrl;
 
-  const resumeMetadata = freshProfile?.success
-    ? freshProfile.data.profile?.fileMetadata?.find(
-        (m) => m.url === currentResumeUrl,
-      )
-    : profile?.fileMetadata?.find((m) => m.url === currentResumeUrl);
+  const freshMeta = freshProfile?.success
+    ? freshProfile.data.profile?.fileMetadata
+    : profile?.fileMetadata;
+  const resumeMetadata = Array.isArray(freshMeta)
+    ? freshMeta.find((m) => m.url === currentResumeUrl)
+    : undefined;
 
   const form = useForm({
     defaultValues: {

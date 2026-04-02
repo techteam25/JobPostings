@@ -25,6 +25,8 @@ type SessionData = {
     updatedAt: string;
     deletedAt: string | null;
     lastLoginAt: string | null;
+    intent: "seeker" | "employer";
+    onboardingStatus: "pending" | "completed";
   };
 };
 
@@ -34,10 +36,9 @@ type CachedSession = {
   signature: string;
 };
 
-export type ParsedSession = {
-  session: SessionData["session"];
-  user: SessionData["user"];
-};
+export type ParsedSession =
+  | { kind: "full"; session: SessionData["session"]; user: SessionData["user"] }
+  | { kind: "token-only" };
 
 const SESSION_DATA_COOKIE = "better-auth.session_data";
 const SESSION_TOKEN_COOKIE = "better-auth.session_token";
@@ -93,6 +94,7 @@ export function parseSessionCookie(
       }
 
       return {
+        kind: "full",
         session: parsed.session.session,
         user: parsed.session.user,
       };
@@ -101,31 +103,13 @@ export function parseSessionCookie(
     }
   }
 
-  // session_data cache expired, but session_token still exists — session likely valid.
-  // Return a minimal object so middleware allows the request through.
-  // The backend API middleware will do the real verification.
+  // session_data cache cookie missing or expired (e.g. dev mode where cookieCache
+  // is disabled, or cache just expired in prod). If the session_token cookie still
+  // exists the user is likely authenticated — return a "token-only" marker so the
+  // middleware lets the request through without making routing decisions.
   const sessionTokenValue = getCookieValue(cookieHeader, SESSION_TOKEN_COOKIE);
   if (sessionTokenValue) {
-    return {
-      session: {
-        expiresAt: "",
-        token: "",
-        userId: "",
-        id: "",
-      },
-      user: {
-        id: "",
-        name: "",
-        email: "",
-        emailVerified: false,
-        image: null,
-        status: "active",
-        createdAt: "",
-        updatedAt: "",
-        deletedAt: null,
-        lastLoginAt: null,
-      },
-    };
+    return { kind: "token-only" };
   }
 
   return null;

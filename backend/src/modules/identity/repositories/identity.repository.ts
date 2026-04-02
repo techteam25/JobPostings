@@ -29,6 +29,8 @@ export class IdentityRepository
             lastLoginAt: true,
             createdAt: true,
             updatedAt: true,
+            intent: true,
+            onboardingStatus: true,
           },
           where: and(eq(user.email, email), ne(user.status, "deleted")),
         }),
@@ -51,6 +53,8 @@ export class IdentityRepository
             lastLoginAt: true,
             createdAt: true,
             updatedAt: true,
+            intent: true,
+            onboardingStatus: true,
           },
           with: {
             account: {
@@ -79,6 +83,8 @@ export class IdentityRepository
             lastLoginAt: true,
             createdAt: true,
             updatedAt: true,
+            intent: true,
+            onboardingStatus: true,
           },
         }),
     );
@@ -104,6 +110,20 @@ export class IdentityRepository
     });
   }
 
+  async syncIntent(
+    userId: number,
+    intent: "seeker" | "employer",
+    onboardingStatus: "pending" | "completed",
+  ): Promise<boolean> {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(user)
+        .set({ intent, onboardingStatus })
+        .where(eq(user.id, userId));
+      return result.affectedRows > 0;
+    });
+  }
+
   async deactivateUserAccount(
     id: number,
     data: { status: "active" | "deactivated" | "deleted" },
@@ -119,7 +139,7 @@ export class IdentityRepository
             })
             .where(eq(user.id, id));
 
-          if (!result.affectedRows && result.affectedRows === 0) {
+          if (!result.affectedRows || result.affectedRows === 0) {
             tx.rollback();
           }
 

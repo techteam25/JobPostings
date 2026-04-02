@@ -13,4 +13,9 @@ export interface IdentityWritePort {
     userId: number,
     fullName: string,
   ): Promise<Result<void, AppError>>;
+  syncIntentToUser(
+    userId: number,
+    intent: "seeker" | "employer",
+    onboardingStatus: "pending" | "completed",
+  ): Promise<Result<void, AppError>>;
 }

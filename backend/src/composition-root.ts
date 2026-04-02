@@ -20,6 +20,8 @@ import { createInvitationsModule } from "@/modules/invitations";
 import { JobBoardRepository } from "@/modules/job-board";
 import { JobInsightsRepository } from "@/modules/job-board";
 import { ApplicationsRepository } from "@/modules/applications";
+import { OrganizationsRepository } from "@/modules/organizations";
+import { ProfileRepository } from "@/modules/user-profile";
 
 // Cross-module adapters
 import {
@@ -37,6 +39,7 @@ import {
   FileMetadataUpdateAdapter,
   JobBoardToSharedInsightsAdapter,
   IdentityToProfileWriteAdapter,
+  ProfileToOrganizationsIntentSyncAdapter,
 } from "@shared/adapters";
 
 // Shared workers
@@ -113,31 +116,17 @@ export function createCompositionRoot(): CompositionRoot {
   const jobBoardRepository = new JobBoardRepository();
   const jobInsightsRepository = new JobInsightsRepository();
   const applicationsRepository = new ApplicationsRepository();
+  const organizationsRepository = new OrganizationsRepository();
+  const profileRepository = new ProfileRepository();
 
   // EmailService depends on email preferences — satisfied by NotificationsRepository
   const emailService = new EmailService(notificationsRepository);
 
   // ─── 3. Leaf Modules ────────────────────────────────────────────────
 
-  const organizations = createOrganizationsModule();
   const identity = createIdentityModule({ emailService, eventBus });
 
   // ─── 4. Cross-Module Adapters ───────────────────────────────────────
-
-  // Organizations → other modules
-  const orgsToProfileAdapter = new OrganizationsToProfileAdapter(
-    organizations.repository,
-    organizations.service,
-  );
-  const orgsToJobBoardAdapter = new OrganizationsToJobBoardAdapter(
-    organizations.repository,
-  );
-  const orgsToApplicationsAdapter = new OrganizationsToApplicationsAdapter(
-    organizations.repository,
-  );
-  const orgsToInvitationsAdapter = new OrganizationsToInvitationsAdapter(
-    organizations.repository,
-  );
 
   // Identity → other modules
   const identityToNotificationsAdapter = new IdentityToNotificationsAdapter(
@@ -172,11 +161,40 @@ export function createCompositionRoot(): CompositionRoot {
 
   // ─── 5. Remaining Modules ──────────────────────────────────────────
 
+  // Identity → Organizations (intent sync via identity repository, since
+  // the user table is owned by the identity bounded context)
+  const intentSyncAdapter = new ProfileToOrganizationsIntentSyncAdapter(
+    identity.repository,
+  );
+
+  // Organizations module (needs intent sync adapter)
+  const organizations = createOrganizationsModule({
+    intentSync: intentSyncAdapter,
+    organizationsRepository,
+  });
+
+  // Organizations → other modules (adapters using module's repo + service)
+  const orgsToProfileAdapter = new OrganizationsToProfileAdapter(
+    organizations.repository,
+    organizations.service,
+  );
+  const orgsToJobBoardAdapter = new OrganizationsToJobBoardAdapter(
+    organizations.repository,
+  );
+  const orgsToApplicationsAdapter = new OrganizationsToApplicationsAdapter(
+    organizations.repository,
+  );
+  const orgsToInvitationsAdapter = new OrganizationsToInvitationsAdapter(
+    organizations.repository,
+  );
+
+  // User-profile module (needs orgs adapters)
   const userProfile = createUserProfileModule({
     orgRoleQuery: orgsToProfileAdapter,
     userOrgsQuery: orgsToProfileAdapter,
     identityWrite: identityToProfileWriteAdapter,
     typesenseUserProfileService,
+    profileRepository,
   });
 
   // Profile → Job-board (saved jobs enrichment)

@@ -30,4 +30,22 @@ export class IdentityToProfileWriteAdapter implements IdentityWritePort {
 
     return ok(undefined);
   }
+
+  async syncIntentToUser(
+    userId: number,
+    intent: "seeker" | "employer",
+    onboardingStatus: "pending" | "completed",
+  ): Promise<Result<void, AppError>> {
+    const success = await this.identityRepository.syncIntent(
+      userId,
+      intent,
+      onboardingStatus,
+    );
+
+    if (!success) {
+      return fail(new DatabaseError("Failed to sync intent to user"));
+    }
+
+    return ok(undefined);
+  }
 }

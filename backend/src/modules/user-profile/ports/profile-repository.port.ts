@@ -66,6 +66,10 @@ export interface ProfileRepositoryPort {
     | undefined
   >;
   completeOnboarding(userId: number): Promise<boolean>;
+  initializeUserIntent(
+    userId: number,
+    intent: "seeker" | "employer",
+  ): Promise<void>;
   updateProfileVisibility(
     userId: number,
     isPublic: boolean,

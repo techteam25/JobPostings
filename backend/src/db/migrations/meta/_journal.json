@@ -225,6 +225,13 @@
       "when": 1774665774279,
       "tag": "0031_eager_shatterstar",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "5",
+      "when": 1775097003635,
+      "tag": "0032_first_hardball",
+      "breakpoints": true
     }
   ]
 }

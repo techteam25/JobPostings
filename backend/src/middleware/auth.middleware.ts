@@ -55,6 +55,10 @@ export class AuthMiddleware {
         image: session.user.image as string | null,
         deletedAt: session.user.deletedAt as Date | null,
         lastLoginAt: session.user.lastLoginAt as Date | null,
+        intent: session.user.intent as "seeker" | "employer",
+        onboardingStatus: session.user.onboardingStatus as
+          | "pending"
+          | "completed",
       };
       req.userId = parseInt(session.user.id);
 

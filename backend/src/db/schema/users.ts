@@ -42,6 +42,13 @@ export const user = mysqlTable(
     status: varchar("status", { length: 20 }).default("active").notNull(),
     deletedAt: timestamp("deleted_at", { fsp: 3 }),
     lastLoginAt: timestamp("last_login_at", { fsp: 3 }),
+    // Denormalized from userOnBoarding for easier access during auth flows and to avoid extra joins when determining user intent during login/signup, as this is frequently accessed data.
+    intent: mysqlEnum("intent", ["seeker", "employer"])
+      .default("seeker")
+      .notNull(),
+    onboardingStatus: mysqlEnum("onboarding_status", ["completed", "pending"])
+      .default("pending")
+      .notNull(),
   },
   (table) => [
     index("idx_users_status").on(table.status),
