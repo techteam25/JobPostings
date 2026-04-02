@@ -35,7 +35,12 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
-import { updateWorkAvailabilitySchema } from "@/validations/userProfile.validation";
+import {
+  updateWorkAvailabilitySchema,
+  uploadProfilePictureSchema,
+  uploadResumeSchema,
+} from "@/validations/userProfile.validation";
+import { uploadMiddleware } from "@/middleware/multer.middleware";
 
 export function createProfileRoutes({
   controller: profileController,
@@ -84,6 +89,13 @@ export function createProfileRoutes({
     profileController.getCurrentUserIntent,
   );
 
+  // PATCH /users/me/onboarding/complete
+  router.patch(
+    "/me/onboarding/complete",
+    invalidateCacheMiddleware(() => "users/me/intent"),
+    profileController.completeOnboarding,
+  );
+
   // GET /users/me/organizations
   router.get(
     "/me/organizations",
@@ -105,6 +117,33 @@ export function createProfileRoutes({
     validate(createUserPayloadSchema),
     invalidateCacheMiddleware(() => "users/me"),
     profileController.createProfile,
+  );
+
+  // POST /users/me/profile-picture
+  // No cache invalidation here — the upload is async (BullMQ worker).
+  // Invalidating now would cause the frontend to re-cache stale data
+  // since the worker hasn't updated the DB yet.
+  router.post(
+    "/me/profile-picture",
+    uploadMiddleware.profilePicture,
+    validate(uploadProfilePictureSchema),
+    profileController.uploadProfilePicture,
+  );
+
+  // POST /users/me/resume
+  // No cache invalidation — async BullMQ worker (same reason as profile picture).
+  router.post(
+    "/me/resume",
+    uploadMiddleware.resume,
+    validate(uploadResumeSchema),
+    profileController.uploadResume,
+  );
+
+  // DELETE /users/me/resume
+  router.delete(
+    "/me/resume",
+    invalidateCacheMiddleware(() => "users/me"),
+    profileController.deleteResume,
   );
 
   // Education CRUD routes
@@ -234,6 +273,7 @@ export function createProfileRoutes({
     profileGuards.requireUserRole,
     validate(getJobSchema),
     invalidateCacheMiddleware(() => "users/me/saved-jobs"),
+    invalidateCacheMiddleware(() => "jobs"),
     profileController.saveJobForCurrentUser,
   );
 
@@ -243,6 +283,7 @@ export function createProfileRoutes({
     profileGuards.requireUserRole,
     validate(getJobSchema),
     invalidateCacheMiddleware(() => "users/me/saved-jobs"),
+    invalidateCacheMiddleware(() => "jobs"),
     profileController.unsaveJobForCurrentUser,
   );
 

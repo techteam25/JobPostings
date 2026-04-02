@@ -5,3 +5,5 @@ export type { OrganizationsServicePort } from "./ports/organizations-service.por
 export type { OrganizationsRepositoryPort } from "./ports/organizations-repository.port";
 export { createOrganizationsGuards } from "./guards/organizations.guards";
 export type { OrganizationsGuards } from "./guards/organizations.guards";
+export type { IntentSyncPort } from "./ports/intent-sync.port";
+export { OrganizationsRepository } from "./repositories/organizations.repository";

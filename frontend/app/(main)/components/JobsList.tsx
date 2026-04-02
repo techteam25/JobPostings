@@ -33,7 +33,7 @@ export const JobsList = ({
           posted={formatPostedDate(job.createdAt)}
           logoUrl={employer?.logoUrl || null}
           onJobSelected={() => onJobSelected(job.id)}
-          hasSaved={hasSaved ?? false}
+          hasSaved={hasSaved}
         />
       )),
     [data, selectedId, onJobSelected],

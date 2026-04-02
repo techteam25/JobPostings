@@ -14,7 +14,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@shared/db/connection";
 
-import { userEmailPreferences } from "@/db/schema";
+import { user, userEmailPreferences } from "@/db/schema";
 
 import {
   seedJobsScenario,
@@ -141,7 +141,9 @@ describe("User Controller Integration Tests", () => {
         await seedUserScenario();
       });
 
-      it("should create user profile returning 201", async () => {
+      it("should reject creating a duplicate profile returning 500", async () => {
+        // Registration auto-creates a profile, so POST should fail for
+        // users who already have one.
         const loginResponse = await request
           .post("/api/auth/sign-in/email")
           .send({
@@ -160,29 +162,7 @@ describe("User Controller Integration Tests", () => {
           .set("Cookie", cookie!)
           .send(profileData);
 
-        TestHelpers.validateApiResponse(response, 201);
-
-        expect(response.body).toHaveProperty("success", true);
-        expect(response.body).toHaveProperty("message", "User profile created");
-        expect(response.body.data).toHaveProperty("id", 1);
-        expect(response.body.data).toHaveProperty("userId", 1);
-        expect(response.body.data).toHaveProperty(
-          "profilePicture",
-          profileData.profilePicture,
-        );
-        expect(response.body.data).toHaveProperty("bio", profileData.bio);
-        expect(response.body.data).toHaveProperty(
-          "profilePicture",
-          profileData.profilePicture,
-        );
-        expect(response.body.data).toHaveProperty(
-          "address",
-          profileData.address,
-        );
-        expect(response.body.data).toHaveProperty(
-          "linkedinUrl",
-          profileData.linkedinUrl,
-        );
+        TestHelpers.validateApiResponse(response, 500);
       });
 
       it("should update user profile returning 200", async () => {
@@ -235,6 +215,208 @@ describe("User Controller Integration Tests", () => {
         expect(response.body.data).toHaveProperty("profile");
         expect(response.body.data.profile).toHaveProperty("userId", 1);
         expect(response.body.data.profile).toHaveProperty("bio", "Updated bio");
+      });
+
+      it("should update fullName via cross-module identity write", async () => {
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
+        await createProfile(1);
+        await createPrefs(1);
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+        const cookie = loginResponse.headers["set-cookie"]?.[0] ?? "";
+
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Cookie", cookie!)
+          .send({
+            fullName: "Updated Display Name",
+            bio: "<p>A valid bio that is long enough</p>",
+            educations: [],
+            workExperiences: [],
+            certifications: [],
+          });
+
+        TestHelpers.validateApiResponse(response, 200);
+        expect(response.body).toHaveProperty("success", true);
+
+        // Verify fullName was updated on the user table (cross-module write)
+        const updatedUser = await db.query.user.findFirst({
+          where: eq(user.id, 1),
+        });
+        expect(updatedUser?.fullName).toBe("Updated Display Name");
+      });
+
+      it("should reject bio with fewer than 10 plain-text characters (HTML stripped)", async () => {
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
+        await createProfile(1);
+        await createPrefs(1);
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+        const cookie = loginResponse.headers["set-cookie"]?.[0] ?? "";
+
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Cookie", cookie!)
+          .send({
+            bio: "<p><strong>Short</strong></p>",
+            educations: [],
+            workExperiences: [],
+            certifications: [],
+          });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty("success", false);
+      });
+
+      it("should accept bio with 10+ plain-text characters in HTML", async () => {
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
+        await createProfile(1);
+        await createPrefs(1);
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+        const cookie = loginResponse.headers["set-cookie"]?.[0] ?? "";
+
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Cookie", cookie!)
+          .send({
+            bio: "<p>This is a <strong>valid</strong> bio text</p>",
+            educations: [],
+            workExperiences: [],
+            certifications: [],
+          });
+
+        TestHelpers.validateApiResponse(response, 200);
+        expect(response.body).toHaveProperty("success", true);
+        expect(response.body.data.profile).toHaveProperty(
+          "bio",
+          "<p>This is a <strong>valid</strong> bio text</p>",
+        );
+      });
+
+      it("should reject invalid phone number", async () => {
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
+        await createProfile(1);
+        await createPrefs(1);
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+        const cookie = loginResponse.headers["set-cookie"]?.[0] ?? "";
+
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Cookie", cookie!)
+          .send({
+            phoneNumber: "abc",
+            educations: [],
+            workExperiences: [],
+            certifications: [],
+          });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty("success", false);
+      });
+
+      it("should accept valid phone number formats", async () => {
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
+        await createProfile(1);
+        await createPrefs(1);
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+        const cookie = loginResponse.headers["set-cookie"]?.[0] ?? "";
+
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Cookie", cookie!)
+          .send({
+            phoneNumber: "+1 (123) 456 7890",
+            educations: [],
+            workExperiences: [],
+            certifications: [],
+          });
+
+        TestHelpers.validateApiResponse(response, 200);
+        expect(response.body).toHaveProperty("success", true);
+        expect(response.body.data.profile).toHaveProperty(
+          "phoneNumber",
+          "+1 (123) 456 7890",
+        );
+      });
+
+      it("should update city, state, and country", async () => {
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
+        await createProfile(1);
+        await createPrefs(1);
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+        const cookie = loginResponse.headers["set-cookie"]?.[0] ?? "";
+
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Cookie", cookie!)
+          .send({
+            city: "Denver",
+            state: "Colorado",
+            country: "United States",
+            educations: [],
+            workExperiences: [],
+            certifications: [],
+          });
+
+        TestHelpers.validateApiResponse(response, 200);
+        expect(response.body.data.profile).toHaveProperty("city", "Denver");
+        expect(response.body.data.profile).toHaveProperty("state", "Colorado");
+        expect(response.body.data.profile).toHaveProperty(
+          "country",
+          "United States",
+        );
       });
     });
 
@@ -301,7 +483,7 @@ describe("User Controller Integration Tests", () => {
           .send({ currentPassword: "Password@123", confirm: true });
 
         expect(response.status).toBe(204);
-        // expect(auth.api.deleteUser).toHaveBeenCalledWith({ body: { token } });
+        // expect(index.api.deleteUser).toHaveBeenCalledWith({ body: { token } });
       });
     });
   });

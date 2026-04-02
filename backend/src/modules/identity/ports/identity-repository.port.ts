@@ -11,4 +11,10 @@ export interface IdentityRepositoryPort {
   update(id: number, data: UpdateUser): Promise<boolean>;
   findById(id: number): Promise<User | undefined>;
   findDeactivatedUserIds(): Promise<number[]>;
+  updateFullName(userId: number, fullName: string): Promise<boolean>;
+  syncIntent(
+    userId: number,
+    intent: "seeker" | "employer",
+    onboardingStatus: "pending" | "completed",
+  ): Promise<boolean>;
 }

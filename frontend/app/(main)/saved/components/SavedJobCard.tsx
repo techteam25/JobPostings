@@ -1,12 +1,14 @@
 "use client";
 
-import { memo, useCallback } from "react";
+import { memo, useCallback, useTransition } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { SavedJob } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Bookmark, Building2 } from "lucide-react";
 import { formatToRelativeDate } from "@/lib/utils";
-import { useUnsaveJobMutation } from "@/hooks/use-saved-jobs";
+import { removeSavedJobForUser } from "@/lib/api";
+import { toast } from "sonner";
 
 interface SavedJobCardProps {
   savedJob: SavedJob;
@@ -15,11 +17,19 @@ interface SavedJobCardProps {
 export const SavedJobCard = memo(function SavedJobCard({
   savedJob,
 }: SavedJobCardProps) {
-  const unsaveJob = useUnsaveJobMutation();
+  const [isPending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
 
   const handleRemove = useCallback(() => {
-    unsaveJob.mutate(savedJob.job.id);
-  }, [savedJob.job.id, unsaveJob]);
+    startTransition(async () => {
+      const result = await removeSavedJobForUser(savedJob.job.id);
+      if (!result.success) toast.error("Failed to remove saved job");
+      await queryClient.invalidateQueries({
+        queryKey: ["job-details", savedJob.job.id],
+      });
+    });
+  }, [savedJob.job.id, queryClient]);
+
   return (
     <Card className="group overflow-hidden transition-shadow duration-300 hover:shadow-lg">
       <div className="p-6">
@@ -29,17 +39,18 @@ export const SavedJobCard = memo(function SavedJobCard({
             <div className="flex size-8 shrink-0 justify-center rounded-full">
               <Building2 className="text-muted-foreground mr-2 size-5" />
             </div>
-            <span className="text-secondary-foreground line-clamp-1 text-sm text-ellipsis">
+            <span className="text-secondary-foreground line-clamp-1 text-sm font-medium text-ellipsis">
               {savedJob.job.employer.name}
             </span>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="text-secondary-foreground hover:text-foreground cursor-pointer hover:bg-transparent"
+            className="text-secondary-foreground hover:text-foreground cursor-pointer hover:bg-transparent [&_svg]:size-5"
             onClick={handleRemove}
+            disabled={isPending}
           >
-            <Bookmark />
+            <Bookmark className="fill-primary stroke-primary" />
           </Button>
         </div>
 

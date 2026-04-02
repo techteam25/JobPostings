@@ -1,4 +1,4 @@
-import { connection } from "@shared/db/connection";
+import { createTestDatabase } from "./testDatabase";
 import { redisCacheService } from "@shared/infrastructure/redis-cache.service";
 
 const tableNames = [
@@ -29,6 +29,8 @@ const tableNames = [
   "verification",
   "users",
 ] as const;
+
+const { connection } = createTestDatabase(); // Ensure test database is initialized before cleanup
 
 /**
  * Deletes all data from every table and resets AUTO_INCREMENT counters.

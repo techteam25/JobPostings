@@ -1,11 +1,9 @@
 // middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 
-import { getServerSession } from "@/lib/auth-server";
-import { env } from "@/env";
-import { UserIntentResponse } from "@/schemas/responses/users";
+import { parseSessionCookie } from "@/lib/session-cookie";
 
-export async function middleware(req: NextRequest) {
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Public routes that don't require authentication
@@ -21,89 +19,62 @@ export async function middleware(req: NextRequest) {
     pathname === "/" ||
     publicRoutes.some((route) => pathname.startsWith(route));
 
-  // Use the raw Cookie header — reconstructing from parsed cookies can corrupt
-  // token values containing special characters (e.g. better-auth session tokens)
+  // Parse session + intent directly from cookies — zero HTTP calls.
+  // The backend API middleware remains the real security gate.
   const cookieHeader = req.headers.get("cookie");
-
-  const { session, user } = await getServerSession(cookieHeader);
+  const parsed = parseSessionCookie(cookieHeader);
 
   // If user is not authenticated, redirect to '/sign-in'
-  if (!session || !user) {
+  if (!parsed) {
     if (!isPublicRoute) {
       return NextResponse.redirect(new URL("/sign-in", req.url));
     }
     return NextResponse.next();
   }
 
-  // User is authenticated - fetch their intent/onboarding status
-  try {
-    const onboardingResponse = await fetch(
-      `${env.NEXT_PUBLIC_SERVER_URL}/users/me/intent`,
-      {
-        headers: {
-          cookie: cookieHeader || "",
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        cache: "no-store",
-      },
-    );
-
-    if (!onboardingResponse.ok) {
-      // Intent API unavailable — allow authenticated user through
-      return NextResponse.next();
-    }
-
-    const onboarding: UserIntentResponse = await onboardingResponse.json();
-
-    if (!onboarding?.success) {
-      // No intent data yet (new user) — allow through to set intent
-      return NextResponse.next();
-    }
-
-    const { intent, status } = onboarding.data;
-
-    // If user status is pending
-    if (status === "pending") {
-      if (intent === "employer") {
-        // Redirect to employer onboarding if not already there
-        if (!pathname.startsWith("/employer/onboarding")) {
-          return NextResponse.redirect(
-            new URL("/employer/onboarding", req.url),
-          );
-        }
-      } else if (intent === "seeker") {
-        // Redirect to home if not already there
-        if (pathname !== "/" && !isPublicRoute) {
-          return NextResponse.next();
-        }
-      }
-    }
-
-    // If status is completed
-    if (status === "completed") {
-      // Prevent access to onboarding routes after completion
-      if (pathname.startsWith("/employer/onboarding")) {
-        if (intent === "employer") {
-          return NextResponse.redirect(
-            new URL("/employer/organizations", req.url),
-          );
-        } else {
-          return NextResponse.redirect(new URL("/", req.url));
-        }
-      }
-    }
-
-    return NextResponse.next();
-  } catch (error) {
-    // User is authenticated (session verified above) but onboarding status
-    // check failed. Allow access rather than blocking authenticated users
-    // when the intent API is unavailable.
-    if (process.env.NODE_ENV === "development") {
-      console.error("Middleware onboarding check failed:", error);
-    }
+  // "token-only" means the session_data cache cookie is missing (e.g. dev mode
+  // or expired in prod) but the session_token exists — user is authenticated.
+  // We can't make intent-based routing decisions, so just let the request through.
+  // The backend API middleware will do the real auth check on any API calls.
+  if (parsed.kind === "token-only") {
     return NextResponse.next();
   }
+
+  // Read intent from session cookie (denormalized on user table,
+  // cached in better-auth session_data cookie automatically)
+  const { intent, onboardingStatus } = parsed.user;
+
+  // If onboarding is pending
+  if (onboardingStatus === "pending") {
+    if (intent === "employer") {
+      // Force pending employers to onboarding
+      if (!pathname.startsWith("/employer/onboarding")) {
+        return NextResponse.redirect(new URL("/employer/onboarding", req.url));
+      }
+    }
+    // Pending seekers can browse freely
+  }
+
+  // If onboarding is completed
+  if (onboardingStatus === "completed") {
+    // Prevent access to onboarding routes after completion
+    if (pathname.startsWith("/employer/onboarding")) {
+      if (intent === "employer") {
+        return NextResponse.redirect(
+          new URL("/employer/organizations", req.url),
+        );
+      } else {
+        return NextResponse.redirect(new URL("/", req.url));
+      }
+    }
+
+    // Prevent completed seekers from accessing /welcome
+    if (pathname === "/welcome") {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {

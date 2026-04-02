@@ -24,6 +24,7 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUserSignOut } from "@/app/(main)/hooks/use-user-signout";
+import { useCurrentUserProfile } from "@/app/(main)/hooks/use-current-user-profile";
 import { Separator } from "@/components/ui/separator";
 import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 
@@ -39,8 +40,14 @@ export function NavbarMobile({
   email,
 }: NavbarMobileProps) {
   const { signOutAsyncAction, isPending } = useUserSignOut();
+  const { data: freshProfile } = useCurrentUserProfile();
   const { isAuthenticated } = useAuthenticationStatus();
   const { theme, setTheme } = useTheme();
+
+  const freshProfilePicture = freshProfile?.success
+    ? freshProfile.data.profile?.profilePicture
+    : undefined;
+  const avatarSrc = freshProfilePicture ?? profileImage ?? undefined;
 
   return (
     <Sheet>
@@ -55,10 +62,7 @@ export function NavbarMobile({
             <SheetHeader>
               <div className="flex items-center gap-3">
                 <Avatar className="size-10">
-                  <AvatarImage
-                    src={profileImage ?? undefined}
-                    alt={username ?? "User"}
-                  />
+                  <AvatarImage src={avatarSrc} alt={username ?? "User"} />
                   <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
                     {username ? (
                       username
@@ -83,37 +87,49 @@ export function NavbarMobile({
               </div>
             </SheetHeader>
             <nav className="flex flex-col items-start gap-4 p-4">
-              <Button
-                variant="link"
-                className="text-secondary-foreground rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-                asChild
-              >
-                <Link href="/">Explore Jobs</Link>
-              </Button>
-              <Button
-                variant="link"
-                className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-              >
-                Saved Jobs
-              </Button>
-              <Button
-                variant="link"
-                className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-              >
-                Applications
-              </Button>
-              <Button
-                variant="link"
-                className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-              >
-                Messages
-              </Button>
-              <Button
-                variant="link"
-                className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-              >
-                FAQ
-              </Button>
+              <SheetClose asChild>
+                <Button
+                  variant="link"
+                  className="text-secondary-foreground rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                  asChild
+                >
+                  <Link href="/">Explore Jobs</Link>
+                </Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button
+                  variant="link"
+                  className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                  asChild
+                >
+                  <Link href="/saved">Saved Jobs</Link>
+                </Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button
+                  variant="link"
+                  className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                  asChild
+                >
+                  <Link href="/applications">My Applications</Link>
+                </Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button
+                  variant="link"
+                  className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                >
+                  Messages
+                </Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button
+                  variant="link"
+                  className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                >
+                  FAQ
+                </Button>
+              </SheetClose>
 
               <Separator className="my-1" />
 

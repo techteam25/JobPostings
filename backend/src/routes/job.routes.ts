@@ -484,6 +484,7 @@ registry.registerPath({
 
 interface JobRoutesDeps {
   authenticate: CompositionRoot["authenticate"];
+  optionalAuthenticate: CompositionRoot["optionalAuthenticate"];
   jobBoard: CompositionRoot["jobBoard"];
   applications: CompositionRoot["applications"];
   organizations: CompositionRoot["organizations"];
@@ -508,6 +509,7 @@ export function createJobRoutes(deps: JobRoutesDeps): Router {
   router.use(
     createJobBoardRoutes({
       authenticate: deps.authenticate,
+      optionalAuthenticate: deps.optionalAuthenticate,
       orgGuards: deps.organizations.guards,
       jobBoardGuards: deps.jobBoard.guards,
       controller: deps.jobBoard.controller,

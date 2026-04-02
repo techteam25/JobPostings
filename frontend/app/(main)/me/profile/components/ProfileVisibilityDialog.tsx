@@ -26,6 +26,8 @@ const ProfileVisibilityDialog = ({ isVisible }: { isVisible: boolean }) => {
     const result = await updateProfileVisibility(isVisible);
     if (!result.success) {
       toast.error(result.message);
+    } else {
+      toast.success(result.message);
     }
   };
 

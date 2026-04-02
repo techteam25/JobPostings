@@ -1,11 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
-import { authClient } from "@/lib/auth";
+import { useAuthStore } from "@/context/auth-store";
 
+/**
+ * Thin wrapper over the Zustand auth store.
+ * Maintains the same API shape as the old React Query hook so
+ * existing consumers (Navbar, EmployerNavbar, EmailPreferences, etc.)
+ * don't need changes.
+ */
 export const useUserSession = () => {
-  const { data, error, isPending } = useQuery({
-    queryKey: ["get-user-session"],
-    queryFn: async () => await authClient.getSession(),
-  });
+  const session = useAuthStore((s) => s.session);
+  const isLoading = useAuthStore((s) => s.isLoading);
 
-  return { data, error, isPending };
+  return {
+    // Matches the old shape: data?.data?.user, data?.data?.session
+    data: session ? { data: session } : null,
+    error: null,
+    isPending: isLoading,
+  };
 };

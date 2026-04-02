@@ -21,6 +21,8 @@ export {
 export {
   getUserIntent,
   getUserInformation,
+  completeOnboarding,
+  updateProfile,
   updateProfileVisibility,
   updateWorkAvailability,
 } from "./users";

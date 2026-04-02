@@ -287,16 +287,18 @@ export class FirebaseUploadService extends BaseService {
   async deleteFile(fileUrl: string): Promise<boolean> {
     try {
       // Extract storage path from download URL
+      // URL format: https://storage.googleapis.com/{bucket}/{path}
+      // bucket.file() already scopes to the bucket, so we need only {path}.
       const urlObj = new URL(fileUrl);
-      // Match pattern: storage.googleapis.com/{bucket}/{path}
-      const pathMatch = urlObj.pathname.match(/\/([^/]+\/[^?]+)/);
+      const segments = urlObj.pathname.split("/").filter(Boolean);
 
-      if (!pathMatch) {
+      if (segments.length < 2) {
         logger.error({ fileUrl }, "Could not extract storage path from URL");
         return false;
       }
 
-      const storagePath = decodeURIComponent(pathMatch[1]!);
+      // First segment is the bucket name — skip it
+      const storagePath = decodeURIComponent(segments.slice(1).join("/"));
       const bucketFile = bucket.file(storagePath);
 
       await bucketFile.delete();

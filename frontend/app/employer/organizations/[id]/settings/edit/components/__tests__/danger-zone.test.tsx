@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OrganizationProvider } from "../../../../context/organization-context";
-import { DangerZone } from "../danger-zone";
+import { DangerZone } from "../DangerZone";
 import type { OrganizationWithMembers } from "@/lib/types";
 
 // Mock next/navigation

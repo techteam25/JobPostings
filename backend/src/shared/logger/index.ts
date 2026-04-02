@@ -18,6 +18,13 @@ const stream = pretty({
 export default pino(
   {
     level: env.LOG_LEVEL,
+    redact: {
+      paths: [
+        "req.headers.cookie",
+        "req.headers.authorization",
+        "res.headers['set-cookie']",
+      ],
+    },
   },
   stream,
 );

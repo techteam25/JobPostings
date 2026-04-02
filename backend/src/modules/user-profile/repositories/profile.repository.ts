@@ -70,6 +70,8 @@ export class ProfileRepository
             lastLoginAt: true,
             createdAt: true,
             updatedAt: true,
+            intent: true,
+            onboardingStatus: true,
           },
         }),
     );
@@ -127,6 +129,8 @@ export class ProfileRepository
             .insert(userProfile)
             .values({
               ...profileData,
+              isProfilePublic: profileData?.isProfilePublic ?? true,
+              isAvailableForWork: profileData?.isAvailableForWork ?? true,
               userId,
             })
             .$returningId();
@@ -319,6 +323,8 @@ export class ProfileRepository
         lastLoginAt: true,
         createdAt: true,
         updatedAt: true,
+        intent: true,
+        onboardingStatus: true,
       },
     });
   }
@@ -719,6 +725,8 @@ export class ProfileRepository
               lastLoginAt: user.lastLoginAt,
               createdAt: user.createdAt,
               updatedAt: user.updatedAt,
+              intent: user.intent,
+              onboardingStatus: user.onboardingStatus,
             })
             .from(user)
             .where(whereCondition)
@@ -958,6 +966,36 @@ export class ProfileRepository
           intent: true,
           status: true,
         },
+      });
+    });
+  }
+
+  async completeOnboarding(userId: number): Promise<boolean> {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(userOnBoarding)
+        .set({ status: "completed" })
+        .where(
+          and(
+            eq(userOnBoarding.userId, userId),
+            eq(userOnBoarding.status, "pending"),
+          ),
+        );
+      return result.affectedRows > 0;
+    });
+  }
+
+  async initializeUserIntent(
+    userId: number,
+    intent: "seeker" | "employer",
+  ): Promise<void> {
+    // Source of truth only — the denormalized copy on the user table
+    // is synced via IdentityWritePort at the service layer.
+    await withDbErrorHandling(async () => {
+      await db.insert(userOnBoarding).values({
+        userId,
+        intent,
+        status: "pending",
       });
     });
   }

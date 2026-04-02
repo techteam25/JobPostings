@@ -144,4 +144,13 @@ export interface EmailServicePort {
     url: string,
     token: string,
   ): Promise<void>;
+
+  /**
+   * Sends a welcome email to a new seeker after onboarding completion.
+   */
+  sendWelcomeEmail(
+    userId: number,
+    email: string,
+    fullName: string,
+  ): Promise<void>;
 }

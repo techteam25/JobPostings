@@ -942,4 +942,32 @@ ${footer}`,
       }
     }
   }
+
+  async sendWelcomeEmail(
+    _userId: number,
+    email: string,
+    fullName: string,
+  ): Promise<void> {
+    const template = await this.loadTemplate("welcomeEmail");
+
+    const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+    const htmlContent = template
+      .replace(/{{logoPath}}/g, logoPath)
+      .replace(/{{name}}/g, this.escapeHtml(fullName))
+      .replace(/{{frontendUrl}}/g, env.FRONTEND_URL);
+
+    try {
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: "Welcome to GetInvolved!",
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      logger.error(error, "Email service error");
+    }
+  }
 }

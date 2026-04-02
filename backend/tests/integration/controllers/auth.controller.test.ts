@@ -4,6 +4,11 @@ import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { userFixture } from "@tests/utils/fixtures";
 import { expect } from "vitest";
 import { seedUserScenario } from "@tests/utils/seedScenarios";
+import { eq } from "drizzle-orm";
+import { userProfile, userOnBoarding, userEmailPreferences } from "@/db/schema";
+import { createTestDatabase } from "@tests/utils/testDatabase";
+
+const { db } = createTestDatabase();
 
 describe("Authentication Controller Integration Tests", () => {
   describe("POST /sign-up/email", () => {
@@ -168,6 +173,87 @@ describe("Authentication Controller Integration Tests", () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty("status", true);
+    });
+  });
+
+  describe("Profile initialization on registration", () => {
+    it("should create userProfile with correct defaults after email registration", async () => {
+      const newUser = await userFixture();
+
+      const response = await request
+        .post("/api/auth/sign-up/email")
+        .send({ ...newUser, intent: "seeker" });
+
+      expect(response.status).toBe(200);
+      const userId = Number(response.body.user.id);
+
+      const [profile] = await db
+        .select()
+        .from(userProfile)
+        .where(eq(userProfile.userId, userId))
+        .limit(1);
+
+      expect(profile).toBeDefined();
+      expect(profile!.isProfilePublic).toBe(true);
+      expect(profile!.isAvailableForWork).toBe(true);
+      expect(profile!.country).toBeNull();
+    });
+
+    it("should create userOnBoarding with submitted intent after email registration", async () => {
+      const newUser = await userFixture();
+
+      const response = await request
+        .post("/api/auth/sign-up/email")
+        .send({ ...newUser, intent: "employer" });
+
+      expect(response.status).toBe(200);
+      const userId = Number(response.body.user.id);
+
+      const [onboarding] = await db
+        .select()
+        .from(userOnBoarding)
+        .where(eq(userOnBoarding.userId, userId))
+        .limit(1);
+
+      expect(onboarding).toBeDefined();
+      expect(onboarding!.intent).toBe("employer");
+      expect(onboarding!.status).toBe("pending");
+    });
+
+    it("should create email preferences after email registration", async () => {
+      const newUser = await userFixture();
+
+      const response = await request
+        .post("/api/auth/sign-up/email")
+        .send({ ...newUser, intent: "seeker" });
+
+      expect(response.status).toBe(200);
+      const userId = Number(response.body.user.id);
+
+      const [emailPrefs] = await db
+        .select()
+        .from(userEmailPreferences)
+        .where(eq(userEmailPreferences.userId, userId))
+        .limit(1);
+
+      expect(emailPrefs).toBeDefined();
+      expect(emailPrefs!.jobMatchNotifications).toBe(true);
+      expect(emailPrefs!.applicationStatusNotifications).toBe(true);
+    });
+
+    it("should return enriched response with intent and redirectUrl", async () => {
+      const newUser = await userFixture();
+
+      const response = await request
+        .post("/api/auth/sign-up/email")
+        .send({ ...newUser, intent: "employer" });
+
+      expect(response.status).toBe(200);
+      expect(response.body.user).toHaveProperty("intent", "employer");
+      expect(response.body.user).toHaveProperty(
+        "redirectUrl",
+        "/employer/onboarding",
+      );
     });
   });
 });

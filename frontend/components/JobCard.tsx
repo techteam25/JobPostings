@@ -1,9 +1,12 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useTransition } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { JobTypeEnum } from "@/lib/types";
-import { useJobSaved } from "@/hooks/use-job-saved";
+import { saveJobForUser, removeSavedJobForUser } from "@/lib/api";
+import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
+import { toast } from "sonner";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Toggle } from "./ui/toggle";
@@ -14,7 +17,6 @@ import {
 } from "@/components/ui/tooltip";
 
 import { Bookmark, Building2 } from "lucide-react";
-import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 
 interface JobCardType {
   jobId: number;
@@ -28,7 +30,7 @@ interface JobCardType {
   logoUrl: string | null;
   onJobSelected: () => void;
   isSelected: boolean;
-  hasSaved: boolean;
+  hasSaved?: boolean;
 }
 
 export const JobCard = memo(
@@ -43,17 +45,30 @@ export const JobCard = memo(
     experienceLevel,
     onJobSelected,
     isSelected,
-    hasSaved: initialHasSaved,
+    hasSaved = false,
   }: JobCardType) => {
     const { isAuthenticated } = useAuthenticationStatus();
-    const { hasSaved, toggleSaved } = useJobSaved(
-      jobId,
-      initialHasSaved,
-      isAuthenticated,
-    );
+    const [isPending, startTransition] = useTransition();
+    const queryClient = useQueryClient();
 
-    const handleSaveJobChange = async () => {
-      await toggleSaved();
+    const handleSaveJobChange = () => {
+      if (!isAuthenticated) {
+        toast.info("Sign in to save jobs");
+        return;
+      }
+
+      startTransition(async () => {
+        if (hasSaved) {
+          const result = await removeSavedJobForUser(jobId);
+          if (!result.success) toast.error("Failed to remove saved job");
+        } else {
+          const result = await saveJobForUser(jobId);
+          if (!result.success) toast.error("Failed to save job");
+        }
+        await queryClient.invalidateQueries({
+          queryKey: ["job-details", jobId],
+        });
+      });
     };
 
     return (
@@ -68,18 +83,6 @@ export const JobCard = memo(
           <div className="mb-2 flex items-start justify-between">
             <div className="flex items-center gap-2">
               <div className="text -foreground flex size-8 items-center justify-center rounded text-xs font-bold md:h-10 md:w-10">
-                {/*{logoUrl ? (*/}
-                {/*  <Image*/}
-                {/*    src={logoUrl}*/}
-                {/*    alt="Employer's company logo"*/}
-                {/*    width={64}*/}
-                {/*    height={64}*/}
-                {/*    className="rounded-2xl object-cover"*/}
-                {/*    sizes="(max-width: 768px) 32px, 40px"*/}
-                {/*  />*/}
-                {/*) : (*/}
-                {/*  <span>name.charAt(0)</span>*/}
-                {/*)}*/}
                 <Building2 className="text-muted-foreground mr-2 size-5" />
               </div>
               <div>
@@ -93,10 +96,11 @@ export const JobCard = memo(
                   <Toggle
                     pressed={hasSaved}
                     onPressedChange={handleSaveJobChange}
+                    disabled={isPending}
                     aria-label="Toggle bookmark"
                     size="sm"
                     variant="outline"
-                    className="data-[state=on]:*:[svg]:fill-accent data-[state=on]:*:[svg]:stroke-accent hover:*:[svg]:stroke-accent hover:text-accent-foreground cursor-pointer border-0 transition-colors hover:bg-transparent data-[state=on]:bg-transparent [&_svg]:size-5"
+                    className="data-[state=on]:[&_svg]:fill-primary data-[state=on]:[&_svg]:stroke-primary hover:[&_svg]:stroke-accent hover:text-accent-foreground cursor-pointer border-0 transition-colors hover:bg-transparent data-[state=on]:bg-transparent [&_svg]:size-5"
                   >
                     <Bookmark className="text-muted-foreground" />
                   </Toggle>

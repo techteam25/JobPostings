@@ -10,10 +10,18 @@ import {
 } from "@/lib/types";
 import { handleApiResponse, handlePaginatedApiResponse } from "./helpers";
 
-export const getJobs = async (): Promise<
-  ServerActionPaginatedResponse<JobWithEmployer>
-> => {
-  const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs`, {
+export const getJobs = async (
+  page?: number,
+): Promise<ServerActionPaginatedResponse<JobWithEmployer>> => {
+  const cookieStore = await cookies();
+  const url = new URL(`${env.NEXT_PUBLIC_SERVER_URL}/jobs`);
+  if (page) url.searchParams.set("page", String(page));
+
+  const res = await fetch(url.toString(), {
+    credentials: "include",
+    headers: {
+      Cookie: cookieStore.toString(),
+    },
     next: { revalidate: 60, tags: ["jobs"] },
   });
 
@@ -21,8 +29,13 @@ export const getJobs = async (): Promise<
 };
 
 export const getJobById = async (jobId: number): Promise<JobResponse> => {
+  const cookieStore = await cookies();
   const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}`, {
-    next: { revalidate: 300, tags: [`job-${jobId}`] },
+    credentials: "include",
+    headers: {
+      Cookie: cookieStore.toString(),
+    },
+    cache: "no-store",
   });
 
   return res.json();

@@ -92,6 +92,7 @@
     "helmet": "^8.1.0",
     "isomorphic-dompurify": "^2.32.0",
     "jsonwebtoken": "^9.0.2",
+    "libphonenumber-js": "^1.12.41",
     "multer": "^2.0.2",
     "mysql2": "^3.14.5",
     "nodemailer": "^7.0.9",

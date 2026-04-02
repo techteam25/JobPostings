@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import GetInvolvedLogo from "@/public/GetInvolved_Logo.png";
 import { useSocialAuth } from "@/app/(auth)/sign-in/hooks/use-social";
 import { LoginResponse } from "@/schemas/responses/auth";
-import { useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/context/auth-store";
 
 const loginInput: LoginInput = {
   email: "",
@@ -35,7 +35,7 @@ export default function LoginForm() {
   const [isPending, startTransition] = useTransition();
   const { handleSocialAuth, isSocialPending } = useSocialAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const queryClient = useQueryClient();
+  const setSession = useAuthStore((s) => s.setSession);
 
   const form = useForm({
     defaultValues: loginInput,
@@ -60,9 +60,12 @@ export default function LoginForm() {
           }
 
           toast.success("Login successful!");
-          await queryClient.invalidateQueries({
-            queryKey: ["get-user-session"],
-          });
+
+          // Hydrate the auth store before navigating
+          const session = await authClient.getSession();
+          if (session?.data) {
+            setSession(session.data);
+          }
           form.reset();
 
           window.location.href = data?.user.redirectUrl || "/";
@@ -199,7 +202,7 @@ export default function LoginForm() {
                   type="submit"
                   disabled={!canSubmit || isSubmitting}
                   className={cn(
-                    "bg-primary hover:bg-accent/90 text-primary-foreground w-full cursor-pointer rounded-lg py-3 font-semibold transition",
+                    "bg-primary hover:bg-primary/90 text-primary-foreground w-full cursor-pointer rounded-lg py-3 font-semibold transition",
                     {
                       "cursor-not-allowed": !canSubmit || isSubmitting,
                     },
