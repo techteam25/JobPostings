@@ -273,6 +273,7 @@ export function createProfileRoutes({
     profileGuards.requireUserRole,
     validate(getJobSchema),
     invalidateCacheMiddleware(() => "users/me/saved-jobs"),
+    invalidateCacheMiddleware(() => "jobs"),
     profileController.saveJobForCurrentUser,
   );
 
@@ -282,6 +283,7 @@ export function createProfileRoutes({
     profileGuards.requireUserRole,
     validate(getJobSchema),
     invalidateCacheMiddleware(() => "users/me/saved-jobs"),
+    invalidateCacheMiddleware(() => "jobs"),
     profileController.unsaveJobForCurrentUser,
   );
 

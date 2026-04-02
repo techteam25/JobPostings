@@ -16,6 +16,7 @@ export const RemoteOnlyFilter = memo(function RemoteOnlyFilter() {
         id="remote-only"
         onCheckedChange={setRemoteOnly}
         checked={remoteOnly}
+        className="data-[state=checked]:bg-primary"
       />
     </div>
   );

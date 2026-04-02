@@ -224,19 +224,6 @@ export function PreferenceSections({
         )}
       </SectionRow>
 
-      {/* Future sections — placeholders */}
-      <SectionRow label="Salary Expectations">
-        <NotSet />
-      </SectionRow>
-
-      <SectionRow label="Start Date Availability">
-        <NotSet />
-      </SectionRow>
-
-      <SectionRow label="Industry Preferences">
-        <NotSet />
-      </SectionRow>
-
       {/* Dialogs */}
       <JobTypesDialog
         open={jobTypesDialogOpen}

@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useTransition } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Bookmark, Building2, Menu } from "lucide-react";
+import { toast } from "sonner";
 
 import { useFetchJobDetails } from "@/app/(main)/hooks/use-fetch-jobs";
-import { useJobSaved } from "@/hooks/use-job-saved";
+import { saveJobForUser, removeSavedJobForUser } from "@/lib/api";
+import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +19,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Link from "next/link";
-import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 
 interface JobDetailPanelProps {
   jobId: number | undefined;
@@ -24,6 +26,8 @@ interface JobDetailPanelProps {
 
 export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
   const { isAuthenticated } = useAuthenticationStatus();
+  const [isPending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
 
   const {
     data: jobDetails,
@@ -36,7 +40,27 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
     return jobDetails.data;
   }, [jobDetails]);
 
-  const { hasSaved, toggleSaved } = useJobSaved(jobId, isAuthenticated);
+  const hasSaved = jobData?.hasSaved ?? false;
+
+  const handleSaveJobChange = () => {
+    if (!jobId) return;
+
+    if (!isAuthenticated) {
+      toast.info("Sign in to save jobs");
+      return;
+    }
+
+    startTransition(async () => {
+      if (hasSaved) {
+        const result = await removeSavedJobForUser(jobId);
+        if (!result.success) toast.error("Failed to remove saved job");
+      } else {
+        const result = await saveJobForUser(jobId);
+        if (!result.success) toast.error("Failed to save job");
+      }
+      await queryClient.invalidateQueries({ queryKey: ["job-details", jobId] });
+    });
+  };
 
   if (fetchingJobDetails || !jobDetails) {
     return (
@@ -77,11 +101,12 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
                 <span>
                   <Toggle
                     pressed={hasSaved}
-                    onPressedChange={toggleSaved}
+                    onPressedChange={handleSaveJobChange}
+                    disabled={isPending}
                     aria-label="Toggle bookmark"
                     size="sm"
                     variant="outline"
-                    className="data-[state=on]:[&_svg]:fill-accent data-[state=on]:[&_svg]:stroke-accent hover:[&_svg]:stroke-accent hover:text-accent-foreground size-9 cursor-pointer transition-colors hover:bg-transparent data-[state=on]:bg-transparent [&_svg]:size-5"
+                    className="data-[state=on]:[&_svg]:fill-primary data-[state=on]:[&_svg]:stroke-primary hover:[&_svg]:stroke-accent hover:text-accent-foreground size-9 cursor-pointer transition-colors hover:bg-transparent data-[state=on]:bg-transparent [&_svg]:size-5"
                   >
                     <Bookmark className="text-muted-foreground" />
                   </Toggle>

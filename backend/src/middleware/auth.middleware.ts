@@ -17,6 +17,43 @@ export class AuthMiddleware {
    * @param res The Express response object.
    * @param next The next middleware function.
    */
+  /**
+   * Sets req.userId if a valid session exists, but allows the request
+   * through regardless. Use on public routes that enrich responses
+   * for authenticated users (e.g. hasSaved on job listings).
+   */
+  optionalAuthenticate = async (
+    req: Request,
+    _res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const session = await auth.api.getSession({
+        headers: fromNodeHeaders(req.headers),
+      });
+
+      if (session && session.user.status === "active") {
+        req.user = {
+          ...session.user,
+          fullName: session.user.name,
+          id: parseInt(session.user.id),
+          image: session.user.image as string | null,
+          deletedAt: session.user.deletedAt as Date | null,
+          lastLoginAt: session.user.lastLoginAt as Date | null,
+          intent: session.user.intent as "seeker" | "employer",
+          onboardingStatus: session.user.onboardingStatus as
+            | "pending"
+            | "completed",
+        };
+        req.userId = parseInt(session.user.id);
+      }
+    } catch {
+      // Silently continue without auth
+    }
+
+    return next();
+  };
+
   authenticate = async (
     req: Request,
     res: Response<ApiResponse<void>>,

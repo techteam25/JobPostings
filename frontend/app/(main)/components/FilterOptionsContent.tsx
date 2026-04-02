@@ -39,7 +39,8 @@ export const FilterOptionsContent = () => {
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem
-                  className="border-accent focus-visible:ring-accent text-accent"
+                  className="border-primary focus-visible:ring-primary"
+                  circleClassName="fill-primary"
                   value=""
                   id="any-time"
                 />
@@ -52,7 +53,8 @@ export const FilterOptionsContent = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem
-                  className="border-accent focus-visible:ring-accent text-accent"
+                  className="border-primary focus-visible:ring-primary"
+                  circleClassName="fill-primary"
                   value="last-24-hours"
                   id="last-24-hours"
                 />
@@ -65,7 +67,8 @@ export const FilterOptionsContent = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem
-                  className="border-accent focus-visible:ring-accent text-accent"
+                  className="border-primary focus-visible:ring-primary"
+                  circleClassName="fill-primary"
                   value="last-7-days"
                   id="last-7-days"
                 />
@@ -78,7 +81,8 @@ export const FilterOptionsContent = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem
-                  className="border-accent focus-visible:ring-accent text-accent"
+                  className="border-primary focus-visible:ring-primary"
+                  circleClassName="fill-primary"
                   value="last-14-days"
                   id="last-14-days"
                 />
@@ -103,7 +107,7 @@ export const FilterOptionsContent = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="full-time"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={jobTypes.includes("full-time")}
                 onCheckedChange={(checked) => {
                   if (checked) {
@@ -122,7 +126,7 @@ export const FilterOptionsContent = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="part-time"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={jobTypes.includes("part-time")}
                 onCheckedChange={(checked) => {
                   if (checked) {
@@ -141,7 +145,7 @@ export const FilterOptionsContent = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="contract"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={jobTypes.includes("contract")}
                 onCheckedChange={(checked) => {
                   if (checked) {
@@ -158,7 +162,7 @@ export const FilterOptionsContent = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="internship"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={jobTypes.includes("internship")}
                 onCheckedChange={(checked) => {
                   if (checked) {
@@ -190,7 +194,7 @@ export const FilterOptionsContent = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="paid"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={serviceRoles.includes("paid")}
                 onCheckedChange={(checked) => {
                   if (checked) {
@@ -209,7 +213,7 @@ export const FilterOptionsContent = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="missionary"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={serviceRoles.includes("missionary")}
                 onCheckedChange={(checked) => {
                   if (checked) {
@@ -231,7 +235,7 @@ export const FilterOptionsContent = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="volunteer"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={serviceRoles.includes("volunteer")}
                 onCheckedChange={(checked) => {
                   if (checked) {
@@ -250,7 +254,7 @@ export const FilterOptionsContent = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="stipend"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={serviceRoles.includes("stipend")}
                 onCheckedChange={(checked) => {
                   if (checked) {

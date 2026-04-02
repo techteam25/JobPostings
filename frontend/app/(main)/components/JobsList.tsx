@@ -19,7 +19,7 @@ export const JobsList = ({
 }: JobsListProps) => {
   const jobs = useMemo(
     () =>
-      data.map(({ job, employer }) => (
+      data.map(({ job, employer, hasSaved }) => (
         <JobCard
           key={job.id}
           jobId={job.id}
@@ -33,6 +33,7 @@ export const JobsList = ({
           posted={formatPostedDate(job.createdAt)}
           logoUrl={employer?.logoUrl || null}
           onJobSelected={() => onJobSelected(job.id)}
+          hasSaved={hasSaved}
         />
       )),
     [data, selectedId, onJobSelected],

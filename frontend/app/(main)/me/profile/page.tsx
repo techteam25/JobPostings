@@ -108,12 +108,10 @@ export default async function ProfilePage() {
               <CardContent className="p-5">
                 {profile.data.profile?.resumeUrl ? (
                   (() => {
-                    const metadata = profile.data.profile.fileMetadata;
-                    const resumeMetadata = Array.isArray(metadata)
-                      ? metadata.find(
-                          (m) => m.url === profile.data.profile?.resumeUrl,
-                        )
-                      : undefined;
+                    const resumeMetadata =
+                      profile.data.profile.fileMetadata?.find(
+                        (m) => m.url === profile.data.profile?.resumeUrl,
+                      );
                     return (
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">

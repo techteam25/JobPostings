@@ -68,6 +68,7 @@ import logger from "@shared/logger";
  */
 export type CompositionRoot = {
   authenticate: RequestHandler;
+  optionalAuthenticate: RequestHandler;
   identity: Pick<IdentityModule, "controller" | "guards">;
   userProfile: Pick<
     UserProfileModule,
@@ -267,6 +268,7 @@ export function createCompositionRoot(): CompositionRoot {
 
   return {
     authenticate: authMiddleware.authenticate,
+    optionalAuthenticate: authMiddleware.optionalAuthenticate,
 
     // Modules (controller + guards)
     identity,

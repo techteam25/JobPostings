@@ -97,6 +97,7 @@ async function seedUserProfiles(
         state: f.state(),
         zipCode: f.postcode(),
         country: f.country(),
+        fileMetadata: f.default({ defaultValue: null }),
         isProfilePublic: f.valuesFromArray({ values: [true, false] }),
         isAvailableForWork: f.valuesFromArray({ values: [true, false] }),
       },
