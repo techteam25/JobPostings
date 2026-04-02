@@ -93,7 +93,7 @@ export const updateProfileVisibility = async (
   );
 
   if (result.success) {
-    revalidatePath("/profile");
+    revalidatePath("/me/profile");
   }
 
   return result;
