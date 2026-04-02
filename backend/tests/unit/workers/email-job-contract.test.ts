@@ -188,6 +188,7 @@ function createMockIdentityRepository(): IdentityRepositoryPort {
     update: vi.fn(),
     findById: vi.fn(),
     findDeactivatedUserIds: vi.fn(),
+    updateFullName: vi.fn(),
   };
 }
 
@@ -207,6 +208,7 @@ function createMockEmailService(): EmailServicePort {
     sendAccountDeletionConfirmation: vi.fn(),
     sendDeleteAccountEmailVerification: vi.fn(),
     sendPasswordResetEmail: vi.fn(),
+    sendWelcomeEmail: vi.fn(),
   };
 }
 

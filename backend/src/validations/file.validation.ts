@@ -88,6 +88,18 @@ export const fileUploadResultSchema = z.object({
 export type FileUploadResult = z.infer<typeof fileUploadResultSchema>;
 
 /**
+ * Job data for deleting a file from cloud storage
+ */
+export const fileDeleteJobDataSchema = z.object({
+  fileUrl: z.string(),
+  entityType: z.enum(["job", "organization", "user"]),
+  entityId: z.string(),
+  correlationId: z.string(),
+});
+
+export type FileDeleteJobData = z.infer<typeof fileDeleteJobDataSchema>;
+
+/**
  * Upload options configuration
  */
 export const uploadOptionsSchema = z.object({

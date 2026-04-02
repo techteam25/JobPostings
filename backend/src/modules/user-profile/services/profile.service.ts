@@ -3,27 +3,49 @@ import { BaseService } from "@shared/base/base.service";
 import type { ProfileServicePort } from "@/modules/user-profile";
 import type { ProfileRepositoryPort } from "@/modules/user-profile";
 import type { OrgRoleQueryPort } from "@/modules/user-profile/ports/org-query.port";
+import type { IdentityWritePort } from "@/modules/user-profile/ports/identity-write.port";
 import {
   AppError,
   DatabaseError,
+  ForbiddenError,
   NotFoundError,
   ValidationError,
+  BadRequestError,
 } from "@shared/errors";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 import type { PaginationMeta } from "@shared/types";
 import { SecurityUtils } from "@shared/utils/security";
 import type {
   NewUserProfile,
   UpdateUserProfile,
 } from "@/validations/userProfile.validation";
+import type { FileUploadJobData } from "@/validations/file.validation";
+import { StorageFolder } from "@shared/constants/storage-folders";
 import type { InsertEducation } from "@/validations/educations.validation";
 import type { InsertWorkExperience } from "@/validations/workExperiences.validation";
 import type { NewCertification } from "@/validations/certifications.validation";
 import type { NewSkill } from "@/validations/skills.validation";
+import {
+  ProfilePictureFile,
+  ResumeFile,
+} from "@/modules/user-profile/types/profile.module.types";
+import { db } from "@shared/db/connection";
+import { userProfile } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import type {
+  FileDeleteJobData,
+  FileMetadata,
+} from "@/validations/file.validation";
+import { generateCorrelationId } from "@/validations/file.validation";
 
 export class ProfileService extends BaseService implements ProfileServicePort {
   constructor(
     private profileRepository: ProfileRepositoryPort,
     private orgRoleQuery: OrgRoleQueryPort,
+    private identityWrite: IdentityWritePort,
   ) {
     super();
   }
@@ -117,9 +139,22 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         return fail(new NotFoundError("User", userId));
       }
 
+      const { fullName, ...profileFields } = profileData;
+
+      // Update display name via the identity module (synchronous cross-module call).
+      if (fullName) {
+        const identityResult = await this.identityWrite.updateUserDisplayName(
+          userId,
+          fullName,
+        );
+        if (identityResult.isFailure) {
+          return fail(identityResult.error);
+        }
+      }
+
       const updatedProfile = await this.profileRepository.updateProfile(
         userId,
-        profileData,
+        profileFields,
       );
 
       if (!updatedProfile) {
@@ -135,6 +170,159 @@ export class ProfileService extends BaseService implements ProfileServicePort {
     }
   }
 
+  async uploadProfilePicture(
+    userId: number,
+    file: ProfilePictureFile | undefined,
+    correlationId: string,
+  ) {
+    if (!file) {
+      return fail(new BadRequestError("No file uploaded"));
+    }
+
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new NotFoundError("Profile", userId));
+      }
+
+      await queueService.addJob<FileUploadJobData>(
+        QUEUE_NAMES.FILE_UPLOAD_QUEUE,
+        "uploadFile",
+        {
+          entityType: "user",
+          entityId: user.profile.id.toString(),
+          mergeWithExisting: true,
+          tempFiles: [
+            {
+              originalname: file.originalname,
+              tempPath: file.path,
+              size: file.size,
+              mimetype: file.mimetype,
+              fieldName: "profilePicture",
+            },
+          ],
+          userId: userId.toString(),
+          folder: StorageFolder.PROFILE_PICTURES,
+          correlationId,
+        },
+      );
+
+      return ok({ message: "Profile picture upload initiated" });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to upload profile picture"));
+    }
+  }
+
+  async uploadResume(
+    userId: number,
+    file: ResumeFile | undefined,
+    correlationId: string,
+  ) {
+    if (!file) {
+      return fail(new BadRequestError("No file uploaded"));
+    }
+
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new NotFoundError("Profile", userId));
+      }
+
+      await queueService.addJob<FileUploadJobData>(
+        QUEUE_NAMES.FILE_UPLOAD_QUEUE,
+        "uploadFile",
+        {
+          entityType: "user",
+          entityId: user.profile.id.toString(),
+          mergeWithExisting: true,
+          tempFiles: [
+            {
+              originalname: file.originalname,
+              tempPath: file.path,
+              size: file.size,
+              mimetype: file.mimetype,
+              fieldName: "resume",
+            },
+          ],
+          userId: userId.toString(),
+          folder: StorageFolder.RESUMES,
+          correlationId,
+        },
+      );
+
+      return ok({ message: "Resume upload initiated" });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to upload resume"));
+    }
+  }
+
+  async deleteResume(userId: number) {
+    try {
+      const user = await this.profileRepository.findByIdWithProfile(userId);
+      if (!user) {
+        return fail(new NotFoundError("User", userId));
+      }
+
+      if (!user.profile) {
+        return fail(new NotFoundError("Profile", userId));
+      }
+
+      const resumeUrl = user.profile.resumeUrl;
+      if (!resumeUrl) {
+        return fail(new BadRequestError("No resume to delete"));
+      }
+
+      // Update DB first (immediate for the user).
+      const existingMetadata = Array.isArray(user.profile.fileMetadata)
+        ? (user.profile.fileMetadata as FileMetadata[])
+        : [];
+      const filteredMetadata = existingMetadata.filter(
+        (m) => m.url !== resumeUrl,
+      );
+
+      await db
+        .update(userProfile)
+        .set({
+          resumeUrl: null,
+          fileMetadata: filteredMetadata.length > 0 ? filteredMetadata : null,
+        })
+        .where(eq(userProfile.id, user.profile.id));
+
+      // Enqueue Firebase Storage cleanup — retried automatically on failure.
+      await queueService.addJob<FileDeleteJobData>(
+        QUEUE_NAMES.FILE_DELETE_QUEUE,
+        "deleteFile",
+        {
+          fileUrl: resumeUrl,
+          entityType: "user",
+          entityId: user.profile.id.toString(),
+          correlationId: generateCorrelationId(),
+        },
+      );
+
+      return ok({ message: "Resume deleted" });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to delete resume"));
+    }
+  }
+
   async changeUserProfileVisibility(
     userId: number,
     isPublic: boolean | undefined = false,
@@ -145,15 +333,8 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         return fail(new NotFoundError("User", userId));
       }
 
-      // Auto-create profile if one doesn't exist yet
       if (!user.profile) {
-        const created = await this.profileRepository.createProfile(userId, {
-          isProfilePublic: isPublic,
-        });
-        if (!created) {
-          return fail(new DatabaseError("Failed to create profile for user"));
-        }
-        return ok(created);
+        return fail(new NotFoundError("Profile", userId));
       }
 
       const updatedProfile =
@@ -245,6 +426,41 @@ export class ProfileService extends BaseService implements ProfileServicePort {
       return fail(
         new DatabaseError("Failed to retrieve user onboarding intent"),
       );
+    }
+  }
+
+  async completeOnboarding(
+    userId: number,
+    userInfo: { email: string; fullName: string },
+  ) {
+    try {
+      const intent = await this.profileRepository.getUserIntent(userId);
+
+      if (intent?.intent !== "seeker") {
+        return fail(
+          new ForbiddenError(
+            "Only job seekers can complete onboarding via this endpoint",
+          ),
+        );
+      }
+
+      const transitioned =
+        await this.profileRepository.completeOnboarding(userId);
+
+      if (transitioned) {
+        await queueService.addJob(QUEUE_NAMES.EMAIL_QUEUE, "sendWelcomeEmail", {
+          userId,
+          email: userInfo.email,
+          fullName: userInfo.fullName,
+        });
+      }
+
+      return ok({ status: "completed" as const });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to complete onboarding"));
     }
   }
 

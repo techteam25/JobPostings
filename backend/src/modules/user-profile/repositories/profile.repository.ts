@@ -127,6 +127,8 @@ export class ProfileRepository
             .insert(userProfile)
             .values({
               ...profileData,
+              isProfilePublic: profileData?.isProfilePublic ?? true,
+              isAvailableForWork: profileData?.isAvailableForWork ?? true,
               userId,
             })
             .$returningId();
@@ -959,6 +961,21 @@ export class ProfileRepository
           status: true,
         },
       });
+    });
+  }
+
+  async completeOnboarding(userId: number): Promise<boolean> {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(userOnBoarding)
+        .set({ status: "completed" })
+        .where(
+          and(
+            eq(userOnBoarding.userId, userId),
+            eq(userOnBoarding.status, "pending"),
+          ),
+        );
+      return result.affectedRows > 0;
     });
   }
 

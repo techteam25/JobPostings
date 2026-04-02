@@ -7,6 +7,7 @@ import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
+import CharacterCount from "@tiptap/extension-character-count";
 
 import {
   Bold,
@@ -38,6 +39,8 @@ interface RichTextEditorProps {
   defaultValue?: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
+  onCharacterCount?: (count: number) => void;
+  characterLimit?: number;
   placeholder?: string;
   height?: string | number;
   className?: string;
@@ -48,6 +51,8 @@ export default function RichTextEditor({
   defaultValue = "",
   onChange,
   onBlur,
+  onCharacterCount,
+  characterLimit,
   placeholder = "Enter text...",
   height = "200px",
   className = "",
@@ -65,12 +70,25 @@ export default function RichTextEditor({
         },
       }),
       Placeholder.configure({ placeholder }),
+      ...(characterLimit !== undefined
+        ? [CharacterCount.configure({ limit: characterLimit })]
+        : [CharacterCount]),
     ],
     content: defaultValue,
     editable: !readOnly,
     immediatelyRender: false,
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+      if (onCharacterCount) {
+        onCharacterCount(editor.storage.characterCount.characters());
+      }
+    },
     onBlur,
+    onCreate: ({ editor }) => {
+      if (onCharacterCount) {
+        onCharacterCount(editor.storage.characterCount.characters());
+      }
+    },
   });
 
   if (!editor) {
@@ -89,7 +107,7 @@ export default function RichTextEditor({
       {!readOnly && <Toolbar editor={editor} height={height} />}
 
       <div
-        className="border-border bg-background rounded-b-xl border shadow-sm"
+        className="border-border rounded-b-xl border bg-transparent shadow-sm"
         style={{
           minHeight: typeof height === "number" ? `${height}px` : height,
         }}
@@ -127,7 +145,7 @@ function Toolbar({ editor }: { editor: Editor; height: string | number }) {
   };
 
   return (
-    <div className="border-border bg-background flex flex-wrap items-center gap-1 rounded-t-xl border p-2 shadow-sm">
+    <div className="border-border flex flex-wrap items-center gap-1 rounded-t-xl border bg-transparent p-2 shadow-sm">
       {/* Paragraph & Headings */}
       <ToolbarToggle
         pressed={editor.isActive("paragraph")}

@@ -36,6 +36,7 @@ import {
   ProfileToJobBoardAdapter,
   FileMetadataUpdateAdapter,
   JobBoardToSharedInsightsAdapter,
+  IdentityToProfileWriteAdapter,
 } from "@shared/adapters";
 
 // Shared workers
@@ -151,6 +152,9 @@ export function createCompositionRoot(): CompositionRoot {
   const identityToJobBoardAdapter = new IdentityToJobBoardAdapter(
     identity.repository,
   );
+  const identityToProfileWriteAdapter = new IdentityToProfileWriteAdapter(
+    identity.repository,
+  );
 
   // Job-board ↔ Applications (circular — using pre-created repositories)
   const applicationsToJobBoardAdapter = new ApplicationsToJobBoardAdapter(
@@ -171,6 +175,7 @@ export function createCompositionRoot(): CompositionRoot {
   const userProfile = createUserProfileModule({
     orgRoleQuery: orgsToProfileAdapter,
     userOrgsQuery: orgsToProfileAdapter,
+    identityWrite: identityToProfileWriteAdapter,
     typesenseUserProfileService,
   });
 
@@ -215,6 +220,7 @@ export function createCompositionRoot(): CompositionRoot {
 
   setAuthDependencies({
     notificationsService: notifications.service,
+    profileService: userProfile.service,
   });
 
   // ─── 7. Shared Workers ─────────────────────────────────────────────

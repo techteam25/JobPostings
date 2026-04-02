@@ -65,6 +65,7 @@ export interface ProfileRepositoryPort {
       }
     | undefined
   >;
+  completeOnboarding(userId: number): Promise<boolean>;
   updateProfileVisibility(
     userId: number,
     isPublic: boolean,
