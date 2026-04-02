@@ -28,7 +28,6 @@ interface JobCardType {
   logoUrl: string | null;
   onJobSelected: () => void;
   isSelected: boolean;
-  hasSaved: boolean;
 }
 
 export const JobCard = memo(
@@ -43,14 +42,9 @@ export const JobCard = memo(
     experienceLevel,
     onJobSelected,
     isSelected,
-    hasSaved: initialHasSaved,
   }: JobCardType) => {
     const { isAuthenticated } = useAuthenticationStatus();
-    const { hasSaved, toggleSaved } = useJobSaved(
-      jobId,
-      initialHasSaved,
-      isAuthenticated,
-    );
+    const { hasSaved, toggleSaved } = useJobSaved(jobId, isAuthenticated);
 
     const handleSaveJobChange = async () => {
       await toggleSaved();
@@ -96,7 +90,7 @@ export const JobCard = memo(
                     aria-label="Toggle bookmark"
                     size="sm"
                     variant="outline"
-                    className="data-[state=on]:*:[svg]:fill-accent data-[state=on]:*:[svg]:stroke-accent hover:*:[svg]:stroke-accent hover:text-accent-foreground cursor-pointer border-0 transition-colors hover:bg-transparent data-[state=on]:bg-transparent [&_svg]:size-5"
+                    className="data-[state=on]:[&_svg]:fill-accent data-[state=on]:[&_svg]:stroke-accent hover:[&_svg]:stroke-accent hover:text-accent-foreground cursor-pointer border-0 transition-colors hover:bg-transparent data-[state=on]:bg-transparent [&_svg]:size-5"
                   >
                     <Bookmark className="text-muted-foreground" />
                   </Toggle>

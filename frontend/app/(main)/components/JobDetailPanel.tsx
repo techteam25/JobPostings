@@ -36,11 +36,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
     return jobDetails.data;
   }, [jobDetails]);
 
-  const { hasSaved, toggleSaved } = useJobSaved(
-    jobId,
-    jobData?.hasSaved ?? false,
-    isAuthenticated,
-  );
+  const { hasSaved, toggleSaved } = useJobSaved(jobId, isAuthenticated);
 
   if (fetchingJobDetails || !jobDetails) {
     return (
@@ -85,7 +81,7 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
                     aria-label="Toggle bookmark"
                     size="sm"
                     variant="outline"
-                    className="data-[state=on]:*:[svg]:fill-accent data-[state=on]:*:[svg]:stroke-accent hover:*:[svg]:stroke-accent hover:text-accent-foreground size-9 cursor-pointer transition-colors hover:bg-transparent data-[state=on]:bg-transparent [&_svg]:size-5"
+                    className="data-[state=on]:[&_svg]:fill-accent data-[state=on]:[&_svg]:stroke-accent hover:[&_svg]:stroke-accent hover:text-accent-foreground size-9 cursor-pointer transition-colors hover:bg-transparent data-[state=on]:bg-transparent [&_svg]:size-5"
                   >
                     <Bookmark className="text-muted-foreground" />
                   </Toggle>
