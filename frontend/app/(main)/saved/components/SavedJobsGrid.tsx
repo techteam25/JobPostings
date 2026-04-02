@@ -2,7 +2,6 @@
 
 import { PaginatedApiResponse, SavedJob } from "@/lib/types";
 import { SavedJobCard } from "@/app/(main)/saved/components/SavedJobCard";
-import { useSavedJobs } from "@/hooks/use-saved-jobs";
 
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -10,8 +9,7 @@ interface SavedJobsGridProps {
   initialData: PaginatedApiResponse<SavedJob>;
 }
 export const SavedJobsGrid = ({ initialData }: SavedJobsGridProps) => {
-  const { data } = useSavedJobs(initialData);
-  const savedJobs = data?.data ?? initialData.data;
+  const savedJobs = initialData.data;
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

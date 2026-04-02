@@ -448,6 +448,17 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         await this.profileRepository.completeOnboarding(userId);
 
       if (transitioned) {
+        // Sync denormalized copy to user table (identity domain) for session cookie cache
+        const syncResult = await this.identityWrite.syncIntentToUser(
+          userId,
+          "seeker",
+          "completed",
+        );
+
+        if (syncResult.isFailure) {
+          return fail(syncResult.error);
+        }
+
         await queueService.addJob(QUEUE_NAMES.EMAIL_QUEUE, "sendWelcomeEmail", {
           userId,
           email: userInfo.email,
@@ -461,6 +472,30 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to complete onboarding"));
+    }
+  }
+
+  async initializeUserIntent(userId: number, intent: "seeker" | "employer") {
+    try {
+      // Source of truth (userOnBoarding table, profile module's domain)
+      await this.profileRepository.initializeUserIntent(userId, intent);
+      // Sync denormalized copy to user table (identity domain) for session cookie cache
+      const syncResult = await this.identityWrite.syncIntentToUser(
+        userId,
+        intent,
+        "pending",
+      );
+
+      if (syncResult.isFailure) {
+        return fail(syncResult.error);
+      }
+
+      return ok(undefined);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to initialize user intent"));
     }
   }
 

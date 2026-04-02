@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { env } from "@/env";
 import {
   ApiResponse,
@@ -44,12 +44,12 @@ export const saveJobForUser = async (
     },
   );
 
-  const result = await handleApiResponse<SavedState>(
-    res,
-    "Failed to save job",
-  );
+  const result = await handleApiResponse<SavedState>(res, "Failed to save job");
 
   if (result.success) {
+    revalidateTag("jobs", "max");
+    revalidateTag("user-saved-jobs", "max");
+    revalidatePath("/");
     revalidatePath("/saved");
     revalidatePath(`/job/${jobId}`);
   }
@@ -78,6 +78,9 @@ export const removeSavedJobForUser = async (
   );
 
   if (result.success) {
+    revalidateTag("jobs", "max");
+    revalidateTag("user-saved-jobs", "max");
+    revalidatePath("/");
     revalidatePath("/saved");
     revalidatePath(`/job/${jobId}`);
   }

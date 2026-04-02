@@ -26,6 +26,7 @@ export function createApiRoutes(root: CompositionRoot) {
     "/jobs",
     createJobRoutes({
       authenticate: root.authenticate,
+      optionalAuthenticate: root.optionalAuthenticate,
       jobBoard: root.jobBoard,
       applications: root.applications,
       organizations: root.organizations,

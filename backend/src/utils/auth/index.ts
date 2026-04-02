@@ -6,14 +6,11 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { z } from "zod";
 
 import { db } from "@shared/db/connection";
-import { env, isProduction } from "@shared/config/env";
+import { env, isProduction, isTest } from "@shared/config/env";
 
 import type { NotificationsServicePort } from "@/modules/notifications";
 import { BetterAuthSuccessResponseSchema } from "@/validations/auth.validation";
-import { userOnBoarding } from "@/db/schema";
-import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import logger from "@shared/logger";
-import { eq } from "drizzle-orm";
 import {
   queueService,
   QUEUE_NAMES,
@@ -64,7 +61,7 @@ export const auth = betterAuth({
   basePath: "/api/auth",
   session: {
     cookieCache: {
-      enabled: isProduction,
+      enabled: !isTest,
       maxAge: 5 * 60, // 5 minutes
     },
   },
@@ -115,6 +112,24 @@ export const auth = betterAuth({
       },
       deletedAt: { type: "date", required: false, input: false },
       lastLoginAt: { type: "date", required: false, input: false },
+      intent: {
+        type: "string",
+        required: true,
+        defaultValue: "seeker",
+        input: false,
+        validator: {
+          input: z.enum(["seeker", "employer"]),
+        },
+      },
+      onboardingStatus: {
+        type: "string",
+        required: true,
+        defaultValue: "pending",
+        input: false,
+        validator: {
+          input: z.enum(["completed", "pending"]),
+        },
+      },
     },
   },
   advanced: {
@@ -159,6 +174,23 @@ export const auth = betterAuth({
     }),
 
     after: createAuthMiddleware(async (ctx) => {
+      // Debug: log get-session outcomes to diagnose middleware redirect issue
+      if (ctx.path === "/get-session") {
+        const returned = ctx.context.returned;
+        if (returned instanceof APIError) {
+          logger.warn(
+            {
+              path: ctx.path,
+              errorCode: returned.statusCode,
+              errorMessage: returned.message,
+              userAgent: ctx.headers?.get("user-agent"),
+              hasCookie: !!ctx.headers?.get("cookie"),
+            },
+            "get-session failed",
+          );
+        }
+        return;
+      }
       if (ctx.path === "/sign-up/email") {
         return await handleEmailRegistration(ctx);
       } else if (ctx.path === "/sign-in/social") {
@@ -218,15 +250,8 @@ async function handleEmailRegistration(ctx: BetterAuthMiddlewareContext) {
   const userId = Number(userResult.user.id);
 
   try {
-    await withDbErrorHandling(async () =>
-      db.insert(userOnBoarding).values({
-        userId,
-        intent: body.intent,
-        status: "pending",
-      }),
-    );
-
     await Promise.allSettled([
+      profileService?.initializeUserIntent(userId, body.intent),
       notificationsService?.createDefaultEmailPreferences(userId),
       profileService?.createUserProfile(userId, { country: null }),
     ]);
@@ -247,33 +272,22 @@ async function handleOAuthRegistration(ctx: BetterAuthMiddlewareContext) {
   const userId = Number(userResult.user.id);
 
   try {
-    // Check if this user has already been through registration
-    const [existing] = await db
-      .select()
-      .from(userOnBoarding)
-      .where(eq(userOnBoarding.userId, userId))
-      .limit(1);
-
-    if (existing) {
-      // Repeat sign-in — skip resource creation, return enriched response
-      return enrichResponse(userResult, existing.intent);
-    }
-
-    // First-time OAuth sign-in — create onboarding + profile + email prefs
-    await withDbErrorHandling(async () =>
-      db.insert(userOnBoarding).values({
-        userId,
-        intent: "seeker",
-        status: "pending",
-      }),
-    );
+    // The user's intent additionalField defaults to "seeker". If it's still
+    // the default and onboardingStatus is "pending", this is a first-time
+    // OAuth sign-in. Use allSettled so duplicate-key errors from repeat
+    // logins don't block the response.
+    const intent =
+      (userResult.user as Record<string, unknown>).intent === "employer"
+        ? "employer"
+        : "seeker";
 
     await Promise.allSettled([
+      profileService?.initializeUserIntent(userId, intent),
       notificationsService?.createDefaultEmailPreferences(userId),
       profileService?.createUserProfile(userId, { country: null }),
     ]);
 
-    return enrichResponse(userResult, "seeker");
+    return enrichResponse(userResult, intent);
   } catch (error) {
     logger.error(error, "Error during OAuth registration post-actions");
     return;
@@ -284,19 +298,17 @@ async function postUserAuthenticationActions(ctx: BetterAuthMiddlewareContext) {
   if (ctx.context.returned instanceof APIError) {
     return;
   }
-  // if successful, return response with user amended to include intent field and redirectUrl
+  // intent is now a user additionalField — no DB query needed
   const returned = ctx.context.returned as BetterAuthSuccessResponseSchema;
   const userId = returned.user.id;
   if (!userId) {
     return;
   }
-  const [onboarding] = await db
-    .select()
-    .from(userOnBoarding)
-    .where(eq(userOnBoarding.userId, Number(userId)))
-    .limit(1);
 
-  const intent = onboarding ? onboarding.intent : "seeker";
+  const intent =
+    (returned.user as Record<string, unknown>).intent === "employer"
+      ? "employer"
+      : "seeker";
   const redirectUrl = intent === "employer" ? "/employer/organizations" : "/";
 
   return {

@@ -4,7 +4,6 @@ import { Suspense, useCallback, useState } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 import { Info, RefreshCcwIcon } from "lucide-react";
-import { useFetchJobs } from "@/app/(main)/hooks/use-fetch-jobs";
 
 import { JobDetailPanel } from "@/app/(main)/components/JobDetailPanel";
 import { JobsList } from "@/app/(main)/components/JobsList";
@@ -30,7 +29,7 @@ interface JobsWrapperProps {
 }
 
 const JobsWrapper = ({ jobs }: JobsWrapperProps) => {
-  const { data, error, fetchingJobs } = useFetchJobs(jobs);
+  const data = jobs;
   const [jobId, setJobId] = useState<number | undefined>(undefined);
   const [sortBy, setSortBy] = useState<"Most Relevant" | "Most Recent">(
     "Most Recent",
@@ -57,15 +56,7 @@ const JobsWrapper = ({ jobs }: JobsWrapperProps) => {
     setSortBy(s as "Most Relevant" | "Most Recent");
   }, []);
 
-  if (fetchingJobs) {
-    return (
-      <main className="mx-auto max-w-7xl px-1 py-4 lg:px-4 lg:py-6">
-        <JobsWrapperSkeleton />
-      </main>
-    );
-  }
-
-  if (error || !data || (data && data.data.length === 0)) {
+  if (!data || data.data.length === 0) {
     return <EmptyMuted />;
   }
   return (

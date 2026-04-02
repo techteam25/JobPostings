@@ -15,6 +15,7 @@ export const userProfileFixture = async () => {
     state: faker.location.state(),
     zipCode: faker.location.zipCode("#####"),
     country: faker.location.country(),
+    fileMetadata: null,
     education: await userEducationsFixture(),
     workExperiences: await workExperiencesFixture(),
     certifications: userCertificationsFixture(),

@@ -82,6 +82,11 @@ export interface ProfileServicePort {
     userInfo: { email: string; fullName: string },
   ): Promise<Result<{ status: "completed" }, AppError>>;
 
+  initializeUserIntent(
+    userId: number,
+    intent: "seeker" | "employer",
+  ): Promise<Result<void, AppError>>;
+
   getSavedJobsForUser(
     userId: number,
     page?: number,

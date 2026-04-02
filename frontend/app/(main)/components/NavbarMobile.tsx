@@ -87,37 +87,49 @@ export function NavbarMobile({
               </div>
             </SheetHeader>
             <nav className="flex flex-col items-start gap-4 p-4">
-              <Button
-                variant="link"
-                className="text-secondary-foreground rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-                asChild
-              >
-                <Link href="/">Explore Jobs</Link>
-              </Button>
-              <Button
-                variant="link"
-                className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-              >
-                Saved Jobs
-              </Button>
-              <Button
-                variant="link"
-                className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-              >
-                Applications
-              </Button>
-              <Button
-                variant="link"
-                className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-              >
-                Messages
-              </Button>
-              <Button
-                variant="link"
-                className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
-              >
-                FAQ
-              </Button>
+              <SheetClose asChild>
+                <Button
+                  variant="link"
+                  className="text-secondary-foreground rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                  asChild
+                >
+                  <Link href="/">Explore Jobs</Link>
+                </Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button
+                  variant="link"
+                  className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                  asChild
+                >
+                  <Link href="/saved">Saved Jobs</Link>
+                </Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button
+                  variant="link"
+                  className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                  asChild
+                >
+                  <Link href="/applications">My Applications</Link>
+                </Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button
+                  variant="link"
+                  className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                >
+                  Messages
+                </Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button
+                  variant="link"
+                  className="text-secondary-foreground cursor-pointer rounded-2xl px-6 py-2 text-xs transition md:text-sm"
+                >
+                  FAQ
+                </Button>
+              </SheetClose>
 
               <Separator className="my-1" />
 

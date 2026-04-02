@@ -1,6 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { env } from "@/env";
 import { ApiError, ApiErrorResponse } from "@/lib/types";
+import { useAuthStore } from "@/context/auth-store";
 
 export const instance = axios.create({
   baseURL: env.NEXT_PUBLIC_SERVER_URL,
@@ -12,6 +13,7 @@ instance.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiErrorResponse>) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
+      useAuthStore.getState().clearSession();
       window.location.href = "/sign-in";
     }
 

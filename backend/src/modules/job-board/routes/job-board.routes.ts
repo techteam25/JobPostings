@@ -18,11 +18,13 @@ import {
 
 export function createJobBoardRoutes({
   authenticate,
+  optionalAuthenticate,
   orgGuards,
   jobBoardGuards,
   controller,
 }: {
   authenticate: RequestHandler;
+  optionalAuthenticate: RequestHandler;
   orgGuards: Pick<
     OrganizationsGuards,
     | "requireJobPostingRole"
@@ -39,8 +41,15 @@ export function createJobBoardRoutes({
   // GET /jobs
   router.get(
     "/",
+    optionalAuthenticate,
     validate(searchParams),
-    cacheMiddleware({ ttl: 300 }),
+    cacheMiddleware({
+      ttl: 300,
+      keyGenerator: (req) => {
+        const base = (req.originalUrl || req.url).replace(/^\/api\//, "");
+        return req.userId ? `${base}:user:${req.userId}` : base;
+      },
+    }),
     controller.getAllJobs,
   );
 
@@ -55,8 +64,15 @@ export function createJobBoardRoutes({
   // GET /jobs/:jobId
   router.get(
     "/:jobId",
+    optionalAuthenticate,
     validate(getJobSchema),
-    cacheMiddleware({ ttl: 300 }),
+    cacheMiddleware({
+      ttl: 300,
+      keyGenerator: (req) => {
+        const base = (req.originalUrl || req.url).replace(/^\/api\//, "");
+        return req.userId ? `${base}:user:${req.userId}` : base;
+      },
+    }),
     controller.getJobById,
   );
 

@@ -22,6 +22,7 @@ interface UserProfileModuleDeps {
   userOrgsQuery: UserOrganizationsQueryPort;
   identityWrite: IdentityWritePort;
   typesenseUserProfileService: TypesenseUserProfileServicePort;
+  profileRepository: ProfileRepository;
 }
 
 /**
@@ -31,7 +32,7 @@ interface UserProfileModuleDeps {
  * and wires internal dependencies.
  */
 export function createUserProfileModule(deps: UserProfileModuleDeps) {
-  const repository = new ProfileRepository();
+  const repository = deps.profileRepository;
   const preferenceRepository = new PreferenceRepository();
   const workAreaRepository = new WorkAreaRepository();
 

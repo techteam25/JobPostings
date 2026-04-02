@@ -18,6 +18,7 @@ import type { FileUploadJobData } from "@/validations/file.validation";
 import type { NewOrganization } from "@/validations/organization.validation";
 import type { OrganizationsServicePort } from "@/modules/organizations";
 import type { OrganizationsRepositoryPort } from "@/modules/organizations";
+import type { IntentSyncPort } from "@/modules/organizations/ports/intent-sync.port";
 import { OrganizationsLogoFile } from "@/modules/organizations/types/organizations.module.types";
 
 /**
@@ -29,7 +30,10 @@ export class OrganizationsService
   extends BaseService
   implements OrganizationsServicePort
 {
-  constructor(private organizationsRepository: OrganizationsRepositoryPort) {
+  constructor(
+    private organizationsRepository: OrganizationsRepositoryPort,
+    private intentSync: IntentSyncPort,
+  ) {
     super();
   }
 
@@ -112,6 +116,13 @@ export class OrganizationsService
       if (!createdOrganization) {
         return fail(new DatabaseError("Failed to create organization"));
       }
+
+      // Sync denormalized intent to user table for session cookie cache
+      await this.intentSync.syncIntentToUser(
+        sessionUserId,
+        "employer",
+        "completed",
+      );
 
       // Upload logo to cloud storage if provided in organizationData
       if (organizationData.logo) {
