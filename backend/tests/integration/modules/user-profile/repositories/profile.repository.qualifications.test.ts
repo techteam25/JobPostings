@@ -10,14 +10,26 @@ import {
   workExperiences,
 } from "@/db/schema";
 import { ProfileRepository } from "@/modules/user-profile/repositories/profile.repository";
+import { EducationRepository } from "@/modules/user-profile/repositories/education.repository";
+import { WorkExperienceRepository } from "@/modules/user-profile/repositories/work-experience.repository";
+import { CertificationRepository } from "@/modules/user-profile/repositories/certification.repository";
+import { SkillRepository } from "@/modules/user-profile/repositories/skill.repository";
 import { createUser, createUserProfile } from "@tests/utils/seedBuilders";
 import { NotFoundError } from "@shared/errors";
 
-describe("ProfileRepository - Individual Qualification CRUD", () => {
-  let repository: ProfileRepository;
+describe("Qualification Repositories - Individual CRUD", () => {
+  let profileRepository: ProfileRepository;
+  let educationRepository: EducationRepository;
+  let workExperienceRepository: WorkExperienceRepository;
+  let certificationRepository: CertificationRepository;
+  let skillRepository: SkillRepository;
 
   beforeAll(() => {
-    repository = new ProfileRepository();
+    profileRepository = new ProfileRepository();
+    educationRepository = new EducationRepository();
+    workExperienceRepository = new WorkExperienceRepository();
+    certificationRepository = new CertificationRepository();
+    skillRepository = new SkillRepository();
   });
 
   // Helper to set up a user with a profile, returns userProfileId
@@ -45,28 +57,32 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
       endDate: "2019-05-20T00:00:00.000Z",
     };
 
-    it("addEducation should insert and return the education row", async () => {
+    it("batchAddEducations should insert and return the education rows", async () => {
       const { userProfileId } = await seedUserWithProfile();
 
-      const result = await repository.addEducation(
+      const result = await educationRepository.batchAddEducations(
         userProfileId,
-        educationData,
+        [educationData],
       );
 
       expect(result).toBeDefined();
-      expect(result.id).toBeGreaterThan(0);
-      expect(result.schoolName).toBe("MIT");
-      expect(result.program).toBe("Bachelors");
-      expect(result.major).toBe("Computer Science");
-      expect(result.graduated).toBe(true);
-      expect(result.userProfileId).toBe(userProfileId);
+      expect(result).toHaveLength(1);
+      expect(result[0]!.id).toBeGreaterThan(0);
+      expect(result[0]!.schoolName).toBe("MIT");
+      expect(result[0]!.program).toBe("Bachelors");
+      expect(result[0]!.major).toBe("Computer Science");
+      expect(result[0]!.graduated).toBe(true);
+      expect(result[0]!.userProfileId).toBe(userProfileId);
     });
 
     it("updateEducation should modify fields and return true", async () => {
       const { userProfileId } = await seedUserWithProfile();
-      const edu = await repository.addEducation(userProfileId, educationData);
+      const [edu] = await educationRepository.batchAddEducations(
+        userProfileId,
+        [educationData],
+      );
 
-      const updated = await repository.updateEducation(edu.id, {
+      const updated = await educationRepository.updateEducation(edu!.id, {
         schoolName: "Stanford",
         major: "Mathematics",
       });
@@ -74,7 +90,7 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
       expect(updated).toBe(true);
 
       const row = await db.query.educations.findFirst({
-        where: eq(educations.id, edu.id),
+        where: eq(educations.id, edu!.id),
       });
       expect(row!.schoolName).toBe("Stanford");
       expect(row!.major).toBe("Mathematics");
@@ -82,25 +98,28 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
 
     it("updateEducation should throw NotFoundError for non-existent id", async () => {
       await expect(
-        repository.updateEducation(99999, { schoolName: "Harvard" }),
+        educationRepository.updateEducation(99999, { schoolName: "Harvard" }),
       ).rejects.toThrow(NotFoundError);
     });
 
     it("deleteEducation should remove the row and return true", async () => {
       const { userProfileId } = await seedUserWithProfile();
-      const edu = await repository.addEducation(userProfileId, educationData);
+      const [edu] = await educationRepository.batchAddEducations(
+        userProfileId,
+        [educationData],
+      );
 
-      const deleted = await repository.deleteEducation(edu.id);
+      const deleted = await educationRepository.deleteEducation(edu!.id);
       expect(deleted).toBe(true);
 
       const row = await db.query.educations.findFirst({
-        where: eq(educations.id, edu.id),
+        where: eq(educations.id, edu!.id),
       });
       expect(row).toBeUndefined();
     });
 
     it("deleteEducation should throw NotFoundError for non-existent id", async () => {
-      await expect(repository.deleteEducation(99999)).rejects.toThrow(
+      await expect(educationRepository.deleteEducation(99999)).rejects.toThrow(
         NotFoundError,
       );
     });
@@ -118,36 +137,43 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
       endDate: "2023-06-30T00:00:00.000Z",
     };
 
-    it("addWorkExperience should insert with jobTitle and description", async () => {
+    it("batchAddWorkExperiences should insert with jobTitle and description", async () => {
       const { userProfileId } = await seedUserWithProfile();
 
-      const result = await repository.addWorkExperience(
+      const result = await workExperienceRepository.batchAddWorkExperiences(
         userProfileId,
-        workExpData,
+        [workExpData],
       );
 
       expect(result).toBeDefined();
-      expect(result.id).toBeGreaterThan(0);
-      expect(result.companyName).toBe("Acme Corp");
-      expect(result.jobTitle).toBe("Senior Engineer");
-      expect(result.description).toBe("Led a team of 5 engineers");
-      expect(result.current).toBe(false);
-      expect(result.userProfileId).toBe(userProfileId);
+      expect(result).toHaveLength(1);
+      expect(result[0]!.id).toBeGreaterThan(0);
+      expect(result[0]!.companyName).toBe("Acme Corp");
+      expect(result[0]!.jobTitle).toBe("Senior Engineer");
+      expect(result[0]!.description).toBe("Led a team of 5 engineers");
+      expect(result[0]!.current).toBe(false);
+      expect(result[0]!.userProfileId).toBe(userProfileId);
     });
 
     it("updateWorkExperience should update jobTitle and description", async () => {
       const { userProfileId } = await seedUserWithProfile();
-      const we = await repository.addWorkExperience(userProfileId, workExpData);
+      const [we] = await workExperienceRepository.batchAddWorkExperiences(
+        userProfileId,
+        [workExpData],
+      );
 
-      const updated = await repository.updateWorkExperience(we.id, {
-        jobTitle: "Staff Engineer",
-        description: "Promoted to staff",
-      });
+      const updated = await workExperienceRepository.updateWorkExperience(
+        we!.id,
+        {
+          jobTitle: "Staff Engineer",
+          description: "Promoted to staff",
+        },
+      );
 
       expect(updated).toBe(true);
 
       const row = await db.query.workExperiences.findFirst({
-        where: eq(workExperiences.id, we.id),
+        where: eq(workExperiences.id, we!.id),
       });
       expect(row!.jobTitle).toBe("Staff Engineer");
       expect(row!.description).toBe("Promoted to staff");
@@ -155,27 +181,34 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
 
     it("updateWorkExperience should throw NotFoundError for non-existent id", async () => {
       await expect(
-        repository.updateWorkExperience(99999, { jobTitle: "CTO" }),
+        workExperienceRepository.updateWorkExperience(99999, {
+          jobTitle: "CTO",
+        }),
       ).rejects.toThrow(NotFoundError);
     });
 
     it("deleteWorkExperience should remove the row and return true", async () => {
       const { userProfileId } = await seedUserWithProfile();
-      const we = await repository.addWorkExperience(userProfileId, workExpData);
+      const [we] = await workExperienceRepository.batchAddWorkExperiences(
+        userProfileId,
+        [workExpData],
+      );
 
-      const deleted = await repository.deleteWorkExperience(we.id);
+      const deleted = await workExperienceRepository.deleteWorkExperience(
+        we!.id,
+      );
       expect(deleted).toBe(true);
 
       const row = await db.query.workExperiences.findFirst({
-        where: eq(workExperiences.id, we.id),
+        where: eq(workExperiences.id, we!.id),
       });
       expect(row).toBeUndefined();
     });
 
     it("deleteWorkExperience should throw NotFoundError for non-existent id", async () => {
-      await expect(repository.deleteWorkExperience(99999)).rejects.toThrow(
-        NotFoundError,
-      );
+      await expect(
+        workExperienceRepository.deleteWorkExperience(99999),
+      ).rejects.toThrow(NotFoundError);
     });
   });
 
@@ -185,9 +218,12 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
     it("linkCertification should create certification and junction entry", async () => {
       const { userProfileId } = await seedUserWithProfile();
 
-      const cert = await repository.linkCertification(userProfileId, {
-        certificationName: "AWS Solutions Architect",
-      });
+      const cert = await certificationRepository.linkCertification(
+        userProfileId,
+        {
+          certificationName: "AWS Solutions Architect",
+        },
+      );
 
       expect(cert).toBeDefined();
       expect(cert.id).toBeGreaterThan(0);
@@ -204,12 +240,18 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
     it("linkCertification should be idempotent", async () => {
       const { userProfileId } = await seedUserWithProfile();
 
-      const cert1 = await repository.linkCertification(userProfileId, {
-        certificationName: "AWS Solutions Architect",
-      });
-      const cert2 = await repository.linkCertification(userProfileId, {
-        certificationName: "AWS Solutions Architect",
-      });
+      const cert1 = await certificationRepository.linkCertification(
+        userProfileId,
+        {
+          certificationName: "AWS Solutions Architect",
+        },
+      );
+      const cert2 = await certificationRepository.linkCertification(
+        userProfileId,
+        {
+          certificationName: "AWS Solutions Architect",
+        },
+      );
 
       // Same certification name returned both times
       expect(cert1.certificationName).toBe(cert2.certificationName);
@@ -217,11 +259,14 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
 
     it("unlinkCertification should remove junction entry and return true", async () => {
       const { userProfileId } = await seedUserWithProfile();
-      const cert = await repository.linkCertification(userProfileId, {
-        certificationName: "AWS Solutions Architect",
-      });
+      const cert = await certificationRepository.linkCertification(
+        userProfileId,
+        {
+          certificationName: "AWS Solutions Architect",
+        },
+      );
 
-      const result = await repository.unlinkCertification(
+      const result = await certificationRepository.unlinkCertification(
         userProfileId,
         cert.id,
       );
@@ -238,7 +283,7 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
       const { userProfileId } = await seedUserWithProfile();
 
       await expect(
-        repository.unlinkCertification(userProfileId, 99999),
+        certificationRepository.unlinkCertification(userProfileId, 99999),
       ).rejects.toThrow(NotFoundError);
     });
   });
@@ -249,7 +294,7 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
     it("linkSkill should create or find skill and create junction entry", async () => {
       const { userProfileId } = await seedUserWithProfile();
 
-      const result = await repository.linkSkill(userProfileId, {
+      const result = await skillRepository.linkSkill(userProfileId, {
         name: "TypeScript",
       });
       expect(result).toHaveProperty("id");
@@ -266,10 +311,10 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
     it("linkSkill should be idempotent", async () => {
       const { userProfileId } = await seedUserWithProfile();
 
-      const first = await repository.linkSkill(userProfileId, {
+      const first = await skillRepository.linkSkill(userProfileId, {
         name: "React",
       });
-      const second = await repository.linkSkill(userProfileId, {
+      const second = await skillRepository.linkSkill(userProfileId, {
         name: "React",
       });
 
@@ -280,10 +325,10 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
     it("unlinkSkill should remove junction entry and return true", async () => {
       const { userProfileId } = await seedUserWithProfile();
 
-      const skill = await repository.linkSkill(userProfileId, {
+      const skill = await skillRepository.linkSkill(userProfileId, {
         name: "Node.js",
       });
-      const result = await repository.unlinkSkill(userProfileId, skill.id);
+      const result = await skillRepository.unlinkSkill(userProfileId, skill.id);
       expect(result).toBe(true);
 
       // Verify junction entry is gone
@@ -298,7 +343,7 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
       const skillId = await seedSkill("Python");
 
       await expect(
-        repository.unlinkSkill(userProfileId, skillId),
+        skillRepository.unlinkSkill(userProfileId, skillId),
       ).rejects.toThrow(NotFoundError);
     });
   });
@@ -308,17 +353,17 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
       const { userProfileId } = await seedUserWithProfile();
 
       // Seed certifications via link
-      await repository.linkCertification(userProfileId, {
+      await certificationRepository.linkCertification(userProfileId, {
         certificationName: "AWS Solutions Architect",
       });
-      await repository.linkCertification(userProfileId, {
+      await certificationRepository.linkCertification(userProfileId, {
         certificationName: "AWS Developer Associate",
       });
-      await repository.linkCertification(userProfileId, {
+      await certificationRepository.linkCertification(userProfileId, {
         certificationName: "Google Cloud Professional",
       });
 
-      const results = await repository.searchCertifications("AWS");
+      const results = await certificationRepository.searchCertifications("AWS");
 
       expect(results.length).toBeGreaterThanOrEqual(2);
       expect(results.every((c) => c.certificationName.includes("AWS"))).toBe(
@@ -327,7 +372,8 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
     });
 
     it("should return empty array for no matches", async () => {
-      const results = await repository.searchCertifications("NonExistent12345");
+      const results =
+        await certificationRepository.searchCertifications("NonExistent12345");
 
       expect(results).toHaveLength(0);
     });
@@ -335,12 +381,12 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
     it("should handle special characters in search safely", async () => {
       const { userProfileId } = await seedUserWithProfile();
 
-      await repository.linkCertification(userProfileId, {
+      await certificationRepository.linkCertification(userProfileId, {
         certificationName: "Cert with % special",
       });
 
       // Search for the literal % character — should not break
-      const results = await repository.searchCertifications("%");
+      const results = await certificationRepository.searchCertifications("%");
 
       expect(results.some((c) => c.certificationName.includes("%"))).toBe(true);
     });
@@ -351,7 +397,7 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
       const { userId } = await seedUserWithProfile();
 
       // First updateProfile with work experience including jobTitle + description
-      const result = await repository.updateProfile(userId, {
+      const result = await profileRepository.updateProfile(userId, {
         educations: [],
         certifications: [],
         workExperiences: [
@@ -372,7 +418,7 @@ describe("ProfileRepository - Individual Qualification CRUD", () => {
       expect(workExp!.description).toBe("Building things");
 
       // Second upsert with updated jobTitle/description (triggers onDuplicateKeyUpdate)
-      const result2 = await repository.updateProfile(userId, {
+      const result2 = await profileRepository.updateProfile(userId, {
         educations: [],
         certifications: [],
         workExperiences: [
