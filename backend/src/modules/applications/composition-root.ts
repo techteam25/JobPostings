@@ -6,7 +6,10 @@ import type { ApplicationsRepositoryPort } from "./ports/applications-repository
 
 import { ApplicationsService } from "./services/applications.service";
 import { ApplicationsController } from "./controllers/applications.controller";
+import { SavedJobService } from "./services/saved-job.service";
+import { SavedJobController } from "./controllers/saved-job.controller";
 import { createApplicationsGuards } from "./guards/applications.guards";
+import type { SavedJobRepositoryPort } from "./ports/saved-job-repository.port";
 
 interface ApplicationsModuleDeps {
   jobDetailsQuery: JobDetailsQueryPort;
@@ -14,6 +17,7 @@ interface ApplicationsModuleDeps {
   applicantQuery: ApplicantQueryPort;
   eventBus: EventBusPort;
   applicationsRepository: ApplicationsRepositoryPort;
+  savedJobRepository: SavedJobRepositoryPort;
 }
 
 /**
@@ -33,11 +37,15 @@ export function createApplicationsModule(deps: ApplicationsModuleDeps) {
     deps.eventBus,
   );
   const controller = new ApplicationsController(service);
+
+  const savedJobService = new SavedJobService(deps.savedJobRepository);
+  const savedJobController = new SavedJobController(savedJobService);
+
   const guards = createApplicationsGuards({
     applicationsRepository: repository,
   });
 
-  return { controller, guards, repository };
+  return { controller, savedJobController, guards, repository };
 }
 
 export type ApplicationsModule = ReturnType<typeof createApplicationsModule>;

@@ -11,5 +11,8 @@ export type { ApplicantQueryPort } from "./ports/applicant-query.port";
 export { createApplicationsGuards } from "./guards/applications.guards";
 export type { ApplicationsGuards } from "./guards/applications.guards";
 export { createApplicationsRoutes } from "./routes/applications.routes";
+export { createSavedJobRoutes } from "./routes/saved-job.routes";
+export { SavedJobRepository } from "./repositories/saved-job.repository";
+export type { SavedJobRepositoryPort } from "./ports/saved-job-repository.port";
 export type { ApplicationSubmittedPayload } from "./events/application-submitted.event";
 export { createApplicationSubmittedEvent } from "./events/application-submitted.event";

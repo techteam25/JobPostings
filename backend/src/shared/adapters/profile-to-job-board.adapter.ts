@@ -1,23 +1,22 @@
-import type { ProfileRepositoryPort } from "@/modules/user-profile";
+import type { SavedJobRepositoryPort } from "@/modules/applications";
 import type { SavedJobsStatusQueryPort } from "@/modules/job-board";
 
 /**
- * Adapter bridging the profile repository into the job-board module's
- * SavedJobsStatusQueryPort. Translates saved-job data into the shape
- * the job-board module expects.
+ * Adapter bridging the saved-job repository (applications module) into
+ * the job-board module's SavedJobsStatusQueryPort.
  */
 export class ProfileToJobBoardAdapter implements SavedJobsStatusQueryPort {
-  constructor(private readonly profileRepository: ProfileRepositoryPort) {}
+  constructor(private readonly savedJobRepository: SavedJobRepositoryPort) {}
 
   async getSavedJobIds(userId: number, jobIds: number[]): Promise<Set<number>> {
     if (jobIds.length === 0) {
       return new Set();
     }
 
-    return this.profileRepository.getSavedJobIdsForJobs(userId, jobIds);
+    return this.savedJobRepository.getSavedJobIdsForJobs(userId, jobIds);
   }
 
   async hasUserSavedJob(userId: number, jobId: number): Promise<boolean> {
-    return this.profileRepository.isJobSavedByUser(userId, jobId);
+    return this.savedJobRepository.isJobSavedByUser(userId, jobId);
   }
 }

@@ -18,6 +18,7 @@ export function createApiRoutes(root: CompositionRoot) {
       authenticate: root.authenticate,
       identity: root.identity,
       userProfile: root.userProfile,
+      applications: root.applications,
       notifications: root.notifications,
       organizations: root.organizations,
     }),
