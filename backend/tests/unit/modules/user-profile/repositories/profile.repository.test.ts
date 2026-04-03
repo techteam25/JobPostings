@@ -27,9 +27,11 @@ describe("SavedJobService.saveJobForCurrentUser - saved jobs limit", () => {
     const result = await service.saveJobForCurrentUser(1, 123);
 
     expect(result.isFailure).toBe(true);
-    expect(result.error?.message).toMatch(
-      /Saved jobs limit reached. You can save up to 50 jobs./,
-    );
+    if (result.isFailure) {
+      expect(result.error.message).toMatch(
+        /Saved jobs limit reached. You can save up to 50 jobs./,
+      );
+    }
     expect(repo.saveJobForUser).not.toHaveBeenCalled();
   });
 
