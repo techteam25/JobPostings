@@ -11,6 +11,12 @@ Job Board backend API — Express.js 5 + TypeScript, running on Bun. Uses MySQL 
 **IMPORTANT: The user will always run Drizzle `generate` and `migrate` manually. Do not run these commands automatically.**
 
 
+**IMPORTANT**
+Do not run tests without passing `DB_NAME=jobpostings_test`.
+- Either run tests using script command `bun run test` or, 
+- `DB_NAME=jobpostings_test bunx vitest run tests/unit/services/typesense-queryBuilder.test.ts`
+
+
 ```bash
 # Development
 bun run dev                    # Start dev server with --watch (port from .env, default 5500)
@@ -29,6 +35,7 @@ bun run test:coverage          # With coverage report
 bun run test:arch              # Architecture boundary tests
 # Run a single test file:
 DB_NAME=jobpostings_test bunx vitest run tests/unit/services/typesense-queryBuilder.test.ts
+
 
 # Database (Drizzle Kit)
 bun run db:generate            # Generate migration from schema changes
@@ -60,6 +67,24 @@ Seven bounded contexts live in `src/modules/{name}/`: `applications`, `identity`
 - **`BaseRepository`** (`src/shared/base/base.repository.ts`) — Generic CRUD over Drizzle tables. All DB calls wrapped with `withDbErrorHandling`.
 - **Composition roots** — Each module has a `composition-root.ts` that receives dependencies via interface ports. The central `src/composition-root.ts` instantiates all concrete classes and wires cross-module adapters.
 
+#### `user-profile` sub-domains
+
+The `user-profile` module is split into focused sub-domains, each with its own controller, service, repository, routes, and two port interfaces (service + repository):
+
+| Sub-domain | Pattern | Key constraint |
+| --- | --- | --- |
+| `profile` (core) | Full lifecycle — CRUD, visibility, availability, intent, onboarding, file uploads | Cross-module ports: `OrgRoleQueryPort`, `IdentityWritePort` |
+| `education` | Batch CRUD | Validates user via `Pick<ProfileRepositoryPort, "findByIdWithProfile">` |
+| `work-experience` | Batch CRUD | Same validation pattern |
+| `certification` | Link/unlink (many-to-many catalog) | Same validation pattern |
+| `skill` | Link/unlink + business constraint | `MAX_SKILLS = 30` enforced at service layer |
+
+All sub-domain routes are exported from the module barrel (`index.ts`) and mounted in `src/routes/user.routes.ts`.
+
+#### `applications` module — saved jobs
+
+Saved jobs (`SavedJobController`, `SavedJobService`, `SavedJobRepository`) live in the `applications` module (not `user-profile`), aligning the bounded context with ADR-0001. The `ProfileToJobBoardAdapter` bridges saved-job data to the `job-board` module via `SavedJobRepositoryPort`. Business limit (`MAX_SAVED_JOBS = 50`) enforced at service layer.
+
 ### Key Patterns
 
 - **Path aliases**: `@/` → `src/`, `@shared/` → `src/shared/`, `@tests/` → `tests/` (configured in tsconfig.json and vitest.config.mts)
@@ -74,6 +99,7 @@ Seven bounded contexts live in `src/modules/{name}/`: `applications`, `identity`
 Workers process async tasks via Redis-backed queues. Shared workers live in `src/shared/workers/`; module-specific workers live in their owning module's `workers/` directory:
 
 - `typesense-job-indexer` — Indexes jobs in Typesense on create/update (`src/modules/job-board/workers/`)
+- `typesense-user-profile-indexer` — Indexes user profiles in Typesense (`src/modules/user-profile/workers/`)
 - `file-upload-worker` — Uploads files to Firebase Storage (`src/shared/workers/`)
 - `send-email-worker` — Sends emails via Nodemailer (`src/modules/notifications/workers/`)
 - `job-alert-processor` — Daily/weekly/monthly job alert matching (`src/modules/notifications/workers/`)

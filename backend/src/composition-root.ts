@@ -19,7 +19,10 @@ import { createInvitationsModule } from "@/modules/invitations";
 // Concrete repositories — only the central composition root instantiates these
 import { JobBoardRepository } from "@/modules/job-board";
 import { JobInsightsRepository } from "@/modules/job-board";
-import { ApplicationsRepository } from "@/modules/applications";
+import {
+  ApplicationsRepository,
+  SavedJobRepository,
+} from "@/modules/applications";
 import { OrganizationsRepository } from "@/modules/organizations";
 import { ProfileRepository } from "@/modules/user-profile";
 
@@ -72,11 +75,21 @@ export type CompositionRoot = {
   identity: Pick<IdentityModule, "controller" | "guards">;
   userProfile: Pick<
     UserProfileModule,
-    "controller" | "preferenceController" | "workAreaController" | "guards"
+    | "controller"
+    | "preferenceController"
+    | "workAreaController"
+    | "educationController"
+    | "workExperienceController"
+    | "certificationController"
+    | "skillController"
+    | "guards"
   >;
   notifications: Pick<NotificationsModule, "controller">;
   jobBoard: Pick<JobBoardModule, "controller" | "guards">;
-  applications: Pick<ApplicationsModule, "controller" | "guards">;
+  applications: Pick<
+    ApplicationsModule,
+    "controller" | "savedJobController" | "guards"
+  >;
   organizations: Pick<OrganizationsModule, "controller" | "guards">;
   invitations: Pick<InvitationsModule, "controller" | "guards">;
   workers: {
@@ -117,6 +130,7 @@ export function createCompositionRoot(): CompositionRoot {
   const jobBoardRepository = new JobBoardRepository();
   const jobInsightsRepository = new JobInsightsRepository();
   const applicationsRepository = new ApplicationsRepository();
+  const savedJobRepository = new SavedJobRepository();
   const organizationsRepository = new OrganizationsRepository();
   const profileRepository = new ProfileRepository();
 
@@ -198,9 +212,9 @@ export function createCompositionRoot(): CompositionRoot {
     profileRepository,
   });
 
-  // Profile → Job-board (saved jobs enrichment)
+  // SavedJobs → Job-board (saved jobs enrichment)
   const profileToJobBoardAdapter = new ProfileToJobBoardAdapter(
-    userProfile.repository,
+    savedJobRepository,
   );
 
   const notifications = createNotificationsModule({
@@ -226,6 +240,7 @@ export function createCompositionRoot(): CompositionRoot {
     applicantQuery: identityToApplicationsAdapter,
     eventBus,
     applicationsRepository,
+    savedJobRepository,
   });
 
   const invitations = createInvitationsModule({

@@ -11,6 +11,10 @@ export type { ProfileGuards } from "./guards/profile.guards";
 export { createProfileRoutes } from "./routes/profile.routes";
 export { createJobPreferenceRoutes } from "./routes/job-preference.routes";
 export { createWorkAreaRoutes } from "./routes/work-area.routes";
+export { createEducationRoutes } from "./routes/education.routes";
+export { createWorkExperienceRoutes } from "./routes/work-experience.routes";
+export { createCertificationRoutes } from "./routes/certification.routes";
+export { createSkillRoutes } from "./routes/skill.routes";
 export type { PreferenceServicePort } from "./ports/preference-service.port";
 export type {
   PreferenceRepositoryPort,

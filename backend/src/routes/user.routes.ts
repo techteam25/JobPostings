@@ -30,7 +30,12 @@ import {
   createProfileRoutes,
   createJobPreferenceRoutes,
   createWorkAreaRoutes,
+  createEducationRoutes,
+  createWorkExperienceRoutes,
+  createCertificationRoutes,
+  createSkillRoutes,
 } from "@/modules/user-profile";
+import { createSavedJobRoutes } from "@/modules/applications";
 import { createNotificationsRoutes } from "@/modules/notifications";
 
 import type { CompositionRoot } from "@/composition-root";
@@ -1019,6 +1024,7 @@ interface UserRoutesDeps {
   authenticate: CompositionRoot["authenticate"];
   identity: CompositionRoot["identity"];
   userProfile: CompositionRoot["userProfile"];
+  applications: CompositionRoot["applications"];
   notifications: CompositionRoot["notifications"];
   organizations: CompositionRoot["organizations"];
 }
@@ -1033,7 +1039,6 @@ export function createUserRoutes(deps: UserRoutesDeps): Router {
   router.use(
     createProfileRoutes({
       controller: deps.userProfile.controller,
-      profileGuards: deps.userProfile.guards,
       identityGuards: deps.identity.guards,
       orgGuards: deps.organizations.guards,
     }),
@@ -1048,6 +1053,32 @@ export function createUserRoutes(deps: UserRoutesDeps): Router {
   router.use(
     createWorkAreaRoutes({
       controller: deps.userProfile.workAreaController,
+    }),
+  );
+  router.use(
+    createEducationRoutes({
+      controller: deps.userProfile.educationController,
+    }),
+  );
+  router.use(
+    createWorkExperienceRoutes({
+      controller: deps.userProfile.workExperienceController,
+    }),
+  );
+  router.use(
+    createCertificationRoutes({
+      controller: deps.userProfile.certificationController,
+    }),
+  );
+  router.use(
+    createSkillRoutes({
+      controller: deps.userProfile.skillController,
+    }),
+  );
+  router.use(
+    createSavedJobRoutes({
+      controller: deps.applications.savedJobController,
+      profileGuards: deps.userProfile.guards,
     }),
   );
   router.use(
