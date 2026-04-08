@@ -217,15 +217,23 @@ type BetterAuthMiddlewareContext = Parameters<
 
 /**
  * Extracts the successful user result from a Better-Auth after-hook context.
- * Returns null if the response is an error or missing.
+ * Returns null if the response is an error, missing, or lacks user data
+ * (e.g. OAuth redirect responses that only contain a URL).
  */
 function getSuccessResult(
   ctx: BetterAuthMiddlewareContext,
 ): BetterAuthSuccessResponseSchema | null {
-  if (!ctx.context.returned || ctx.context.returned instanceof APIError) {
+  const returned = ctx.context.returned;
+  if (!returned || returned instanceof APIError) {
     return null;
   }
-  return ctx.context.returned as BetterAuthSuccessResponseSchema;
+
+  const result = returned as Record<string, unknown>;
+  if (!result.user || typeof result.user !== "object") {
+    return null;
+  }
+
+  return returned as BetterAuthSuccessResponseSchema;
 }
 
 function enrichResponse(
