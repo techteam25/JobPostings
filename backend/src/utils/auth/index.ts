@@ -193,7 +193,7 @@ export const auth = betterAuth({
       }
       if (ctx.path === "/sign-up/email") {
         return await handleEmailRegistration(ctx);
-      } else if (ctx.path === "/sign-in/social") {
+      } else if (ctx.path === "/callback/:id") {
         return await handleOAuthRegistration(ctx);
       } else if (ctx.path === "/sign-in/email") {
         await postUserAuthenticationActions(ctx);
