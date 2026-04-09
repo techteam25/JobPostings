@@ -41,3 +41,6 @@ export {
 } from "./preferences";
 
 export { getInvitationDetails, acceptInvitation } from "./invitations";
+
+export { searchJobs } from "./search-jobs";
+export type { SearchJobsParams } from "./search-jobs";
