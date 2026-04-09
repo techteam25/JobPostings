@@ -13,3 +13,4 @@ export {
   type SessionState,
   type AuthSession,
 } from "./session-slice";
+export { searchSlice } from "./search-slice";

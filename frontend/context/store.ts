@@ -5,6 +5,7 @@ import {
   datePostedSlice,
   jobTypeSlice,
   remoteOnlySlice,
+  searchSlice,
   serviceRoleSlice,
   sortBySlice,
   applicationFormSlice,
@@ -40,11 +41,19 @@ export interface SortByFilterState {
   setSortBy: (sortBy: SortBy) => void;
 }
 
+export interface SearchState {
+  keyword: string;
+  location: string;
+  setKeyword: (keyword: string) => void;
+  setLocation: (location: string) => void;
+}
+
 export type FiltersState = RemoteOnlyFilterState &
   JobTypeFilterState &
   ServiceFiltersState &
   DatePostedFilterState &
-  SortByFilterState;
+  SortByFilterState &
+  SearchState;
 
 export const useFiltersStore = create<FiltersState>()(
   persist(
@@ -54,6 +63,7 @@ export const useFiltersStore = create<FiltersState>()(
       ...serviceRoleSlice(...args),
       ...datePostedSlice(...args),
       ...sortBySlice(...args),
+      ...searchSlice(...args),
     }),
     {
       name: "filters-storage",
