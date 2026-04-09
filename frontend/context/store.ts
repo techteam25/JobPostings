@@ -11,6 +11,11 @@ import {
   applicationFormSlice,
   type ApplicationFormState,
 } from "./slices";
+import {
+  buildSearchParams,
+  parseSearchParams,
+  hasSearchParams,
+} from "@/lib/search-params";
 
 export type DatePosted = "last-24-hours" | "last-7-days" | "last-14-days";
 
@@ -80,6 +85,55 @@ export const useFiltersStore = create<FiltersState>()(
     },
   ),
 );
+
+// Bidirectional sync: Zustand ↔ URL search params via window.history.replaceState.
+// Runs at module level — no React hooks or useEffect needed.
+if (typeof window !== "undefined") {
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlHasSearchParams = hasSearchParams(urlParams);
+
+  const initUrlSync = () => {
+    // Hydration: URL wins over localStorage; otherwise push localStorage to URL
+    if (urlHasSearchParams) {
+      useFiltersStore.setState(parseSearchParams(urlParams));
+    } else {
+      const params = buildSearchParams(useFiltersStore.getState());
+      const search = params.toString();
+      if (search) {
+        window.history.replaceState(
+          null,
+          "",
+          `${window.location.pathname}?${search}`,
+        );
+      }
+    }
+
+    // Ongoing sync: store changes → URL (debounced 300ms)
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    useFiltersStore.subscribe((state) => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        const params = buildSearchParams(state);
+        const newSearch = params.toString();
+        const currentSearch = new URLSearchParams(
+          window.location.search,
+        ).toString();
+        if (currentSearch !== newSearch) {
+          const url = newSearch
+            ? `${window.location.pathname}?${newSearch}`
+            : window.location.pathname;
+          window.history.replaceState(null, "", url);
+        }
+      }, 300);
+    });
+  };
+
+  if (useFiltersStore.persist.hasHydrated()) {
+    initUrlSync();
+  } else {
+    useFiltersStore.persist.onFinishHydration(initUrlSync);
+  }
+}
 
 export const useApplicationStore = create<ApplicationFormState>()((...args) =>
   applicationFormSlice(...args),
