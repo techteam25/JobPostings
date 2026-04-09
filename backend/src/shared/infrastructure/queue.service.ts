@@ -27,6 +27,7 @@ export const QUEUE_NAMES = {
   JOB_ALERT_QUEUE: "jobAlertQueue",
   INVITATION_EXPIRATION_QUEUE: "invitationExpirationQueue",
   DOMAIN_EVENTS_QUEUE: "domainEventsQueue",
+  TYPESENSE_EMPLOYER_QUEUE: "employerIndexQueue",
 } as const;
 
 // Job options
@@ -71,6 +72,7 @@ class QueueService {
       this.createQueue(QUEUE_NAMES.JOB_ALERT_QUEUE);
       this.createQueue(QUEUE_NAMES.INVITATION_EXPIRATION_QUEUE);
       this.createQueue(QUEUE_NAMES.DOMAIN_EVENTS_QUEUE);
+      this.createQueue(QUEUE_NAMES.TYPESENSE_EMPLOYER_QUEUE);
 
       this.isInitialized = true;
       logger.info("Queue service initialized successfully", {

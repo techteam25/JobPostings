@@ -47,6 +47,7 @@ export class TypesenseJobService implements TypesenseJobServicePort {
         experience: doc.experience,
         jobType: doc.jobType,
         skills: doc.skills,
+        employerId: doc.employerId?.toString(),
         createdAt: Number(Date.parse(`${doc.createdAt}`)),
       });
 
@@ -149,6 +150,7 @@ export class TypesenseJobService implements TypesenseJobServicePort {
         limit,
         offset,
         query_by: "title, skills, jobType, description, city, state, country",
+        include_fields: "$employers(logoUrl, strategy: merge)",
       });
   }
 

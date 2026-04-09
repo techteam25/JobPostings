@@ -20,6 +20,7 @@ import type { OrganizationsServicePort } from "@/modules/organizations";
 import type { OrganizationsRepositoryPort } from "@/modules/organizations";
 import type { IntentSyncPort } from "@/modules/organizations/ports/intent-sync.port";
 import { OrganizationsLogoFile } from "@/modules/organizations/types/organizations.module.types";
+import type { EmployerDocument } from "@shared/ports/typesense-employer-service.port";
 
 /**
  * Service class for managing organization CRUD and membership operations.
@@ -124,6 +125,20 @@ export class OrganizationsService
         "completed",
       );
 
+      // Index employer in Typesense for search JOIN
+      await queueService.addJob<EmployerDocument & { correlationId: string }>(
+        QUEUE_NAMES.TYPESENSE_EMPLOYER_QUEUE,
+        "indexEmployer",
+        {
+          id: createdOrganization.id.toString(),
+          name: createdOrganization.name,
+          logoUrl: createdOrganization.logoUrl ?? undefined,
+          city: createdOrganization.city,
+          state: createdOrganization.state,
+          correlationId,
+        },
+      );
+
       // Upload logo to cloud storage if provided in organizationData
       if (organizationData.logo) {
         await queueService.addJob<FileUploadJobData>(
@@ -218,7 +233,25 @@ export class OrganizationsService
         return fail(new DatabaseError("Failed to update organization"));
       }
 
-      return await this.getOrganizationById(id);
+      const result = await this.getOrganizationById(id);
+
+      if (result.isSuccess) {
+        const org = result.value;
+        await queueService.addJob<EmployerDocument & { correlationId: string }>(
+          QUEUE_NAMES.TYPESENSE_EMPLOYER_QUEUE,
+          "updateEmployerIndex",
+          {
+            id: org.id.toString(),
+            name: org.name,
+            logoUrl: org.logoUrl ?? undefined,
+            city: org.city,
+            state: org.state,
+            correlationId: crypto.randomUUID(),
+          },
+        );
+      }
+
+      return result;
     } catch (error) {
       if (error instanceof AppError) {
         return this.handleError(error);
@@ -238,6 +271,16 @@ export class OrganizationsService
       if (!success) {
         return fail(new Error("Failed to delete organization"));
       }
+
+      await queueService.addJob<EmployerDocument & { correlationId: string }>(
+        QUEUE_NAMES.TYPESENSE_EMPLOYER_QUEUE,
+        "deleteEmployerIndex",
+        {
+          id: id.toString(),
+          name: "",
+          correlationId: crypto.randomUUID(),
+        },
+      );
 
       return ok({ message: "Organization deleted successfully" });
     } catch (error) {

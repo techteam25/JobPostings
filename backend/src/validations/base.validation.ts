@@ -67,6 +67,7 @@ export const searchJobResult = z.object({
   jobType: z.string(),
   skills: z.string().array(),
   createdAt: z.number(),
+  logoUrl: z.string().optional(),
 });
 
 export type SearchParams = z.infer<typeof searchParams>;

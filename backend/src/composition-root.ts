@@ -2,6 +2,7 @@ import { AuthMiddleware } from "@/middleware/auth.middleware";
 import { EmailService } from "@shared/infrastructure/email.service";
 import { TypesenseJobService } from "@shared/infrastructure/typesense.service/typesense.service";
 import { TypesenseUserProfileService } from "@shared/infrastructure/typesense.service/typesense-user-profile.service";
+import { TypesenseEmployerService } from "@shared/infrastructure/typesense.service/typesense-employer.service";
 import { BullMqEventBus } from "@shared/events";
 
 // Module composition roots
@@ -121,6 +122,7 @@ export function createCompositionRoot(): CompositionRoot {
   const eventBus = new BullMqEventBus();
   const typesenseService = new TypesenseJobService();
   const typesenseUserProfileService = new TypesenseUserProfileService();
+  const typesenseEmployerService = new TypesenseEmployerService();
 
   // ─── 2. Concrete Repositories ───────────────────────────────────────
   // All repositories are created here and injected into modules.
@@ -186,6 +188,7 @@ export function createCompositionRoot(): CompositionRoot {
   const organizations = createOrganizationsModule({
     intentSync: intentSyncAdapter,
     organizationsRepository,
+    typesenseEmployerService,
   });
 
   // Organizations → other modules (adapters using module's repo + service)
@@ -274,6 +277,7 @@ export function createCompositionRoot(): CompositionRoot {
     userProfile.workers,
     notifications.workers,
     invitations.workers,
+    organizations.workers,
     fileUploadWorker,
     domainEventWorker,
     tempFileCleanupWorker,
