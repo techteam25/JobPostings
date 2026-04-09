@@ -327,17 +327,13 @@ export class JobBoardService
       const updatedJob =
         await this.jobBoardRepository.findJobByIdWithSkills(id);
 
-      if (!updatedJob) {
-        return fail(new DatabaseError("Failed to retrieve updated job"));
-      }
-
+      // Enqueue the bare JobWithSkills so the indexer worker sees the same
+      // shape it does in the `indexJob` path — it destructures the job's
+      // own fields (employer, skills, ...), not an outer wrapper.
       await queueService.addJob(
         QUEUE_NAMES.TYPESENSE_JOB_QUEUE,
         "updateJobIndex",
-        {
-          id,
-          updatedJob,
-        },
+        updatedJob,
       );
 
       return ok(updatedJob);

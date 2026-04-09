@@ -327,7 +327,7 @@ export class JobBoardRepository
     return { items, pagination };
   }
 
-  async findJobByIdWithSkills(jobId: number) {
+  async findJobByIdWithSkills(jobId: number): Promise<JobWithSkills> {
     return withDbErrorHandling(async () => {
       const jobWithSkills = await db.query.jobsDetails.findFirst({
         where: eq(jobsDetails.id, jobId),
@@ -341,6 +341,11 @@ export class JobBoardRepository
               },
             },
           },
+          employer: {
+            columns: {
+              name: true,
+            },
+          },
         },
       });
 
@@ -348,10 +353,17 @@ export class JobBoardRepository
         throw new NotFoundError(`Job with Id: ${jobId} not found`);
       }
 
+      if (!jobWithSkills.employer) {
+        throw new NotFoundError(
+          `Employer for job ${jobId} not found — cannot build JobWithSkills`,
+        );
+      }
+
       const skillsArray = jobWithSkills.skills.map((s) => s.skill.name);
 
       return {
         ...jobWithSkills,
+        employer: { name: jobWithSkills.employer.name },
         skills: skillsArray,
       };
     });

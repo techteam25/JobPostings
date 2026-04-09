@@ -26,12 +26,11 @@ export interface TypesenseJobServicePort {
   retrieveJobDocumentById(jobId: string): Promise<JobWithSkills>;
 
   /**
-   * Updates a job document by its ID in Typesense.
+   * Replaces a job document in Typesense with the supplied DB row.
+   * Uses upsert semantics: a missing document is created. The document's
+   * own `id` field determines which Typesense document is written.
    */
-  updateJobDocumentById(
-    jobId: string,
-    updatedFields: Partial<JobWithSkills>,
-  ): Promise<JobWithSkills>;
+  upsertJobDocument(doc: JobWithSkills): Promise<JobWithSkills>;
 
   /**
    * Deletes a job document by its ID from Typesense.

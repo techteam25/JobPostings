@@ -1,13 +1,11 @@
 "use client";
 
-import { Suspense, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { Bell, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import JobsWrapper, {
-  JobsWrapperSkeleton,
-} from "@/app/(main)/components/JobsWrapper";
+import { SearchJobsWrapper } from "@/app/(main)/components/SearchJobsWrapper";
 import { DesktopSearchBar } from "@/app/(main)/components/DesktopSearchBar";
 import { FeatureErrorBoundary } from "@/components/common/FeatureErrorBoundary";
 import { JobTypeDropDownButton } from "@/app/(main)/components/JobTypeDropDownButton";
@@ -122,9 +120,7 @@ export function SearchPageContent({ initialJobs }: SearchPageContentProps) {
                 </div>
               </div>
               <FeatureErrorBoundary featureName="job listings">
-                <Suspense fallback={<JobsWrapperSkeleton />}>
-                  <JobsWrapper jobs={initialJobs} />
-                </Suspense>
+                <SearchJobsWrapper initialJobs={initialJobs} />
               </FeatureErrorBoundary>
             </TabsContent>
           </Tabs>
