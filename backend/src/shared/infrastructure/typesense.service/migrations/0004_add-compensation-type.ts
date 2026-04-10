@@ -14,6 +14,7 @@ const migration: TypesenseMigration = {
         name: "compensationType",
         type: "string",
         facet: true,
+        optional: true,
       },
     ]);
   },
