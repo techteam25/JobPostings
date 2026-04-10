@@ -1,5 +1,6 @@
 import { render, type RenderOptions } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { type ReactElement, type ReactNode } from "react";
 
 function createTestQueryClient() {
@@ -14,7 +15,9 @@ function createTestQueryClient() {
 function AllProviders({ children }: { children: ReactNode }) {
   const queryClient = createTestQueryClient();
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>{children}</TooltipProvider>
+    </QueryClientProvider>
   );
 }
 
