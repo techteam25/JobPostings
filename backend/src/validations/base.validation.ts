@@ -33,6 +33,11 @@ export const searchParams = z.object({
             "internship",
           ]),
         ),
+      compensationType: z
+        .enum(["paid", "missionary", "volunteer", "stipend"])
+        .array()
+        .optional()
+        .or(z.enum(["paid", "missionary", "volunteer", "stipend"])),
       city: z.string().optional(),
       experience: z.string().optional(),
       state: z.string().optional(),
@@ -70,6 +75,7 @@ export const searchJobResult = z.object({
   jobType: z.string(),
   skills: z.string().array(),
   createdAt: z.number(),
+  compensationType: z.string().optional(),
   logoUrl: z.string().optional(),
 });
 

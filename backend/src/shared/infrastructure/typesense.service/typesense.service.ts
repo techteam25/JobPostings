@@ -42,6 +42,7 @@ function mapJobToTypesenseDoc(doc: JobWithSkills) {
     jobType: doc.jobType,
     skills: doc.skills,
     employerId: doc.employerId?.toString(),
+    compensationType: doc.compensationType,
     createdAt: Number(Date.parse(`${doc.createdAt}`)),
   };
 }

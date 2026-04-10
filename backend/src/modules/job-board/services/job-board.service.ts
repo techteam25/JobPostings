@@ -119,6 +119,7 @@ export class JobBoardService
         zipcode,
         skills,
         jobType,
+        compensationType,
         sortBy,
         datePosted,
         ...rest
@@ -137,10 +138,17 @@ export class JobBoardService
           ? [jobType]
           : [];
 
+      const compensationTypeArray = Array.isArray(compensationType)
+        ? compensationType
+        : compensationType
+          ? [compensationType]
+          : [];
+
       const queryBuilder = new TypesenseQueryBuilder()
         .addLocationFilters({ city, state, country, zipcode }, includeRemote)
         .addSkillFilters(skillsArray, true)
         .addArrayFilter("jobType", jobTypeArray, true)
+        .addArrayFilter("compensationType", compensationTypeArray, true)
         .addSingleFilter("isActive", rest.isActive)
         .addSingleFilter("experience", rest.experience);
 
