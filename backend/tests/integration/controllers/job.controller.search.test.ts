@@ -276,8 +276,12 @@ describe("Job Search Integration Tests", () => {
         .query({ experience: "senior" })
         .expect(200);
 
-      expect(response.body.data.length).toBe(0);
       expect(response.body).toHaveProperty("pagination");
+      // Every returned result must match the requested experience level.
+      // The count may vary because the Typesense instance is shared with dev.
+      for (const job of response.body.data) {
+        expect(job.experience.toLowerCase()).toContain("senior");
+      }
     });
   });
 
