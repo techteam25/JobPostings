@@ -19,13 +19,14 @@ import { JobsList } from "@/app/(main)/components/JobsList";
 import { JobDetailPanel } from "@/app/(main)/components/JobDetailPanel";
 import { JobDetailPanelMobile } from "@/app/(main)/components/JobDetailPanelMobile";
 import { SearchJobsList } from "@/app/(main)/components/SearchJobsList";
+import { SearchLoadingState } from "@/app/(main)/components/SearchLoadingState";
+import {
+  SearchEmptyState,
+  SearchErrorState,
+} from "@/app/(main)/components/SearchEmptyState";
 import { SortByDropDownButton } from "./SortByDropDownButton";
 import { SortByMobileButton } from "./SortByMobileButton";
-import {
-  EmptyMuted,
-  JobDetailPanelSkeleton,
-  JobsListSkeleton,
-} from "./JobsWrapper";
+import { EmptyMuted, JobDetailPanelSkeleton } from "./JobsWrapper";
 
 import type { PaginatedApiResponse } from "@/lib/types";
 import type { JobWithEmployer } from "@/schemas/responses/jobs";
@@ -80,6 +81,7 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
     isFetchingNextPage,
     isLoading: isSearchLoading,
     isError: isSearchError,
+    refetch: refetchSearch,
   } = useSearchJobs();
 
   const searchResults = useMemo(
@@ -100,6 +102,28 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
   const handleSortChange = useCallback((sort: string) => {
     setSortBy(sort as "Most Relevant" | "Most Recent");
   }, []);
+
+  // Resets every searchable Zustand field in a single batched update. The
+  // store's module-level subscriber then flushes the empty state to the URL
+  // (after its 300ms debounce), so the component doesn't touch the router
+  // directly. `serviceRoles` is cleared even though it isn't wired into the
+  // search API yet — it's a visible filter chip, so users expect "Clear
+  // filters" to zero it out too.
+  const handleClearFilters = useCallback(() => {
+    useFiltersStore.setState({
+      keyword: "",
+      location: "",
+      jobTypes: [],
+      serviceRoles: [],
+      remoteOnly: false,
+      sortBy: "recent",
+      datePosted: null,
+    });
+  }, []);
+
+  const handleRetrySearch = useCallback(() => {
+    refetchSearch();
+  }, [refetchSearch]);
 
   // Resolve the default-selected job per-mode so the desktop detail panel
   // always has something to show when the list isn't empty.
@@ -146,8 +170,11 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
 
   const listContent = (() => {
     if (isSearching) {
-      if (isSearchLoading) return <JobsListSkeleton />;
-      if (isSearchError || searchResults.length === 0) return <EmptyMuted />;
+      if (isSearchLoading) return <SearchLoadingState />;
+      if (isSearchError)
+        return <SearchErrorState onRetry={handleRetrySearch} />;
+      if (searchResults.length === 0)
+        return <SearchEmptyState onClearFilters={handleClearFilters} />;
       return (
         <>
           <SearchJobsList
@@ -172,7 +199,7 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
 
     if (initialJobs.data.length === 0) return <EmptyMuted />;
     return (
-      <Suspense fallback={<JobsListSkeleton />}>
+      <Suspense fallback={<SearchLoadingState />}>
         <JobsList
           data={initialJobs.data}
           onJobSelected={handleJobSelect}
