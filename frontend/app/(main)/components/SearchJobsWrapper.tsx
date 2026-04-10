@@ -48,9 +48,6 @@ interface SearchJobsWrapperProps {
 export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [jobId, setJobId] = useState<number | undefined>(undefined);
-  const [sortBy, setSortBy] = useState<"Most Relevant" | "Most Recent">(
-    "Most Recent",
-  );
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const keyword = useFiltersStore((state) => state.keyword);
@@ -58,6 +55,7 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
   const jobTypes = useFiltersStore((state) => state.jobTypes);
   const remoteOnly = useFiltersStore((state) => state.remoteOnly);
   const storeSortBy = useFiltersStore((state) => state.sortBy);
+  const setSortBy = useFiltersStore((state) => state.setSortBy);
   const datePosted = useFiltersStore((state) => state.datePosted);
 
   // Mirrors the `enabled` check inside `useSearchJobs` so the wrapper can
@@ -99,9 +97,20 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
     if (!open) setJobId(undefined);
   }, []);
 
-  const handleSortChange = useCallback((sort: string) => {
-    setSortBy(sort as "Most Relevant" | "Most Recent");
-  }, []);
+  const handleSortChange = useCallback(
+    (label: string) => {
+      setSortBy(label === "Most Relevant" ? "relevant" : "recent");
+    },
+    [setSortBy],
+  );
+
+  // When keyword is cleared while "Most Relevant" is active, fall back to
+  // "Most Recent" — relevance scoring is meaningless without a text query.
+  useEffect(() => {
+    if (!keyword.trim() && storeSortBy === "relevant") {
+      setSortBy("recent");
+    }
+  }, [keyword, storeSortBy, setSortBy]);
 
   // Resets every searchable Zustand field in a single batched update. The
   // store's module-level subscriber then flushes the empty state to the URL
@@ -218,7 +227,9 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
               {summaryText}
             </div>
             <SortByMobileButton
-              defaultSort={sortBy}
+              defaultSort={
+                storeSortBy === "relevant" ? "Most Relevant" : "Most Recent"
+              }
               onSortChange={handleSortChange}
             />
             <SortByDropDownButton />

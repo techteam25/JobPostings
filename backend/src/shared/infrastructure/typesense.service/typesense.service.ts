@@ -154,7 +154,7 @@ export class TypesenseJobService implements TypesenseJobServicePort {
     q: string = "*",
     filters?: string,
     {
-      sortBy = "title",
+      sortBy = "createdAt",
       sortDirection = "desc",
       page = 1,
       limit = 10,
@@ -167,7 +167,7 @@ export class TypesenseJobService implements TypesenseJobServicePort {
       .search({
         q,
         filter_by: filters ? filters : undefined,
-        sort_by: `${sortBy}:${sortDirection}`,
+        sort_by: sortBy ? `${sortBy}:${sortDirection}` : undefined,
         page,
         limit,
         offset,
@@ -195,7 +195,7 @@ export class TypesenseJobService implements TypesenseJobServicePort {
     // Add timestamp filter to only get jobs created after lastSentAt
     let filterBy = filters;
     if (lastSentAt) {
-      const timestamp = Math.floor(lastSentAt.getTime() / 1000);
+      const timestamp = lastSentAt.getTime();
       filterBy = filterBy
         ? `${filterBy} && createdAt:>=${timestamp}`
         : `createdAt:>=${timestamp}`;

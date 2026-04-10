@@ -313,4 +313,17 @@ describe("buildApiParams", () => {
     expect(params.state).toBeUndefined();
     expect(params.zipcode).toBeUndefined();
   });
+
+  it("maps datePosted when set", () => {
+    const params = buildApiParams({
+      ...defaultState,
+      datePosted: "last-7-days",
+    });
+    expect(params.datePosted).toBe("last-7-days");
+  });
+
+  it("omits datePosted when null", () => {
+    const params = buildApiParams(defaultState);
+    expect(params.datePosted).toBeUndefined();
+  });
 });

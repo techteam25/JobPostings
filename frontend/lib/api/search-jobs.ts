@@ -16,6 +16,7 @@ export type SearchJobsParams = {
   experience?: string;
   sortBy?: string;
   order?: string;
+  datePosted?: string;
   page?: number;
   limit?: number;
 };

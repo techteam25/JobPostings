@@ -41,7 +41,10 @@ export const searchParams = z.object({
       skills: z.string().array().optional().or(z.string().optional()),
       includeRemote: z.coerce.boolean().optional(),
       isActive: z.coerce.boolean().optional(),
-      sortBy: z.string().optional(),
+      datePosted: z
+        .enum(["last-24-hours", "last-7-days", "last-14-days"])
+        .optional(),
+      sortBy: z.enum(["recent", "relevant"]).optional(),
       order: z
         .string()
         .optional()

@@ -97,4 +97,41 @@ describe("DesktopSearchBar", () => {
     expect(useFiltersStore.getState().keyword).toBe("designer");
     expect(useFiltersStore.getState().location).toBe("NYC");
   });
+
+  it("Enter on empty keyword commits immediately and clears location", async () => {
+    const user = userEvent.setup();
+    const onSearchCommitted = vi.fn();
+
+    // Simulate an active search
+    useFiltersStore.setState({ keyword: "engineer", location: "TX" });
+    render(<DesktopSearchBar onSearchCommitted={onSearchCommitted} />);
+
+    const keywordInput = screen.getByLabelText("Search for jobs");
+
+    // Clear the keyword
+    await user.clear(keywordInput);
+    await user.keyboard("{Enter}");
+
+    expect(onSearchCommitted).toHaveBeenCalledTimes(1);
+    expect(useFiltersStore.getState().keyword).toBe("");
+    // Location is also cleared because empty keyword means "exit search"
+    expect(useFiltersStore.getState().location).toBe("");
+  });
+
+  it("Enter on empty keyword does not focus location — commits directly", async () => {
+    const user = userEvent.setup();
+    const onSearchCommitted = vi.fn();
+
+    render(<DesktopSearchBar onSearchCommitted={onSearchCommitted} />);
+
+    const keywordInput = screen.getByLabelText("Search for jobs");
+    const locationInput = screen.getByLabelText("Search by location");
+
+    await user.click(keywordInput);
+    await user.keyboard("{Enter}");
+
+    // Should commit, not focus location
+    expect(onSearchCommitted).toHaveBeenCalledTimes(1);
+    expect(locationInput).not.toHaveFocus();
+  });
 });

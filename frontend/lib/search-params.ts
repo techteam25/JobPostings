@@ -64,6 +64,7 @@ const VALID_JOB_TYPES = new Set<string>([
   "full-time",
   "part-time",
   "contract",
+  "volunteer",
   "internship",
 ]);
 
@@ -163,6 +164,10 @@ export function buildApiParams(
 
   if (state.sortBy !== SORT_BY_DEFAULT) {
     params.sortBy = state.sortBy;
+  }
+
+  if (state.datePosted) {
+    params.datePosted = state.datePosted;
   }
 
   return params;

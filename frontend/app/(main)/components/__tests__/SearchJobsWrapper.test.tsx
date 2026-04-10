@@ -242,6 +242,54 @@ describe("SearchJobsWrapper", () => {
     expect(callCount).toBe(2);
   });
 
+  it("sort state reflects Zustand sortBy value", async () => {
+    server.use(
+      http.get(SEARCH_URL, () =>
+        HttpResponse.json(
+          makePaginatedResponse([
+            makeSearchResult({ id: "1", title: "Sort Test Job" }),
+          ]),
+        ),
+      ),
+    );
+
+    useFiltersStore.setState({ keyword: "react" });
+
+    render(<SearchJobsWrapper initialJobs={makeInitialJobs([])} />);
+
+    await screen.findByText("Sort Test Job");
+
+    // Default sort is "recent"
+    expect(useFiltersStore.getState().sortBy).toBe("recent");
+    // Both mobile and desktop sort controls render "Most Recent"
+    expect(screen.getAllByText("Most Recent").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("resets sortBy to recent when keyword is cleared while relevant is active", async () => {
+    server.use(
+      http.get(SEARCH_URL, () =>
+        HttpResponse.json(
+          makePaginatedResponse([
+            makeSearchResult({ id: "1", title: "Reset Test" }),
+          ]),
+        ),
+      ),
+    );
+
+    useFiltersStore.setState({ keyword: "react", sortBy: "relevant" });
+
+    render(<SearchJobsWrapper initialJobs={makeInitialJobs([])} />);
+
+    await screen.findByText("Reset Test");
+
+    // Clear keyword — effect should reset sortBy to "recent"
+    useFiltersStore.setState({ keyword: "" });
+
+    await waitFor(() => {
+      expect(useFiltersStore.getState().sortBy).toBe("recent");
+    });
+  });
+
   it("intersection observer triggers fetchNextPage when the sentinel is visible", async () => {
     server.use(
       http.get(SEARCH_URL, ({ request }) => {

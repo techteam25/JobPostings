@@ -240,6 +240,45 @@ describe("TypesenseQueryBuilder", () => {
     });
   });
 
+  describe("Range Filters", () => {
+    it("should add >= range filter", () => {
+      const query = builder
+        .addRangeFilter("createdAt", ">=", 1712345678000)
+        .build();
+      expect(query).toBe("createdAt:>=1712345678000");
+    });
+
+    it("should add <= range filter", () => {
+      const query = builder
+        .addRangeFilter("createdAt", "<=", 1712345678000)
+        .build();
+      expect(query).toBe("createdAt:<=1712345678000");
+    });
+
+    it("should add > range filter", () => {
+      const query = builder.addRangeFilter("salary", ">", 50000).build();
+      expect(query).toBe("salary:>50000");
+    });
+
+    it("should add < range filter", () => {
+      const query = builder.addRangeFilter("salary", "<", 100000).build();
+      expect(query).toBe("salary:<100000");
+    });
+
+    it("should combine range filter with other filters", () => {
+      const query = builder
+        .addLocationFilters({ city: "Austin" })
+        .addRangeFilter("createdAt", ">=", 1712345678000)
+        .build();
+      expect(query).toBe("city:Austin && createdAt:>=1712345678000");
+    });
+
+    it("should be chainable", () => {
+      const result = builder.addRangeFilter("createdAt", ">=", 1000);
+      expect(result).toBe(builder);
+    });
+  });
+
   describe("Edge Cases", () => {
     it("should handle special characters in values", () => {
       const query = builder

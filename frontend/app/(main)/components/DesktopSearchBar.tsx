@@ -32,8 +32,11 @@ export const DesktopSearchBar = memo(function DesktopSearchBar({
   const locationRef = useRef<HTMLInputElement>(null);
 
   const commit = useCallback(() => {
-    setKeyword(displayKeyword);
-    setLocation(displayLocation);
+    const trimmedKeyword = displayKeyword.trim();
+    setKeyword(trimmedKeyword);
+    // Clearing the keyword means "exit search" — also clear location
+    // so buildApiParams returns {} and isSearching becomes false.
+    setLocation(trimmedKeyword ? displayLocation : "");
     setPendingKeyword(null);
     setPendingLocation(null);
     onSearchCommitted?.();
@@ -49,13 +52,19 @@ export const DesktopSearchBar = memo(function DesktopSearchBar({
     (event: KeyboardEvent<HTMLInputElement>) => {
       if (event.key !== "Enter") return;
       event.preventDefault();
+      // When keyword is empty, commit immediately to exit search mode.
+      // Don't require the user to fill in location to "undo" a search.
+      if (!displayKeyword.trim()) {
+        commit();
+        return;
+      }
       if (!displayLocation.trim()) {
         locationRef.current?.focus();
         return;
       }
       commit();
     },
-    [commit, displayLocation],
+    [commit, displayKeyword, displayLocation],
   );
 
   const handleLocationKeyDown = useCallback(
