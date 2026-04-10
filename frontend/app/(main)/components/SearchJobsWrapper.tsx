@@ -53,6 +53,7 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
   const keyword = useFiltersStore((state) => state.keyword);
   const location = useFiltersStore((state) => state.location);
   const jobTypes = useFiltersStore((state) => state.jobTypes);
+  const serviceRoles = useFiltersStore((state) => state.serviceRoles);
   const remoteOnly = useFiltersStore((state) => state.remoteOnly);
   const storeSortBy = useFiltersStore((state) => state.sortBy);
   const setSortBy = useFiltersStore((state) => state.setSortBy);
@@ -66,6 +67,7 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
         keyword,
         location,
         jobTypes,
+        serviceRoles,
         remoteOnly,
         sortBy: storeSortBy,
         datePosted,

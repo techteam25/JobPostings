@@ -18,6 +18,7 @@ export function useSearchJobs() {
   const keyword = useFiltersStore((state) => state.keyword);
   const location = useFiltersStore((state) => state.location);
   const jobTypes = useFiltersStore((state) => state.jobTypes);
+  const serviceRoles = useFiltersStore((state) => state.serviceRoles);
   const remoteOnly = useFiltersStore((state) => state.remoteOnly);
   const sortBy = useFiltersStore((state) => state.sortBy);
   const datePosted = useFiltersStore((state) => state.datePosted);
@@ -26,6 +27,7 @@ export function useSearchJobs() {
     keyword,
     location,
     jobTypes,
+    serviceRoles,
     remoteOnly,
     sortBy,
     datePosted,

@@ -37,6 +37,7 @@ export function SearchJobsList({
             key={result.id}
             jobId={jobId}
             jobType={result.jobType as JobTypeEnum}
+            compensationType={result.compensationType}
             jobDescription={result.description}
             companyName={result.company}
             experienceLevel={result.experience || "Not Specified"}

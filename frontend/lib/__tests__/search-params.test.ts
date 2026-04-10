@@ -10,6 +10,7 @@ describe("buildSearchParams", () => {
     keyword: "",
     location: "",
     jobTypes: [] as ("full-time" | "part-time" | "contract" | "internship")[],
+    serviceRoles: [] as ("paid" | "missionary" | "volunteer" | "stipend")[],
     remoteOnly: false,
     sortBy: "recent" as const,
     datePosted: null,
@@ -82,11 +83,20 @@ describe("buildSearchParams", () => {
     expect(params.has("datePosted")).toBe(false);
   });
 
+  it("appends multiple compensationType params", () => {
+    const params = buildSearchParams({
+      ...defaultState,
+      serviceRoles: ["paid", "stipend"],
+    });
+    expect(params.getAll("compensationType")).toEqual(["paid", "stipend"]);
+  });
+
   it("builds full params with all fields set", () => {
     const params = buildSearchParams({
       keyword: "engineer",
       location: "TX",
       jobTypes: ["full-time"],
+      serviceRoles: ["paid"],
       remoteOnly: true,
       sortBy: "relevant",
       datePosted: "last-24-hours",
@@ -94,6 +104,7 @@ describe("buildSearchParams", () => {
     expect(params.get("q")).toBe("engineer");
     expect(params.get("location")).toBe("TX");
     expect(params.getAll("jobType")).toEqual(["full-time"]);
+    expect(params.getAll("compensationType")).toEqual(["paid"]);
     expect(params.get("includeRemote")).toBe("true");
     expect(params.get("sortBy")).toBe("relevant");
     expect(params.get("datePosted")).toBe("last-24-hours");
@@ -135,6 +146,27 @@ describe("parseSearchParams", () => {
   it("omits jobTypes if all values are invalid", () => {
     const result = parseSearchParams(new URLSearchParams("jobType=bogus"));
     expect(result.jobTypes).toBeUndefined();
+  });
+
+  it("parses multiple compensationType params", () => {
+    const result = parseSearchParams(
+      new URLSearchParams("compensationType=paid&compensationType=volunteer"),
+    );
+    expect(result.serviceRoles).toEqual(["paid", "volunteer"]);
+  });
+
+  it("filters invalid compensationType values", () => {
+    const result = parseSearchParams(
+      new URLSearchParams("compensationType=paid&compensationType=invalid"),
+    );
+    expect(result.serviceRoles).toEqual(["paid"]);
+  });
+
+  it("omits serviceRoles if all values are invalid", () => {
+    const result = parseSearchParams(
+      new URLSearchParams("compensationType=bogus"),
+    );
+    expect(result.serviceRoles).toBeUndefined();
   });
 
   it("parses includeRemote=true into remoteOnly", () => {
@@ -214,6 +246,12 @@ describe("hasSearchParams", () => {
     );
   });
 
+  it("returns true when compensationType is present", () => {
+    expect(hasSearchParams(new URLSearchParams("compensationType=paid"))).toBe(
+      true,
+    );
+  });
+
   it("returns true when includeRemote is present", () => {
     expect(hasSearchParams(new URLSearchParams("includeRemote=true"))).toBe(
       true,
@@ -240,6 +278,7 @@ describe("buildApiParams", () => {
     keyword: "",
     location: "",
     jobTypes: [] as ("full-time" | "part-time" | "contract" | "internship")[],
+    serviceRoles: [] as ("paid" | "missionary" | "volunteer" | "stipend")[],
     remoteOnly: false,
     sortBy: "recent" as const,
     datePosted: null,
@@ -285,6 +324,19 @@ describe("buildApiParams", () => {
       jobTypes: ["full-time", "contract"],
     });
     expect(params.jobType).toEqual(["full-time", "contract"]);
+  });
+
+  it("maps serviceRoles to compensationType array", () => {
+    const params = buildApiParams({
+      ...defaultState,
+      serviceRoles: ["paid", "volunteer"],
+    });
+    expect(params.compensationType).toEqual(["paid", "volunteer"]);
+  });
+
+  it("omits compensationType when serviceRoles is empty", () => {
+    const params = buildApiParams(defaultState);
+    expect(params.compensationType).toBeUndefined();
   });
 
   it("sets includeRemote when remoteOnly is true", () => {

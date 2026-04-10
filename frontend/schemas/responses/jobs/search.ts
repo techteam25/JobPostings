@@ -13,6 +13,7 @@ export const searchJobResultSchema = z.object({
   jobType: z.string(),
   skills: z.string().array(),
   createdAt: z.number(),
+  compensationType: z.string().optional(),
   logoUrl: z.string().optional(),
 });
 

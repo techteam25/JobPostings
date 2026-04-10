@@ -2,6 +2,7 @@ import type {
   DatePosted,
   FiltersState,
   JobType,
+  ServiceRole,
   SortBy,
 } from "@/context/store";
 import type { SearchJobsParams } from "@/lib/api/search-jobs";
@@ -14,6 +15,7 @@ const PARAM_KEYS = {
   keyword: "q",
   location: "location",
   jobTypes: "jobType",
+  serviceRoles: "compensationType",
   remoteOnly: "includeRemote",
   sortBy: "sortBy",
   datePosted: "datePosted",
@@ -28,7 +30,13 @@ const SORT_BY_DEFAULT: SortBy = "recent";
 export function buildSearchParams(
   state: Pick<
     FiltersState,
-    "keyword" | "location" | "jobTypes" | "remoteOnly" | "sortBy" | "datePosted"
+    | "keyword"
+    | "location"
+    | "jobTypes"
+    | "serviceRoles"
+    | "remoteOnly"
+    | "sortBy"
+    | "datePosted"
   >,
 ): URLSearchParams {
   const params = new URLSearchParams();
@@ -43,6 +51,10 @@ export function buildSearchParams(
 
   for (const type of state.jobTypes) {
     params.append(PARAM_KEYS.jobTypes, type);
+  }
+
+  for (const role of state.serviceRoles) {
+    params.append(PARAM_KEYS.serviceRoles, role);
   }
 
   if (state.remoteOnly) {
@@ -68,6 +80,13 @@ const VALID_JOB_TYPES = new Set<string>([
   "internship",
 ]);
 
+const VALID_SERVICE_ROLES = new Set<string>([
+  "paid",
+  "missionary",
+  "volunteer",
+  "stipend",
+]);
+
 const VALID_DATE_POSTED = new Set<string>([
   "last-24-hours",
   "last-7-days",
@@ -85,7 +104,13 @@ export function parseSearchParams(
 ): Partial<
   Pick<
     FiltersState,
-    "keyword" | "location" | "jobTypes" | "remoteOnly" | "sortBy" | "datePosted"
+    | "keyword"
+    | "location"
+    | "jobTypes"
+    | "serviceRoles"
+    | "remoteOnly"
+    | "sortBy"
+    | "datePosted"
   >
 > {
   const result: Partial<
@@ -94,6 +119,7 @@ export function parseSearchParams(
       | "keyword"
       | "location"
       | "jobTypes"
+      | "serviceRoles"
       | "remoteOnly"
       | "sortBy"
       | "datePosted"
@@ -110,6 +136,12 @@ export function parseSearchParams(
     .getAll(PARAM_KEYS.jobTypes)
     .filter((t: string) => VALID_JOB_TYPES.has(t));
   if (jobTypes.length > 0) result.jobTypes = jobTypes as JobType[];
+
+  const serviceRoles = params
+    .getAll(PARAM_KEYS.serviceRoles)
+    .filter((r: string) => VALID_SERVICE_ROLES.has(r));
+  if (serviceRoles.length > 0)
+    result.serviceRoles = serviceRoles as ServiceRole[];
 
   const includeRemote = params.get(PARAM_KEYS.remoteOnly);
   if (includeRemote === "true") result.remoteOnly = true;
@@ -138,7 +170,13 @@ export function hasSearchParams(params: URLSearchParams): boolean {
 export function buildApiParams(
   state: Pick<
     FiltersState,
-    "keyword" | "location" | "jobTypes" | "remoteOnly" | "sortBy" | "datePosted"
+    | "keyword"
+    | "location"
+    | "jobTypes"
+    | "serviceRoles"
+    | "remoteOnly"
+    | "sortBy"
+    | "datePosted"
   >,
 ): SearchJobsParams {
   const params: SearchJobsParams = {};
@@ -156,6 +194,10 @@ export function buildApiParams(
 
   if (state.jobTypes.length > 0) {
     params.jobType = state.jobTypes;
+  }
+
+  if (state.serviceRoles.length > 0) {
+    params.compensationType = state.serviceRoles;
   }
 
   if (state.remoteOnly) {

@@ -25,7 +25,7 @@ export type JobType =
   | "contract"
   | "volunteer"
   | "internship";
-type ServiceRole = "paid" | "missionary" | "volunteer" | "stipend";
+export type ServiceRole = "paid" | "missionary" | "volunteer" | "stipend";
 
 export type SortBy = "relevant" | "recent";
 

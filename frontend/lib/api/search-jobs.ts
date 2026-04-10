@@ -12,6 +12,7 @@ export type SearchJobsParams = {
   state?: string;
   zipcode?: string;
   jobType?: string[];
+  compensationType?: string[];
   includeRemote?: boolean;
   experience?: string;
   sortBy?: string;
