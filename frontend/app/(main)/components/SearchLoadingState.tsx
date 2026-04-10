@@ -1,17 +1,19 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-const SKELETON_ROWS = 6;
+const DEFAULT_ROWS = 6;
 
 /**
- * Skeleton placeholder shown while the search query is in flight.
+ * Skeleton placeholder shown while job results are loading.
  *
  * Mirrors the structure of a single `JobCard` so the page doesn't reflow when
- * real results arrive. The parent (`SearchJobsWrapper`) already renders the
- * results summary and sort controls above the list, so this component only
- * renders the card rows — duplicating the header would double-draw the sort
- * toolbar during loading.
+ * real results arrive. Used for both initial page load (6 rows) and infinite
+ * scroll next-page loading (3 rows).
  */
-export function SearchLoadingState() {
+export function SearchLoadingState({
+  count = DEFAULT_ROWS,
+}: {
+  count?: number;
+}) {
   return (
     <div
       className="flex flex-col gap-3"
@@ -19,7 +21,7 @@ export function SearchLoadingState() {
       aria-busy="true"
       aria-label="Loading search results"
     >
-      {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+      {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
           className="bg-card flex items-start gap-3 rounded-lg border p-4"

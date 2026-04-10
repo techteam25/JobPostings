@@ -7,8 +7,11 @@ import { useFiltersStore } from "@/context/store";
 import { server } from "@/test/mocks/server";
 import {
   SEARCH_URL,
+  JOBS_URL,
   makePaginatedResponse,
   makeSearchResult,
+  makeJobWithEmployer,
+  makeJobsPaginatedResponse,
 } from "@/test/mocks/handlers";
 import type { JobWithEmployer } from "@/schemas/responses/jobs";
 import type { PaginatedApiResponse } from "@/lib/types";
@@ -282,8 +285,8 @@ describe("SearchJobsWrapper", () => {
 
     await screen.findByText("Reset Test");
 
-    // Clear keyword — effect should reset sortBy to "recent"
-    useFiltersStore.setState({ keyword: "" });
+    // Clear keyword — setKeyword resets sortBy to "recent" when relevant is active
+    useFiltersStore.getState().setKeyword("");
 
     await waitFor(() => {
       expect(useFiltersStore.getState().sortBy).toBe("recent");
@@ -328,5 +331,164 @@ describe("SearchJobsWrapper", () => {
 
     expect(await screen.findByText("Page Two")).toBeInTheDocument();
     expect(screen.getByText("Page One")).toBeInTheDocument();
+  });
+
+  it("default view: intersection observer triggers page 2 load on scroll", async () => {
+    server.use(
+      http.get(JOBS_URL, ({ request }) => {
+        const page = Number(
+          new URL(request.url).searchParams.get("page") ?? "1",
+        );
+        if (page === 1) {
+          // Background refetch for page 1 — return same shape as SSR data.
+          return HttpResponse.json(
+            makeJobsPaginatedResponse(
+              [makeJobWithEmployer({ id: 1, title: "SSR Default Job" })],
+              { page: 1, totalPages: 2 },
+            ),
+          );
+        }
+        return HttpResponse.json(
+          makeJobsPaginatedResponse(
+            [makeJobWithEmployer({ id: 2, title: "Default Page 2" })],
+            { page: 2, totalPages: 2 },
+          ),
+        );
+      }),
+    );
+
+    const initial: PaginatedApiResponse<JobWithEmployer> = {
+      success: true,
+      data: [makeJobWithEmployer({ id: 1, title: "SSR Default Job" })],
+      pagination: {
+        total: 2,
+        page: 1,
+        limit: 10,
+        totalPages: 2,
+        hasNext: true,
+        hasPrevious: false,
+        nextPage: 2,
+        previousPage: null,
+      },
+    };
+
+    render(<SearchJobsWrapper initialJobs={initial} />);
+
+    expect(screen.getByText("SSR Default Job")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(observe).toHaveBeenCalled();
+    });
+
+    triggerIntersection();
+
+    expect(await screen.findByText("Default Page 2")).toBeInTheDocument();
+    expect(screen.getByText("SSR Default Job")).toBeInTheDocument();
+  });
+
+  it("shows 'No more results' after all search pages are loaded", async () => {
+    server.use(
+      http.get(SEARCH_URL, ({ request }) => {
+        const page = Number(
+          new URL(request.url).searchParams.get("page") ?? "1",
+        );
+        if (page === 1) {
+          return HttpResponse.json(
+            makePaginatedResponse(
+              [makeSearchResult({ id: "1", title: "First Page" })],
+              { page: 1, totalPages: 2 },
+            ),
+          );
+        }
+        return HttpResponse.json(
+          makePaginatedResponse(
+            [makeSearchResult({ id: "2", title: "Last Page" })],
+            { page: 2, totalPages: 2 },
+          ),
+        );
+      }),
+    );
+
+    useFiltersStore.setState({ keyword: "react" });
+
+    render(<SearchJobsWrapper initialJobs={makeInitialJobs([])} />);
+
+    expect(await screen.findByText("First Page")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(observe).toHaveBeenCalled();
+    });
+
+    triggerIntersection();
+
+    expect(await screen.findByText("Last Page")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText("No more results")).toBeInTheDocument();
+    });
+  });
+
+  it("shows 'No more results' after all default pages are loaded", async () => {
+    server.use(
+      http.get(JOBS_URL, ({ request }) => {
+        const page = Number(
+          new URL(request.url).searchParams.get("page") ?? "1",
+        );
+        if (page === 1) {
+          return HttpResponse.json(
+            makeJobsPaginatedResponse(
+              [makeJobWithEmployer({ id: 1, title: "SSR Page 1" })],
+              { page: 1, totalPages: 2 },
+            ),
+          );
+        }
+        return HttpResponse.json(
+          makeJobsPaginatedResponse(
+            [makeJobWithEmployer({ id: 2, title: "Job Page 2" })],
+            { page: 2, totalPages: 2 },
+          ),
+        );
+      }),
+    );
+
+    const initial: PaginatedApiResponse<JobWithEmployer> = {
+      success: true,
+      data: [makeJobWithEmployer({ id: 1, title: "SSR Page 1" })],
+      pagination: {
+        total: 2,
+        page: 1,
+        limit: 10,
+        totalPages: 2,
+        hasNext: true,
+        hasPrevious: false,
+        nextPage: 2,
+        previousPage: null,
+      },
+    };
+
+    render(<SearchJobsWrapper initialJobs={initial} />);
+
+    expect(screen.getByText("SSR Page 1")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(observe).toHaveBeenCalled();
+    });
+
+    triggerIntersection();
+
+    expect(await screen.findByText("Job Page 2")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText("No more results")).toBeInTheDocument();
+    });
+  });
+
+  it("does not show 'No more results' when there is only one page", () => {
+    const initial = makeInitialJobs([{ id: 1, title: "Only Page Job" }]);
+
+    render(<SearchJobsWrapper initialJobs={initial} />);
+
+    expect(screen.getByText("Only Page Job")).toBeInTheDocument();
+    expect(screen.queryByText("No more results")).not.toBeInTheDocument();
   });
 });

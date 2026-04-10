@@ -8,11 +8,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { Loader2 } from "lucide-react";
 
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useFiltersStore } from "@/context/store";
 import { useSearchJobs } from "@/app/(main)/hooks/use-search-jobs";
+import { useDefaultJobs } from "@/app/(main)/hooks/use-default-jobs";
 import { buildApiParams } from "@/lib/search-params";
 
 import { JobsList } from "@/app/(main)/components/JobsList";
@@ -76,20 +76,48 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
 
   const {
     data: searchData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
+    fetchNextPage: fetchNextSearchPage,
+    hasNextPage: searchHasNextPage,
+    isFetchingNextPage: isSearchFetchingNextPage,
     isLoading: isSearchLoading,
     isError: isSearchError,
     refetch: refetchSearch,
   } = useSearchJobs();
+
+  const {
+    data: defaultData,
+    fetchNextPage: fetchNextDefaultPage,
+    hasNextPage: defaultHasNextPage,
+    isFetchingNextPage: isDefaultFetchingNextPage,
+  } = useDefaultJobs(initialJobs);
 
   const searchResults = useMemo(
     () => searchData?.pages.flatMap((page) => page.data) ?? [],
     [searchData],
   );
 
+  const defaultJobs = useMemo(
+    () => defaultData?.pages.flatMap((page) => page.data) ?? [],
+    [defaultData],
+  );
+
   const searchTotal = searchData?.pages[0]?.pagination.total ?? 0;
+
+  // Active query values — the observer and indicators delegate to whichever
+  // mode is currently visible.
+  const activeHasNextPage = isSearching
+    ? searchHasNextPage
+    : defaultHasNextPage;
+  const activeFetchNextPage = isSearching
+    ? fetchNextSearchPage
+    : fetchNextDefaultPage;
+  const activeIsFetchingNextPage = isSearching
+    ? isSearchFetchingNextPage
+    : isDefaultFetchingNextPage;
+  const activePageCount = isSearching
+    ? (searchData?.pages.length ?? 0)
+    : (defaultData?.pages.length ?? 0);
+  const activeResults = isSearching ? searchResults : defaultJobs;
 
   const handleJobSelect = useCallback((id: number) => {
     setJobId(id);
@@ -105,14 +133,6 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
     },
     [setSortBy],
   );
-
-  // When keyword is cleared while "Most Relevant" is active, fall back to
-  // "Most Recent" — relevance scoring is meaningless without a text query.
-  useEffect(() => {
-    if (!keyword.trim() && storeSortBy === "relevant") {
-      setSortBy("recent");
-    }
-  }, [keyword, storeSortBy, setSortBy]);
 
   // Resets every searchable Zustand field in a single batched update. The
   // store's module-level subscriber then flushes the empty state to the URL
@@ -142,33 +162,33 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
     ? searchResults.length > 0
       ? Number(searchResults[0].id)
       : undefined
-    : initialJobs.data.length > 0
-      ? initialJobs.data[0].job.id
+    : defaultJobs.length > 0
+      ? defaultJobs[0].job.id
       : undefined;
 
   const selectedJobId = jobId ?? (isDesktop ? firstJobId : undefined);
   const mobileOpen = !isDesktop && !!selectedJobId;
 
   // Infinite scroll: observe a sentinel div at the end of the list and
-  // request the next page when it enters the viewport. Only active in search
-  // mode, and only when there's a next page to fetch. Connecting to a
-  // browser API is a legitimate effect — not state synchronization.
+  // request the next page when it enters the viewport. Works for both default
+  // and search modes via the active-query values. Connecting to a browser API
+  // is a legitimate effect — not state synchronization.
   useEffect(() => {
-    if (!isSearching || !hasNextPage || isFetchingNextPage) return;
+    if (!activeHasNextPage || activeIsFetchingNextPage) return;
     const el = sentinelRef.current;
     if (!el) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          fetchNextPage();
+          activeFetchNextPage();
         }
       },
       { rootMargin: "200px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [isSearching, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [activeHasNextPage, activeIsFetchingNextPage, activeFetchNextPage]);
 
   const summaryText = isSearching
     ? buildSearchSummary({
@@ -177,7 +197,10 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
         location,
         isLoading: isSearchLoading,
       })
-    : `${initialJobs.pagination.total} jobs`;
+    : null;
+
+  const showNoMoreResults =
+    !activeHasNextPage && activeResults.length > 0 && activePageCount > 1;
 
   const listContent = (() => {
     if (isSearching) {
@@ -187,32 +210,19 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
       if (searchResults.length === 0)
         return <SearchEmptyState onClearFilters={handleClearFilters} />;
       return (
-        <>
-          <SearchJobsList
-            data={searchResults}
-            onJobSelected={handleJobSelect}
-            selectedId={selectedJobId}
-          />
-          {hasNextPage && (
-            <div
-              ref={sentinelRef}
-              className="flex justify-center py-4"
-              aria-hidden
-            >
-              {isFetchingNextPage && (
-                <Loader2 className="text-muted-foreground size-5 animate-spin" />
-              )}
-            </div>
-          )}
-        </>
+        <SearchJobsList
+          data={searchResults}
+          onJobSelected={handleJobSelect}
+          selectedId={selectedJobId}
+        />
       );
     }
 
-    if (initialJobs.data.length === 0) return <EmptyMuted />;
+    if (defaultJobs.length === 0) return <EmptyMuted />;
     return (
       <Suspense fallback={<SearchLoadingState />}>
         <JobsList
-          data={initialJobs.data}
+          data={defaultJobs}
           onJobSelected={handleJobSelect}
           selectedId={selectedJobId}
         />
@@ -225,9 +235,11 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
       <div className="flex gap-4">
         <div className="w-full space-y-1.5 lg:w-md">
           <div className="mb-4 flex items-center justify-between">
-            <div className="text-secondary-foreground mr-4 truncate text-sm text-ellipsis">
-              {summaryText}
-            </div>
+            {summaryText && (
+              <div className="text-secondary-foreground mr-4 truncate text-sm text-ellipsis">
+                {summaryText}
+              </div>
+            )}
             <SortByMobileButton
               defaultSort={
                 storeSortBy === "relevant" ? "Most Relevant" : "Most Recent"
@@ -237,6 +249,16 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
             <SortByDropDownButton />
           </div>
           {listContent}
+          {activeHasNextPage && (
+            <div ref={sentinelRef} aria-hidden>
+              {activeIsFetchingNextPage && <SearchLoadingState count={3} />}
+            </div>
+          )}
+          {showNoMoreResults && (
+            <p className="text-muted-foreground py-6 text-center text-sm">
+              No more results
+            </p>
+          )}
         </div>
 
         <JobDetailPanelMobile
