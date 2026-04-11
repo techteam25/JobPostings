@@ -32,6 +32,12 @@ import type {
 } from "@/validations/job.validation";
 import type { SearchParams } from "@/validations/base.validation";
 
+const DATE_POSTED_MS: Record<string, number> = {
+  "last-24-hours": 86_400_000,
+  "last-7-days": 604_800_000,
+  "last-14-days": 1_209_600_000,
+};
+
 export class JobBoardService
   extends BaseService
   implements JobBoardServicePort
@@ -113,6 +119,9 @@ export class JobBoardService
         zipcode,
         skills,
         jobType,
+        compensationType,
+        sortBy,
+        datePosted,
         ...rest
       } = filters;
       const offset = (page - 1) * limit;
@@ -129,18 +138,36 @@ export class JobBoardService
           ? [jobType]
           : [];
 
+      const compensationTypeArray = Array.isArray(compensationType)
+        ? compensationType
+        : compensationType
+          ? [compensationType]
+          : [];
+
       const queryBuilder = new TypesenseQueryBuilder()
         .addLocationFilters({ city, state, country, zipcode }, includeRemote)
         .addSkillFilters(skillsArray, true)
         .addArrayFilter("jobType", jobTypeArray, true)
+        .addArrayFilter("compensationType", compensationTypeArray, true)
         .addSingleFilter("isActive", rest.isActive)
         .addSingleFilter("experience", rest.experience);
+
+      if (datePosted && DATE_POSTED_MS[datePosted]) {
+        const threshold = Date.now() - DATE_POSTED_MS[datePosted];
+        queryBuilder.addRangeFilter("createdAt", ">=", threshold);
+      }
 
       const filterQuery = queryBuilder.build();
 
       const parts: string[] = [];
       if (filterQuery) parts.push(filterQuery);
       const filterString = parts.join("&");
+
+      // Map frontend sort values to Typesense sort params:
+      // "relevant" + real query → omit sort_by (Typesense uses text relevance)
+      // "recent" or no sortBy or no real query → sort by createdAt:desc
+      const hasTextQuery = !!q && q.trim() !== "" && q.trim() !== "*";
+      const useRelevanceSort = sortBy === "relevant" && hasTextQuery;
 
       const results = await this.typesenseService.searchJobsCollection(
         q,
@@ -149,6 +176,8 @@ export class JobBoardService
           limit,
           offset,
           page,
+          sortBy: useRelevanceSort ? undefined : "createdAt",
+          sortDirection: "desc",
         },
       );
       return ok(results);
@@ -327,17 +356,13 @@ export class JobBoardService
       const updatedJob =
         await this.jobBoardRepository.findJobByIdWithSkills(id);
 
-      if (!updatedJob) {
-        return fail(new DatabaseError("Failed to retrieve updated job"));
-      }
-
+      // Enqueue the bare JobWithSkills so the indexer worker sees the same
+      // shape it does in the `indexJob` path — it destructures the job's
+      // own fields (employer, skills, ...), not an outer wrapper.
       await queueService.addJob(
         QUEUE_NAMES.TYPESENSE_JOB_QUEUE,
         "updateJobIndex",
-        {
-          id,
-          updatedJob,
-        },
+        updatedJob,
       );
 
       return ok(updatedJob);

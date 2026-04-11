@@ -33,6 +33,11 @@ export const searchParams = z.object({
             "internship",
           ]),
         ),
+      compensationType: z
+        .enum(["paid", "missionary", "volunteer", "stipend"])
+        .array()
+        .optional()
+        .or(z.enum(["paid", "missionary", "volunteer", "stipend"])),
       city: z.string().optional(),
       experience: z.string().optional(),
       state: z.string().optional(),
@@ -41,7 +46,10 @@ export const searchParams = z.object({
       skills: z.string().array().optional().or(z.string().optional()),
       includeRemote: z.coerce.boolean().optional(),
       isActive: z.coerce.boolean().optional(),
-      sortBy: z.string().optional(),
+      datePosted: z
+        .enum(["last-24-hours", "last-7-days", "last-14-days"])
+        .optional(),
+      sortBy: z.enum(["recent", "relevant"]).optional(),
       order: z
         .string()
         .optional()
@@ -67,6 +75,8 @@ export const searchJobResult = z.object({
   jobType: z.string(),
   skills: z.string().array(),
   createdAt: z.number(),
+  compensationType: z.string().optional(),
+  logoUrl: z.string().optional(),
 });
 
 export type SearchParams = z.infer<typeof searchParams>;

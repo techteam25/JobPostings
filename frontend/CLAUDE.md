@@ -70,6 +70,10 @@ Uses **better-auth** with cookie-based sessions. The backend owns auth; the fron
 - **Vaul** — drawer component
 - Fonts: Poppins and Montserrat (via `next/font`)
 
+## Skills to use during implementation:
+- `frontend-design` skill (`frontend/.claude/skills/frontend-design/SKILL.md`) — for all new UI components.
+`shadcn` skill (f`rontend/.agents/skills/shadcn/SKILL.md`) — for component composition, form inputs, styling rules. Follow shadcn composition rules (use `cn()`, semantic colors, `gap-*` not `space-*`, etc.)
+
 ### Schemas
 
 `schemas/` contains Zod 4 schemas organized by domain: `auth/`, `jobs/`, `organizations/`, `applications/`, `invitations/`, `job-alerts/`, `job-preferences/`, `educations/`, `work-experiences/`, and `responses/` (API response types). Response types are also defined in `lib/types.ts`.

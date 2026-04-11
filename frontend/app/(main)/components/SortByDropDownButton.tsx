@@ -25,6 +25,9 @@ const sortOptions = {
 export const SortByDropDownButton = memo(function SortByDropDownButton() {
   const sortBy = useFiltersStore((state) => state.sortBy);
   const setSortBy = useFiltersStore((state) => state.setSortBy);
+  const keyword = useFiltersStore((state) => state.keyword);
+  const hasKeyword = !!keyword.trim();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -57,7 +60,8 @@ export const SortByDropDownButton = memo(function SortByDropDownButton() {
             </DropdownMenuRadioItem>
             <DropdownMenuRadioItem
               value="relevant"
-              className="hover:bg-secondary cursor-pointer rounded-lg py-2 pr-2 pl-8 font-medium"
+              disabled={!hasKeyword}
+              className="hover:bg-secondary cursor-pointer rounded-lg py-2 pr-2 pl-8 font-medium disabled:cursor-not-allowed disabled:opacity-50"
             >
               Most Relevant
             </DropdownMenuRadioItem>

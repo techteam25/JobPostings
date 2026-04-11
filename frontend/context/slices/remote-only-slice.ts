@@ -8,5 +8,5 @@ export const remoteOnlySlice: StateCreator<
   RemoteOnlyFilterState
 > = (set) => ({
   remoteOnly: false,
-  setRemoteOnly: () => set((state) => ({ remoteOnly: !state.remoteOnly })),
+  setRemoteOnly: (remote) => set(() => ({ remoteOnly: remote })),
 });

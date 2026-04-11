@@ -75,6 +75,15 @@ export const JobTypeDropDownButton = memo(function JobTypeDropDownButton() {
             Contract
           </DropdownMenuCheckboxItem>
           <DropdownMenuCheckboxItem
+            checked={jobTypes.includes("volunteer") as Checked}
+            onCheckedChange={(checked) =>
+              handleJobTypeChange("volunteer", checked)
+            }
+            className="hover:bg-secondary cursor-pointer rounded-lg py-2 pr-2 pl-8 font-medium"
+          >
+            Volunteer
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
             checked={jobTypes.includes("internship") as Checked}
             onCheckedChange={(checked) =>
               handleJobTypeChange("internship", checked)

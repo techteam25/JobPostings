@@ -8,6 +8,7 @@ import { saveJobForUser, removeSavedJobForUser } from "@/lib/api";
 import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Toggle } from "./ui/toggle";
 import {
@@ -24,6 +25,7 @@ interface JobCardType {
   companyName: string;
   location: string;
   jobType: JobTypeEnum;
+  compensationType?: string;
   experienceLevel: string;
   posted: string;
   jobDescription: string;
@@ -40,6 +42,7 @@ export const JobCard = memo(
     posted,
     companyName,
     jobType,
+    compensationType,
     jobDescription,
     location,
     experienceLevel,
@@ -87,7 +90,17 @@ export const JobCard = memo(
               </div>
               <div>
                 <div className="text-sm font-semibold">{companyName}</div>
-                <div className="text-muted-foreground text-xs">{jobType}</div>
+                <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                  <span>{jobType}</span>
+                  {compensationType && (
+                    <Badge
+                      variant="outline"
+                      className="px-1.5 py-0 text-[10px] capitalize"
+                    >
+                      {compensationType}
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
             <Tooltip>

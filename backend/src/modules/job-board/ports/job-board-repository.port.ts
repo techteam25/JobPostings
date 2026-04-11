@@ -43,7 +43,5 @@ export interface JobBoardRepositoryPort extends BaseRepositoryPort<
     },
   ): Promise<{ items: Job[]; pagination: PaginationMeta }>;
 
-  findJobByIdWithSkills(
-    jobId: number,
-  ): Promise<(Job & { skills: JobSkills["name"][] }) | null>;
+  findJobByIdWithSkills(jobId: number): Promise<JobWithSkills>;
 }

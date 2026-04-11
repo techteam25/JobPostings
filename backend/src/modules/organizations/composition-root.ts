@@ -2,11 +2,14 @@ import { OrganizationsRepository } from "./repositories/organizations.repository
 import { OrganizationsService } from "./services/organizations.service";
 import { OrganizationsController } from "./controllers/organizations.controller";
 import { createOrganizationsGuards } from "./guards/organizations.guards";
+import { createTypesenseEmployerIndexerWorker } from "./workers/typesense-employer-indexer.worker";
 import type { IntentSyncPort } from "./ports/intent-sync.port";
+import type { TypesenseEmployerServicePort } from "@shared/ports/typesense-employer-service.port";
 
 interface OrganizationsModuleDeps {
   intentSync: IntentSyncPort;
   organizationsRepository: OrganizationsRepository;
+  typesenseEmployerService: TypesenseEmployerServicePort;
 }
 
 /**
@@ -24,7 +27,11 @@ export function createOrganizationsModule(deps: OrganizationsModuleDeps) {
     organizationsRepository: repository,
   });
 
-  return { controller, service, guards, repository };
+  const workers = createTypesenseEmployerIndexerWorker({
+    typesenseEmployerService: deps.typesenseEmployerService,
+  });
+
+  return { controller, service, guards, repository, workers };
 }
 
 export type OrganizationsModule = ReturnType<typeof createOrganizationsModule>;
