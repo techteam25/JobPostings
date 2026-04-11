@@ -272,12 +272,11 @@ export class OrganizationsService
         return fail(new Error("Failed to delete organization"));
       }
 
-      await queueService.addJob<EmployerDocument & { correlationId: string }>(
+      await queueService.addJob<{ id: string; correlationId: string }>(
         QUEUE_NAMES.TYPESENSE_EMPLOYER_QUEUE,
         "deleteEmployerIndex",
         {
           id: id.toString(),
-          name: "",
           correlationId: crypto.randomUUID(),
         },
       );

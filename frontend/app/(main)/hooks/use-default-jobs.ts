@@ -15,6 +15,7 @@ import type { JobWithEmployer } from "@/schemas/responses/jobs";
  */
 export function useDefaultJobs(
   initialData: PaginatedApiResponse<JobWithEmployer>,
+  options?: { enabled?: boolean },
 ) {
   return useInfiniteQuery({
     queryKey: ["jobs"] as const,
@@ -34,5 +35,6 @@ export function useDefaultJobs(
       if (!lastPage.pagination.hasNext) return undefined;
       return lastPage.pagination.nextPage ?? undefined;
     },
+    enabled: options?.enabled,
   });
 }

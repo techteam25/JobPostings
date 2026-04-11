@@ -89,7 +89,7 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
     fetchNextPage: fetchNextDefaultPage,
     hasNextPage: defaultHasNextPage,
     isFetchingNextPage: isDefaultFetchingNextPage,
-  } = useDefaultJobs(initialJobs);
+  } = useDefaultJobs(initialJobs, { enabled: !isSearching });
 
   const searchResults = useMemo(
     () => searchData?.pages.flatMap((page) => page.data) ?? [],
@@ -250,7 +250,7 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
           </div>
           {listContent}
           {activeHasNextPage && (
-            <div ref={sentinelRef} aria-hidden>
+            <div ref={sentinelRef} aria-hidden="true">
               {activeIsFetchingNextPage && <SearchLoadingState count={3} />}
             </div>
           )}

@@ -99,9 +99,21 @@ describe("Profile Picture Upload - POST /api/users/me/profile-picture", () => {
   });
 
   it("should return 401 when not authenticated", async () => {
+    // The server responds 401 before the file finishes uploading, which can
+    // cause supertest to receive an EPIPE/ECONNRESET as it's still streaming
+    // the multipart body. In that case the response is attached to the error.
     const response = await request
       .post("/api/users/me/profile-picture")
-      .attach("profilePicture", TEST_IMAGE_PATH);
+      .attach("profilePicture", TEST_IMAGE_PATH)
+      .catch((err: any) => {
+        if (
+          (err.code === "EPIPE" || err.code === "ECONNRESET") &&
+          err.response
+        ) {
+          return err.response;
+        }
+        throw err;
+      });
 
     expect(response.status).toBe(401);
   });

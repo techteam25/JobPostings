@@ -74,10 +74,10 @@ describe("parseLocation", () => {
     });
   });
 
-  it("uses last city segment when multiple non-state non-zip segments exist", () => {
+  it("uses first city segment when multiple non-state non-zip segments exist", () => {
     // Edge case: "Portland, Oregon" — "Oregon" is not 2-letter uppercase
     const result = parseLocation("Portland, Oregon");
-    // Both are treated as city candidates; last one wins
-    expect(result).toEqual({ city: "Oregon" });
+    // First non-state, non-zip segment is treated as city
+    expect(result).toEqual({ city: "Portland" });
   });
 });

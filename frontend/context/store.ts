@@ -25,6 +25,14 @@ export type JobType =
   | "contract"
   | "volunteer"
   | "internship";
+
+// NOTE: "volunteer" appears in both JobType and ServiceRole intentionally.
+// JobType.volunteer = unpaid volunteer position type (employment classification).
+// ServiceRole.volunteer = missions service role (compensation model).
+// These are distinct domain concepts that happen to share a label. A future
+// refactor should disambiguate the names (e.g. rename the JobType to
+// "voluntary") but that requires coordinating backend enum values, Typesense
+// schema, and existing persisted data.
 export type ServiceRole = "paid" | "missionary" | "volunteer" | "stipend";
 
 export type SortBy = "relevant" | "recent";
@@ -115,10 +123,10 @@ if (typeof window !== "undefined") {
 
     // Ongoing sync: store changes → URL (debounced 300ms)
     let timer: ReturnType<typeof setTimeout> | null = null;
-    useFiltersStore.subscribe((state) => {
+    useFiltersStore.subscribe(() => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
-        const params = buildSearchParams(state);
+        const params = buildSearchParams(useFiltersStore.getState());
         const newSearch = params.toString();
         const currentSearch = new URLSearchParams(
           window.location.search,
@@ -130,6 +138,17 @@ if (typeof window !== "undefined") {
           window.history.replaceState(null, "", url);
         }
       }, 300);
+    });
+
+    // Reverse sync: browser back/forward → store.
+    // Only applies when the URL carries search params — a bare popstate
+    // (e.g. Vaul drawer closing via history.back()) is intentionally
+    // ignored so it doesn't wipe in-flight store state.
+    window.addEventListener("popstate", () => {
+      const params = new URLSearchParams(window.location.search);
+      if (hasSearchParams(params)) {
+        useFiltersStore.setState(parseSearchParams(params));
+      }
     });
   };
 

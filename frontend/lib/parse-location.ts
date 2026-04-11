@@ -22,7 +22,10 @@ export function parseLocation(input: string): ParsedLocation {
       result.zipcode = segment;
     } else if (STATE_ABBREV_REGEX.test(segment)) {
       result.state = segment;
-    } else {
+    } else if (!result.city) {
+      // First non-state, non-zip segment becomes the city. Subsequent
+      // segments (e.g. "Portland, Oregon") are ignored — the first
+      // segment is the most likely city name.
       result.city = segment;
     }
   }

@@ -21,7 +21,7 @@ interface TypesenseJobIndexerDeps {
 type IndexerJobPayload = JobWithSkills | { id: number };
 
 function isFullJob(payload: IndexerJobPayload): payload is JobWithSkills {
-  return "title" in payload && "employer" in payload;
+  return "title" in payload && "employer" in payload && "skills" in payload;
 }
 
 function createTypesenseHandler(deps: TypesenseJobIndexerDeps) {

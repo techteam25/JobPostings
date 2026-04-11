@@ -1,7 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
-
 import { JobCard } from "@/components/JobCard";
 import { JobTypeEnum } from "@/lib/types";
 import { formatPostedDate } from "@/lib/utils";
@@ -25,9 +23,9 @@ export function SearchJobsList({
   onJobSelected,
   selectedId,
 }: SearchJobsListProps) {
-  const jobs = useMemo(
-    () =>
-      data.map((result) => {
+  return (
+    <>
+      {data.map((result) => {
         const jobId = Number(result.id);
         const location =
           [result.city, result.state].filter(Boolean).join(", ") || "Remote";
@@ -50,9 +48,7 @@ export function SearchJobsList({
             hasSaved={false}
           />
         );
-      }),
-    [data, selectedId, onJobSelected],
+      })}
+    </>
   );
-
-  return <>{jobs}</>;
 }

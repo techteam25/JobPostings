@@ -61,7 +61,7 @@ async function main() {
     );
   }
 
-  // 3. Fetch all jobs and update them with employerId in Typesense
+  // 3. Fetch all jobs and bulk-update them with employerId in Typesense
   const jobs = await db
     .select({
       id: jobsDetails.id,
@@ -72,34 +72,35 @@ async function main() {
   logger.info(`Found ${jobs.length} jobs to update with employerId`);
 
   let updatedCount = 0;
-  let skippedCount = 0;
+  let failedCount = 0;
+  const BATCH_SIZE = 100;
 
-  for (const job of jobs) {
-    try {
-      await typesenseClient
-        .collections(JOBS_COLLECTION)
-        .documents(job.id.toString())
-        .update({ employerId: job.employerId.toString() });
-      updatedCount++;
-    } catch (error: unknown) {
-      const is404 =
-        error &&
-        typeof error === "object" &&
-        "httpStatus" in error &&
-        (error as { httpStatus: number }).httpStatus === 404;
+  const jobUpdates = jobs.map((job) => ({
+    id: job.id.toString(),
+    employerId: job.employerId.toString(),
+  }));
 
-      if (is404) {
-        skippedCount++;
-      } else {
-        logger.warn(`Failed to update job ${job.id} with employerId`, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
+  for (let i = 0; i < jobUpdates.length; i += BATCH_SIZE) {
+    const batch = jobUpdates.slice(i, i + BATCH_SIZE);
+    const results = await typesenseClient
+      .collections(JOBS_COLLECTION)
+      .documents()
+      .import(batch, { action: "update", dirty_values: "coerce_or_drop" });
+
+    const failed = results.filter((r) => !r.success);
+    updatedCount += results.length - failed.length;
+    failedCount += failed.length;
+
+    if (failed.length > 0) {
+      logger.warn(
+        `${failed.length} jobs failed in batch starting at index ${i}`,
+        { errors: failed.slice(0, 3) },
+      );
     }
   }
 
   logger.info(
-    `Updated ${updatedCount}/${jobs.length} jobs with employerId (${skippedCount} not in Typesense, skipped)`,
+    `Updated ${updatedCount}/${jobs.length} jobs with employerId (${failedCount} failed)`,
   );
 
   logger.info("Employer sync complete");

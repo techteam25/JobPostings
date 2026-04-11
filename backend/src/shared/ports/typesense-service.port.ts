@@ -6,6 +6,7 @@ import type {
 
 import type { JobWithSkills } from "@/validations/job.validation";
 import type { JobDocumentType } from "@/validations/base.validation";
+import type { TypesenseJobDocument } from "@shared/infrastructure/typesense.service/typesense.service";
 
 export interface TypesenseJobServicePort {
   /**
@@ -16,9 +17,7 @@ export interface TypesenseJobServicePort {
   /**
    * Indexes multiple job documents in Typesense.
    */
-  indexManyJobDocuments(
-    docs: JobWithSkills[],
-  ): Promise<ImportResponse<JobWithSkills>[]>;
+  indexManyJobDocuments(docs: JobWithSkills[]): Promise<ImportResponse[]>;
 
   /**
    * Retrieves a job document by its ID from Typesense.
@@ -30,7 +29,7 @@ export interface TypesenseJobServicePort {
    * Uses upsert semantics: a missing document is created. The document's
    * own `id` field determines which Typesense document is written.
    */
-  upsertJobDocument(doc: JobWithSkills): Promise<JobWithSkills>;
+  upsertJobDocument(doc: JobWithSkills): Promise<TypesenseJobDocument>;
 
   /**
    * Deletes a job document by its ID from Typesense.

@@ -1,6 +1,6 @@
 "use client";
 
-import type { DatePosted, JobType } from "@/context/store";
+import type { DatePosted, JobType, ServiceRole } from "@/context/store";
 import {
   Accordion,
   AccordionContent,
@@ -11,8 +11,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-
-type ServiceRole = "paid" | "missionary" | "volunteer" | "stipend";
 
 export interface FilterOptionsContentProps {
   jobTypes: JobType[];

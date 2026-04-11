@@ -26,7 +26,31 @@ type MetaSearchParams = {
  * source of truth for how a DB job becomes a Typesense document — every
  * index path (single, bulk, future reindex scripts) must go through here.
  */
-function mapJobToTypesenseDoc(doc: JobWithSkills) {
+/**
+ * The shape stored in the Typesense `postedJobs` collection. This differs from
+ * `JobWithSkills` (nested `employer`, `Date` `createdAt`) — Typesense stores a
+ * flat structure with a numeric timestamp.
+ */
+export interface TypesenseJobDocument {
+  id: string;
+  title: string;
+  company: string;
+  description: string;
+  city: string;
+  state: string | null;
+  country: string;
+  zipcode: string;
+  isRemote: boolean;
+  isActive: boolean;
+  experience: string | null;
+  jobType: string;
+  skills: string[];
+  employerId?: string;
+  compensationType?: string;
+  createdAt: number;
+}
+
+function mapJobToTypesenseDoc(doc: JobWithSkills): TypesenseJobDocument {
   return {
     id: doc.id.toString(),
     title: doc.title,
@@ -43,7 +67,7 @@ function mapJobToTypesenseDoc(doc: JobWithSkills) {
     skills: doc.skills,
     employerId: doc.employerId?.toString(),
     compensationType: doc.compensationType,
-    createdAt: Number(Date.parse(`${doc.createdAt}`)),
+    createdAt: new Date(doc.createdAt).getTime(),
   };
 }
 
@@ -76,16 +100,9 @@ export class TypesenseJobService implements TypesenseJobServicePort {
    * @returns The result of the bulk indexing operation.
    */
   async indexManyJobDocuments(docs: JobWithSkills[]) {
-    // The Typesense client's collection generic is used purely for return-
-    // type metadata; the runtime payload is the mapped `postedJobs` shape,
-    // not `JobWithSkills`. We keep the generic so the port interface
-    // (`ImportResponse<JobWithSkills>[]`) still lines up and cast the
-    // mapped documents through `unknown` at the call site.
-    const payload = docs.map(
-      mapJobToTypesenseDoc,
-    ) as unknown as JobWithSkills[];
+    const payload = docs.map(mapJobToTypesenseDoc);
     return await typesenseClient
-      .collections<JobWithSkills>(JOBS_COLLECTION)
+      .collections<TypesenseJobDocument>(JOBS_COLLECTION)
       .documents()
       .import(payload, { action: "upsert" });
   }
@@ -113,9 +130,9 @@ export class TypesenseJobService implements TypesenseJobServicePort {
    * @returns The upserted Typesense document.
    */
   async upsertJobDocument(doc: JobWithSkills) {
-    const payload = mapJobToTypesenseDoc(doc) as unknown as JobWithSkills;
+    const payload = mapJobToTypesenseDoc(doc);
     return await typesenseClient
-      .collections<JobWithSkills>(JOBS_COLLECTION)
+      .collections<TypesenseJobDocument>(JOBS_COLLECTION)
       .documents()
       .upsert(payload);
   }

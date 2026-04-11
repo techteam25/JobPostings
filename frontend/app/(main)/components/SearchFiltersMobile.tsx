@@ -18,10 +18,9 @@ import { FilterOptionsContent } from "@/app/(main)/components/FilterOptionsConte
 import {
   type DatePosted,
   type JobType,
+  type ServiceRole,
   useFiltersStore,
 } from "@/context/store";
-
-type ServiceRole = "paid" | "missionary" | "volunteer" | "stipend";
 
 interface PendingFilters {
   jobTypes: JobType[];
