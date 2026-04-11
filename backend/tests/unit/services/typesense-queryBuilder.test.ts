@@ -96,6 +96,30 @@ describe("TypesenseQueryBuilder", () => {
       expect(query).toBe("jobType:[full-time, contract]");
     });
 
+    it("should build OR query for compensation types", () => {
+      const query = builder
+        .addArrayFilter("compensationType", ["paid", "stipend"], true)
+        .build();
+
+      expect(query).toBe("compensationType:[paid, stipend]");
+    });
+
+    it("should build AND query for compensation types", () => {
+      const query = builder
+        .addArrayFilter("compensationType", ["paid", "volunteer"], false)
+        .build();
+
+      expect(query).toBe("compensationType:paid && compensationType:volunteer");
+    });
+
+    it("should handle single compensation type", () => {
+      const query = builder
+        .addArrayFilter("compensationType", ["missionary"])
+        .build();
+
+      expect(query).toBe("compensationType:[missionary]");
+    });
+
     it("should handle empty array", () => {
       const query = builder.addArrayFilter("jobType", []).build();
 
@@ -207,6 +231,18 @@ describe("TypesenseQueryBuilder", () => {
 
       expect(query).toBe("city:Seattle && jobType:[part-time]");
     });
+
+    it("should combine job type and compensation type filters", () => {
+      const query = builder
+        .addLocationFilters({ city: "Denver", state: "CO" })
+        .addArrayFilter("jobType", ["full-time"])
+        .addArrayFilter("compensationType", ["paid", "stipend"], true)
+        .build();
+
+      expect(query).toBe(
+        "city:Denver && state:CO && jobType:[full-time] && compensationType:[paid, stipend]",
+      );
+    });
   });
 
   describe("Builder Methods", () => {
@@ -237,6 +273,45 @@ describe("TypesenseQueryBuilder", () => {
       const query = builder.addLocationFilters({ city: "Austin" }).build();
 
       expect(query).toBe("city:Austin");
+    });
+  });
+
+  describe("Range Filters", () => {
+    it("should add >= range filter", () => {
+      const query = builder
+        .addRangeFilter("createdAt", ">=", 1712345678000)
+        .build();
+      expect(query).toBe("createdAt:>=1712345678000");
+    });
+
+    it("should add <= range filter", () => {
+      const query = builder
+        .addRangeFilter("createdAt", "<=", 1712345678000)
+        .build();
+      expect(query).toBe("createdAt:<=1712345678000");
+    });
+
+    it("should add > range filter", () => {
+      const query = builder.addRangeFilter("salary", ">", 50000).build();
+      expect(query).toBe("salary:>50000");
+    });
+
+    it("should add < range filter", () => {
+      const query = builder.addRangeFilter("salary", "<", 100000).build();
+      expect(query).toBe("salary:<100000");
+    });
+
+    it("should combine range filter with other filters", () => {
+      const query = builder
+        .addLocationFilters({ city: "Austin" })
+        .addRangeFilter("createdAt", ">=", 1712345678000)
+        .build();
+      expect(query).toBe("city:Austin && createdAt:>=1712345678000");
+    });
+
+    it("should be chainable", () => {
+      const result = builder.addRangeFilter("createdAt", ">=", 1000);
+      expect(result).toBe(builder);
     });
   });
 

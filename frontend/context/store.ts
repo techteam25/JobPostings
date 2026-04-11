@@ -5,16 +5,35 @@ import {
   datePostedSlice,
   jobTypeSlice,
   remoteOnlySlice,
+  searchSlice,
   serviceRoleSlice,
   sortBySlice,
   applicationFormSlice,
   type ApplicationFormState,
 } from "./slices";
+import {
+  buildSearchParams,
+  parseSearchParams,
+  hasSearchParams,
+} from "@/lib/search-params";
 
 export type DatePosted = "last-24-hours" | "last-7-days" | "last-14-days";
 
-export type JobType = "full-time" | "part-time" | "contract" | "internship";
-type ServiceRole = "paid" | "missionary" | "volunteer" | "stipend";
+export type JobType =
+  | "full-time"
+  | "part-time"
+  | "contract"
+  | "volunteer"
+  | "internship";
+
+// NOTE: "volunteer" appears in both JobType and ServiceRole intentionally.
+// JobType.volunteer = unpaid volunteer position type (employment classification).
+// ServiceRole.volunteer = missions service role (compensation model).
+// These are distinct domain concepts that happen to share a label. A future
+// refactor should disambiguate the names (e.g. rename the JobType to
+// "voluntary") but that requires coordinating backend enum values, Typesense
+// schema, and existing persisted data.
+export type ServiceRole = "paid" | "missionary" | "volunteer" | "stipend";
 
 export type SortBy = "relevant" | "recent";
 
@@ -40,11 +59,19 @@ export interface SortByFilterState {
   setSortBy: (sortBy: SortBy) => void;
 }
 
+export interface SearchState {
+  keyword: string;
+  location: string;
+  setKeyword: (keyword: string) => void;
+  setLocation: (location: string) => void;
+}
+
 export type FiltersState = RemoteOnlyFilterState &
   JobTypeFilterState &
   ServiceFiltersState &
   DatePostedFilterState &
-  SortByFilterState;
+  SortByFilterState &
+  SearchState;
 
 export const useFiltersStore = create<FiltersState>()(
   persist(
@@ -54,6 +81,7 @@ export const useFiltersStore = create<FiltersState>()(
       ...serviceRoleSlice(...args),
       ...datePostedSlice(...args),
       ...sortBySlice(...args),
+      ...searchSlice(...args),
     }),
     {
       name: "filters-storage",
@@ -70,6 +98,66 @@ export const useFiltersStore = create<FiltersState>()(
     },
   ),
 );
+
+// Bidirectional sync: Zustand ↔ URL search params via window.history.replaceState.
+// Runs at module level — no React hooks or useEffect needed.
+if (typeof window !== "undefined") {
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlHasSearchParams = hasSearchParams(urlParams);
+
+  const initUrlSync = () => {
+    // Hydration: URL wins over localStorage; otherwise push localStorage to URL
+    if (urlHasSearchParams) {
+      useFiltersStore.setState(parseSearchParams(urlParams));
+    } else {
+      const params = buildSearchParams(useFiltersStore.getState());
+      const search = params.toString();
+      if (search) {
+        window.history.replaceState(
+          null,
+          "",
+          `${window.location.pathname}?${search}`,
+        );
+      }
+    }
+
+    // Ongoing sync: store changes → URL (debounced 300ms)
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    useFiltersStore.subscribe(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        const params = buildSearchParams(useFiltersStore.getState());
+        const newSearch = params.toString();
+        const currentSearch = new URLSearchParams(
+          window.location.search,
+        ).toString();
+        if (currentSearch !== newSearch) {
+          const url = newSearch
+            ? `${window.location.pathname}?${newSearch}`
+            : window.location.pathname;
+          window.history.replaceState(null, "", url);
+        }
+      }, 300);
+    });
+
+    // Reverse sync: browser back/forward → store.
+    // Only applies when the URL carries search params — a bare popstate
+    // (e.g. Vaul drawer closing via history.back()) is intentionally
+    // ignored so it doesn't wipe in-flight store state.
+    window.addEventListener("popstate", () => {
+      const params = new URLSearchParams(window.location.search);
+      if (hasSearchParams(params)) {
+        useFiltersStore.setState(parseSearchParams(params));
+      }
+    });
+  };
+
+  if (useFiltersStore.persist.hasHydrated()) {
+    initUrlSync();
+  } else {
+    useFiltersStore.persist.onFinishHydration(initUrlSync);
+  }
+}
 
 export const useApplicationStore = create<ApplicationFormState>()((...args) =>
   applicationFormSlice(...args),

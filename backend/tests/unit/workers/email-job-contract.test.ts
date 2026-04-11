@@ -105,7 +105,7 @@ function createMockTypesenseService(): TypesenseJobServicePort {
     indexJobDocument: vi.fn(),
     indexManyJobDocuments: vi.fn(),
     retrieveJobDocumentById: vi.fn(),
-    updateJobDocumentById: vi.fn(),
+    upsertJobDocument: vi.fn(),
     deleteJobDocumentById: vi.fn(),
     deleteJobDocumentByTitle: vi.fn(),
     searchJobsCollection: vi.fn(),

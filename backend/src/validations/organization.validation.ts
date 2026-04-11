@@ -209,6 +209,9 @@ export const getOrganizationSchema = z.object({
       sortBy: true,
       order: true,
     })
+    .extend({
+      sortBy: z.enum(["createdAt", "applicationDeadline"]).optional(),
+    })
     .strict(),
   params: organizationIdParamSchema,
 });

@@ -68,6 +68,7 @@ export class JobBoardController extends BaseController {
       includeRemote,
       isActive,
       order,
+      datePosted,
     } = req.query;
 
     const result = await this.jobBoardService.searchJobs({
@@ -85,6 +86,7 @@ export class JobBoardController extends BaseController {
       includeRemote,
       isActive,
       order,
+      datePosted,
     });
 
     if (result.isSuccess) {

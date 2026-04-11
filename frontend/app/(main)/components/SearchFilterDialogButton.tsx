@@ -11,8 +11,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { FilterOptionsContent } from "@/app/(main)/components/FilterOptionsContent";
+import { useFiltersStore } from "@/context/store";
 
 export function SearchFilterDialogButton() {
+  const jobTypes = useFiltersStore((state) => state.jobTypes);
+  const remoteOnly = useFiltersStore((state) => state.remoteOnly);
+  const datePosted = useFiltersStore((state) => state.datePosted);
+  const serviceRoles = useFiltersStore((state) => state.serviceRoles);
+
+  const setJobTypes = useFiltersStore((state) => state.setJobTypes);
+  const setRemoteOnly = useFiltersStore((state) => state.setRemoteOnly);
+  const setDatePosted = useFiltersStore((state) => state.setDatePosted);
+  const setServiceRoles = useFiltersStore((state) => state.setServiceRoles);
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -32,7 +43,16 @@ export function SearchFilterDialogButton() {
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          <FilterOptionsContent />
+          <FilterOptionsContent
+            jobTypes={jobTypes}
+            remoteOnly={remoteOnly}
+            datePosted={datePosted}
+            serviceRoles={serviceRoles}
+            onJobTypesChange={setJobTypes}
+            onRemoteOnlyChange={setRemoteOnly}
+            onDatePostedChange={setDatePosted}
+            onServiceRolesChange={setServiceRoles}
+          />
         </div>
       </DialogContent>
     </Dialog>

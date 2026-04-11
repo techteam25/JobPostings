@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useRef, useState } from "react";
 
 import { MapPin, Search, X } from "lucide-react";
 
@@ -15,17 +15,61 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useFiltersStore } from "@/context/store";
 
-export const SearchInputMobile = () => {
+interface SearchInputMobileProps {
+  onSearchCommitted?: () => void;
+}
+
+export const SearchInputMobile = ({
+  onSearchCommitted,
+}: SearchInputMobileProps) => {
+  const setKeyword = useFiltersStore((state) => state.setKeyword);
+  const setLocation = useFiltersStore((state) => state.setLocation);
+
   const [open, setOpen] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [localKeyword, setLocalKeyword] = useState("");
+  const [localLocation, setLocalLocation] = useState("");
+
+  const keywordInputRef = useRef<HTMLInputElement>(null);
+  const locationInputRef = useRef<HTMLInputElement>(null);
 
   const handleOpenChange = useCallback((isOpen: boolean) => {
-    setOpen(isOpen);
     if (isOpen) {
-      setTimeout(() => searchInputRef.current?.focus(), 100);
+      // Pull the latest committed search off the store so the drawer reflects
+      // whatever the user typed into the desktop bar or previously searched.
+      const { keyword, location } = useFiltersStore.getState();
+      setLocalKeyword(keyword);
+      setLocalLocation(location);
+      setTimeout(() => keywordInputRef.current?.focus(), 100);
     }
+    setOpen(isOpen);
   }, []);
+
+  const handleCommit = useCallback(() => {
+    setKeyword(localKeyword);
+    setLocation(localLocation);
+    setOpen(false);
+    onSearchCommitted?.();
+  }, [localKeyword, localLocation, setKeyword, setLocation, onSearchCommitted]);
+
+  const handleKeywordKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      locationInputRef.current?.focus();
+    },
+    [],
+  );
+
+  const handleLocationKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      handleCommit();
+    },
+    [handleCommit],
+  );
 
   return (
     <Drawer open={open} onOpenChange={handleOpenChange}>
@@ -58,20 +102,32 @@ export const SearchInputMobile = () => {
           <div className="border-input bg-input relative flex items-center rounded-full px-4">
             <Search className="text-muted-foreground size-5 shrink-0" />
             <Input
-              ref={searchInputRef}
+              ref={keywordInputRef}
+              value={localKeyword}
+              onChange={(event) => setLocalKeyword(event.target.value)}
+              onKeyDown={handleKeywordKeyDown}
               placeholder="Find your next role"
+              aria-label="Search for jobs"
               className="text-muted-foreground h-12 flex-1 text-base shadow-none outline-none focus-visible:ring-0"
             />
           </div>
           <div className="border-input bg-input relative flex items-center rounded-full px-4">
             <MapPin className="text-muted-foreground size-5 shrink-0" />
             <Input
+              ref={locationInputRef}
+              value={localLocation}
+              onChange={(event) => setLocalLocation(event.target.value)}
+              onKeyDown={handleLocationKeyDown}
               placeholder="Location"
+              aria-label="Search by location"
               className="text-muted-foreground h-12 flex-1 text-base shadow-none outline-none focus-visible:ring-0"
             />
           </div>
 
-          <Button className="bg-foreground hover:bg-foreground/90 mt-1 h-12 w-full rounded-full text-base">
+          <Button
+            onClick={handleCommit}
+            className="bg-foreground hover:bg-foreground/90 mt-1 h-12 w-full rounded-full text-base"
+          >
             Search
           </Button>
         </div>

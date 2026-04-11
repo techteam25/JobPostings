@@ -21,6 +21,57 @@ type MetaSearchParams = {
 };
 
 /**
+ * Maps a domain `JobWithSkills` onto the shape stored in the Typesense
+ * `postedJobs` collection (see migration 0000 + 0003). This is the single
+ * source of truth for how a DB job becomes a Typesense document — every
+ * index path (single, bulk, future reindex scripts) must go through here.
+ */
+/**
+ * The shape stored in the Typesense `postedJobs` collection. This differs from
+ * `JobWithSkills` (nested `employer`, `Date` `createdAt`) — Typesense stores a
+ * flat structure with a numeric timestamp.
+ */
+export interface TypesenseJobDocument {
+  id: string;
+  title: string;
+  company: string;
+  description: string;
+  city: string;
+  state: string | null;
+  country: string;
+  zipcode: string;
+  isRemote: boolean;
+  isActive: boolean;
+  experience: string | null;
+  jobType: string;
+  skills: string[];
+  employerId?: string;
+  compensationType?: string;
+  createdAt: number;
+}
+
+function mapJobToTypesenseDoc(doc: JobWithSkills): TypesenseJobDocument {
+  return {
+    id: doc.id.toString(),
+    title: doc.title,
+    company: doc.employer.name,
+    description: doc.description,
+    city: doc.city,
+    state: doc.state,
+    country: doc.country,
+    zipcode: doc.zipcode ? doc.zipcode.toString() : "",
+    isRemote: doc.isRemote,
+    isActive: doc.isActive,
+    experience: doc.experience,
+    jobType: doc.jobType,
+    skills: doc.skills,
+    employerId: doc.employerId?.toString(),
+    compensationType: doc.compensationType,
+    createdAt: new Date(doc.createdAt).getTime(),
+  };
+}
+
+/**
  * Service class for interacting with Typesense search engine for job documents.
  */
 export class TypesenseJobService implements TypesenseJobServicePort {
@@ -33,22 +84,7 @@ export class TypesenseJobService implements TypesenseJobServicePort {
     await typesenseClient
       .collections(JOBS_COLLECTION)
       .documents()
-      .create({
-        id: doc.id.toString(),
-        title: doc.title,
-        company: doc.employer.name,
-        description: doc.description,
-        city: doc.city,
-        state: doc.state,
-        country: doc.country,
-        zipcode: doc.zipcode ? doc.zipcode.toString() : "",
-        isRemote: doc.isRemote,
-        isActive: doc.isActive,
-        experience: doc.experience,
-        jobType: doc.jobType,
-        skills: doc.skills,
-        createdAt: Number(Date.parse(`${doc.createdAt}`)),
-      });
+      .create(mapJobToTypesenseDoc(doc));
 
     return typesenseClient
       .collections<JobWithSkills>(JOBS_COLLECTION)
@@ -57,15 +93,18 @@ export class TypesenseJobService implements TypesenseJobServicePort {
   }
 
   /**
-   * Indexes multiple job documents in Typesense.
+   * Indexes multiple job documents in Typesense. Uses `upsert` so the caller
+   * can repeatedly sync the same IDs without hitting "already exists" errors
+   * from Typesense's default `create` action.
    * @param docs The array of job documents to index.
    * @returns The result of the bulk indexing operation.
    */
   async indexManyJobDocuments(docs: JobWithSkills[]) {
+    const payload = docs.map(mapJobToTypesenseDoc);
     return await typesenseClient
-      .collections<JobWithSkills>(JOBS_COLLECTION)
+      .collections<TypesenseJobDocument>(JOBS_COLLECTION)
       .documents()
-      .import(docs);
+      .import(payload, { action: "upsert" });
   }
 
   /**
@@ -81,19 +120,21 @@ export class TypesenseJobService implements TypesenseJobServicePort {
   }
 
   /**
-   * Updates a job document by its ID in Typesense.
-   * @param jobId The ID of the job document to update.
-   * @param updatedFields The fields to update.
-   * @returns The result of the update operation.
+   * Replaces a job document in Typesense with the supplied DB row. Uses
+   * `upsert` so a missing document is created, and routes the payload
+   * through `mapJobToTypesenseDoc` so the stored shape always matches the
+   * `postedJobs` schema (flat `company` string, int64 `createdAt`, etc.),
+   * never the raw `JobWithSkills` with its nested `employer` relation.
+   * @param doc The full JobWithSkills to write. Its `id` becomes the
+   *            Typesense document id.
+   * @returns The upserted Typesense document.
    */
-  async updateJobDocumentById(
-    jobId: string,
-    updatedFields: Partial<JobWithSkills>,
-  ) {
+  async upsertJobDocument(doc: JobWithSkills) {
+    const payload = mapJobToTypesenseDoc(doc);
     return await typesenseClient
-      .collections<JobWithSkills>(JOBS_COLLECTION)
-      .documents(jobId)
-      .update(updatedFields);
+      .collections<TypesenseJobDocument>(JOBS_COLLECTION)
+      .documents()
+      .upsert(payload);
   }
 
   /**
@@ -131,7 +172,7 @@ export class TypesenseJobService implements TypesenseJobServicePort {
     q: string = "*",
     filters?: string,
     {
-      sortBy = "title",
+      sortBy = "createdAt",
       sortDirection = "desc",
       page = 1,
       limit = 10,
@@ -144,11 +185,12 @@ export class TypesenseJobService implements TypesenseJobServicePort {
       .search({
         q,
         filter_by: filters ? filters : undefined,
-        sort_by: `${sortBy}:${sortDirection}`,
+        sort_by: sortBy ? `${sortBy}:${sortDirection}` : undefined,
         page,
         limit,
         offset,
         query_by: "title, skills, jobType, description, city, state, country",
+        include_fields: "$employers(logoUrl, strategy: merge)",
       });
   }
 
@@ -171,7 +213,7 @@ export class TypesenseJobService implements TypesenseJobServicePort {
     // Add timestamp filter to only get jobs created after lastSentAt
     let filterBy = filters;
     if (lastSentAt) {
-      const timestamp = Math.floor(lastSentAt.getTime() / 1000);
+      const timestamp = lastSentAt.getTime();
       filterBy = filterBy
         ? `${filterBy} && createdAt:>=${timestamp}`
         : `createdAt:>=${timestamp}`;

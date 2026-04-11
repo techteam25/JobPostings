@@ -73,6 +73,15 @@ export class TypesenseQueryBuilder {
     return this;
   }
 
+  addRangeFilter(
+    field: string,
+    operator: ">=" | "<=" | ">" | "<",
+    value: number,
+  ) {
+    this.filterConditions.push(`${field}:${operator}${value}`);
+    return this;
+  }
+
   build(): string {
     return this.filterConditions.join(" && ");
   }

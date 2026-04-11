@@ -5,4 +5,8 @@ export type {
   TypesenseUserProfileServicePort,
   UserProfileDocument,
 } from "./typesense-user-profile-service.port";
+export type {
+  TypesenseEmployerServicePort,
+  EmployerDocument,
+} from "./typesense-employer-service.port";
 export type { BaseRepositoryPort } from "./base-repository.port";
