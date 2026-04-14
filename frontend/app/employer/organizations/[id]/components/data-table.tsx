@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import {
   ColumnDef,
   FilterFn,
+  SortingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 
@@ -33,15 +36,23 @@ export function DataTable<TData, TValue>({
   onGlobalFilterChange,
   globalFilterFn,
 }: DataTableProps<TData, TValue>) {
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [rowSelection, setRowSelection] = useState({});
+
   const table = useReactTable({
     data,
     columns,
     state: {
+      sorting,
+      rowSelection,
       globalFilter,
     },
+    onSortingChange: setSorting,
+    onRowSelectionChange: setRowSelection,
     onGlobalFilterChange,
     globalFilterFn,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
 

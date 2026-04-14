@@ -1,6 +1,7 @@
 "use client";
 
 import { ColumnDef, FilterFn } from "@tanstack/react-table";
+import { ArrowUpDown } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,7 +81,16 @@ export const columns: ColumnDef<Member>[] = [
   },
   {
     accessorKey: "memberName",
-    header: "Name",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="-ml-4"
+      >
+        Name
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => (
       <span className="text-secondary-foreground">
         {row.getValue("memberName")}
@@ -89,14 +99,32 @@ export const columns: ColumnDef<Member>[] = [
   },
   {
     accessorKey: "role",
-    header: "Role",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="-ml-4"
+      >
+        Role
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => (
       <span className="text-secondary-foreground">{row.getValue("role")}</span>
     ),
   },
   {
     accessorKey: "memberEmail",
-    header: "Email",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="-ml-4"
+      >
+        Email
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => (
       <span className="text-secondary-foreground">
         {row.getValue("memberEmail")}
@@ -116,7 +144,16 @@ export const columns: ColumnDef<Member>[] = [
   },
   {
     accessorKey: "createdAt",
-    header: "Join Date",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="-ml-4"
+      >
+        Join Date
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
     cell: ({ row }) => (
       <span className="text-secondary-foreground">
         {formatToReadableDate(row.getValue("createdAt"))}

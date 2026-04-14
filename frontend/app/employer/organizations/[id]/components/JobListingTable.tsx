@@ -23,9 +23,5 @@ export function JobListingTable({
     [organizationId, onCloseJob, onDuplicate],
   );
 
-  return (
-    <div className="overflow-x-auto">
-      <DataTable columns={columns} data={jobs} />
-    </div>
-  );
+  return <DataTable columns={columns} data={jobs} />;
 }

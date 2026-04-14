@@ -66,9 +66,7 @@ export function JobListingsSection({
               Manage all your jobs in one place
             </p>
           </div>
-          <Link
-            href={`/employer/organizations/${organizationId}/jobs/new`}
-          >
+          <Link href={`/employer/organizations/${organizationId}/jobs/new`}>
             <Button className="bg-primary/90 hover:bg-primary cursor-pointer [&_svg]:size-4">
               <Plus className="size-4" />
               Post new job
@@ -76,14 +74,14 @@ export function JobListingsSection({
           </Link>
         </div>
 
-        {/* Filters & Tabs */}
-        <Card className="border-0 shadow-sm">
-          <div className="p-6">
+        {/* Table Section */}
+        <Card className="w-full border-0 shadow-sm">
+          <div className="border-b p-6">
             {/* Status Tabs */}
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}
-              className="mb-6"
+              className="mb-4"
             >
               <TabsList className="bg-background grid w-full max-w-md grid-cols-4">
                 <TabsTrigger value="all">All</TabsTrigger>
@@ -93,26 +91,36 @@ export function JobListingsSection({
               </TabsList>
             </Tabs>
 
-            {/* Search & Filters */}
-            <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center">
-              <div className="relative max-w-md flex-1">
-                <Search className="text-muted-foreground absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2" />
-                <Input
-                  placeholder="Search by job title or location..."
-                  className="bg-input/50 pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            {/* Search */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
+                  <Input
+                    placeholder="Search by job title or location..."
+                    className="w-64 pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          <JobListingTable
-            jobs={filteredJobs}
-            organizationId={organizationId}
-            onCloseJob={handleCloseJob}
-            onDuplicate={handleDuplicate}
-          />
+          <div className="p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <span className="text-secondary-foreground text-sm">
+                Total Jobs: {filteredJobs.length} jobs
+              </span>
+            </div>
+
+            <JobListingTable
+              jobs={filteredJobs}
+              organizationId={organizationId}
+              onCloseJob={handleCloseJob}
+              onDuplicate={handleDuplicate}
+            />
+          </div>
         </Card>
       </div>
     </div>
@@ -131,65 +139,37 @@ export function JobListingsSectionSkeleton() {
           <Skeleton className="h-10 w-40 rounded-md" />
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-background rounded-md p-4 shadow-sm">
-              <Skeleton className="mb-3 h-4 w-24" />
-              <Skeleton className="h-8 w-32" />
+        <Card className="w-full border-0 shadow-sm">
+          <div className="border-b p-6">
+            <div className="mb-4 grid w-full max-w-md grid-cols-4 gap-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 rounded-md" />
+              ))}
             </div>
-          ))}
-        </div>
-
-        <div className="bg-background mb-6 rounded-md p-6 shadow-sm">
-          <div className="mb-6 grid w-full max-w-md grid-cols-4 gap-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 rounded-md" />
-            ))}
+            <Skeleton className="h-10 w-64 rounded-md" />
           </div>
-          <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center">
-            <div className="relative max-w-md flex-1">
-              <Skeleton className="h-10 w-full rounded-md" />
-            </div>
-          </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <div className="bg-background rounded-md shadow-sm">
-            <div className="grid grid-cols-6 gap-4 border-b p-4">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-4 w-20" />
-              <div className="flex justify-end">
-                <Skeleton className="h-4 w-16" />
-              </div>
-            </div>
-            <div className="divide-y">
+          <div className="p-6">
+            <Skeleton className="mb-4 h-4 w-32" />
+            <div className="space-y-4">
               {Array.from({ length: 6 }).map((_, row) => (
-                <div
-                  key={row}
-                  className="hover:bg-background grid grid-cols-6 items-center gap-4 p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="h-8 w-8 rounded-full" />
-                    <div>
-                      <Skeleton className="mb-2 h-4 w-36" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
+                <div key={row} className="grid grid-cols-6 items-center gap-4">
+                  <div>
+                    <Skeleton className="mb-2 h-4 w-36" />
+                    <Skeleton className="h-3 w-24" />
                   </div>
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-4 w-28" />
                   <Skeleton className="h-4 w-28" />
-                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
                   <div className="flex justify-end">
-                    <Skeleton className="h-8 w-16 rounded-md" />
+                    <Skeleton className="h-8 w-20 rounded-md" />
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
