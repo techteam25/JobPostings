@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useForm } from "@tanstack/react-form";
+import { isPossiblePhoneNumber } from "libphonenumber-js";
 
 import { TCreateOrganizationFormProps } from "@/lib/types";
 import {
@@ -100,6 +101,14 @@ const ContactInfoForm = ({
           <FieldGroup>
             <form.Field
               name="phone"
+              validators={{
+                onBlur: ({ value }) => {
+                  if (!value) return undefined;
+                  if (!isPossiblePhoneNumber(value, "US"))
+                    return "Invalid phone number";
+                  return undefined;
+                },
+              }}
               children={(field) => {
                 const isInvalid =
                   field.state.meta.isTouched && !field.state.meta.isValid;
