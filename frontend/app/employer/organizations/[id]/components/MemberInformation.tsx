@@ -1,28 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  MoreVertical,
   Search,
   Filter,
   Upload,
@@ -34,8 +16,9 @@ import {
   Users,
 } from "lucide-react";
 import { Member } from "@/lib/types";
-import { formatToReadableDate } from "@/lib/utils";
 import dynamic from "next/dynamic";
+import { DataTable } from "./data-table";
+import { columns, memberGlobalFilter } from "./member-columns";
 
 const InviteMemberDialog = dynamic(() =>
   import("./InviteMemberDialog").then((mod) => ({
@@ -54,16 +37,6 @@ export function EmployeeListSection({
 }: EmployeeListSectionProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showInviteDialog, setShowInviteDialog] = useState(false);
-
-  const filteredMembers = useMemo(() => {
-    if (!searchTerm) return members;
-    const lower = searchTerm.toLowerCase();
-    return members.filter(
-      (m) =>
-        m.memberName.toLowerCase().includes(lower) ||
-        m.memberEmail.toLowerCase().includes(lower),
-    );
-  }, [members, searchTerm]);
 
   const totalMembers = members.length;
   const activeMembers = members.filter((m) => m.isActive).length;
@@ -90,19 +63,6 @@ export function EmployeeListSection({
     }, 0);
     return (totalYears / members.length).toFixed(1);
   }, [members]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "bg-green-100 text-green-800 hover:bg-green-200";
-      case "On Leave":
-        return "bg-amber-100 text-amber-800 hover:bg-amber-200";
-      case "Inactive":
-        return "bg-gray-100 text-gray-600 hover:bg-gray-200";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
 
   return (
     <div className="flex h-full w-full flex-col p-8">
@@ -240,75 +200,13 @@ export function EmployeeListSection({
             </span>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox />
-                </TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Join Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredMembers.map((employee) => (
-                <TableRow key={employee.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="bg-secondary h-9 w-9">
-                        <AvatarFallback className="bg-secondary h-9 w-9">
-                          {employee.memberName
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-secondary-foreground">
-                    {employee.memberName}
-                  </TableCell>
-                  <TableCell className="text-secondary-foreground">
-                    {employee.role}
-                  </TableCell>
-                  <TableCell className="text-secondary-foreground">
-                    {employee.memberEmail}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={`${getStatusColor(employee.isActive ? "Active" : "Inactive")} border-0`}
-                    >
-                      {employee.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-secondary-foreground">
-                    {formatToReadableDate(employee.createdAt)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="hover:bg-primary hover:text-primary-foreground [&_svg]:size-4"
-                        >
-                          <MoreVertical />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View Profile</DropdownMenuItem>
-                        <DropdownMenuItem>Edit Details</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <DataTable
+            columns={columns}
+            data={members}
+            globalFilter={searchTerm}
+            onGlobalFilterChange={setSearchTerm}
+            globalFilterFn={memberGlobalFilter}
+          />
         </div>
       </Card>
 
