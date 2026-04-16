@@ -9,7 +9,10 @@ import {
   deleteJobSchema,
   updateJobSchema,
 } from "@/validations/job.validation";
-import { searchParams } from "@/validations/base.validation";
+import {
+  searchParams,
+  recommendationParams,
+} from "@/validations/base.validation";
 import { getOrganizationSchema } from "@/validations/organization.validation";
 import {
   cacheMiddleware,
@@ -61,7 +64,31 @@ export function createJobBoardRoutes({
     controller.searchJobs,
   );
 
-  // GET /jobs/:jobId
+  // GET /jobs/recommendations (must be before /:jobId to avoid param capture)
+  router.get(
+    "/recommendations",
+    authenticate,
+    validate(recommendationParams),
+    cacheMiddleware({
+      ttl: 300,
+      keyGenerator: (req) =>
+        `jobs/recommendations:user:${req.userId}:page:${req.query.page ?? 1}:limit:${req.query.limit ?? 10}`,
+    }),
+    controller.getRecommendations,
+  );
+
+  // Employer routes (require authentication + job posting role)
+
+  // GET /jobs/my/posted (must be before /:jobId to avoid param capture)
+  router.get(
+    "/my/posted",
+    authenticate,
+    orgGuards.requireJobPostingRole(),
+    cacheMiddleware({ ttl: 300 }),
+    controller.getMyJobs,
+  );
+
+  // GET /jobs/:jobId (after all literal routes to avoid param capture)
   router.get(
     "/:jobId",
     optionalAuthenticate,
@@ -74,17 +101,6 @@ export function createJobBoardRoutes({
       },
     }),
     controller.getJobById,
-  );
-
-  // Employer routes (require authentication + job posting role)
-
-  // GET /jobs/my/posted
-  router.get(
-    "/my/posted",
-    authenticate,
-    orgGuards.requireJobPostingRole(),
-    cacheMiddleware({ ttl: 300 }),
-    controller.getMyJobs,
   );
 
   // POST /jobs

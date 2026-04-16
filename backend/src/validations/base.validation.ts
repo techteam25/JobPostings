@@ -79,5 +79,17 @@ export const searchJobResult = z.object({
   logoUrl: z.string().optional(),
 });
 
+export const recommendationParams = z.object({
+  body: z.object({}).strict(),
+  query: z
+    .object({
+      page: z.coerce.number().int().positive().default(1).optional(),
+      limit: z.coerce.number().int().positive().max(50).default(10).optional(),
+    })
+    .strict(),
+  params: z.object({}).strict(),
+});
+
 export type SearchParams = z.infer<typeof searchParams>;
+export type RecommendationParams = z.infer<typeof recommendationParams>;
 export type JobDocumentType = z.infer<typeof searchJobResult>;
