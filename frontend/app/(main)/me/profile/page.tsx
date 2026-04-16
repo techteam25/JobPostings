@@ -12,6 +12,7 @@ import {
   DollarSign,
   Watch,
   FileText,
+  SquarePen,
 } from "lucide-react";
 
 import { getUserInformation } from "@/lib/api";
@@ -86,11 +87,11 @@ export default async function ProfilePage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="hover:bg-secondary hover:text-secondary-foreground"
+                className="hover:bg-secondary hover:text-secondary-foreground [&_svg]:size-5"
                 asChild
               >
                 <Link href="/me/profile/edit">
-                  <ChevronRight />
+                  <SquarePen />
                 </Link>
               </Button>
             </div>

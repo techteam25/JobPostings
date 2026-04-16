@@ -21,7 +21,7 @@ export function ProfileCompletionNudge() {
           </p>
         </div>
         <Button variant="outline" size="sm" asChild>
-          <Link href="/me/profile/edit">Complete Profile</Link>
+          <Link href="/me/profile">Complete Profile</Link>
         </Button>
       </CardContent>
     </Card>

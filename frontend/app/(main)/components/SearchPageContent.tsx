@@ -19,6 +19,7 @@ import { SearchInputMobile } from "@/app/(main)/components/SearchInputMobile";
 import { SearchFiltersMobile } from "@/app/(main)/components/SearchFiltersMobile";
 import type { ServerActionPaginatedResponse } from "@/lib/types";
 import type { JobWithEmployer } from "@/schemas/responses/jobs";
+import { CreateJobAlertDialog } from "@/app/(main)/settings/job-alerts/components/JobAlertsList";
 
 type SearchTab = "foryou" | "search";
 
@@ -27,7 +28,8 @@ interface SearchPageContentProps {
 }
 
 export function SearchPageContent({ initialJobs }: SearchPageContentProps) {
-  const [activeTab, setActiveTab] = useState<SearchTab>("search");
+  const [activeTab, setActiveTab] = useState<SearchTab>("foryou");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   // Event-driven auto-switch: when either search input commits a new search,
   // pull the user onto the Search tab. Kept as an event handler (not an
@@ -92,6 +94,7 @@ export function SearchPageContent({ initialJobs }: SearchPageContentProps) {
                   <Button
                     variant="ghost"
                     className="text-foreground/85 hover:text-foreground/95 decoration-accent cursor-pointer text-sm decoration-4 underline-offset-8 hover:bg-transparent hover:underline [&_svg]:size-4"
+                    onClick={() => setCreateDialogOpen(true)}
                   >
                     <Bell className="mr-1" />
                     Create job alert
@@ -126,6 +129,11 @@ export function SearchPageContent({ initialJobs }: SearchPageContentProps) {
           </Tabs>
         </div>
       </div>
+
+      <CreateJobAlertDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+      />
     </>
   );
 }

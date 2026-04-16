@@ -7,7 +7,7 @@ import { JobAlert, PaginatedApiResponse } from "@/lib/types";
 import { JobAlertCard } from "./JobAlertCard";
 import dynamic from "next/dynamic";
 
-const CreateJobAlertDialog = dynamic(() =>
+export const CreateJobAlertDialog = dynamic(() =>
   import("./CreateJobAlertDialog").then((mod) => ({
     default: mod.CreateJobAlertDialog,
   })),
