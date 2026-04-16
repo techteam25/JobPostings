@@ -67,4 +67,20 @@ export interface TypesenseJobServicePort {
     lastSentAt: Date | null,
     limit?: number,
   ): Promise<SearchResponse<JobDocumentType>>;
+
+  /**
+   * Searches jobs for recommendations using skill-weighted relevance.
+   * Uses the same query_by/weights as alert search but accepts
+   * recommendation-specific filter/sort params instead of alert filters.
+   */
+  searchJobsForRecommendations(
+    q: string,
+    filters: string,
+    options?: {
+      sortBy?: string;
+      sortDirection?: "asc" | "desc";
+      page?: number;
+      limit?: number;
+    },
+  ): Promise<SearchResponse<JobDocumentType>>;
 }

@@ -15,6 +15,7 @@ import { useUploadLogo } from "@/app/employer/organizations/hooks/use-upload-log
 import { useFetchOrganization } from "@/app/employer/organizations/hooks/use-fetch-organization";
 import { editOrganizationSchema } from "@/schemas/organizations/edit-organization";
 import Link from "next/link";
+import { isPossiblePhoneNumber } from "libphonenumber-js";
 
 export function EditOrganizationForm() {
   const { organization } = useOrganization();
@@ -257,6 +258,14 @@ export function EditOrganizationForm() {
       {/* Contact */}
       <form.Field
         name="phone"
+        validators={{
+          onBlur: ({ value }) => {
+            if (!value) return undefined;
+            if (!isPossiblePhoneNumber(value, "US"))
+              return "Invalid phone number";
+            return undefined;
+          },
+        }}
         children={(field) => {
           const isInvalid =
             field.state.meta.isTouched && !field.state.meta.isValid;

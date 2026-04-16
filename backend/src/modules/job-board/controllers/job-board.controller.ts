@@ -15,9 +15,13 @@ import type { GetOrganizationSchema } from "@/validations/organization.validatio
 import type { SearchParams } from "@/validations/base.validation";
 import type { ApiResponse, EmptyBody, PaginatedResponse } from "@shared/types";
 import { buildPaginationMeta } from "@shared/infrastructure/typesense.service/build-search-pagination";
+import type { JobRecommendationServicePort } from "@/modules/job-board";
 
 export class JobBoardController extends BaseController {
-  constructor(private jobBoardService: JobBoardServicePort) {
+  constructor(
+    private jobBoardService: JobBoardServicePort,
+    private recommendationService: JobRecommendationServicePort,
+  ) {
     super();
   }
 
@@ -104,6 +108,38 @@ export class JobBoardController extends BaseController {
         res,
         result.error,
         "Failed to search jobs",
+      );
+    }
+  };
+
+  getRecommendations = async (req: Request, res: Response) => {
+    const userId = req.userId!;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    const result = await this.recommendationService.getRecommendations(
+      userId,
+      page,
+      limit,
+    );
+
+    if (result.isSuccess) {
+      const { jobs, total, hasPersonalization } = result.value;
+      const pagination = buildPaginationMeta({ found: total, page }, limit);
+
+      return res.status(200).json({
+        success: true,
+        message: "Recommendations retrieved successfully",
+        data: jobs,
+        pagination,
+        hasPersonalization,
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      return this.handleControllerError(
+        res,
+        result.error,
+        "Failed to retrieve recommendations",
       );
     }
   };
