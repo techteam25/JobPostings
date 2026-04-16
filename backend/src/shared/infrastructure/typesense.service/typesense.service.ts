@@ -239,4 +239,41 @@ export class TypesenseJobService implements TypesenseJobServicePort {
         prefix: true,
       });
   }
+
+  /**
+   * Searches jobs for recommendations using skill-weighted relevance.
+   * Same query_by and weights as alert search, but accepts
+   * recommendation-specific filter/sort params.
+   */
+  async searchJobsForRecommendations(
+    q: string,
+    filters: string,
+    {
+      sortBy = "createdAt",
+      sortDirection = "desc",
+      page = 1,
+      limit = 10,
+    }: {
+      sortBy?: string;
+      sortDirection?: "asc" | "desc";
+      page?: number;
+      limit?: number;
+    } = {},
+  ): Promise<SearchResponse<JobDocumentType>> {
+    return await typesenseClient
+      .collections<JobDocumentType>(JOBS_COLLECTION)
+      .documents()
+      .search({
+        q,
+        filter_by: filters || undefined,
+        query_by: "title, description, company, skills",
+        query_by_weights: "3,2,1,2",
+        sort_by: `${sortBy}:${sortDirection}`,
+        per_page: limit,
+        page,
+        num_typos: 1,
+        prefix: true,
+        include_fields: "$employers(logoUrl, strategy: merge)",
+      });
+  }
 }

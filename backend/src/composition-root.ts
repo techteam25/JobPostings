@@ -25,7 +25,10 @@ import {
   SavedJobRepository,
 } from "@/modules/applications";
 import { OrganizationsRepository } from "@/modules/organizations";
-import { ProfileRepository } from "@/modules/user-profile";
+import {
+  PreferenceRepository,
+  ProfileRepository,
+} from "@/modules/user-profile";
 
 // Cross-module adapters
 import {
@@ -40,6 +43,7 @@ import {
   ApplicationsToJobBoardAdapter,
   JobBoardToApplicationsAdapter,
   ProfileToJobBoardAdapter,
+  ProfileToRecommendationAdapter,
   FileMetadataUpdateAdapter,
   JobBoardToSharedInsightsAdapter,
   IdentityToProfileWriteAdapter,
@@ -135,6 +139,7 @@ export function createCompositionRoot(): CompositionRoot {
   const savedJobRepository = new SavedJobRepository();
   const organizationsRepository = new OrganizationsRepository();
   const profileRepository = new ProfileRepository();
+  const preferenceRepository = new PreferenceRepository();
 
   // EmailService depends on email preferences — satisfied by NotificationsRepository
   const emailService = new EmailService(notificationsRepository);
@@ -220,6 +225,12 @@ export function createCompositionRoot(): CompositionRoot {
     savedJobRepository,
   );
 
+  // User profile + preferences → Job-board (recommendation input)
+  const profileToRecommendationAdapter = new ProfileToRecommendationAdapter(
+    profileRepository,
+    preferenceRepository,
+  );
+
   const notifications = createNotificationsModule({
     emailService,
     userActivityQuery: identityToNotificationsAdapter,
@@ -233,6 +244,7 @@ export function createCompositionRoot(): CompositionRoot {
     savedJobsStatusQuery: profileToJobBoardAdapter,
     orgMembershipForJob: orgsToJobBoardAdapter,
     userContactQuery: identityToJobBoardAdapter,
+    userRecommendationProfile: profileToRecommendationAdapter,
     jobBoardRepository,
     jobInsightsRepository,
   });

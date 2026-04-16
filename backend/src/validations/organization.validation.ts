@@ -15,6 +15,7 @@ import {
 import { searchParams } from "@/validations/base.validation";
 import { PaginationMeta } from "@shared/types";
 import { User } from "@/validations/userProfile.validation";
+import { isPossiblePhoneNumber } from "libphonenumber-js";
 
 // Zod schemas for validation
 export const selectOrganizationSchema = createSelectSchema(organizations);
@@ -78,6 +79,13 @@ export const insertOrganizationSchema = insertOrganizationBaseSchema
       message: "File size must be under 5MB",
       path: ["logo", "size"],
     },
+  )
+  .refine(
+    (data) => {
+      if (!data.phone) return true;
+      return isPossiblePhoneNumber(data.phone, "US");
+    },
+    { message: "Invalid phone number", path: ["phone"] },
   );
 
 // Update schema: use base schema, apply partial FIRST, then add refinements
@@ -109,6 +117,13 @@ export const updateOrganizationInputSchema = insertOrganizationBaseSchema
       message: "File size must be under 5MB",
       path: ["logo", "size"],
     },
+  )
+  .refine(
+    (data) => {
+      if (!data.phone) return true;
+      return isPossiblePhoneNumber(data.phone, "US");
+    },
+    { message: "Invalid phone number", path: ["phone"] },
   );
 
 const organizationIdParamSchema = z.object({
