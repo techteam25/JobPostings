@@ -14,6 +14,10 @@ export type {
   UserRecommendationProfilePort,
   RecommendationProfile,
 } from "./ports/user-recommendation-profile.port";
+export type {
+  JobRecommendationServicePort,
+  ScoredJob,
+} from "./ports/job-recommendation-service.port";
 export { createJobBoardGuards } from "./guards/job-board.guards";
 export type { JobBoardGuards } from "./guards/job-board.guards";
 export { createJobBoardRoutes } from "./routes/job-board.routes";

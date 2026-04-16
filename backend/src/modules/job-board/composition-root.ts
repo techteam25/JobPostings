@@ -8,6 +8,7 @@ import type { JobBoardRepositoryPort } from "./ports/job-board-repository.port";
 import type { JobInsightsRepositoryPort } from "./ports/job-insights-repository.port";
 
 import { JobBoardService } from "./services/job-board.service";
+import { JobRecommendationService } from "./services/job-recommendation.service";
 import { JobBoardController } from "./controllers/job-board.controller";
 import { createJobBoardGuards } from "./guards/job-board.guards";
 import { createTypesenseJobIndexerWorker } from "./workers/typesense-job-indexer.worker";
@@ -42,7 +43,11 @@ export function createJobBoardModule(deps: JobBoardModuleDeps) {
     deps.orgMembershipForJob,
     deps.userContactQuery,
   );
-  const controller = new JobBoardController(service);
+  const recommendationService = new JobRecommendationService(
+    deps.typesenseService,
+    deps.userRecommendationProfile,
+  );
+  const controller = new JobBoardController(service, recommendationService);
   const guards = createJobBoardGuards({
     jobBoardRepository: repository,
     orgMembershipQuery: deps.orgMembershipForJob,
