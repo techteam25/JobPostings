@@ -10,6 +10,10 @@ export type { ApplicationStatusQueryPort } from "./ports/application-status-quer
 export type { SavedJobsStatusQueryPort } from "./ports/saved-jobs-status-query.port";
 export type { OrgMembershipForJobPort } from "./ports/org-membership-for-job.port";
 export type { UserContactQueryPort } from "./ports/user-contact-query.port";
+export type {
+  UserRecommendationProfilePort,
+  RecommendationProfile,
+} from "./ports/user-recommendation-profile.port";
 export { createJobBoardGuards } from "./guards/job-board.guards";
 export type { JobBoardGuards } from "./guards/job-board.guards";
 export { createJobBoardRoutes } from "./routes/job-board.routes";

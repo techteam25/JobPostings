@@ -11,5 +11,6 @@ export { OrganizationsToProfileAdapter } from "./organizations-to-profile.adapte
 export { FileMetadataUpdateAdapter } from "./file-metadata-update.adapter";
 export { JobBoardToSharedInsightsAdapter } from "./job-board-to-shared-insights.adapter";
 export { ProfileToJobBoardAdapter } from "./profile-to-job-board.adapter";
+export { ProfileToRecommendationAdapter } from "./profile-to-recommendation.adapter";
 export { IdentityToProfileWriteAdapter } from "./identity-to-profile-write.adapter";
 export { ProfileToOrganizationsIntentSyncAdapter } from "./profile-to-organizations-intent-sync.adapter";

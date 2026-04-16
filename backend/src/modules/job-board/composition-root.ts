@@ -3,6 +3,7 @@ import type { ApplicationStatusQueryPort } from "./ports/application-status-quer
 import type { SavedJobsStatusQueryPort } from "./ports/saved-jobs-status-query.port";
 import type { OrgMembershipForJobPort } from "./ports/org-membership-for-job.port";
 import type { UserContactQueryPort } from "./ports/user-contact-query.port";
+import type { UserRecommendationProfilePort } from "./ports/user-recommendation-profile.port";
 import type { JobBoardRepositoryPort } from "./ports/job-board-repository.port";
 import type { JobInsightsRepositoryPort } from "./ports/job-insights-repository.port";
 
@@ -17,6 +18,7 @@ interface JobBoardModuleDeps {
   savedJobsStatusQuery: SavedJobsStatusQueryPort;
   orgMembershipForJob: OrgMembershipForJobPort;
   userContactQuery: UserContactQueryPort;
+  userRecommendationProfile: UserRecommendationProfilePort;
   jobBoardRepository: JobBoardRepositoryPort;
   jobInsightsRepository: JobInsightsRepositoryPort;
 }
