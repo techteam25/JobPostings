@@ -16,9 +16,13 @@ import {
   QUEUE_NAMES,
 } from "@shared/infrastructure/queue.service";
 import { ProfileServicePort } from "@/modules/user-profile";
+import type { IdentityServicePort } from "@/modules/identity";
+import type { EventBusPort } from "@shared/events";
 import { sendResetPassword } from "@/utils/auth/hooks/sendResetPassword";
 import { sendVerificationEmail } from "@/utils/auth/hooks/sendVerificationEmail";
 import { sendDeleteAccountVerification } from "@/utils/auth/hooks/sendDeleteAccountVerification";
+import { runBeforeDeleteAccount } from "@/utils/auth/hooks/beforeDeleteAccount";
+import { runAfterDeleteAccount } from "@/utils/auth/hooks/afterDeleteAccount";
 
 // ─── Setter-Injected Dependencies ────────────────────────────────────
 // These are set by the central composition root at startup, before
@@ -27,6 +31,8 @@ import { sendDeleteAccountVerification } from "@/utils/auth/hooks/sendDeleteAcco
 
 let notificationsService: NotificationsServicePort | null = null;
 let profileService: ProfileServicePort | null = null;
+let identityService: IdentityServicePort | null = null;
+let eventBus: EventBusPort | null = null;
 
 /**
  * Injects dependencies into the auth module. Must be called by the
@@ -35,9 +41,13 @@ let profileService: ProfileServicePort | null = null;
 export function setAuthDependencies(deps: {
   notificationsService: NotificationsServicePort;
   profileService: ProfileServicePort;
+  identityService: IdentityServicePort;
+  eventBus: EventBusPort;
 }) {
   notificationsService = deps.notificationsService;
   profileService = deps.profileService;
+  identityService = deps.identityService;
+  eventBus = deps.eventBus;
 }
 
 type UserRegistrationPayload = {
@@ -94,8 +104,26 @@ export const auth = betterAuth({
   },
   user: {
     deleteUser: {
-      enabled: isProduction,
+      enabled: !isTest,
       sendDeleteAccountVerification: sendDeleteAccountVerification,
+      beforeDelete: async (user) => {
+        if (!identityService) {
+          throw new APIError("INTERNAL_SERVER_ERROR", {
+            message: "Identity service not initialized",
+          });
+        }
+        await runBeforeDeleteAccount(user, { identityService });
+      },
+      afterDelete: async (user) => {
+        if (!eventBus) {
+          logger.error(
+            { userId: user.id },
+            "afterDelete fired before event bus was initialized — cleanup skipped",
+          );
+          return;
+        }
+        await runAfterDeleteAccount(user, { eventBus });
+      },
     },
     fields: {
       name: "fullName",

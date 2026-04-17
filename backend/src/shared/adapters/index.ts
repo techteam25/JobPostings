@@ -14,3 +14,4 @@ export { ProfileToJobBoardAdapter } from "./profile-to-job-board.adapter";
 export { ProfileToRecommendationAdapter } from "./profile-to-recommendation.adapter";
 export { IdentityToProfileWriteAdapter } from "./identity-to-profile-write.adapter";
 export { ProfileToOrganizationsIntentSyncAdapter } from "./profile-to-organizations-intent-sync.adapter";
+export { OrganizationsToIdentityAdapter } from "./organizations-to-identity.adapter";

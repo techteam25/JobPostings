@@ -48,6 +48,7 @@ import {
   JobBoardToSharedInsightsAdapter,
   IdentityToProfileWriteAdapter,
   ProfileToOrganizationsIntentSyncAdapter,
+  OrganizationsToIdentityAdapter,
 } from "@shared/adapters";
 
 // Shared workers
@@ -146,7 +147,18 @@ export function createCompositionRoot(): CompositionRoot {
 
   // ─── 3. Leaf Modules ────────────────────────────────────────────────
 
-  const identity = createIdentityModule({ emailService, eventBus });
+  // Identity depends on organizations repository for sole-owner checks
+  // during account deletion. The repository was instantiated above in
+  // step 2; we wrap it in an ACL adapter here.
+  const organizationsToIdentityAdapter = new OrganizationsToIdentityAdapter(
+    organizationsRepository,
+  );
+
+  const identity = createIdentityModule({
+    emailService,
+    eventBus,
+    orgOwnershipQuery: organizationsToIdentityAdapter,
+  });
 
   // ─── 4. Cross-Module Adapters ───────────────────────────────────────
 
@@ -270,6 +282,8 @@ export function createCompositionRoot(): CompositionRoot {
   setAuthDependencies({
     notificationsService: notifications.service,
     profileService: userProfile.service,
+    identityService: identity.service,
+    eventBus,
   });
 
   // ─── 7. Shared Workers ─────────────────────────────────────────────

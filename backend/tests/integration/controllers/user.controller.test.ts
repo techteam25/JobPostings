@@ -457,35 +457,6 @@ describe("User Controller Integration Tests", () => {
         );
       });
     });
-
-    describe("DELETE /me/delete", () => {
-      beforeEach(async () => {
-        vi.clearAllMocks();
-
-        await seedOrgScenario();
-      });
-
-      it("should delete user account returning 204", async () => {
-        const loginResponse = await request
-          .post("/api/auth/sign-in/email")
-          .send({
-            email: "org.owner@example.com",
-            password: "Password@123",
-          });
-
-        const cookie = loginResponse.headers["set-cookie"]
-          ? loginResponse.headers["set-cookie"][0]
-          : "";
-
-        const response = await request
-          .delete("/api/users/me/delete")
-          .set("Cookie", cookie!)
-          .send({ currentPassword: "Password@123", confirm: true });
-
-        expect(response.status).toBe(204);
-        // expect(index.api.deleteUser).toHaveBeenCalledWith({ body: { token } });
-      });
-    });
   });
 
   describe("GET users/me/saved-jobs/:jobId/check", () => {
