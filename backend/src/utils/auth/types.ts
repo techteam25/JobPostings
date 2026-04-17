@@ -6,4 +6,5 @@ export interface BetterAuthUser {
   emailVerified: boolean;
   name: string;
   image?: string | null | undefined;
+  intent?: "seeker" | "employer";
 }

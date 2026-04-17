@@ -35,6 +35,8 @@ export async function runAfterDeleteAccount(
   const userId = Number(user.id);
   const deletedAt = new Date().toISOString();
 
+  const intent = user.intent ?? "seeker";
+
   const results = await Promise.allSettled([
     queueService.addJob(
       QUEUE_NAMES.EMAIL_QUEUE,
@@ -43,6 +45,7 @@ export async function runAfterDeleteAccount(
         userId,
         email: user.email,
         fullName: user.name,
+        intent,
       },
     ),
     CacheService.del("users/me"),
