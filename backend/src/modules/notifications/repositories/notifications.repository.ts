@@ -7,12 +7,14 @@ import {
   inArray,
   isNull,
   lte,
+  ne,
   or,
 } from "drizzle-orm";
 import {
   emailPreferenceAuditLog,
   jobAlertMatches,
   jobAlerts,
+  user,
   userEmailPreferences,
 } from "@/db/schema";
 import type { NotificationsRepositoryPort } from "@/modules/notifications";
@@ -152,7 +154,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
         return emailType === "accountSecurityAlerts";
       }
 
-      return preferences[emailType] === true;
+      return preferences[emailType];
     });
   }
 
@@ -252,7 +254,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     alertId: number,
   ): Promise<JobAlert | undefined> {
     return await withDbErrorHandling(async () => {
-      return await db.query.jobAlerts.findFirst({
+      return db.query.jobAlerts.findFirst({
         where: and(eq(jobAlerts.id, alertId), eq(jobAlerts.userId, userId)),
       });
     });
@@ -278,7 +280,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
         );
       }
 
-      return await db.query.jobAlerts.findFirst({
+      return db.query.jobAlerts.findFirst({
         where: and(eq(jobAlerts.id, alertId), eq(jobAlerts.userId, userId)),
       });
     });
@@ -318,7 +320,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
         );
       }
 
-      return await db.query.jobAlerts.findFirst({
+      return db.query.jobAlerts.findFirst({
         where: and(eq(jobAlerts.id, alertId), eq(jobAlerts.userId, userId)),
       });
     });
@@ -329,7 +331,12 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
     cutoffTime: Date,
   ): Promise<JobAlert[]> {
     return await withDbErrorHandling(async () => {
-      return await db.query.jobAlerts.findMany({
+      const activeUserIds = db
+        .select({ id: user.id })
+        .from(user)
+        .where(ne(user.status, "deleted"));
+
+      return db.query.jobAlerts.findMany({
         where: and(
           eq(jobAlerts.isActive, true),
           eq(jobAlerts.isPaused, false),
@@ -338,6 +345,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
             isNull(jobAlerts.lastSentAt),
             lte(jobAlerts.lastSentAt, cutoffTime),
           ),
+          inArray(jobAlerts.userId, activeUserIds),
         ),
         with: {
           user: {
@@ -383,7 +391,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
 
   async getUnsentMatches(alertId: number, limit: number = 10) {
     return await withDbErrorHandling(async () => {
-      return await db.query.jobAlertMatches.findMany({
+      return db.query.jobAlertMatches.findMany({
         where: and(
           eq(jobAlertMatches.jobAlertId, alertId),
           eq(jobAlertMatches.wasSent, false),
@@ -533,7 +541,7 @@ export class NotificationsRepository implements NotificationsRepositoryPort {
 
   async getUserAuditHistory(userId: number, limit = 50) {
     return await withDbErrorHandling(async () => {
-      return await db.query.emailPreferenceAuditLog.findMany({
+      return db.query.emailPreferenceAuditLog.findMany({
         where: eq(emailPreferenceAuditLog.userId, userId),
         orderBy: desc(emailPreferenceAuditLog.changedAt),
         limit,
