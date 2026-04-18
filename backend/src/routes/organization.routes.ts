@@ -50,9 +50,11 @@ const paginatedOrganizationResponse = apiResponseSchema(
 
 const paginatedCandidatePreviewResponse = apiResponseSchema(
   candidatePreviewSchema.array(),
-).extend({
-  pagination: paginationMetaSchema,
-});
+)
+  .extend({
+    pagination: paginationMetaSchema,
+  })
+  .openapi("PaginatedCandidatePreviewResponse");
 
 registry.registerPath({
   method: "get",
