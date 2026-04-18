@@ -286,11 +286,26 @@ async function handleEmailRegistration(ctx: BetterAuthMiddlewareContext) {
   const userId = Number(userResult.user.id);
 
   try {
-    await Promise.allSettled([
+    const POST_ACTION_STEPS = [
+      "initializeUserIntent",
+      "createDefaultEmailPreferences",
+      "createUserProfile",
+    ] as const;
+
+    const results = await Promise.allSettled([
       profileService?.initializeUserIntent(userId, body.intent),
       notificationsService?.createDefaultEmailPreferences(userId),
       profileService?.createUserProfile(userId, { country: null }),
     ]);
+
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        logger.error(
+          { err: r.reason, step: POST_ACTION_STEPS[i], userId },
+          "registration.post_action_failed",
+        );
+      }
+    });
 
     return enrichResponse(userResult, body.intent);
   } catch (error) {
@@ -310,18 +325,36 @@ async function handleOAuthRegistration(ctx: BetterAuthMiddlewareContext) {
   try {
     // The user's intent additionalField defaults to "seeker". If it's still
     // the default and onboardingStatus is "pending", this is a first-time
-    // OAuth sign-in. Use allSettled so duplicate-key errors from repeat
-    // logins don't block the response.
+    // OAuth sign-in. Fires on every OAuth callback (not just first-time);
+    // initializeUserIntent + createDefaultEmailPreferences + createUserProfile
+    // are all idempotent so repeat calls are harmless. We log any rejections
+    // so silent failures surface rather than leaving a user in a half-created
+    // state with no breadcrumb.
     const intent =
       (userResult.user as Record<string, unknown>).intent === "employer"
         ? "employer"
         : "seeker";
 
-    await Promise.allSettled([
+    const POST_ACTION_STEPS = [
+      "initializeUserIntent",
+      "createDefaultEmailPreferences",
+      "createUserProfile",
+    ] as const;
+
+    const results = await Promise.allSettled([
       profileService?.initializeUserIntent(userId, intent),
       notificationsService?.createDefaultEmailPreferences(userId),
       profileService?.createUserProfile(userId, { country: null }),
     ]);
+
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        logger.error(
+          { err: r.reason, step: POST_ACTION_STEPS[i], userId },
+          "oauth_registration.post_action_failed",
+        );
+      }
+    });
 
     return enrichResponse(userResult, intent);
   } catch (error) {
