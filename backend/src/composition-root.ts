@@ -97,7 +97,10 @@ export type CompositionRoot = {
     ApplicationsModule,
     "controller" | "savedJobController" | "guards"
   >;
-  organizations: Pick<OrganizationsModule, "controller" | "guards">;
+  organizations: Pick<
+    OrganizationsModule,
+    "controller" | "candidateSearchController" | "guards"
+  >;
   invitations: Pick<InvitationsModule, "controller" | "guards">;
   workers: {
     initializeAll(): void;
@@ -208,6 +211,7 @@ export function createCompositionRoot(): CompositionRoot {
     intentSync: intentSyncAdapter,
     organizationsRepository,
     typesenseEmployerService,
+    typesenseProfileService,
   });
 
   // Organizations → other modules (adapters using module's repo + service)

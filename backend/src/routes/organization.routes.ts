@@ -25,8 +25,15 @@ import {
   selectJobApplicationSchema,
 } from "@/validations/jobApplications.validation";
 import { getJobSchema } from "@/validations/job.validation";
+import {
+  candidatePreviewSchema,
+  searchCandidatesSchema,
+} from "@/validations/candidate-search.validation";
 
-import { createOrganizationsRoutes } from "@/modules/organizations";
+import {
+  createOrganizationsRoutes,
+  createCandidateSearchRoutes,
+} from "@/modules/organizations";
 import { createOrgApplicationsRoutes } from "@/modules/applications";
 import { createInvitationsRoutes } from "@/modules/invitations";
 
@@ -40,6 +47,67 @@ const paginatedOrganizationResponse = apiResponseSchema(
 });
 
 // ─── OpenAPI Registry (documentation only) ──────────────────────────
+
+const paginatedCandidatePreviewResponse = apiResponseSchema(
+  candidatePreviewSchema.array(),
+).extend({
+  pagination: paginationMetaSchema,
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/organizations/candidates/search",
+  summary: "Search public candidate profiles by skill overlap",
+  description:
+    "Employer-facing search. Requires a job-posting role in at least one organization. Response is an allowlisted preview — contact details and private fields are never returned.",
+  tags: ["Organizations"],
+  security: [{ cookie: [] }],
+  request: {
+    query: searchCandidatesSchema.shape["query"],
+  },
+  responses: {
+    200: {
+      description: "Paginated list of matching candidate previews",
+      content: {
+        "application/json": {
+          schema: paginatedCandidatePreviewResponse,
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    403: {
+      description: "Forbidden — insufficient permissions",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    500: {
+      description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
 
 // Public routes
 
@@ -896,6 +964,16 @@ interface OrganizationRoutesDeps {
 
 export function createOrganizationRoutes(deps: OrganizationRoutesDeps): Router {
   const router = Router();
+
+  // 0. Candidate search (mounted first so /candidates/search is not
+  // shadowed by the /:organizationId route below)
+  router.use(
+    createCandidateSearchRoutes({
+      authenticate: deps.authenticate,
+      orgGuards: deps.organizations.guards,
+      controller: deps.organizations.candidateSearchController,
+    }),
+  );
 
   // 1. Organization CRUD routes
   router.use(
