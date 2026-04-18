@@ -1,4 +1,5 @@
 import { z } from "@/swagger/registry";
+import { coerceQueryBool } from "@/validations/shared/coerce";
 
 const toArray = (val: string | string[]): string[] =>
   Array.isArray(val) ? val : [val];
@@ -26,7 +27,7 @@ export const searchCandidatesQuerySchema = z
       .default([]),
     location: z.string().max(200).optional(),
     minYearsExperience: z.coerce.number().int().min(0).max(50).optional(),
-    openToWork: z.coerce.boolean().optional(),
+    openToWork: coerceQueryBool().optional(),
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(20),
     sortBy: z
