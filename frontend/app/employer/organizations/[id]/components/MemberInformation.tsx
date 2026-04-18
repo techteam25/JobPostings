@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Member } from "@/lib/types";
 import dynamic from "next/dynamic";
-import { DataTable } from "./data-table";
+import { DataTable } from "@/components/common";
 import { columns, memberGlobalFilter } from "./member-columns";
 
 const InviteMemberDialog = dynamic(() =>

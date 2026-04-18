@@ -47,3 +47,6 @@ export type { SearchJobsParams } from "./search-jobs";
 
 export { getRecommendations } from "./recommendations";
 export type { RecommendationsResponse } from "./recommendations";
+
+export { searchCandidates } from "./candidates";
+export type { SearchCandidatesParams } from "./candidates";

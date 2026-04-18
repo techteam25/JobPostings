@@ -2,6 +2,7 @@ import { AuthMiddleware } from "@/middleware/auth.middleware";
 import { EmailService } from "@shared/infrastructure/email.service";
 import { TypesenseJobService } from "@shared/infrastructure/typesense.service/typesense.service";
 import { TypesenseUserProfileService } from "@shared/infrastructure/typesense.service/typesense-user-profile.service";
+import { TypesenseProfileService } from "@shared/infrastructure/typesense.service/typesense-profile.service";
 import { TypesenseEmployerService } from "@shared/infrastructure/typesense.service/typesense-employer.service";
 import { BullMqEventBus } from "@shared/events";
 
@@ -48,6 +49,7 @@ import {
   JobBoardToSharedInsightsAdapter,
   IdentityToProfileWriteAdapter,
   ProfileToOrganizationsIntentSyncAdapter,
+  OrganizationsToIdentityAdapter,
 } from "@shared/adapters";
 
 // Shared workers
@@ -95,7 +97,10 @@ export type CompositionRoot = {
     ApplicationsModule,
     "controller" | "savedJobController" | "guards"
   >;
-  organizations: Pick<OrganizationsModule, "controller" | "guards">;
+  organizations: Pick<
+    OrganizationsModule,
+    "controller" | "candidateSearchController" | "guards"
+  >;
   invitations: Pick<InvitationsModule, "controller" | "guards">;
   workers: {
     initializeAll(): void;
@@ -126,6 +131,7 @@ export function createCompositionRoot(): CompositionRoot {
   const eventBus = new BullMqEventBus();
   const typesenseService = new TypesenseJobService();
   const typesenseUserProfileService = new TypesenseUserProfileService();
+  const typesenseProfileService = new TypesenseProfileService();
   const typesenseEmployerService = new TypesenseEmployerService();
 
   // ─── 2. Concrete Repositories ───────────────────────────────────────
@@ -146,7 +152,18 @@ export function createCompositionRoot(): CompositionRoot {
 
   // ─── 3. Leaf Modules ────────────────────────────────────────────────
 
-  const identity = createIdentityModule({ emailService, eventBus });
+  // Identity depends on organizations repository for sole-owner checks
+  // during account deletion. The repository was instantiated above in
+  // step 2; we wrap it in an ACL adapter here.
+  const organizationsToIdentityAdapter = new OrganizationsToIdentityAdapter(
+    organizationsRepository,
+  );
+
+  const identity = createIdentityModule({
+    emailService,
+    eventBus,
+    orgOwnershipQuery: organizationsToIdentityAdapter,
+  });
 
   // ─── 4. Cross-Module Adapters ───────────────────────────────────────
 
@@ -194,6 +211,7 @@ export function createCompositionRoot(): CompositionRoot {
     intentSync: intentSyncAdapter,
     organizationsRepository,
     typesenseEmployerService,
+    typesenseProfileService,
   });
 
   // Organizations → other modules (adapters using module's repo + service)
@@ -217,6 +235,7 @@ export function createCompositionRoot(): CompositionRoot {
     userOrgsQuery: orgsToProfileAdapter,
     identityWrite: identityToProfileWriteAdapter,
     typesenseUserProfileService,
+    typesenseProfileService,
     profileRepository,
   });
 
@@ -270,6 +289,8 @@ export function createCompositionRoot(): CompositionRoot {
   setAuthDependencies({
     notificationsService: notifications.service,
     profileService: userProfile.service,
+    identityService: identity.service,
+    eventBus,
   });
 
   // ─── 7. Shared Workers ─────────────────────────────────────────────

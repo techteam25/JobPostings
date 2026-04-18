@@ -12,11 +12,13 @@ export interface WorkExperienceServicePort {
   ): Promise<Result<WorkExperience[], AppError>>;
 
   updateWorkExperience(
+    userId: number,
     workExperienceId: number,
     data: Partial<Omit<InsertWorkExperience, "userProfileId">>,
   ): Promise<Result<boolean, AppError>>;
 
   deleteWorkExperience(
+    userId: number,
     workExperienceId: number,
   ): Promise<Result<boolean, AppError>>;
 }

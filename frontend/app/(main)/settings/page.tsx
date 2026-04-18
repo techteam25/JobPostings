@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
-import { Bell, ChevronRight, Mail, LockKeyhole } from "lucide-react";
+import { Bell, ChevronRight, Mail, LockKeyhole, UserCog } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
 import { FeatureErrorBoundary } from "@/components/common/FeatureErrorBoundary";
@@ -9,6 +9,12 @@ import Link from "next/link";
 
 export default function SettingsPage() {
   const settingsOptions = [
+    {
+      id: "account",
+      icon: UserCog,
+      title: "Account Settings",
+      description: "Manage your account or delete it permanently",
+    },
     {
       id: "email-preferences",
       icon: Mail,

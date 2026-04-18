@@ -232,6 +232,13 @@
       "when": 1775097003635,
       "tag": "0032_first_hardball",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "5",
+      "when": 1776522333271,
+      "tag": "0033_wild_johnny_blaze",
+      "breakpoints": true
     }
   ]
 }

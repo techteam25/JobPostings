@@ -6,7 +6,6 @@ import validate from "@/middleware/validation.middleware";
 import {
   getUserSchema,
   updateUserPayloadSchema,
-  deleteSelfSchema,
 } from "@/validations/user.validation";
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
 
@@ -28,14 +27,6 @@ export function createIdentityRoutes({
     "/me/deactivate",
     invalidateCacheMiddleware(() => "users/me"),
     identityController.deactivateSelf,
-  );
-
-  // DELETE /users/me/delete
-  router.delete(
-    "/me/delete",
-    validate(deleteSelfSchema),
-    invalidateCacheMiddleware(() => "users/me"),
-    identityController.deleteSelf,
   );
 
   // Admin routes for user management
@@ -62,14 +53,6 @@ export function createIdentityRoutes({
     validate(getUserSchema),
     orgGuards.requireAdminOrOwnerRole(["admin", "owner"]),
     identityController.activateUser,
-  );
-
-  // DELETE /users/:id
-  router.delete(
-    "/:id",
-    validate(getUserSchema),
-    orgGuards.requireAdminOrOwnerRole(["owner"]),
-    identityController.deleteUser,
   );
 
   return router;

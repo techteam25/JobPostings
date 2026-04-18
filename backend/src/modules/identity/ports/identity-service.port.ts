@@ -17,7 +17,7 @@ export interface IdentityServicePort {
 
   activateUser(id: number): Promise<Result<User | undefined, AppError>>;
 
-  deleteSelf(userId: number, token: string): Promise<Result<null, AppError>>;
-
-  deleteUser(token: string): Promise<Result<null, AppError>>;
+  getBlockingOwnedOrgs(
+    userId: number,
+  ): Promise<Result<{ id: number; name: string }[], AppError>>;
 }

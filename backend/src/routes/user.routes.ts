@@ -3,7 +3,6 @@ import { z } from "zod";
 import {
   updateUserPayloadSchema,
   createUserPayloadSchema,
-  deleteSelfSchema,
   savedJobsSchema,
   selectUserEmailPreferencesSchema,
   updateUserEmailPreferencesSchema,
@@ -400,39 +399,6 @@ registry.registerPath({
           schema: errorResponseSchema,
         },
       },
-    },
-  },
-});
-
-registry.registerPath({
-  method: "delete",
-  path: "/users/me",
-  tags: ["Users"],
-  summary: "Delete Own Account",
-  description:
-    "Permanently delete the authenticated user's account after re-authentication.",
-  request: {
-    body: {
-      content: {
-        "application/json": {
-          schema: deleteSelfSchema.shape.body,
-        },
-      },
-    },
-  },
-  responses: {
-    204: { description: "Account deleted successfully" },
-    400: {
-      description: "Validation error or business rule violation",
-      content: { "application/json": { schema: errorResponseSchema } },
-    },
-    401: {
-      description: "Authentication required",
-      content: { "application/json": { schema: errorResponseSchema } },
-    },
-    404: {
-      description: "User not found",
-      content: { "application/json": { schema: errorResponseSchema } },
     },
   },
 });

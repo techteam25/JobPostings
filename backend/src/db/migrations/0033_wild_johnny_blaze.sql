@@ -1,0 +1,1 @@
+ALTER TABLE `user_profile` MODIFY COLUMN `is_profile_public` boolean NOT NULL DEFAULT false;

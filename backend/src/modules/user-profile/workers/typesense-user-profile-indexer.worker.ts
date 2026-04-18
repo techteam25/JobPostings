@@ -1,4 +1,5 @@
 import { Job as BullMqJob } from "bullmq";
+import { eq } from "drizzle-orm";
 import type {
   TypesenseUserProfileServicePort,
   UserProfileDocument,
@@ -8,6 +9,8 @@ import {
   QUEUE_NAMES,
   queueService,
 } from "@shared/infrastructure/queue.service";
+import { db } from "@shared/db/connection";
+import { user } from "@/db/schema";
 import type { ModuleWorkers } from "@shared/types/module-workers";
 
 interface TypesenseUserProfileIndexerDeps {
@@ -34,9 +37,29 @@ function createTypesenseUserProfileHandler(
     try {
       switch (job.name) {
         case "indexUserProfile":
-        case "updateUserProfile":
+        case "updateUserProfile": {
+          // Guard: don't index users who have been deleted since the job
+          // was enqueued. Cascade delete may have already removed the user
+          // row — in that case we treat it as "deleted" and skip. Prevents
+          // a stale upsert from resurrecting the user's document in
+          // Typesense after USER_DELETED cleanup.
+          const [row] = await db
+            .select({ status: user.status })
+            .from(user)
+            .where(eq(user.id, jobData.userId))
+            .limit(1);
+
+          if (!row || row.status === "deleted") {
+            logger.info(
+              "Skipping Typesense upsert for deleted or missing user",
+              { userId: jobData.userId, jobName: job.name },
+            );
+            break;
+          }
+
           await deps.typesenseUserProfileService.upsertUserProfile(jobData);
           break;
+        }
         case "deleteUserProfile":
           await deps.typesenseUserProfileService.deleteUserProfile(jobData.id);
           break;

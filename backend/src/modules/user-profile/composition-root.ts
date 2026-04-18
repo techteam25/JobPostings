@@ -4,6 +4,7 @@ import type {
 } from "./ports/org-query.port";
 import type { IdentityWritePort } from "./ports/identity-write.port";
 import type { TypesenseUserProfileServicePort } from "@shared/ports/typesense-user-profile-service.port";
+import type { TypesenseProfileServicePort } from "@shared/ports/typesense-profile-service.port";
 
 import { ProfileRepository } from "./repositories/profile.repository";
 import { PreferenceRepository } from "./repositories/preference.repository";
@@ -28,12 +29,14 @@ import { CertificationController } from "./controllers/certification.controller"
 import { SkillController } from "./controllers/skill.controller";
 import { createProfileGuards } from "./guards/profile.guards";
 import { createTypesenseUserProfileIndexerWorker } from "./workers/typesense-user-profile-indexer.worker";
+import { createTypesenseCandidateSearchIndexerWorker } from "./workers/typesense-candidate-search-indexer.worker";
 
 interface UserProfileModuleDeps {
   orgRoleQuery: OrgRoleQueryPort;
   userOrgsQuery: UserOrganizationsQueryPort;
   identityWrite: IdentityWritePort;
   typesenseUserProfileService: TypesenseUserProfileServicePort;
+  typesenseProfileService: TypesenseProfileServicePort;
   profileRepository: ProfileRepository;
 }
 
@@ -95,9 +98,28 @@ export function createUserProfileModule(deps: UserProfileModuleDeps) {
 
   const guards = createProfileGuards({ profileRepository: repository });
 
-  const workers = createTypesenseUserProfileIndexerWorker({
+  const userProfileIndexerWorker = createTypesenseUserProfileIndexerWorker({
     typesenseUserProfileService: deps.typesenseUserProfileService,
   });
+
+  const candidateSearchIndexerWorker =
+    createTypesenseCandidateSearchIndexerWorker({
+      typesenseProfileService: deps.typesenseProfileService,
+      profileRepository: repository,
+    });
+
+  const workers: import("@shared/types/module-workers").ModuleWorkers = {
+    initialize() {
+      userProfileIndexerWorker.initialize();
+      candidateSearchIndexerWorker.initialize();
+    },
+    async scheduleJobs() {
+      await Promise.all([
+        userProfileIndexerWorker.scheduleJobs(),
+        candidateSearchIndexerWorker.scheduleJobs(),
+      ]);
+    },
+  };
 
   return {
     controller,

@@ -1,8 +1,10 @@
 export { createOrganizationsModule } from "./composition-root";
 export type { OrganizationsModule } from "./composition-root";
 export { createOrganizationsRoutes } from "./routes/organizations.routes";
+export { createCandidateSearchRoutes } from "./routes/candidate-search.routes";
 export type { OrganizationsServicePort } from "./ports/organizations-service.port";
 export type { OrganizationsRepositoryPort } from "./ports/organizations-repository.port";
+export type { CandidateSearchServicePort } from "./ports/candidate-search-service.port";
 export { createOrganizationsGuards } from "./guards/organizations.guards";
 export type { OrganizationsGuards } from "./guards/organizations.guards";
 export type { IntentSyncPort } from "./ports/intent-sync.port";

@@ -182,7 +182,6 @@ function createMockApplicantQuery(): ApplicantQueryPort {
 function createMockIdentityRepository(): IdentityRepositoryPort {
   return {
     findByEmail: vi.fn(),
-    findByIdWithPassword: vi.fn(),
     findUserById: vi.fn(),
     deactivateUserAccount: vi.fn(),
     update: vi.fn(),
@@ -190,6 +189,12 @@ function createMockIdentityRepository(): IdentityRepositoryPort {
     findDeactivatedUserIds: vi.fn(),
     updateFullName: vi.fn(),
     syncIntent: vi.fn(),
+  };
+}
+
+function createMockOrgOwnershipQuery() {
+  return {
+    findSoleOwnedOrgs: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -398,6 +403,7 @@ describe("Email Job Contract Tests", () => {
         identityRepository,
         createMockEmailService(),
         eventBus,
+        createMockOrgOwnershipQuery(),
       );
 
       await service.deactivateUser(5, 1);
