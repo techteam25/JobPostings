@@ -55,12 +55,20 @@ export class CandidateSearchService
 
       const filterBy = queryBuilder.build();
 
-      // Relevance scoring: `q = skills.join(" ")` with `query_by=skills`,
-      // prefix=false, num_typos=0. Typesense scores hits by skill-token
-      // overlap count. When sortBy=relevant, DO NOT pass sort_by — the
-      // implicit text-match score must win.
-      const q = skills.join(" ");
-      const typesenseSortBy = this.resolveSortBy(sortBy, sortOrder);
+      // Relevance scoring: when skills are provided, `q = skills.join(" ")`
+      // with `query_by=skills`, prefix=false, num_typos=0 — Typesense scores
+      // hits by skill-token overlap count and the implicit text-match score
+      // wins when sortBy=relevant (do NOT pass sort_by in that case).
+      //
+      // When skills are empty, default to a match-all search (`q="*"`) so
+      // recruiters can browse every public seeker profile and filter down.
+      // Relevance has no meaning without skill tokens, so fall back to
+      // most-recently-updated order for stable pagination.
+      const hasSkills = skills.length > 0;
+      const q = hasSkills ? skills.join(" ") : "*";
+      const effectiveSortBy =
+        !hasSkills && sortBy === "relevant" ? "recent" : sortBy;
+      const typesenseSortBy = this.resolveSortBy(effectiveSortBy, sortOrder);
 
       const results =
         await this.typesenseProfileService.searchProfilesCollection({

@@ -3,11 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const DEFAULT_ROWS = 6;
 
 /**
- * Skeleton placeholder shown while job results are loading.
- *
- * Mirrors the structure of a single `JobCard` so the page doesn't reflow when
- * real results arrive. Used for both initial page load (6 rows) and infinite
- * scroll next-page loading (3 rows).
+ * Skeleton placeholder shown while search results are loading.
  */
 export function SearchLoadingState({
   count = DEFAULT_ROWS,

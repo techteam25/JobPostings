@@ -1,5 +1,6 @@
 import { typesenseClient } from "@shared/config/typesense-client";
 import { PROFILES_COLLECTION } from "@shared/infrastructure/typesense.service/constants";
+import { isTypesenseHttpError } from "@shared/infrastructure/typesense.service/errors";
 import type {
   ProfileDocument,
   SearchProfilesParams,
@@ -16,10 +17,18 @@ export class TypesenseProfileService implements TypesenseProfileServicePort {
   }
 
   async deleteProfile(userId: string): Promise<void> {
-    await typesenseClient
-      .collections(PROFILES_COLLECTION)
-      .documents(userId)
-      .delete();
+    try {
+      await typesenseClient
+        .collections(PROFILES_COLLECTION)
+        .documents(userId)
+        .delete();
+    } catch (error: unknown) {
+      // Deleting a non-existent doc is a no-op from our perspective —
+      // indexer jobs run idempotently (e.g. for users who were never
+      // eligible for indexing in the first place).
+      if (isTypesenseHttpError(error) && error.httpStatus === 404) return;
+      throw error;
+    }
   }
 
   async indexManyProfileDocuments(docs: ProfileDocument[]): Promise<void> {

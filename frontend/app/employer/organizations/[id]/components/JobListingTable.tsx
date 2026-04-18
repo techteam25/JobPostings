@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Job } from "@/schemas/responses/jobs";
-import { DataTable } from "./data-table";
+import { DataTable } from "@/components/common";
 import { getJobListingColumns } from "./job-listing-columns";
 
 interface JobListingTableProps {

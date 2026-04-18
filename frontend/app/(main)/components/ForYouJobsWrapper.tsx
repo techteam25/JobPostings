@@ -14,8 +14,8 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { useRecommendedJobs } from "@/app/(main)/hooks/use-recommended-jobs";
 
 import { SearchJobsList } from "@/app/(main)/components/SearchJobsList";
-import { SearchLoadingState } from "@/app/(main)/components/SearchLoadingState";
-import { SearchErrorState } from "@/app/(main)/components/SearchEmptyState";
+import { SearchLoadingState } from "@/components/common/search-loading-state";
+import { SearchErrorState } from "@/components/common/search-empty-state";
 import { JobDetailPanel } from "@/app/(main)/components/JobDetailPanel";
 import { JobDetailPanelMobile } from "@/app/(main)/components/JobDetailPanelMobile";
 import { JobDetailPanelSkeleton } from "@/app/(main)/components/JobsWrapper";

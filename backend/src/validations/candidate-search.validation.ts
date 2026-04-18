@@ -21,7 +21,9 @@ export const searchCandidatesQuerySchema = z
     skills: z
       .union([z.string(), z.array(z.string())])
       .transform(toArray)
-      .pipe(z.array(z.string().min(1).max(100)).min(1).max(30)),
+      .pipe(z.array(z.string().min(1).max(100)).max(30))
+      .optional()
+      .default([]),
     location: z.string().max(200).optional(),
     minYearsExperience: z.coerce.number().int().min(0).max(50).optional(),
     openToWork: z.coerce.boolean().optional(),

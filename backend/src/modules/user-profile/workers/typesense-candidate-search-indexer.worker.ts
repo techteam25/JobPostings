@@ -115,12 +115,16 @@ function createCandidateSearchIndexerHandler(deps: CandidateSearchIndexerDeps) {
           );
       }
     } catch (error) {
-      logger.error("Error processing Typesense candidate-search indexing", {
-        jobId: job.id,
-        jobName: job.name,
-        error: error instanceof Error ? error.message : "Unknown error",
-        correlationId,
-      });
+      logger.error(
+        {
+          err: error,
+          jobId: job.id,
+          jobName: job.name,
+          userId,
+          correlationId,
+        },
+        "Error processing Typesense candidate-search indexing",
+      );
       throw error;
     }
 

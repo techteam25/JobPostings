@@ -7,6 +7,7 @@ import {
   Home,
   MessageSquare,
   Settings,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -61,6 +62,14 @@ export function AppSidebar() {
         >
           <Calendar />
           <span>Jobs</span>
+        </Link>
+
+        <Link
+          href="/employer/candidates"
+          className={linkClass("/employer/candidates")}
+        >
+          <Users />
+          <span>Candidates</span>
         </Link>
 
         <Link
