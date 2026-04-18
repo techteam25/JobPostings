@@ -87,7 +87,7 @@ export const userProfile = mysqlTable(
     state: varchar("state", { length: 100 }),
     zipCode: varchar("zip_code", { length: 10 }),
     country: varchar("country", { length: 100 }).default("US"),
-    isProfilePublic: boolean("is_profile_public").default(true).notNull(),
+    isProfilePublic: boolean("is_profile_public").default(false).notNull(),
     isAvailableForWork: boolean("is_available_for_work")
       .default(true)
       .notNull(),
