@@ -1,3 +1,4 @@
+import { QueueEvents } from "bullmq";
 import { typesenseClient } from "@shared/config/typesense-client";
 import { USER_PROFILES_COLLECTION } from "@shared/infrastructure/typesense.service/constants";
 import {
@@ -6,7 +7,10 @@ import {
 } from "@shared/infrastructure/queue.service";
 import { TypesenseUserProfileService } from "@shared/infrastructure/typesense.service/typesense-user-profile.service";
 import { createTypesenseUserProfileIndexerWorker } from "@/modules/user-profile/workers/typesense-user-profile-indexer.worker";
+import type { Job as BullMqJob } from "bullmq";
 import type { UserProfileDocument } from "@shared/ports/typesense-user-profile-service.port";
+import { createUser } from "@tests/utils/seedBuilders";
+import { env } from "@shared/config/env";
 
 // Override the global queue mock — this test needs real Redis queue + Typesense
 vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
@@ -15,43 +19,17 @@ vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
 
 const typesenseUserProfileService = new TypesenseUserProfileService();
 
-async function waitForUserProfileIndexing(
-  userId: string,
-  timeout = 5000,
+/**
+ * Wait for a BullMQ job to reach a terminal state (completed or failed)
+ * using QueueEvents instead of polling Typesense or sleeping.
+ */
+let queueEvents: QueueEvents;
+
+async function waitForJobFinished(
+  job: BullMqJob,
+  timeout = 10_000,
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const timeoutId = setTimeout(() => {
-      clearInterval(checkInterval);
-      reject(
-        new Error(
-          `User profile indexing timed out after ${timeout}ms for userId ${userId}`,
-        ),
-      );
-    }, timeout);
-
-    const checkInterval = setInterval(async () => {
-      try {
-        const document = await typesenseClient
-          .collections(USER_PROFILES_COLLECTION)
-          .documents(userId)
-          .retrieve();
-
-        if (document) {
-          clearTimeout(timeoutId);
-          clearInterval(checkInterval);
-          resolve();
-        }
-      } catch (error: any) {
-        if (error.httpStatus === 404) {
-          // Not found yet, keep waiting
-        } else {
-          clearTimeout(timeoutId);
-          clearInterval(checkInterval);
-          reject(error);
-        }
-      }
-    }, 300);
-  });
+  await job.waitUntilFinished(queueEvents, timeout);
 }
 
 async function cleanTypesenseCollection(): Promise<void> {
@@ -94,8 +72,21 @@ async function cleanTypesenseCollection(): Promise<void> {
 describe("Typesense User Profile Indexer Integration Tests", () => {
   vi.setConfig({ testTimeout: 30_000 });
 
+  let seededUserId: number;
+
   beforeAll(async () => {
     await queueService.initialize();
+
+    // Create a QueueEvents listener for deterministic job-completion waits
+    queueEvents = new QueueEvents(QUEUE_NAMES.TYPESENSE_USER_PROFILE_QUEUE, {
+      connection: {
+        url: env.REDIS_QUEUE_URL,
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+      },
+    });
+    await queueEvents.waitUntilReady();
+
     const worker = createTypesenseUserProfileIndexerWorker({
       typesenseUserProfileService,
     });
@@ -104,45 +95,59 @@ describe("Typesense User Profile Indexer Integration Tests", () => {
     await cleanTypesenseCollection();
   });
 
+  // Seed a real user after cleanAll() so the worker's DB guard passes
+  beforeEach(async () => {
+    const user = await createUser({ email: "typesense-indexer-test@test.com" });
+    seededUserId = user.id;
+  });
+
   afterAll(async () => {
     await queueService.obliterateQueue(
       QUEUE_NAMES.TYPESENSE_USER_PROFILE_QUEUE,
     );
+    await queueEvents.close();
   });
 
-  const sampleDoc: UserProfileDocument & { correlationId: string } = {
-    id: "100",
-    userId: 100,
-    jobTypes: ["full-time", "contract"],
-    compensationTypes: ["paid"],
-    workScheduleDays: ["monday", "tuesday", "wednesday"],
-    scheduleTypes: ["flexible"],
-    workArrangements: ["remote", "hybrid"],
-    commuteTime: "up_to_30_minutes",
-    willingnessToRelocate: "willing_domestically",
-    volunteerHoursPerWeek: null,
-    workAreas: ["Engineering", "Design"],
-    updatedAt: Date.now(),
-    correlationId: "test-correlation-1",
-  };
+  function makeSampleDoc(
+    overrides: Partial<UserProfileDocument> = {},
+  ): UserProfileDocument & { correlationId: string } {
+    return {
+      id: String(seededUserId),
+      userId: seededUserId,
+      jobTypes: ["full-time", "contract"],
+      compensationTypes: ["paid"],
+      workScheduleDays: ["monday", "tuesday", "wednesday"],
+      scheduleTypes: ["flexible"],
+      workArrangements: ["remote", "hybrid"],
+      commuteTime: "up_to_30_minutes",
+      willingnessToRelocate: "willing_domestically",
+      volunteerHoursPerWeek: null,
+      workAreas: ["Engineering", "Design"],
+      updatedAt: Date.now(),
+      correlationId: `test-${Date.now()}`,
+      ...overrides,
+    };
+  }
 
   it("indexes a user profile document via the queue", async () => {
-    await queueService.addJob(
+    const doc = makeSampleDoc();
+
+    const job = await queueService.addJob(
       QUEUE_NAMES.TYPESENSE_USER_PROFILE_QUEUE,
       "indexUserProfile",
-      sampleDoc,
+      doc,
     );
 
-    await waitForUserProfileIndexing("100");
+    await waitForJobFinished(job);
 
-    const doc = await typesenseClient
+    const indexed = await typesenseClient
       .collections(USER_PROFILES_COLLECTION)
-      .documents("100")
+      .documents(String(seededUserId))
       .retrieve();
 
-    expect(doc).toMatchObject({
-      id: "100",
-      userId: 100,
+    expect(indexed).toMatchObject({
+      id: String(seededUserId),
+      userId: seededUserId,
       jobTypes: ["full-time", "contract"],
       compensationTypes: ["paid"],
       workArrangements: ["remote", "hybrid"],
@@ -151,49 +156,49 @@ describe("Typesense User Profile Indexer Integration Tests", () => {
   });
 
   it("upserts on repeated save — no duplicate documents", async () => {
-    const updatedDoc = {
-      ...sampleDoc,
+    const updatedDoc = makeSampleDoc({
       jobTypes: ["part-time"],
       workAreas: ["Engineering", "Design", "Marketing"],
       updatedAt: Date.now(),
-      correlationId: "test-correlation-2",
-    };
+    });
 
-    await queueService.addJob(
+    const job = await queueService.addJob(
       QUEUE_NAMES.TYPESENSE_USER_PROFILE_QUEUE,
       "updateUserProfile",
       updatedDoc,
     );
 
-    // Wait for processing
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await waitForJobFinished(job);
 
-    const doc = await typesenseClient
+    const indexed = await typesenseClient
       .collections(USER_PROFILES_COLLECTION)
-      .documents("100")
+      .documents(String(seededUserId))
       .retrieve();
 
-    expect(doc).toMatchObject({
-      id: "100",
+    expect(indexed).toMatchObject({
+      id: String(seededUserId),
       jobTypes: ["part-time"],
       workAreas: ["Engineering", "Design", "Marketing"],
     });
   });
 
   it("deletes a user profile document via the queue", async () => {
-    await queueService.addJob(
+    // Ensure there is a document to delete (prior tests may have left one,
+    // but be explicit so this test is self-contained)
+    await typesenseUserProfileService.upsertUserProfile(makeSampleDoc());
+
+    const job = await queueService.addJob(
       QUEUE_NAMES.TYPESENSE_USER_PROFILE_QUEUE,
       "deleteUserProfile",
-      { ...sampleDoc, correlationId: "test-correlation-3" },
+      makeSampleDoc(),
     );
 
-    // Wait for processing
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await waitForJobFinished(job);
 
     await expect(
       typesenseClient
         .collections(USER_PROFILES_COLLECTION)
-        .documents("100")
+        .documents(String(seededUserId))
         .retrieve(),
     ).rejects.toThrow();
   });
