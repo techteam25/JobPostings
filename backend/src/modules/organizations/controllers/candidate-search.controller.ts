@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
-import type { EmptyBody, PaginatedResponse } from "@shared/types";
+import type { PaginatedResponse } from "@shared/types";
 
 import type { CandidateSearchServicePort } from "@/modules/organizations/ports/candidate-search-service.port";
-import type {
-  CandidatePreview,
-  SearchCandidatesSchema,
+import {
+  searchCandidatesQuerySchema,
+  type CandidatePreview,
 } from "@/validations/candidate-search.validation";
 
 /**
@@ -19,16 +19,11 @@ export class CandidateSearchController extends BaseController {
   }
 
   searchCandidates = async (
-    req: Request<
-      EmptyBody,
-      PaginatedResponse<CandidatePreview>,
-      EmptyBody,
-      SearchCandidatesSchema["query"]
-    >,
+    req: Request,
     res: Response<PaginatedResponse<CandidatePreview>>,
   ) => {
-    // Query has already been validated + coerced by the `validate` middleware.
-    const query = req.query;
+    const query = searchCandidatesQuerySchema.parse(req.query);
+
     const result = await this.candidateSearchService.searchCandidates(query);
 
     if (result.isSuccess) {
