@@ -10,6 +10,7 @@ import {
   ValidationError,
 } from "@shared/errors";
 import type { NewSkill } from "@/validations/skills.validation";
+import { enqueueCandidateSearchSync } from "@shared/infrastructure/typesense.service/candidate-search-enqueue";
 
 export class SkillService extends BaseService implements SkillServicePort {
   private static readonly MAX_SKILLS = 30;
@@ -52,6 +53,8 @@ export class SkillService extends BaseService implements SkillServicePort {
         skillData,
       );
 
+      await enqueueCandidateSearchSync(userId, "updateProfile");
+
       return ok(result);
     } catch (error) {
       if (error instanceof AppError) {
@@ -76,6 +79,8 @@ export class SkillService extends BaseService implements SkillServicePort {
         user.profile.id,
         skillId,
       );
+
+      await enqueueCandidateSearchSync(userId, "updateProfile");
 
       return ok(result);
     } catch (error) {

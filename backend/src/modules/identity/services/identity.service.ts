@@ -18,6 +18,7 @@ import {
   QUEUE_NAMES,
   queueService,
 } from "@shared/infrastructure/queue.service";
+import { enqueueCandidateSearchSync } from "@shared/infrastructure/typesense.service/candidate-search-enqueue";
 
 export class IdentityService
   extends BaseService
@@ -63,6 +64,10 @@ export class IdentityService
         return fail(new NotFoundError("User", id));
       }
 
+      if (updateData.fullName || updateData.image) {
+        await enqueueCandidateSearchSync(id, "updateProfile");
+      }
+
       return ok(updatedUser);
     } catch (error) {
       if (error instanceof AppError) {
@@ -106,6 +111,8 @@ export class IdentityService
           deactivatedAt: new Date().toISOString(),
         }),
       );
+
+      await enqueueCandidateSearchSync(userId, "deleteProfile");
 
       return ok(deactivatedUser);
     } catch (error) {
@@ -159,6 +166,8 @@ export class IdentityService
         }),
       );
 
+      await enqueueCandidateSearchSync(id, "deleteProfile");
+
       const updatedUser = await this.identityRepository.findUserById(id);
       if (!updatedUser) {
         return fail(new NotFoundError("User", id));
@@ -194,6 +203,8 @@ export class IdentityService
     if (!updatedUser) {
       return this.handleError(new NotFoundError("User", id));
     }
+
+    await enqueueCandidateSearchSync(id, "updateProfile");
 
     return ok(updatedUser);
   }

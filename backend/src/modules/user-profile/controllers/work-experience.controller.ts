@@ -47,6 +47,7 @@ export class WorkExperienceController extends BaseController {
     const workExperienceId = Number(req.params.workExperienceId);
 
     const result = await this.workExperienceService.updateWorkExperience(
+      req.userId!,
       workExperienceId,
       req.body,
     );
@@ -68,8 +69,10 @@ export class WorkExperienceController extends BaseController {
   ) => {
     const workExperienceId = Number(req.params.workExperienceId);
 
-    const result =
-      await this.workExperienceService.deleteWorkExperience(workExperienceId);
+    const result = await this.workExperienceService.deleteWorkExperience(
+      req.userId!,
+      workExperienceId,
+    );
 
     if (result.isSuccess) {
       return this.sendSuccess(

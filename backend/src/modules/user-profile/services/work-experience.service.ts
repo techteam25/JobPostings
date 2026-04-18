@@ -5,6 +5,7 @@ import type { WorkExperienceRepositoryPort } from "../ports/work-experience-repo
 import type { ProfileRepositoryPort } from "@/modules/user-profile";
 import { AppError, DatabaseError, NotFoundError } from "@shared/errors";
 import type { InsertWorkExperience } from "@/validations/workExperiences.validation";
+import { enqueueCandidateSearchSync } from "@shared/infrastructure/typesense.service/candidate-search-enqueue";
 
 export class WorkExperienceService
   extends BaseService
@@ -40,6 +41,8 @@ export class WorkExperienceService
           data,
         );
 
+      await enqueueCandidateSearchSync(userId, "updateProfile");
+
       return ok(result);
     } catch (error) {
       if (error instanceof AppError) {
@@ -50,6 +53,7 @@ export class WorkExperienceService
   }
 
   async updateWorkExperience(
+    userId: number,
     workExperienceId: number,
     data: Partial<Omit<InsertWorkExperience, "userProfileId">>,
   ) {
@@ -58,6 +62,8 @@ export class WorkExperienceService
         workExperienceId,
         data,
       );
+
+      await enqueueCandidateSearchSync(userId, "updateProfile");
 
       return ok(result);
     } catch (error) {
@@ -68,12 +74,14 @@ export class WorkExperienceService
     }
   }
 
-  async deleteWorkExperience(workExperienceId: number) {
+  async deleteWorkExperience(userId: number, workExperienceId: number) {
     try {
       const result =
         await this.workExperienceRepository.deleteWorkExperience(
           workExperienceId,
         );
+
+      await enqueueCandidateSearchSync(userId, "updateProfile");
 
       return ok(result);
     } catch (error) {

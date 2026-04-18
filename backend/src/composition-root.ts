@@ -2,6 +2,7 @@ import { AuthMiddleware } from "@/middleware/auth.middleware";
 import { EmailService } from "@shared/infrastructure/email.service";
 import { TypesenseJobService } from "@shared/infrastructure/typesense.service/typesense.service";
 import { TypesenseUserProfileService } from "@shared/infrastructure/typesense.service/typesense-user-profile.service";
+import { TypesenseProfileService } from "@shared/infrastructure/typesense.service/typesense-profile.service";
 import { TypesenseEmployerService } from "@shared/infrastructure/typesense.service/typesense-employer.service";
 import { BullMqEventBus } from "@shared/events";
 
@@ -127,6 +128,7 @@ export function createCompositionRoot(): CompositionRoot {
   const eventBus = new BullMqEventBus();
   const typesenseService = new TypesenseJobService();
   const typesenseUserProfileService = new TypesenseUserProfileService();
+  const typesenseProfileService = new TypesenseProfileService();
   const typesenseEmployerService = new TypesenseEmployerService();
 
   // ─── 2. Concrete Repositories ───────────────────────────────────────
@@ -229,6 +231,7 @@ export function createCompositionRoot(): CompositionRoot {
     userOrgsQuery: orgsToProfileAdapter,
     identityWrite: identityToProfileWriteAdapter,
     typesenseUserProfileService,
+    typesenseProfileService,
     profileRepository,
   });
 
