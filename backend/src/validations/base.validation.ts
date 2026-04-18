@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { coerceQueryBool } from "@/validations/shared/coerce";
+
 export const searchParams = z.object({
   body: z.object({}).strict(),
   query: z
@@ -44,8 +46,8 @@ export const searchParams = z.object({
       country: z.string().optional(),
       zipcode: z.string().optional(),
       skills: z.string().array().optional().or(z.string().optional()),
-      includeRemote: z.coerce.boolean().optional(),
-      isActive: z.coerce.boolean().optional(),
+      includeRemote: coerceQueryBool().optional(),
+      isActive: coerceQueryBool().optional(),
       datePosted: z
         .enum(["last-24-hours", "last-7-days", "last-14-days"])
         .optional(),
