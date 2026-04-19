@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { sessionSlice, type SessionState } from "./slices/session-slice";
+import { sessionSlice, type SessionState } from "@/context/slices";
 
 export type AuthStoreState = SessionState;
 
