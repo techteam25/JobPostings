@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Bell, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Bell, LogIn, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +18,14 @@ import { RemoteOnlyBadge } from "@/app/(main)/components/RemoteOnlyBadge";
 import { ForYouJobsWrapper } from "@/app/(main)/components/ForYouJobsWrapper";
 import { SearchInputMobile } from "@/app/(main)/components/SearchInputMobile";
 import { SearchFiltersMobile } from "@/app/(main)/components/SearchFiltersMobile";
+import { useFilterUrlSync } from "@/context/use-filter-url-sync";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import type { ServerActionPaginatedResponse } from "@/lib/types";
 import type { JobWithEmployer } from "@/schemas/responses/jobs";
 import { CreateJobAlertDialog } from "@/app/(main)/settings/job-alerts/components/JobAlertsList";
@@ -25,11 +34,19 @@ type SearchTab = "foryou" | "search";
 
 interface SearchPageContentProps {
   initialJobs: ServerActionPaginatedResponse<JobWithEmployer>;
+  isAuthenticated: boolean;
 }
 
-export function SearchPageContent({ initialJobs }: SearchPageContentProps) {
-  const [activeTab, setActiveTab] = useState<SearchTab>("foryou");
+export function SearchPageContent({
+  initialJobs,
+  isAuthenticated,
+}: SearchPageContentProps) {
+  const [activeTab, setActiveTab] = useState<SearchTab>(
+    isAuthenticated ? "foryou" : "search",
+  );
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  useFilterUrlSync();
 
   // Event-driven auto-switch: when either search input commits a new search,
   // pull the user onto the Search tab. Kept as an event handler (not an
@@ -104,9 +121,13 @@ export function SearchPageContent({ initialJobs }: SearchPageContentProps) {
             </TabsList>
             {/* Job filters component */}
             <TabsContent value="foryou">
-              <FeatureErrorBoundary featureName="recommended jobs">
-                <ForYouJobsWrapper />
-              </FeatureErrorBoundary>
+              {isAuthenticated ? (
+                <FeatureErrorBoundary featureName="recommended jobs">
+                  <ForYouJobsWrapper />
+                </FeatureErrorBoundary>
+              ) : (
+                <SignInForRecommendationsEmpty />
+              )}
             </TabsContent>
             <TabsContent value="search" className="w-full">
               <div className="w-full">
@@ -135,5 +156,30 @@ export function SearchPageContent({ initialJobs }: SearchPageContentProps) {
         onOpenChange={setCreateDialogOpen}
       />
     </>
+  );
+}
+
+function SignInForRecommendationsEmpty() {
+  return (
+    <main className="mx-auto max-w-7xl px-1 py-4 lg:px-4 lg:py-6">
+      <Empty className="from-muted/50 to-background bg-linear-to-b from-30%">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Sparkles />
+          </EmptyMedia>
+          <EmptyTitle>Sign in for personalized recommendations</EmptyTitle>
+          <EmptyDescription>
+            Create an account or sign in to see jobs matched to your profile and
+            preferences.
+          </EmptyDescription>
+        </EmptyHeader>
+        <Button asChild className="rounded-full">
+          <Link href="/sign-in">
+            <LogIn className="mr-2 size-4" />
+            Sign in
+          </Link>
+        </Button>
+      </Empty>
+    </main>
   );
 }

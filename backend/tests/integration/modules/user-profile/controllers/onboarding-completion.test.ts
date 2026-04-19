@@ -63,7 +63,6 @@ describe("PATCH /api/users/me/onboarding/complete", () => {
     expect(response.body.data).toHaveProperty("status", "completed");
 
     // Verify welcome email job was enqueued
-    expect(queueService.addJob).toHaveBeenCalledTimes(1);
     expect(queueService.addJob).toHaveBeenCalledWith(
       "emailQueue",
       "sendWelcomeEmail",

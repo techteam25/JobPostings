@@ -65,12 +65,14 @@ export default function Navbar() {
         {/* Left Section - Logo and Links */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Image
-              src={GetInvolvedLogo}
-              alt="Get Involved Logo"
-              className="h-10 w-auto md:h-12 lg:h-14"
-              priority
-            />
+            <Link href="/" aria-label="Go to home">
+              <Image
+                src={GetInvolvedLogo}
+                alt="Get Involved Logo"
+                className="h-10 w-auto md:h-12 lg:h-14"
+                priority
+              />
+            </Link>
 
             <nav className="hidden items-center gap-1 lg:flex">
               <Button

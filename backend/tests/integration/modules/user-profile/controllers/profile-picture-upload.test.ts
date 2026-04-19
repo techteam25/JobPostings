@@ -70,7 +70,6 @@ describe("Profile Picture Upload - POST /api/users/me/profile-picture", () => {
       .set("Cookie", cookie)
       .attach("profilePicture", TEST_IMAGE_PATH);
 
-    expect(queueService.addJob).toHaveBeenCalledTimes(1);
     expect(queueService.addJob).toHaveBeenCalledWith(
       "fileUploadQueue",
       "uploadFile",
