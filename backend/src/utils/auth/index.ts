@@ -224,7 +224,7 @@ export const auth = betterAuth({
       } else if (ctx.path === "/callback/:id") {
         return await handleOAuthRegistration(ctx);
       } else if (ctx.path === "/sign-in/email") {
-        await postUserAuthenticationActions(ctx);
+        return await postUserAuthenticationActions(ctx);
       } else if (ctx.path === "/change-password") {
         await changePasswordAction(ctx);
       } else if (
@@ -267,13 +267,20 @@ function getSuccessResult(
 function enrichResponse(
   userResult: BetterAuthSuccessResponseSchema,
   intent: "seeker" | "employer",
+  onboardingStatus: "pending" | "completed",
 ) {
+  const redirectUrl =
+    intent === "employer"
+      ? onboardingStatus === "completed"
+        ? "/employer/organizations"
+        : "/employer/onboarding"
+      : "/";
   return {
     ...userResult,
     user: {
       ...userResult.user,
       intent,
-      redirectUrl: intent === "employer" ? "/employer/onboarding" : "/",
+      redirectUrl,
     },
   };
 }
@@ -307,7 +314,7 @@ async function handleEmailRegistration(ctx: BetterAuthMiddlewareContext) {
       }
     });
 
-    return enrichResponse(userResult, body.intent);
+    return enrichResponse(userResult, body.intent, "pending");
   } catch (error) {
     logger.error(error, "Error during email registration post-actions");
     throw new APIError("INTERNAL_SERVER_ERROR", {
@@ -330,10 +337,10 @@ async function handleOAuthRegistration(ctx: BetterAuthMiddlewareContext) {
     // are all idempotent so repeat calls are harmless. We log any rejections
     // so silent failures surface rather than leaving a user in a half-created
     // state with no breadcrumb.
-    const intent =
-      (userResult.user as Record<string, unknown>).intent === "employer"
-        ? "employer"
-        : "seeker";
+    const userRecord = userResult.user as Record<string, unknown>;
+    const intent = userRecord.intent === "employer" ? "employer" : "seeker";
+    const onboardingStatus =
+      userRecord.onboardingStatus === "completed" ? "completed" : "pending";
 
     const POST_ACTION_STEPS = [
       "initializeUserIntent",
@@ -356,7 +363,7 @@ async function handleOAuthRegistration(ctx: BetterAuthMiddlewareContext) {
       }
     });
 
-    return enrichResponse(userResult, intent);
+    return enrichResponse(userResult, intent, onboardingStatus);
   } catch (error) {
     logger.error(error, "Error during OAuth registration post-actions");
     return;
@@ -374,20 +381,12 @@ async function postUserAuthenticationActions(ctx: BetterAuthMiddlewareContext) {
     return;
   }
 
-  const intent =
-    (returned.user as Record<string, unknown>).intent === "employer"
-      ? "employer"
-      : "seeker";
-  const redirectUrl = intent === "employer" ? "/employer/organizations" : "/";
+  const userRecord = returned.user as Record<string, unknown>;
+  const intent = userRecord.intent === "employer" ? "employer" : "seeker";
+  const onboardingStatus =
+    userRecord.onboardingStatus === "completed" ? "completed" : "pending";
 
-  return {
-    ...returned,
-    user: {
-      ...returned.user,
-      intent,
-      redirectUrl,
-    },
-  };
+  return enrichResponse(returned, intent, onboardingStatus);
 }
 
 async function changePasswordAction(ctx: BetterAuthMiddlewareContext) {
