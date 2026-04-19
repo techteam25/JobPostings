@@ -1,4 +1,4 @@
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 import type { ProfileDocument } from "@shared/ports/typesense-profile-service.port";
 
 export interface CandidateSearchBuilderUser {
@@ -36,16 +36,15 @@ const HEADLINE_MAX_LENGTH = 120;
 const DAYS_PER_YEAR = 365;
 
 export function stripHtmlAndMarkdown(input: string): string {
-  // DOMPurify handles HTML safely (including malformed/adversarial input).
-  // `ALLOWED_TAGS: []` strips every tag; `KEEP_CONTENT: true` retains the
-  // inner text. Bios originate from TipTap, which emits HTML, so this is
-  // the primary path. Markdown leftovers (emphasis, links, code fences)
-  // only appear if imported content bypassed the editor — we clean those
-  // up with a minimal pass for belt-and-suspenders safety.
-  let out = DOMPurify.sanitize(input, {
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: [],
-    KEEP_CONTENT: true,
+  // `allowedTags: []` + `allowedAttributes: {}`
+  // strips every tag while retaining inner text. Bios originate from TipTap,
+  // which emits HTML, so this is the primary path. Markdown leftovers
+  // (emphasis, links, code fences) only appear if imported content bypassed
+  // the editor — we clean those up with a minimal pass for belt-and-suspenders
+  // safety.
+  let out = sanitizeHtml(input, {
+    allowedTags: [],
+    allowedAttributes: {},
   });
   out = out.replace(/```[\s\S]*?```/g, " ");
   out = out.replace(/`([^`]*)`/g, "$1");
