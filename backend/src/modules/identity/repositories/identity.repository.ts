@@ -37,36 +37,6 @@ export class IdentityRepository
     );
   }
 
-  async findByIdWithPassword(id: number): Promise<User | undefined> {
-    return await withDbErrorHandling(
-      async () =>
-        await db.query.user.findFirst({
-          where: eq(user.id, id),
-          columns: {
-            id: true,
-            email: true,
-            fullName: true,
-            image: true,
-            emailVerified: true,
-            status: true,
-            deletedAt: true,
-            lastLoginAt: true,
-            createdAt: true,
-            updatedAt: true,
-            intent: true,
-            onboardingStatus: true,
-          },
-          with: {
-            account: {
-              columns: {
-                password: true,
-              },
-            },
-          },
-        }),
-    );
-  }
-
   async findUserById(id: number) {
     return await withDbErrorHandling(
       async () =>

@@ -35,6 +35,7 @@ import type {
   FileMetadata,
 } from "@/validations/file.validation";
 import { generateCorrelationId } from "@/validations/file.validation";
+import { enqueueCandidateSearchSync } from "@shared/infrastructure/typesense.service/candidate-search-enqueue";
 
 export class ProfileService extends BaseService implements ProfileServicePort {
   constructor(
@@ -118,6 +119,8 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         return fail(new DatabaseError("Failed to create user profile"));
       }
 
+      await enqueueCandidateSearchSync(userId, "updateProfile");
+
       return ok(profile);
     } catch (error) {
       if (error instanceof AppError) {
@@ -155,6 +158,8 @@ export class ProfileService extends BaseService implements ProfileServicePort {
       if (!updatedProfile) {
         return fail(new DatabaseError("Failed to update user profile"));
       }
+
+      await enqueueCandidateSearchSync(userId, "updateProfile");
 
       return ok(updatedProfile);
     } catch (error) {
@@ -339,6 +344,11 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         return fail(new DatabaseError("Failed to update profile visibility"));
       }
 
+      await enqueueCandidateSearchSync(
+        userId,
+        isPublic ? "updateProfile" : "deleteProfile",
+      );
+
       return ok(updatedProfile);
     } catch (error) {
       if (error instanceof AppError) {
@@ -367,6 +377,8 @@ export class ProfileService extends BaseService implements ProfileServicePort {
       if (!updatedProfile) {
         return fail(new DatabaseError("Failed to update work availability"));
       }
+
+      await enqueueCandidateSearchSync(userId, "updateProfile");
 
       return ok(updatedProfile);
     } catch (error) {

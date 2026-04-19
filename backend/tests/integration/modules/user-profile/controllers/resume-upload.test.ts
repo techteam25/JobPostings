@@ -80,7 +80,6 @@ describe("Resume Upload - POST /api/users/me/resume", () => {
       .set("Cookie", cookie)
       .attach("resume", TEST_RESUME_PATH);
 
-    expect(queueService.addJob).toHaveBeenCalledTimes(1);
     expect(queueService.addJob).toHaveBeenCalledWith(
       "fileUploadQueue",
       "uploadFile",

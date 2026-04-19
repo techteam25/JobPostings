@@ -148,30 +148,6 @@ export const updateUserPayloadSchema = z.object({
   query: z.object({}).strict(),
 });
 
-const deleteAccountSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  confirm: z
-    .boolean()
-    .optional()
-    .refine((val) => val === true, { message: "You must confirm deletion" }), // Extra safeguard
-});
-
-const deleteUserTokenSchema = z.object({
-  token: z.string().min(1, "Deletion token is required"),
-});
-
-export const deleteSelfSchema = z.object({
-  body: deleteAccountSchema,
-  params: z.object({}).strict(),
-  query: z.object({}).strict(),
-});
-
-export const deleteUserSchema = z.object({
-  body: deleteUserTokenSchema,
-  params: z.object({}).strict(),
-  query: z.object({}).strict(),
-});
-
 export const getUserSavedJobsQuerySchema = z.object({
   body: z.object({}).strict(),
   params: z.object({}).strict(),
@@ -195,8 +171,6 @@ export type UnsubscribeEmailPreferences = z.infer<
 >;
 export type UserQuerySchema = z.infer<typeof userQuerySchema>;
 export type CreateUserProfile = z.infer<typeof createUserPayloadSchema>;
-export type DeleteSelfSchema = z.infer<typeof deleteSelfSchema>;
-export type DeleteUserSchema = z.infer<typeof deleteUserSchema>;
 
 // Context-based unsubscribe schema
 export const unsubscribeByContextSchema = z.object({

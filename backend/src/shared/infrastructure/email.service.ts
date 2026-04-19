@@ -216,32 +216,37 @@ ${footer}`,
    * @param userId The ID of the user.
    * @param email The recipient's email address.
    * @param firstName The recipient's first name.
+   * @param intent The usere's intent
    */
   async sendAccountDeletionConfirmation(
     userId: number,
     email: string,
     firstName: string,
+    intent: "seeker" | "employer",
   ): Promise<void> {
     try {
+      const templateName =
+        intent === "employer"
+          ? "accountDeletedConfirmation.employer"
+          : "accountDeletedConfirmation.seeker";
+      const template = await this.loadTemplate(templateName);
+      const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
       const footer = await this.generateEmailFooter(
         userId,
         EmailType.SECURITY_ALERT,
       );
 
+      const htmlContent =
+        template
+          .replace("{{name}}", this.escapeHtml(firstName))
+          .replace("{{date}}", new Date().toLocaleString())
+          .replace("{{logoPath}}", logoPath) + footer;
+
       const mailOptions = {
         from: env.EMAIL_FROM,
         to: email,
         subject: "Account Deletion Confirmation",
-        text: `Dear ${firstName},
-
-Your account has been successfully deleted. If you did not initiate this action, please contact support immediately.
-
-Best regards,
-Tech Team`,
-        html: `<p>Dear ${this.escapeHtml(firstName)},</p>
-<p>Your account has been successfully deleted. If you did not initiate this action, please contact support immediately.</p>
-<p>Best regards,<br>Tech Team</p>
-${footer}`,
+        html: htmlContent,
       };
 
       await this.transporter.sendMail(mailOptions);
@@ -250,7 +255,9 @@ ${footer}`,
         this.handleError(error);
       } else {
         this.handleError(
-          new AppError("Unknown error occurred while sending email"),
+          new AppError(
+            "Unknown error occurred while sending account deletion email",
+          ),
         );
       }
     }

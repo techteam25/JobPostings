@@ -1,11 +1,7 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
 import type { IdentityServicePort } from "@/modules/identity";
-import type {
-  DeleteSelfSchema,
-  DeleteUserSchema,
-  GetUserSchema,
-} from "@/validations/user.validation";
+import type { GetUserSchema } from "@/validations/user.validation";
 import type { UpdateUser, User } from "@/validations/userProfile.validation";
 import type { EmptyBody } from "@shared/types";
 
@@ -79,33 +75,5 @@ export class IdentityController extends BaseController {
     } else {
       return this.handleControllerError(res, result.error);
     }
-  };
-
-  deleteSelf = async (
-    req: Request<EmptyBody, EmptyBody, DeleteSelfSchema["body"]>,
-    res: Response,
-  ) => {
-    const { currentPassword } = req.body;
-
-    const result = await this.identityService.deleteSelf(
-      req.userId!,
-      currentPassword,
-    );
-
-    if (result.isSuccess) {
-      return this.sendSuccess(res, null, "Account deleted successfully", 204);
-    } else {
-      return this.handleControllerError(res, result.error);
-    }
-  };
-
-  deleteUser = async (
-    req: Request<GetUserSchema["params"], EmptyBody, DeleteUserSchema["body"]>,
-    res: Response,
-  ) => {
-    const { token } = req.body;
-
-    await this.identityService.deleteUser(token);
-    return this.sendSuccess(res, null, "User deleted successfully", 200);
   };
 }

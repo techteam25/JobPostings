@@ -85,6 +85,10 @@ const deleteAccountEmailVerificationSchema = baseEmailSchema.extend({
   token: z.string(),
 });
 
+const accountDeletionConfirmationSchema = baseEmailSchema.extend({
+  intent: z.enum(["seeker", "employer"]),
+});
+
 export const emailJobSchemas = {
   sendWelcomeEmail: baseEmailSchema,
   sendEmailVerification: emailVerificationSchema,
@@ -94,7 +98,7 @@ export const emailJobSchemas = {
   }),
   sendJobApplicationConfirmation: jobApplicationConfirmationSchema,
   sendApplicationWithdrawalConfirmation: applicationWithdrawalSchema,
-  sendAccountDeletionConfirmation: baseEmailSchema,
+  sendAccountDeletionConfirmation: accountDeletionConfirmationSchema,
   sendAccountDeactivationConfirmation: baseEmailSchema,
   sendJobDeletionEmail: jobDeletionSchema,
   sendOrganizationInvitation: organizationInvitationSchema,
@@ -198,6 +202,7 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
           d.userId,
           d.email,
           d.fullName,
+          d.intent,
         );
         break;
       }

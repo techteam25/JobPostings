@@ -9,3 +9,6 @@ export type { IdentityGuards } from "./guards/identity.guards";
 export { createIdentityRoutes } from "./routes/identity.routes";
 export type { UserDeactivatedPayload } from "./events/user-deactivated.event";
 export { createUserDeactivatedEvent } from "./events/user-deactivated.event";
+export type { UserDeletedPayload } from "./events/user-deleted.event";
+export { createUserDeletedEvent } from "./events/user-deleted.event";
+export type { OrgOwnershipQueryPort } from "./ports/org-ownership-query.port";

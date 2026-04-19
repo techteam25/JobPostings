@@ -457,12 +457,21 @@ export class ProfileRepository
   ): Promise<void> {
     // Source of truth only — the denormalized copy on the user table
     // is synced via IdentityWritePort at the service layer.
+    //
+    // Idempotent: this is called from the Better-Auth `/callback/:id`
+    // after-hook, which fires on every OAuth sign-in (not just the
+    // first). Repeat callbacks must not overwrite a user's existing
+    // intent/status, so we set user_id = user_id to make ON DUPLICATE
+    // KEY UPDATE a true no-op.
     await withDbErrorHandling(async () => {
-      await db.insert(userOnBoarding).values({
-        userId,
-        intent,
-        status: "pending",
-      });
+      await db
+        .insert(userOnBoarding)
+        .values({
+          userId,
+          intent,
+          status: "pending",
+        })
+        .onDuplicateKeyUpdate({ set: { userId: sql`user_id` } });
     });
   }
 

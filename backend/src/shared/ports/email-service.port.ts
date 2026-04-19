@@ -127,12 +127,14 @@ export interface EmailServicePort {
   ): Promise<void>;
 
   /**
-   * Sends an account deletion confirmation email to the user.
+   * Sends an account deletion confirmation email to the user. The
+   * `intent` selects the correct template (seeker vs employer copy).
    */
   sendAccountDeletionConfirmation(
     userId: number,
     email: string,
     firstName: string,
+    intent: "seeker" | "employer",
   ): Promise<void>;
 
   /**

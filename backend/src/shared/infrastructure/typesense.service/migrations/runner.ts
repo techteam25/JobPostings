@@ -85,6 +85,43 @@ async function recordMigration(
   });
 }
 
+async function reconcileMissingCollections(
+  client: Client,
+  allMigrations: TypesenseMigration[],
+  appliedMap: Map<string, MigrationRecord>,
+): Promise<void> {
+  const migrationsByCollection = new Map<string, TypesenseMigration[]>();
+  for (const migration of allMigrations) {
+    const list = migrationsByCollection.get(migration.collection) ?? [];
+    list.push(migration);
+    migrationsByCollection.set(migration.collection, list);
+  }
+
+  for (const [collectionName, migrations] of migrationsByCollection) {
+    const appliedForCollection = migrations.filter((m) =>
+      appliedMap.has(m.name),
+    );
+    if (appliedForCollection.length === 0) continue;
+
+    if (await collectionExists(client, collectionName)) continue;
+
+    logger.warn(
+      `Collection "${collectionName}" is missing but ${appliedForCollection.length} migration(s) ` +
+        `are marked applied. Clearing tracking records so they re-run: ${appliedForCollection
+          .map((m) => m.name)
+          .join(", ")}`,
+    );
+
+    for (const migration of appliedForCollection) {
+      await client
+        .collections(MIGRATIONS_COLLECTION)
+        .documents(migration.name)
+        .delete();
+      appliedMap.delete(migration.name);
+    }
+  }
+}
+
 export interface MigrateResult {
   applied: string[];
   skipped: string[];
@@ -98,6 +135,11 @@ export async function runMigrations(client: Client): Promise<MigrateResult> {
   const allMigrations = await discoverMigrations();
 
   const result: MigrateResult = { applied: [], skipped: [], failed: null };
+
+  // Drift detection: an applied record is stale if its target collection is
+  // missing (e.g. the collection was dropped out-of-band). Clear tracking rows
+  // for every migration targeting a missing collection so they re-run in order.
+  await reconcileMissingCollections(client, allMigrations, appliedMap);
 
   // Tamper detection: verify checksums of already-applied migrations
   for (const migration of allMigrations) {

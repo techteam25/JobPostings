@@ -207,6 +207,8 @@ export function createOrganizationsGuards(deps: {
         Number(req.params.organizationId),
       );
 
+      console.log({ member });
+
       if (
         !member ||
         member.organizationId !== Number(req.params.organizationId)

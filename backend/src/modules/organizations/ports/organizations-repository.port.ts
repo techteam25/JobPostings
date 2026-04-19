@@ -119,4 +119,11 @@ export interface OrganizationsRepositoryPort extends BaseRepositoryPort<
     organizationId: number;
     role: "owner" | "admin" | "recruiter" | "member";
   }): Promise<OrganizationMember | undefined>;
+
+  /**
+   * Returns active organizations where the given user is the only active
+   * owner. Used by the identity module to block account deletion when
+   * the user's departure would orphan organizations.
+   */
+  findSoleOwnedOrgs(userId: number): Promise<{ id: number; name: string }[]>;
 }

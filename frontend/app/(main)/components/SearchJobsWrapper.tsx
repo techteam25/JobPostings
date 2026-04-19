@@ -19,11 +19,11 @@ import { JobsList } from "@/app/(main)/components/JobsList";
 import { JobDetailPanel } from "@/app/(main)/components/JobDetailPanel";
 import { JobDetailPanelMobile } from "@/app/(main)/components/JobDetailPanelMobile";
 import { SearchJobsList } from "@/app/(main)/components/SearchJobsList";
-import { SearchLoadingState } from "@/app/(main)/components/SearchLoadingState";
+import { SearchLoadingState } from "@/components/common/search-loading-state";
 import {
   SearchEmptyState,
   SearchErrorState,
-} from "@/app/(main)/components/SearchEmptyState";
+} from "@/components/common/search-empty-state";
 import { SortByDropDownButton } from "./SortByDropDownButton";
 import { SortByMobileButton } from "./SortByMobileButton";
 import { EmptyMuted, JobDetailPanelSkeleton } from "./JobsWrapper";
@@ -208,7 +208,13 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
       if (isSearchError)
         return <SearchErrorState onRetry={handleRetrySearch} />;
       if (searchResults.length === 0)
-        return <SearchEmptyState onClearFilters={handleClearFilters} />;
+        return (
+          <SearchEmptyState
+            onClearFilters={handleClearFilters}
+            title="No matching jobs"
+            description="We couldn't find any jobs that match your search. Try adjusting your keywords, location, or filters."
+          />
+        );
       return (
         <SearchJobsList
           data={searchResults}

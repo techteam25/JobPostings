@@ -1,4 +1,4 @@
-import { and, eq, inArray, like, or } from "drizzle-orm";
+import { and, eq, inArray, like, or, sql } from "drizzle-orm";
 import { SecurityUtils } from "@shared/utils/security";
 import {
   organizationMembers,
@@ -209,6 +209,7 @@ export class OrganizationsRepository
    * @returns The organization member with user details.
    */
   async findByContact(contactId: number, organizationId: number) {
+    console.log({ organizationId, contactId });
     return await withDbErrorHandling(async () => {
       const orgMember = await db.query.organizationMembers.findFirst({
         where: and(
@@ -323,7 +324,7 @@ export class OrganizationsRepository
    */
   async getUserOrganizations(userId: number) {
     return withDbErrorHandling(async () => {
-      return await db.query.organizationMembers.findMany({
+      return db.query.organizationMembers.findMany({
         where: and(
           eq(organizationMembers.userId, userId),
           eq(organizationMembers.isActive, true),
@@ -459,10 +460,68 @@ export class OrganizationsRepository
             .set({ matchedCandidates: true })
             .where(eq(userEmailPreferences.userId, data.userId));
 
-          return await tx.query.organizationMembers.findFirst({
+          return tx.query.organizationMembers.findFirst({
             where: eq(organizationMembers.id, insertResult.id),
           });
         }),
     );
+  }
+
+  /**
+   * Returns active organizations where the given user is the only active
+   * owner. Two-step query: (1) find orgs where user is an active owner;
+   * (2) count distinct active owners per org; keep those with count === 1
+   * and status === 'active'.
+   */
+  async findSoleOwnedOrgs(
+    userId: number,
+  ): Promise<{ id: number; name: string }[]> {
+    return withDbErrorHandling(async () => {
+      const userOwnedRows = await db
+        .select({ orgId: organizationMembers.organizationId })
+        .from(organizationMembers)
+        .where(
+          and(
+            eq(organizationMembers.userId, userId),
+            eq(organizationMembers.role, "owner"),
+            eq(organizationMembers.isActive, true),
+          ),
+        );
+
+      if (userOwnedRows.length === 0) return [];
+
+      const candidateOrgIds = userOwnedRows.map((r) => r.orgId);
+
+      const ownerCounts = await db
+        .select({
+          orgId: organizationMembers.organizationId,
+          ownerCount: sql<number>`COUNT(DISTINCT ${organizationMembers.userId})`,
+        })
+        .from(organizationMembers)
+        .where(
+          and(
+            inArray(organizationMembers.organizationId, candidateOrgIds),
+            eq(organizationMembers.role, "owner"),
+            eq(organizationMembers.isActive, true),
+          ),
+        )
+        .groupBy(organizationMembers.organizationId);
+
+      const soleOwnedOrgIds = ownerCounts
+        .filter((c) => Number(c.ownerCount) === 1)
+        .map((c) => c.orgId);
+
+      if (soleOwnedOrgIds.length === 0) return [];
+
+      return db
+        .select({ id: organizations.id, name: organizations.name })
+        .from(organizations)
+        .where(
+          and(
+            inArray(organizations.id, soleOwnedOrgIds),
+            eq(organizations.status, "active"),
+          ),
+        );
+    });
   }
 }

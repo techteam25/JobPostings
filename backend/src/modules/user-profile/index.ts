@@ -29,3 +29,4 @@ export type { WorkAreaServicePort } from "./ports/work-area-service.port";
 export type { IdentityWritePort } from "./ports/identity-write.port";
 export { ProfileRepository } from "./repositories/profile.repository";
 export { PreferenceRepository } from "./repositories/preference.repository";
+export { buildCandidateSearchDocument } from "./helpers/build-candidate-search-document";

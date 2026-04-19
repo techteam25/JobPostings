@@ -7,10 +7,14 @@ import {
 } from "@shared/infrastructure/queue.service";
 import logger from "@shared/logger";
 import type { ApplicationSubmittedPayload } from "@/modules/applications";
-import type { UserDeactivatedPayload } from "@/modules/identity";
+import type {
+  UserDeactivatedPayload,
+  UserDeletedPayload,
+} from "@/modules/identity";
 import type { ApplicationInsightsPort } from "@shared/ports/application-insights.port";
 import type { NotificationsRepositoryPort } from "@/modules/notifications";
 import type { ModuleWorkers } from "@shared/types/module-workers";
+import type { UserProfileDocument } from "@shared/ports/typesense-user-profile-service.port";
 
 interface DomainEventWorkerDeps {
   applicationInsights: ApplicationInsightsPort;
@@ -57,6 +61,39 @@ function createDomainEventHandler(deps: DomainEventWorkerDeps) {
           logger.info("Paused alerts for deactivated user", {
             userId: deactivatedPayload.userId,
             alertsPaused,
+          });
+          break;
+        }
+
+        case DomainEventType.USER_DELETED: {
+          const deletedPayload = event.payload as UserDeletedPayload;
+          // The indexer's delete path only reads `.id`; we satisfy the
+          // shared UserProfileDocument type with empty defaults for the
+          // upsert-only fields so the enqueue site type-checks cleanly.
+          const deletePayload: UserProfileDocument & {
+            correlationId: string;
+          } = {
+            id: String(deletedPayload.userId),
+            userId: deletedPayload.userId,
+            jobTypes: [],
+            compensationTypes: [],
+            workScheduleDays: [],
+            scheduleTypes: [],
+            workArrangements: [],
+            commuteTime: null,
+            willingnessToRelocate: null,
+            volunteerHoursPerWeek: null,
+            workAreas: [],
+            updatedAt: Date.now(),
+            correlationId: event.correlationId ?? "",
+          };
+          await queueService.addJob(
+            QUEUE_NAMES.TYPESENSE_USER_PROFILE_QUEUE,
+            "deleteUserProfile",
+            deletePayload,
+          );
+          logger.info("Queued Typesense unindex for deleted user", {
+            userId: deletedPayload.userId,
           });
           break;
         }

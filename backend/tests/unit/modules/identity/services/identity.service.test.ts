@@ -25,6 +25,7 @@ describe("IdentityService", () => {
   let mockIdentityRepository: any;
   let mockEmailService: any;
   let mockEventBus: any;
+  let mockOrgOwnershipQuery: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -32,7 +33,6 @@ describe("IdentityService", () => {
     mockIdentityRepository = {
       findById: vi.fn(),
       findByEmail: vi.fn(),
-      findByIdWithPassword: vi.fn(),
       findUserById: vi.fn(),
       update: vi.fn(),
       deactivateUserAccount: vi.fn(),
@@ -48,10 +48,15 @@ describe("IdentityService", () => {
       publish: vi.fn().mockResolvedValue(undefined),
     };
 
+    mockOrgOwnershipQuery = {
+      findSoleOwnedOrgs: vi.fn().mockResolvedValue([]),
+    };
+
     identityService = new IdentityService(
       mockIdentityRepository,
       mockEmailService,
       mockEventBus,
+      mockOrgOwnershipQuery,
     );
   });
 
@@ -166,24 +171,40 @@ describe("IdentityService", () => {
     });
   });
 
-  describe("deleteSelf", () => {
-    it("should fail when user not found", async () => {
-      mockIdentityRepository.findByIdWithPassword.mockResolvedValue(undefined);
+  describe("getBlockingOwnedOrgs", () => {
+    it("returns the sole-owned orgs from the ownership query", async () => {
+      const orgs = [
+        { id: 10, name: "Acme Missions" },
+        { id: 22, name: "Beacon Outreach" },
+      ];
+      mockOrgOwnershipQuery.findSoleOwnedOrgs.mockResolvedValue(orgs);
 
-      const result = await identityService.deleteSelf(999, "token");
+      const result = await identityService.getBlockingOwnedOrgs(1);
 
-      expect(result.isSuccess).toBe(false);
-      if (!result.isSuccess) {
-        expect(result.error).toBeInstanceOf(NotFoundError);
+      expect(result.isSuccess).toBe(true);
+      if (result.isSuccess) {
+        expect(result.value).toEqual(orgs);
+      }
+      expect(mockOrgOwnershipQuery.findSoleOwnedOrgs).toHaveBeenCalledWith(1);
+    });
+
+    it("returns an empty array when the user owns no blocking orgs", async () => {
+      mockOrgOwnershipQuery.findSoleOwnedOrgs.mockResolvedValue([]);
+
+      const result = await identityService.getBlockingOwnedOrgs(1);
+
+      expect(result.isSuccess).toBe(true);
+      if (result.isSuccess) {
+        expect(result.value).toEqual([]);
       }
     });
 
-    it("should handle database errors", async () => {
-      mockIdentityRepository.findByIdWithPassword.mockRejectedValue(
+    it("wraps database errors into a DatabaseError failure", async () => {
+      mockOrgOwnershipQuery.findSoleOwnedOrgs.mockRejectedValue(
         new Error("DB Error"),
       );
 
-      const result = await identityService.deleteSelf(1, "token");
+      const result = await identityService.getBlockingOwnedOrgs(1);
 
       expect(result.isSuccess).toBe(false);
       if (!result.isSuccess) {

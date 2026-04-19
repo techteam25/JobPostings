@@ -150,7 +150,6 @@ export function createJobBoardRoutes({
   router.get(
     "/employer/:organizationId/jobs/stats",
     authenticate,
-    orgGuards.requireJobPostingRole(),
     orgGuards.ensureIsOrganizationMember,
     validate(getOrganizationSchema),
     controller.getOrganizationJobsStats,
