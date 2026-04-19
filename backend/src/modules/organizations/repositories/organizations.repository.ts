@@ -323,7 +323,7 @@ export class OrganizationsRepository
    */
   async getUserOrganizations(userId: number) {
     return withDbErrorHandling(async () => {
-      return await db.query.organizationMembers.findMany({
+      return db.query.organizationMembers.findMany({
         where: and(
           eq(organizationMembers.userId, userId),
           eq(organizationMembers.isActive, true),
@@ -459,7 +459,7 @@ export class OrganizationsRepository
             .set({ matchedCandidates: true })
             .where(eq(userEmailPreferences.userId, data.userId));
 
-          return await tx.query.organizationMembers.findFirst({
+          return tx.query.organizationMembers.findFirst({
             where: eq(organizationMembers.id, insertResult.id),
           });
         }),
@@ -512,7 +512,7 @@ export class OrganizationsRepository
 
       if (soleOwnedOrgIds.length === 0) return [];
 
-      return await db
+      return db
         .select({ id: organizations.id, name: organizations.name })
         .from(organizations)
         .where(
