@@ -12,7 +12,7 @@ import { getRecommendations } from "@/lib/api";
  * authentication and a profile lookup that makes SSR impractical.
  * The hook starts fetching on mount.
  */
-export function useRecommendedJobs() {
+export function useRecommendedJobs(options?: { enabled?: boolean }) {
   const query = useInfiniteQuery({
     queryKey: ["recommended-jobs"] as const,
     queryFn: async ({ pageParam }) => {
@@ -28,6 +28,7 @@ export function useRecommendedJobs() {
       if (!lastPage.pagination.hasNext) return undefined;
       return lastPage.pagination.nextPage ?? undefined;
     },
+    enabled: options?.enabled,
   });
 
   const hasPersonalization = query.data?.pages[0]?.hasPersonalization ?? false;
