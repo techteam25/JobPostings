@@ -1,16 +1,35 @@
 import type { Client } from "typesense";
 import type { CollectionFieldSchema } from "typesense/lib/Typesense/Collection";
 
+import logger from "@shared/logger";
+
 /**
- * Add fields to an existing collection via PATCH.
- * Existing documents will have null for the new fields until re-indexed.
+ * Add fields to an existing collection via PATCH. Idempotent: fields already
+ * present on the collection are skipped, so a migration can re-run safely if
+ * its tracking record was lost or the field was added out-of-band.
  */
 export async function addFields(
   client: Client,
   collectionName: string,
   fields: CollectionFieldSchema[],
 ): Promise<void> {
-  await client.collections(collectionName).update({ fields });
+  const existing = await client.collections(collectionName).retrieve();
+  const existingFieldNames = new Set(existing.fields?.map((f) => f.name) ?? []);
+
+  const toAdd = fields.filter((f) => !existingFieldNames.has(f.name));
+  const skipped = fields
+    .filter((f) => existingFieldNames.has(f.name))
+    .map((f) => f.name);
+
+  if (skipped.length > 0) {
+    logger.warn(
+      `addFields: field(s) already present on "${collectionName}", skipping: ${skipped.join(", ")}`,
+    );
+  }
+
+  if (toAdd.length === 0) return;
+
+  await client.collections(collectionName).update({ fields: toAdd });
 }
 
 /**
