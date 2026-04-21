@@ -4,6 +4,7 @@ import type { IdentityServicePort } from "@/modules/identity";
 import type { GetUserSchema } from "@/validations/user.validation";
 import type { UpdateUser, User } from "@/validations/userProfile.validation";
 import type { EmptyBody } from "@shared/types";
+import { auditService } from "@shared/audit";
 
 export class IdentityController extends BaseController {
   constructor(private identityService: IdentityServicePort) {
@@ -33,6 +34,18 @@ export class IdentityController extends BaseController {
     const result = await this.identityService.deactivateSelf(req.userId!);
 
     if (result.isSuccess) {
+      auditService.emit({
+        name: "account.deactivated",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "user", id: req.userId },
+        action: "deactivated account",
+        outcome: "success",
+        metadata: { self: true },
+      });
       return this.sendSuccess<User>(
         res,
         result.value,
@@ -52,6 +65,18 @@ export class IdentityController extends BaseController {
     const result = await this.identityService.deactivateUser(id, req.userId!);
 
     if (result.isSuccess) {
+      auditService.emit({
+        name: "account.deactivated",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "user", id },
+        action: "deactivated account",
+        outcome: "success",
+        metadata: { self: false },
+      });
       return this.sendSuccess(
         res,
         result.value,

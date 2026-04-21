@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
+import { auditService } from "@shared/audit";
 import {
   type ApiResponse,
   type EmptyBody,
@@ -128,6 +129,17 @@ export class OrganizationsController extends BaseController {
     );
 
     if (organization.isSuccess) {
+      auditService.emit({
+        name: "org.created",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "organization", id: organization.value.id },
+        action: "created organization",
+        outcome: "success",
+      });
       return this.sendSuccess<Organization & { members: OrganizationMember[] }>(
         res,
         organization.value,

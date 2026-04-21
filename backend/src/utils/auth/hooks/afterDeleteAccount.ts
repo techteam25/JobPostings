@@ -6,6 +6,7 @@ import {
 } from "@shared/infrastructure/queue.service";
 import { CacheService } from "@shared/infrastructure/cache.service";
 import { createUserDeletedEvent } from "@/modules/identity";
+import { auditService } from "@shared/audit";
 import logger from "@shared/logger";
 
 export interface AfterDeleteAccountDeps {
@@ -67,8 +68,12 @@ export async function runAfterDeleteAccount(
     }
   });
 
-  logger.info(
-    { userId, email: user.email, event: "account.deleted" },
-    "User account deleted",
-  );
+  auditService.emit({
+    name: "account.deleted",
+    actor: { id: userId },
+    resource: { type: "user", id: userId },
+    action: "deleted account",
+    outcome: "success",
+    metadata: { intent, deletedAt },
+  });
 }
