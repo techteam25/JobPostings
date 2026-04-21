@@ -1,20 +1,36 @@
+import { mkdirSync } from "fs";
+import { dirname, isAbsolute, resolve } from "path";
 import pino from "pino";
 import pretty from "pino-pretty";
-import { env } from "@shared/config/env";
+import pinoRoll from "pino-roll";
+import { env, isProduction } from "@shared/config/env";
 
-const stream = pretty({
-  colorize: true,
-  translateTime: "yyyy-mm-dd HH:MM:ss.l",
-  ignore: "pid,hostname",
+const resolvedLogFilePath = isAbsolute(env.LOG_FILE_PATH)
+  ? env.LOG_FILE_PATH
+  : resolve(process.cwd(), env.LOG_FILE_PATH);
+
+mkdirSync(dirname(resolvedLogFilePath), { recursive: true });
+
+const rollingFileStream = await pinoRoll({
+  file: resolvedLogFilePath,
+  size: "10m",
+  frequency: "daily",
+  mkdir: true,
 });
 
-/**
- * Configured Pino logger instance for the application.
- * This logger is set up with pretty printing for development environments, including colorized output,
- * timestamp translation, and exclusion of pid and hostname fields. The log level is determined by the
- * LOG_LEVEL environment variable. It provides structured logging capabilities throughout the application
- * for debugging, monitoring, and error tracking.
- */
+const streams: pino.StreamEntry[] = isProduction
+  ? [{ stream: rollingFileStream }]
+  : [
+      {
+        stream: pretty({
+          colorize: true,
+          translateTime: "yyyy-mm-dd HH:MM:ss.l",
+          ignore: "pid,hostname",
+        }),
+      },
+      { stream: rollingFileStream },
+    ];
+
 export default pino(
   {
     level: env.LOG_LEVEL,
@@ -26,5 +42,5 @@ export default pino(
       ],
     },
   },
-  stream,
+  pino.multistream(streams),
 );
