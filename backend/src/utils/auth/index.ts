@@ -24,6 +24,7 @@ import { sendDeleteAccountVerification } from "@/utils/auth/hooks/sendDeleteAcco
 import { runBeforeDeleteAccount } from "@/utils/auth/hooks/beforeDeleteAccount";
 import { runAfterDeleteAccount } from "@/utils/auth/hooks/afterDeleteAccount";
 import { auditService } from "@shared/audit";
+import { authSigninTotal, authSignupTotal } from "@shared/metrics";
 
 // ─── Setter-Injected Dependencies ────────────────────────────────────
 // These are set by the central composition root at startup, before
@@ -219,6 +220,11 @@ export const auth = betterAuth({
           failureReason: ctx.context.returned.message,
           metadata: attemptedEmail ? { attemptedEmail } : undefined,
         });
+        authSigninTotal.add(1, {
+          method: "email",
+          outcome: "failure",
+          provider: "email",
+        });
       }
 
       // Debug: log get-session outcomes to diagnose middleware redirect issue
@@ -354,6 +360,7 @@ async function handleEmailRegistration(ctx: BetterAuthMiddlewareContext) {
       outcome: "success",
       metadata: { method: "email", intent: body.intent },
     });
+    authSignupTotal.add(1, { method: "email", outcome: "success" });
 
     return enrichResponse(userResult, body.intent, "pending");
   } catch (error) {
@@ -417,6 +424,9 @@ async function handleOAuthRegistration(ctx: BetterAuthMiddlewareContext) {
       outcome: "success",
       metadata: { method: "oauth" },
     });
+    const provider =
+      (ctx.params as { id?: string } | undefined)?.id ?? "unknown";
+    authSigninTotal.add(1, { method: "oauth", outcome: "success", provider });
 
     return enrichResponse(userResult, intent, onboardingStatus);
   } catch (error) {
@@ -448,6 +458,11 @@ async function postUserAuthenticationActions(ctx: BetterAuthMiddlewareContext) {
     action: "signed in",
     outcome: "success",
     metadata: { method: "email" },
+  });
+  authSigninTotal.add(1, {
+    method: "email",
+    outcome: "success",
+    provider: "email",
   });
 
   return enrichResponse(returned, intent, onboardingStatus);

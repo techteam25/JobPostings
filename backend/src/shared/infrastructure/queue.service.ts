@@ -8,6 +8,11 @@ import {
 } from "bullmq";
 import { env } from "@shared/config/env";
 import logger from "@shared/logger";
+import {
+  queueJobTotal,
+  queueJobDurationSeconds,
+  registerQueueDepthGauges,
+} from "@shared/metrics";
 
 // BullMQ connection configuration
 const connection: ConnectionOptions = {
@@ -47,10 +52,18 @@ export const JOB_OPTIONS: JobsOptions = {
   },
 };
 
+const TYPESENSE_QUEUE_NAMES = [
+  QUEUE_NAMES.TYPESENSE_JOB_QUEUE,
+  QUEUE_NAMES.TYPESENSE_USER_PROFILE_QUEUE,
+  QUEUE_NAMES.TYPESENSE_CANDIDATE_SEARCH_PROFILE_QUEUE,
+  QUEUE_NAMES.TYPESENSE_EMPLOYER_QUEUE,
+] as const;
+
 class QueueService {
   private queues: Map<string, Queue> = new Map();
   private workers: Map<string, Worker> = new Map();
   private queueEvents: Map<string, QueueEvents> = new Map();
+  private jobStartTimes: Map<string, number> = new Map();
   private isInitialized = false;
 
   /**
@@ -75,6 +88,8 @@ class QueueService {
       this.createQueue(QUEUE_NAMES.INVITATION_EXPIRATION_QUEUE);
       this.createQueue(QUEUE_NAMES.DOMAIN_EVENTS_QUEUE);
       this.createQueue(QUEUE_NAMES.TYPESENSE_EMPLOYER_QUEUE);
+
+      registerQueueDepthGauges(() => this.queues, TYPESENSE_QUEUE_NAMES);
 
       this.isInitialized = true;
       logger.info("Queue service initialized successfully", {
@@ -102,14 +117,17 @@ class QueueService {
     });
 
     queueEvents.on("active", ({ jobId }) => {
+      this.jobStartTimes.set(`${queueName}:${jobId}`, Date.now());
       logger.debug("Job active", { queueName, jobId });
     });
 
     queueEvents.on("completed", ({ jobId }) => {
+      this.recordJobOutcome(queueName, jobId, "success");
       logger.info("Job completed", { queueName, jobId });
     });
 
     queueEvents.on("failed", ({ jobId, failedReason }) => {
+      this.recordJobOutcome(queueName, jobId, "failure");
       logger.error("Job failed", {
         queueName,
         jobId,
@@ -125,6 +143,22 @@ class QueueService {
     this.queueEvents.set(queueName, queueEvents);
 
     logger.info("Queue created", { queueName });
+  }
+
+  private recordJobOutcome(
+    queueName: string,
+    jobId: string,
+    outcome: "success" | "failure",
+  ): void {
+    const key = `${queueName}:${jobId}`;
+    const start = this.jobStartTimes.get(key);
+    if (start !== undefined) {
+      queueJobDurationSeconds.record((Date.now() - start) / 1000, {
+        queue: queueName,
+      });
+      this.jobStartTimes.delete(key);
+    }
+    queueJobTotal.add(1, { queue: queueName, outcome });
   }
 
   /**

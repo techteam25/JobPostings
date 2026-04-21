@@ -2,6 +2,7 @@ import { NodeSDK } from "@opentelemetry/sdk-node";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-grpc";
+import { AggregationTemporalityPreference } from "@opentelemetry/exporter-metrics-otlp-http";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import {
@@ -24,8 +25,12 @@ if (env.OTEL_ENABLED) {
       url: env.OTEL_EXPORTER_OTLP_ENDPOINT,
     }),
     metricReader: new PeriodicExportingMetricReader({
+      // CUMULATIVE temporality is required by Prometheus's OTLP ingest
+      // (the default LOWMEMORY preference emits histograms as DELTA, which
+      // Prometheus rejects with "invalid temporality and type combination").
       exporter: new OTLPMetricExporter({
         url: env.OTEL_EXPORTER_OTLP_ENDPOINT,
+        temporalityPreference: AggregationTemporalityPreference.CUMULATIVE,
       }),
       exportIntervalMillis: 30_000,
     }),
