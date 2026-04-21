@@ -4,6 +4,7 @@ import type { CandidateSearchController } from "../controllers/candidate-search.
 import type { OrganizationsGuards } from "@/modules/organizations";
 import validate from "@/middleware/validation.middleware";
 import { cacheMiddleware } from "@/middleware/cache.middleware";
+import { auditRead } from "@/middleware/audit-read.middleware";
 import { searchCandidatesSchema } from "@/validations/candidate-search.validation";
 
 export function createCandidateSearchRoutes({
@@ -31,6 +32,7 @@ export function createCandidateSearchRoutes({
     "/candidates/search",
     authenticate,
     orgGuards.requireJobPostingRole(),
+    auditRead("read.profile.cross_user", () => ({ type: "candidate_search" })),
     validate(searchCandidatesSchema),
     cacheMiddleware({ ttl: 300 }),
     controller.searchCandidates,

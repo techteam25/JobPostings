@@ -8,6 +8,7 @@ import {
 import { registry, z } from "@/swagger/registry";
 import { apiResponseSchema, errorResponseSchema } from "@shared/types";
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
+import { auditRead } from "@/middleware/audit-read.middleware";
 
 import type { CompositionRoot } from "@/composition-root";
 
@@ -149,6 +150,10 @@ export function createInvitationRoutes(deps: InvitationRoutesDeps): Router {
    */
   router.get(
     "/:organizationId/:token/details",
+    auditRead("read.invitation.by_token", (req) => ({
+      type: "invitation",
+      id: String(req.params.organizationId),
+    })),
     validate(getOrganizationInvitationDetailsSchema),
     controller.getInvitationDetails,
   );
