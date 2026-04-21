@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
+import { auditService } from "@shared/audit";
 import type { ApplicationsServicePort } from "@/modules/applications";
 import type {
   GetJobSchema,
@@ -56,6 +57,21 @@ export class ApplicationsController extends BaseController {
     );
 
     if (result.isSuccess) {
+      auditService.emit({
+        name: "application.submitted",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: {
+          type: "application",
+          id: (result.value as { id?: number | string })?.id,
+        },
+        action: "submitted application",
+        outcome: "success",
+        metadata: { jobId },
+      });
       return this.sendSuccess(
         res,
         result.value,
@@ -178,6 +194,17 @@ export class ApplicationsController extends BaseController {
     );
 
     if (result.isSuccess) {
+      auditService.emit({
+        name: "application.withdrawn",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "application", id: applicationId },
+        action: "withdrew application",
+        outcome: "success",
+      });
       return this.sendSuccess(
         res,
         result.value,
