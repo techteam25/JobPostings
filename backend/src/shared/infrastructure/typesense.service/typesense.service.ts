@@ -9,6 +9,10 @@ import { typesenseClient } from "@shared/config/typesense-client";
 
 import type { JobDocumentType } from "@/validations/base.validation";
 import logger from "@shared/logger";
+import {
+  typesenseSearchDurationSeconds,
+  typesenseSearchResultCount,
+} from "@shared/metrics";
 import type { TypesenseJobServicePort } from "@shared/ports/typesense-service.port";
 
 type SortDirection = "asc" | "desc";
@@ -179,7 +183,8 @@ export class TypesenseJobService implements TypesenseJobServicePort {
       offset = 0,
     }: MetaSearchParams = {},
   ): Promise<SearchResponse<JobDocumentType>> {
-    return await typesenseClient
+    const start = Date.now();
+    const response = await typesenseClient
       .collections<JobDocumentType>(JOBS_COLLECTION)
       .documents()
       .search({
@@ -192,6 +197,9 @@ export class TypesenseJobService implements TypesenseJobServicePort {
         query_by: "title, skills, jobType, description, city, state, country",
         include_fields: "$employers(logoUrl, strategy: merge)",
       });
+    typesenseSearchDurationSeconds.record((Date.now() - start) / 1000);
+    typesenseSearchResultCount.record(response.found ?? 0);
+    return response;
   }
 
   /**

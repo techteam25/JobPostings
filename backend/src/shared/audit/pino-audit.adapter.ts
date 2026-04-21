@@ -1,4 +1,5 @@
 import logger from "@shared/logger";
+import { auditEventsEmittedTotal } from "@shared/metrics";
 import { AuditEvent, type AuditServicePort } from "./audit.port";
 
 /**
@@ -46,5 +47,7 @@ export class PinoAuditAdapter implements AuditServicePort {
       },
       name,
     );
+
+    auditEventsEmittedTotal.add(1, { name, outcome });
   }
 }

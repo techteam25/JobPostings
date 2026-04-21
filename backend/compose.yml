@@ -106,6 +106,7 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--web.enable-remote-write-receiver"
+      - "--web.enable-otlp-receiver"
       - "--storage.tsdb.path=/prometheus"
       - "--storage.tsdb.retention.time=14d"
     volumes:

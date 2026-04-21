@@ -3,6 +3,11 @@ import { Job as BullMqJob } from "bullmq";
 import { firebaseUploadService } from "@shared/infrastructure/firebase-upload.service";
 import { CacheService } from "@shared/infrastructure/cache.service";
 import {
+  fileDeleteTotal,
+  fileUploadBytes,
+  fileUploadTotal,
+} from "@shared/metrics";
+import {
   FileDeleteJobData,
   FileUploadJobData,
   FileUploadResult,
@@ -42,6 +47,12 @@ function createFileUploadHandler(deps: FileUploadWorkerDeps) {
     try {
       await job.updateProgress(0);
 
+      // Record size histogram per file at job start — captures all files
+      // regardless of per-file outcome.
+      for (const f of tempFiles) {
+        fileUploadBytes.record(f.size, { category: folder });
+      }
+
       const deterministicNames = tempFiles.map(
         (f, index) => `${job.id}-${index}-${sanitizeFilename(f.originalname)}`,
       );
@@ -53,6 +64,17 @@ function createFileUploadHandler(deps: FileUploadWorkerDeps) {
           await job.updateProgress(progress);
         },
       );
+
+      fileUploadTotal.add(result.successCount, {
+        category: folder,
+        outcome: "success",
+      });
+      if (result.failureCount > 0) {
+        fileUploadTotal.add(result.failureCount, {
+          category: folder,
+          outcome: "failure",
+        });
+      }
 
       await job.updateProgress(90);
 
@@ -99,6 +121,12 @@ function createFileUploadHandler(deps: FileUploadWorkerDeps) {
         failures: result.failures,
       };
     } catch (error) {
+      // Entire job threw (not a per-file failure handled above).
+      // Count all files in the job as failures so the counter stays honest.
+      fileUploadTotal.add(tempFiles.length, {
+        category: folder,
+        outcome: "failure",
+      });
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       logger.error(
@@ -124,21 +152,39 @@ function createFileDeleteHandler() {
       "Starting file delete job",
     );
 
-    const deleted = await firebaseUploadService.deleteFile(fileUrl);
+    try {
+      const deleted = await firebaseUploadService.deleteFile(fileUrl);
 
-    if (deleted) {
-      logger.info(
-        { correlationId, fileUrl },
-        "File deleted from storage successfully",
-      );
-    } else {
-      logger.warn(
-        { correlationId, fileUrl },
-        "File delete returned false — file may not exist in storage",
-      );
+      if (deleted) {
+        fileDeleteTotal.add(1, {
+          entity_type: entityType,
+          outcome: "success",
+        });
+        logger.info(
+          { correlationId, fileUrl },
+          "File deleted from storage successfully",
+        );
+      } else {
+        // Distinguish "not found in storage" from hard failures — useful
+        // when chasing orphaned DB pointers vs. Firebase outages.
+        fileDeleteTotal.add(1, {
+          entity_type: entityType,
+          outcome: "missing",
+        });
+        logger.warn(
+          { correlationId, fileUrl },
+          "File delete returned false — file may not exist in storage",
+        );
+      }
+
+      return { deleted };
+    } catch (error) {
+      fileDeleteTotal.add(1, {
+        entity_type: entityType,
+        outcome: "failure",
+      });
+      throw error;
     }
-
-    return { deleted };
   };
 }
 
