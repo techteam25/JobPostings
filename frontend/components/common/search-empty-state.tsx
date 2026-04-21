@@ -44,6 +44,29 @@ export function SearchEmptyState({
   );
 }
 
+/**
+ * Rendered when an unauthenticated user runs a search that returns zero
+ * results. Nudges them to sign in for personalized recommendations instead of
+ * surfacing a bare "Clear filters" dead-end.
+ */
+export function SearchJobsResultEmpty() {
+  return (
+    <main className="mx-auto max-w-7xl px-1 py-4 lg:px-4 lg:py-6">
+      <Empty className="from-muted/50 to-background bg-linear-to-b from-30%">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <SearchX />
+          </EmptyMedia>
+          <EmptyTitle className="text-secondary-foreground text-sm md:text-base">
+            We didn&apos;t find any matching jobs
+          </EmptyTitle>
+        </EmptyHeader>
+        <Button asChild className="rounded-full"></Button>
+      </Empty>
+    </main>
+  );
+}
+
 interface SearchErrorStateProps {
   onRetry: () => void;
 }

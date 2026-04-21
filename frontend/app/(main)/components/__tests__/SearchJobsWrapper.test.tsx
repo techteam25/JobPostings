@@ -138,7 +138,7 @@ describe("SearchJobsWrapper", () => {
       { id: 2, title: "SSR Job Two" },
     ]);
 
-    render(<SearchJobsWrapper initialJobs={initial} />);
+    render(<SearchJobsWrapper initialJobs={initial} isAuthenticated={true} />);
 
     expect(screen.getByText("SSR Job One")).toBeInTheDocument();
     expect(screen.getByText("SSR Job Two")).toBeInTheDocument();
@@ -160,6 +160,7 @@ describe("SearchJobsWrapper", () => {
     render(
       <SearchJobsWrapper
         initialJobs={makeInitialJobs([{ id: 1, title: "Hidden SSR" }])}
+        isAuthenticated={true}
       />,
     );
 
@@ -177,7 +178,12 @@ describe("SearchJobsWrapper", () => {
       jobTypes: ["full-time"],
     });
 
-    render(<SearchJobsWrapper initialJobs={makeInitialJobs([])} />);
+    render(
+      <SearchJobsWrapper
+        initialJobs={makeInitialJobs([])}
+        isAuthenticated={true}
+      />,
+    );
 
     expect(await screen.findByText(/no matching jobs/i)).toBeInTheDocument();
 
@@ -202,7 +208,12 @@ describe("SearchJobsWrapper", () => {
 
     useFiltersStore.setState({ keyword: "react" });
 
-    render(<SearchJobsWrapper initialJobs={makeInitialJobs([])} />);
+    render(
+      <SearchJobsWrapper
+        initialJobs={makeInitialJobs([])}
+        isAuthenticated={true}
+      />,
+    );
 
     expect(
       await screen.findByText(/something went wrong/i),
@@ -232,7 +243,12 @@ describe("SearchJobsWrapper", () => {
 
     useFiltersStore.setState({ keyword: "react" });
 
-    render(<SearchJobsWrapper initialJobs={makeInitialJobs([])} />);
+    render(
+      <SearchJobsWrapper
+        initialJobs={makeInitialJobs([])}
+        isAuthenticated={true}
+      />,
+    );
 
     expect(
       await screen.findByText(/something went wrong/i),
@@ -258,7 +274,12 @@ describe("SearchJobsWrapper", () => {
 
     useFiltersStore.setState({ keyword: "react" });
 
-    render(<SearchJobsWrapper initialJobs={makeInitialJobs([])} />);
+    render(
+      <SearchJobsWrapper
+        initialJobs={makeInitialJobs([])}
+        isAuthenticated={true}
+      />,
+    );
 
     await screen.findByText("Sort Test Job");
 
@@ -281,7 +302,12 @@ describe("SearchJobsWrapper", () => {
 
     useFiltersStore.setState({ keyword: "react", sortBy: "relevant" });
 
-    render(<SearchJobsWrapper initialJobs={makeInitialJobs([])} />);
+    render(
+      <SearchJobsWrapper
+        initialJobs={makeInitialJobs([])}
+        isAuthenticated={true}
+      />,
+    );
 
     await screen.findByText("Reset Test");
 
@@ -318,7 +344,12 @@ describe("SearchJobsWrapper", () => {
 
     useFiltersStore.setState({ keyword: "react" });
 
-    render(<SearchJobsWrapper initialJobs={makeInitialJobs([])} />);
+    render(
+      <SearchJobsWrapper
+        initialJobs={makeInitialJobs([])}
+        isAuthenticated={true}
+      />,
+    );
 
     expect(await screen.findByText("Page One")).toBeInTheDocument();
 
@@ -372,7 +403,7 @@ describe("SearchJobsWrapper", () => {
       },
     };
 
-    render(<SearchJobsWrapper initialJobs={initial} />);
+    render(<SearchJobsWrapper initialJobs={initial} isAuthenticated={true} />);
 
     expect(screen.getByText("SSR Default Job")).toBeInTheDocument();
 
@@ -411,7 +442,12 @@ describe("SearchJobsWrapper", () => {
 
     useFiltersStore.setState({ keyword: "react" });
 
-    render(<SearchJobsWrapper initialJobs={makeInitialJobs([])} />);
+    render(
+      <SearchJobsWrapper
+        initialJobs={makeInitialJobs([])}
+        isAuthenticated={true}
+      />,
+    );
 
     expect(await screen.findByText("First Page")).toBeInTheDocument();
 
@@ -466,7 +502,7 @@ describe("SearchJobsWrapper", () => {
       },
     };
 
-    render(<SearchJobsWrapper initialJobs={initial} />);
+    render(<SearchJobsWrapper initialJobs={initial} isAuthenticated={true} />);
 
     expect(screen.getByText("SSR Page 1")).toBeInTheDocument();
 
@@ -486,7 +522,7 @@ describe("SearchJobsWrapper", () => {
   it("does not show 'No more results' when there is only one page", () => {
     const initial = makeInitialJobs([{ id: 1, title: "Only Page Job" }]);
 
-    render(<SearchJobsWrapper initialJobs={initial} />);
+    render(<SearchJobsWrapper initialJobs={initial} isAuthenticated={true} />);
 
     expect(screen.getByText("Only Page Job")).toBeInTheDocument();
     expect(screen.queryByText("No more results")).not.toBeInTheDocument();

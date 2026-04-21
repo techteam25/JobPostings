@@ -13,6 +13,7 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { useFiltersStore } from "@/context/store";
 import { useSearchJobs } from "@/app/(main)/hooks/use-search-jobs";
 import { useDefaultJobs } from "@/app/(main)/hooks/use-default-jobs";
+import { useRecommendedJobs } from "@/app/(main)/hooks/use-recommended-jobs";
 import { buildApiParams } from "@/lib/search-params";
 
 import { JobsList } from "@/app/(main)/components/JobsList";
@@ -21,9 +22,10 @@ import { JobDetailPanelMobile } from "@/app/(main)/components/JobDetailPanelMobi
 import { SearchJobsList } from "@/app/(main)/components/SearchJobsList";
 import { SearchLoadingState } from "@/components/common/search-loading-state";
 import {
-  SearchEmptyState,
   SearchErrorState,
+  SearchJobsResultEmpty,
 } from "@/components/common/search-empty-state";
+import { Button } from "@/components/ui/button";
 import { SortByDropDownButton } from "./SortByDropDownButton";
 import { SortByMobileButton } from "./SortByMobileButton";
 import { EmptyMuted, JobDetailPanelSkeleton } from "./JobsWrapper";
@@ -33,6 +35,7 @@ import type { JobWithEmployer } from "@/schemas/responses/jobs";
 
 interface SearchJobsWrapperProps {
   initialJobs: PaginatedApiResponse<JobWithEmployer>;
+  isAuthenticated: boolean;
 }
 
 /**
@@ -45,7 +48,10 @@ interface SearchJobsWrapperProps {
  * same source used by `useSearchJobs` for query params — URL and store stay
  * in sync via the module-level subscribe in `context/store.ts`.
  */
-export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
+export function SearchJobsWrapper({
+  initialJobs,
+  isAuthenticated,
+}: SearchJobsWrapperProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [jobId, setJobId] = useState<number | undefined>(undefined);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -99,6 +105,30 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
   const defaultJobs = useMemo(
     () => defaultData?.pages.flatMap((page) => page.data) ?? [],
     [defaultData],
+  );
+
+  // When an authenticated user's search returns zero results, we fall back to
+  // their personalized recommendations (the same feed as the "For You" tab) so
+  // they're never staring at a dead-end empty card. The query is only enabled
+  // after the search resolves with zero hits — no point prefetching a fallback
+  // we won't show.
+  const shouldShowRecommendationsFallback =
+    isAuthenticated &&
+    isSearching &&
+    !isSearchLoading &&
+    !isSearchError &&
+    searchResults.length === 0 &&
+    searchData !== undefined;
+
+  const {
+    data: recommendedData,
+    isLoading: isRecommendedLoading,
+    isError: isRecommendedError,
+  } = useRecommendedJobs({ enabled: shouldShowRecommendationsFallback });
+
+  const recommendedResults = useMemo(
+    () => recommendedData?.pages.flatMap((page) => page.data) ?? [],
+    [recommendedData],
   );
 
   const searchTotal = searchData?.pages[0]?.pagination.total ?? 0;
@@ -157,14 +187,18 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
   }, [refetchSearch]);
 
   // Resolve the default-selected job per-mode so the desktop detail panel
-  // always has something to show when the list isn't empty.
-  const firstJobId = isSearching
-    ? searchResults.length > 0
-      ? Number(searchResults[0].id)
-      : undefined
-    : defaultJobs.length > 0
-      ? defaultJobs[0].job.id
-      : undefined;
+  // always has something to show when the list isn't empty. For an authed
+  // user whose search turned up nothing, we preselect the first recommended
+  // job so the fallback list and the detail panel stay in sync.
+  const firstJobId = (() => {
+    if (isSearching) {
+      if (searchResults.length > 0) return Number(searchResults[0].id);
+      if (recommendedResults.length > 0)
+        return Number(recommendedResults[0].id);
+      return undefined;
+    }
+    return defaultJobs.length > 0 ? defaultJobs[0].job.id : undefined;
+  })();
 
   const selectedJobId = jobId ?? (isDesktop ? firstJobId : undefined);
   const mobileOpen = !isDesktop && !!selectedJobId;
@@ -207,14 +241,45 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
       if (isSearchLoading) return <SearchLoadingState />;
       if (isSearchError)
         return <SearchErrorState onRetry={handleRetrySearch} />;
-      if (searchResults.length === 0)
+      if (searchResults.length === 0) {
+        // Unauthed empty case is handled via an early return below — this
+        // branch only runs for authed users.
         return (
-          <SearchEmptyState
-            onClearFilters={handleClearFilters}
-            title="No matching jobs"
-            description="We couldn't find any jobs that match your search. Try adjusting your keywords, location, or filters."
-          />
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2 rounded-lg border border-dashed p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-muted-foreground text-sm">
+                We didn&apos;t find any jobs that match your search.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="self-start sm:self-auto"
+                onClick={handleClearFilters}
+              >
+                Clear filters
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-foreground text-sm font-semibold">
+                Similar to jobs you might like
+              </h3>
+              {isRecommendedLoading ? (
+                <SearchLoadingState />
+              ) : isRecommendedError || recommendedResults.length === 0 ? (
+                <p className="text-muted-foreground py-6 text-center text-sm">
+                  No recommendations available right now.
+                </p>
+              ) : (
+                <SearchJobsList
+                  data={recommendedResults}
+                  onJobSelected={handleJobSelect}
+                  selectedId={selectedJobId}
+                />
+              )}
+            </div>
+          </div>
         );
+      }
       return (
         <SearchJobsList
           data={searchResults}
@@ -235,6 +300,19 @@ export function SearchJobsWrapper({ initialJobs }: SearchJobsWrapperProps) {
       </Suspense>
     );
   })();
+
+  // Unauthed empty search: step out of the two-column layout entirely and
+  // show the full-width sign-in CTA, mirroring how the For You tab handles
+  // unauthenticated users.
+  if (
+    isSearching &&
+    !isSearchLoading &&
+    !isSearchError &&
+    searchResults.length === 0 &&
+    !isAuthenticated
+  ) {
+    return <SearchJobsResultEmpty />;
+  }
 
   return (
     <main className="mx-auto max-w-7xl px-1 py-4 lg:px-4 lg:py-6">

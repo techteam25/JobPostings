@@ -73,6 +73,87 @@ services:
       - ./typesense-data:/data
     command: "--data-dir /data --api-key=${TYPESENSE_API_KEY} --enable-cors"
 
+  loki:
+    image: grafana/loki:3.5.0
+    container_name: loki
+    restart: on-failure
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./ops/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+
+  tempo:
+    image: grafana/tempo:2.7.2
+    container_name: tempo
+    restart: on-failure
+    ports:
+      - "3200:3200"   # HTTP API (for Grafana datasource + ad-hoc queries)
+      - "4320:4317"   # OTLP gRPC (per Task 1270 AC — direct ingest for debugging)
+      - "4321:4318"   # OTLP HTTP (per Task 1270 AC)
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./ops/tempo/tempo-config.yml:/etc/tempo.yaml:ro
+      - tempo_data:/var/tempo
+
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    container_name: prometheus
+    restart: on-failure
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-remote-write-receiver"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=14d"
+    volumes:
+      - ./ops/prometheus/prometheus-config.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+
+  alloy:
+    image: grafana/alloy:v1.7.4
+    container_name: alloy
+    restart: on-failure
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "12345:12345"
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./ops/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./logs:/var/log/app:ro
+      - alloy_data:/var/lib/alloy/data
+    depends_on:
+      - loki
+      - tempo
+      - prometheus
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    container_name: grafana
+    restart: on-failure
+    ports:
+      - "3030:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+    volumes:
+      - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - loki
+      - tempo
+      - prometheus
+
 volumes:
   typesense-data:
   mysql-data:
@@ -81,4 +162,14 @@ volumes:
   redis_queue_data:
     driver: local
   redis_rate_limiter_data:
+    driver: local
+  loki_data:
+    driver: local
+  tempo_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  alloy_data:
+    driver: local
+  grafana_data:
     driver: local
