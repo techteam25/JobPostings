@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * v1 audit-event inventory (US 565 / Task 609).
+ * v1 audit-event inventory
  * Any emission outside this set fails Zod validation at the adapter boundary.
  */
 export const AuditEventName = z.enum([

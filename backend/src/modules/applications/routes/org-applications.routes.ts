@@ -6,6 +6,7 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import { auditRead } from "@/middleware/audit-read.middleware";
 import {
   jobApplicationManagementSchema,
   jobApplicationsManagementSchema,
@@ -50,6 +51,10 @@ export function createOrgApplicationsRoutes({
     authenticate,
     orgGuards.requireJobPostingRole(),
     orgGuards.ensureIsOrganizationMember,
+    auditRead("read.application.by_employer", (req) => ({
+      type: "application",
+      id: String(req.params.applicationId),
+    })),
     validate(jobApplicationManagementSchema),
     cacheMiddleware({ ttl: 300 }),
     controller.getJobApplicationForOrganization,
