@@ -4,6 +4,8 @@ import type { CandidateSortBy, CandidateSortOrder } from "@/types/candidate";
 const PARAM_KEYS = {
   skills: "skills",
   location: "location",
+  locationFilter: "locationFilter",
+  locationZipcode: "locationZipcode",
   minYearsExperience: "minYearsExperience",
   openToWork: "openToWork",
   page: "page",
@@ -23,7 +25,12 @@ const VALID_SORT_ORDER = new Set<CandidateSortOrder>(["asc", "desc"]);
 
 export type CandidateSearchUrlState = Pick<
   CandidateSearchFiltersState,
-  "skills" | "location" | "minYearsExperience" | "openToWork"
+  | "skills"
+  | "location"
+  | "locationFilter"
+  | "locationZipcode"
+  | "minYearsExperience"
+  | "openToWork"
 > & {
   page?: number;
   limit?: number;
@@ -42,6 +49,20 @@ export function buildCandidateSearchParams(
 
   if (state.location.trim()) {
     params.set(PARAM_KEYS.location, state.location.trim());
+  }
+
+  // Only emit `locationFilter` when it diverges from the display `location`.
+  // When they match (free-form input), we can reconstruct it at hydration
+  // time and keep the URL clean.
+  if (
+    state.locationFilter.trim() &&
+    state.locationFilter.trim() !== state.location.trim()
+  ) {
+    params.set(PARAM_KEYS.locationFilter, state.locationFilter.trim());
+  }
+
+  if (state.locationZipcode.trim()) {
+    params.set(PARAM_KEYS.locationZipcode, state.locationZipcode.trim());
   }
 
   if (
@@ -84,6 +105,32 @@ export function parseCandidateSearchParams(
 
   const location = params.get(PARAM_KEYS.location);
   if (location) result.location = location;
+
+  const locationZipcode = params.get(PARAM_KEYS.locationZipcode);
+  if (locationZipcode) {
+    result.locationZipcode = locationZipcode;
+  }
+
+  // Deriving `locationFilter` from the URL has three cases:
+  //
+  // 1. Explicit `locationFilter` param present — use it as-is. This is the
+  //    "suggestion picked and it diverges from display" case.
+  // 2. No `locationFilter`, but `locationZipcode` is present — the user
+  //    picked a pure zipcode suggestion; the indexed candidate `location`
+  //    never contains zips, so the correct default is empty. Falling back
+  //    to the short display value here (e.g. "78701, TX") would AND a
+  //    zero-match token filter into the query after reload/share-link.
+  // 3. No `locationFilter` and no `locationZipcode` — treat as free-form
+  //    input and mirror the display value into the filter so a shared
+  //    link still attempts a best-effort match.
+  const locationFilter = params.get(PARAM_KEYS.locationFilter);
+  if (locationFilter) {
+    result.locationFilter = locationFilter;
+  } else if (locationZipcode) {
+    result.locationFilter = "";
+  } else if (location) {
+    result.locationFilter = location;
+  }
 
   const minYears = params.get(PARAM_KEYS.minYearsExperience);
   if (minYears !== null) {

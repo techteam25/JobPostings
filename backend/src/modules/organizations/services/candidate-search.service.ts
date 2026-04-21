@@ -31,6 +31,7 @@ export class CandidateSearchService
       const {
         skills,
         location,
+        zipcode,
         minYearsExperience,
         openToWork,
         page,
@@ -43,6 +44,10 @@ export class CandidateSearchService
         .addSingleFilter("isProfilePublic", true)
         .addSingleFilter("intent", "seeker")
         .addSingleFilter("location", location)
+        // `zipCode` is indexed as a separate optional string field
+        // (migration `0006_add-zipcode-to-profiles`) so we can AND it into
+        // the filter independently of the tokenized `location` string.
+        .addSingleFilter("zipCode", zipcode)
         .addSingleFilter("openToWork", openToWork);
 
       if (minYearsExperience !== undefined) {

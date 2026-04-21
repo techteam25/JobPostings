@@ -16,6 +16,25 @@ import {
 import type { Skill } from "@/validations/skills.validation";
 import { isPossiblePhoneNumber } from "libphonenumber-js";
 
+const URL_PROTOCOL_REGEX = /^https?:\/\//i;
+const URL_PROTOCOL_ONLY_REGEX = /^https?:\/\/$/i;
+function normalizeUrl(input: unknown): string {
+  const trimmed = typeof input === "string" ? input.trim() : "";
+  if (!trimmed) return "";
+  if (URL_PROTOCOL_ONLY_REGEX.test(trimmed)) return "";
+  return URL_PROTOCOL_REGEX.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+const optionalNormalizedUrl = (message: string) =>
+  z
+    .string()
+    .optional()
+    .transform((v) => {
+      const normalized = normalizeUrl(v);
+      return normalized === "" ? undefined : normalized;
+    })
+    .pipe(z.string().url(message).optional());
+
 /**
  * Strips HTML tags from a string and returns the plain-text content.
  * Used to validate bio length against the actual text the user typed,
@@ -40,9 +59,9 @@ export const insertUserProfileSchema = createInsertSchema(userProfile, {
     .min(10, "Bio must be at least 10 characters")
     .max(1000)
     .optional(),
-  resumeUrl: z.url("Invalid resume URL").optional(),
-  linkedinUrl: z.url("Invalid LinkedIn URL").optional(),
-  portfolioUrl: z.url("Invalid portfolio URL").optional(),
+  resumeUrl: optionalNormalizedUrl("Invalid resume URL"),
+  linkedinUrl: optionalNormalizedUrl("Invalid LinkedIn URL"),
+  portfolioUrl: optionalNormalizedUrl("Invalid portfolio URL"),
 });
 
 export const selectUserSchema = createSelectSchema(user);

@@ -26,6 +26,11 @@ export const searchCandidatesQuerySchema = z
       .optional()
       .default([]),
     location: z.string().max(200).optional(),
+    // Zip/postal code is filtered separately from `location` so that
+    // selecting a postcode suggestion in the frontend autocomplete matches
+    // candidates whose indexed `location` field never includes a zip. Kept
+    // short (max 20) to accommodate international formats without bloat.
+    zipcode: z.string().max(20).optional(),
     minYearsExperience: z.coerce.number().int().min(0).max(50).optional(),
     openToWork: coerceQueryBool().optional(),
     page: z.coerce.number().int().min(1).default(1),

@@ -5,7 +5,18 @@ export interface ProfileDocument {
   photoUrl?: string;
   headline: string;
   skills: string[];
+  /**
+   * Full-form "City, State, Country" tokenized string used by autocomplete
+   * + free-text location filters. Kept separate from `zipCode` so the
+   * single-field token match doesn't need to account for variable-length
+   * postal codes.
+   */
   location: string;
+  /**
+   * Candidate's zip/postal code (optional). Filtered as an AND with
+   * `location` when a recruiter picks a zip-code autocomplete suggestion.
+   */
+  zipCode?: string;
   yearsOfExperience: number;
   openToWork: boolean;
   isProfilePublic: boolean;

@@ -5,6 +5,7 @@ import { useForm } from "@tanstack/react-form";
 import { Building2, Loader2, Upload } from "lucide-react";
 import { DynamicRichTextEditor } from "@/components/common";
 import { Input } from "@/components/ui/input";
+import { UrlInput } from "@/components/ui/url-input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
@@ -113,13 +114,14 @@ export function EditOrganizationForm() {
             return (
               <Field data-invalid={isInvalid || undefined}>
                 <FieldLabel htmlFor={field.name}>Website URL</FieldLabel>
-                <Input
+                <UrlInput
                   id={field.name}
-                  value={field.state.value}
+                  value={field.state.value ?? ""}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(value) => field.handleChange(value)}
+                  invalid={isInvalid || undefined}
                   aria-invalid={isInvalid || undefined}
-                  placeholder="https://example.com"
+                  placeholder="example.com"
                 />
                 {isInvalid && (
                   <FieldError

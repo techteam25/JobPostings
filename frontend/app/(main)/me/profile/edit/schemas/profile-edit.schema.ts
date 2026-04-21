@@ -1,9 +1,21 @@
 import { z } from "zod";
 import { isPossiblePhoneNumber } from "libphonenumber-js";
 
+import { normalizeUrl } from "@/lib/url";
+
 function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]*>/g, "").trim();
 }
+
+const optionalUrl = (message: string) =>
+  z
+    .string()
+    .optional()
+    .transform((v) => {
+      const normalized = normalizeUrl(v);
+      return normalized === "" ? undefined : normalized;
+    })
+    .pipe(z.string().url(message).optional());
 
 export const profileEditSchema = z
   .object({
@@ -16,8 +28,8 @@ export const profileEditSchema = z
     city: z.string().optional(),
     state: z.string().optional(),
     country: z.string().optional(),
-    linkedinUrl: z.string().optional(),
-    portfolioUrl: z.string().optional(),
+    linkedinUrl: optionalUrl("Invalid LinkedIn URL"),
+    portfolioUrl: optionalUrl("Invalid portfolio URL"),
   })
   .refine(
     (data) => {
@@ -39,30 +51,6 @@ export const profileEditSchema = z
       return isPossiblePhoneNumber(data.phoneNumber, "US");
     },
     { message: "Invalid phone number", path: ["phoneNumber"] },
-  )
-  .refine(
-    (data) => {
-      if (!data.linkedinUrl) return true;
-      try {
-        new URL(data.linkedinUrl);
-        return true;
-      } catch {
-        return false;
-      }
-    },
-    { message: "Invalid LinkedIn URL", path: ["linkedinUrl"] },
-  )
-  .refine(
-    (data) => {
-      if (!data.portfolioUrl) return true;
-      try {
-        new URL(data.portfolioUrl);
-        return true;
-      } catch {
-        return false;
-      }
-    },
-    { message: "Invalid portfolio URL", path: ["portfolioUrl"] },
   );
 
 export type ProfileEditFormData = z.infer<typeof profileEditSchema>;

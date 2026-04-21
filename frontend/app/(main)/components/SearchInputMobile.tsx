@@ -13,7 +13,8 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { Input } from "@/components/ui/input";
+import { ClearableInput } from "@/components/ui/clearable-input";
+import { LocationCombobox } from "@/components/ui/location-combobox";
 import { Button } from "@/components/ui/button";
 import { useFiltersStore } from "@/context/store";
 
@@ -71,6 +72,9 @@ export const SearchInputMobile = ({
     [handleCommit],
   );
 
+  const pillInputClass =
+    "text-muted-foreground h-12 flex-1 text-base shadow-none outline-none focus-visible:ring-0 border-0 bg-transparent";
+
   return (
     <Drawer open={open} onOpenChange={handleOpenChange}>
       <DrawerTrigger className="w-full lg:hidden" asChild>
@@ -99,30 +103,31 @@ export const SearchInputMobile = ({
         </DrawerHeader>
 
         <div className="flex flex-col gap-3 px-4 pb-6">
-          <div className="border-input bg-input relative flex items-center rounded-full px-4">
-            <Search className="text-muted-foreground size-5 shrink-0" />
-            <Input
-              ref={keywordInputRef}
-              value={localKeyword}
-              onChange={(event) => setLocalKeyword(event.target.value)}
-              onKeyDown={handleKeywordKeyDown}
-              placeholder="Find your next role"
-              aria-label="Search for jobs"
-              className="text-muted-foreground h-12 flex-1 text-base shadow-none outline-none focus-visible:ring-0"
-            />
-          </div>
-          <div className="border-input bg-input relative flex items-center rounded-full px-4">
-            <MapPin className="text-muted-foreground size-5 shrink-0" />
-            <Input
-              ref={locationInputRef}
-              value={localLocation}
-              onChange={(event) => setLocalLocation(event.target.value)}
-              onKeyDown={handleLocationKeyDown}
-              placeholder="Location"
-              aria-label="Search by location"
-              className="text-muted-foreground h-12 flex-1 text-base shadow-none outline-none focus-visible:ring-0"
-            />
-          </div>
+          <ClearableInput
+            ref={keywordInputRef}
+            value={localKeyword}
+            onChange={(event) => setLocalKeyword(event.target.value)}
+            onClear={() => setLocalKeyword("")}
+            onKeyDown={handleKeywordKeyDown}
+            placeholder="Find your next role"
+            aria-label="Search for jobs"
+            clearAriaLabel="Clear search"
+            startAdornment={<Search className="size-5" />}
+            containerClassName="border-input bg-input rounded-full"
+            className={pillInputClass}
+          />
+          <LocationCombobox
+            ref={locationInputRef}
+            value={localLocation}
+            onChange={(value) => setLocalLocation(value)}
+            onKeyDown={handleLocationKeyDown}
+            placeholder='City, state, zip code, or "remote"'
+            aria-label="Search by location"
+            clearAriaLabel="Clear location"
+            startAdornment={<MapPin className="size-5" />}
+            containerClassName="border-input bg-input rounded-full"
+            className={pillInputClass}
+          />
 
           <Button
             onClick={handleCommit}

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeUrl } from "@/lib/url";
 
 export const editOrganizationSchema = z.object({
   name: z
@@ -11,7 +12,12 @@ export const editOrganizationSchema = z.object({
   country: z.string().min(1, "Country is required"),
   zipCode: z.string(),
   phone: z.string().min(10, "Phone number must be at least 10 characters"),
-  url: z.url("Invalid URL format").nonempty("Website URL is required"),
+  url: z
+    .string()
+    .transform((v) => normalizeUrl(v))
+    .pipe(
+      z.string().min(1, "Website URL is required").url("Invalid URL format"),
+    ),
   mission: z.string().min(1, "Mission is required"),
 });
 

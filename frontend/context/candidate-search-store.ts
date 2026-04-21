@@ -11,14 +11,45 @@ import {
 
 export interface CandidateSearchFiltersState {
   skills: string[];
+  /**
+   * Short, user-facing location string shown in the input (e.g.
+   * "Austin, TX"). Also kept in the URL for shareable links.
+   */
   location: string;
+  /**
+   * Canonical, backend-matchable location string that tokenizes cleanly
+   * against the Typesense-indexed `location` field (e.g. "Austin, Texas,
+   * United States"). When a user picks an autocomplete suggestion, this
+   * diverges from `location`. When they type free-form, it equals
+   * `location`. Empty when a pure-zipcode suggestion was picked (the
+   * indexed `location` can't match a zip, so we leave the location filter
+   * unset and rely on `locationZipcode` alone).
+   */
+  locationFilter: string;
+  /**
+   * Zip/postal code filter. Set when the user picks a zipcode
+   * autocomplete suggestion (the indexed candidate `location` never
+   * includes zip codes — the backend matches this via a separate
+   * `zipCode` Typesense field, see migration `0006_add-zipcode-to-profiles`).
+   */
+  locationZipcode: string;
   minYearsExperience: number | null;
   openToWork: boolean;
 
   setSkills: (skills: string[]) => void;
   addSkill: (skill: string) => void;
   removeSkill: (skill: string) => void;
-  setLocation: (location: string) => void;
+  /**
+   * Set the display value, the tokenized location filter, and the zipcode
+   * filter in a single update. Pass `filterValue` and `zipcode` to decouple
+   * them when a suggestion is picked; omit them for raw free-form input
+   * (filter falls back to the display, zipcode is cleared).
+   */
+  setLocation: (
+    location: string,
+    filterValue?: string,
+    zipcode?: string,
+  ) => void;
   setMinYearsExperience: (minYearsExperience: number | null) => void;
   setOpenToWork: (openToWork: boolean) => void;
   clearFilters: () => void;

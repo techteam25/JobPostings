@@ -3,7 +3,8 @@
 import { type KeyboardEvent, memo, useCallback, useRef, useState } from "react";
 import { MapPin, Search } from "lucide-react";
 
-import { Input } from "@/components/ui/input";
+import { ClearableInput } from "@/components/ui/clearable-input";
+import { LocationCombobox } from "@/components/ui/location-combobox";
 import { useFiltersStore } from "@/context/store";
 
 interface DesktopSearchBarProps {
@@ -76,32 +77,36 @@ export const DesktopSearchBar = memo(function DesktopSearchBar({
     [commit],
   );
 
+  const inputClassName =
+    "text-secondary-foreground border-foreground bg-background h-12 rounded-none text-lg shadow-none outline-none focus-visible:ring-0";
+
   return (
     <>
-      <div className="relative flex-1">
-        <Search className="text-secondary-foreground absolute top-1/2 left-3 mr-1 size-6 -translate-y-1/2" />
-        <Input
-          ref={keywordRef}
-          value={displayKeyword}
-          onChange={(event) => setPendingKeyword(event.target.value)}
-          onKeyDown={handleKeywordKeyDown}
-          placeholder="Find your next job"
-          aria-label="Search for jobs"
-          className="text-secondary-foreground border-foreground bg-background h-12 rounded-none rounded-l-full pl-10 text-lg shadow-none outline-none focus-visible:ring-0"
-        />
-      </div>
-      <div className="relative w-64">
-        <MapPin className="text-secondary-foreground absolute top-1/2 left-3 size-5 -translate-y-1/2" />
-        <Input
-          ref={locationRef}
-          value={displayLocation}
-          onChange={(event) => setPendingLocation(event.target.value)}
-          onKeyDown={handleLocationKeyDown}
-          placeholder="Location"
-          aria-label="Search by location"
-          className="text-secondary-foreground border-foreground bg-background h-12 rounded-none rounded-r-full pl-10 text-lg shadow-none outline-none focus-visible:ring-0"
-        />
-      </div>
+      <ClearableInput
+        ref={keywordRef}
+        value={displayKeyword}
+        onChange={(event) => setPendingKeyword(event.target.value)}
+        onClear={() => setPendingKeyword("")}
+        onKeyDown={handleKeywordKeyDown}
+        placeholder="Find your next job"
+        aria-label="Search for jobs"
+        clearAriaLabel="Clear search"
+        startAdornment={<Search className="size-6" />}
+        containerClassName="flex-1"
+        className={`${inputClassName} rounded-l-full`}
+      />
+      <LocationCombobox
+        ref={locationRef}
+        value={displayLocation}
+        onChange={(value) => setPendingLocation(value)}
+        onKeyDown={handleLocationKeyDown}
+        placeholder='City, state, zip code, or "remote"'
+        aria-label="Search by location"
+        clearAriaLabel="Clear location"
+        startAdornment={<MapPin className="size-5" />}
+        containerClassName="w-72"
+        className={`${inputClassName} rounded-r-full`}
+      />
     </>
   );
 });

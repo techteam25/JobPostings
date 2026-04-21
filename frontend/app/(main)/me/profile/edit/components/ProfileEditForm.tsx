@@ -24,6 +24,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { UrlInput } from "@/components/ui/url-input";
 import {
   Select,
   SelectContent,
@@ -494,31 +495,21 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
         <FieldGroup>
           <form.Field
             name="linkedinUrl"
-            validators={{
-              onBlur: ({ value }) => {
-                if (!value) return undefined;
-                try {
-                  new URL(value);
-                  return undefined;
-                } catch {
-                  return "Invalid LinkedIn URL";
-                }
-              },
-            }}
             children={(field) => {
               const isInvalid =
                 field.state.meta.isTouched && !field.state.meta.isValid;
               return (
                 <Field data-invalid={isInvalid}>
                   <FieldLabel htmlFor={field.name}>LinkedIn URL</FieldLabel>
-                  <Input
+                  <UrlInput
                     id={field.name}
                     name={field.name}
-                    value={field.state.value}
+                    value={field.state.value ?? ""}
                     onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
+                    onChange={(value) => field.handleChange(value)}
+                    invalid={isInvalid}
                     aria-invalid={isInvalid}
-                    placeholder="https://linkedin.com/in/yourprofile"
+                    placeholder="linkedin.com/in/yourprofile"
                     autoComplete="url"
                   />
                   {isInvalid && field.state.meta.errors.length > 0 && (
@@ -538,31 +529,21 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
         <FieldGroup>
           <form.Field
             name="portfolioUrl"
-            validators={{
-              onBlur: ({ value }) => {
-                if (!value) return undefined;
-                try {
-                  new URL(value);
-                  return undefined;
-                } catch {
-                  return "Invalid portfolio URL";
-                }
-              },
-            }}
             children={(field) => {
               const isInvalid =
                 field.state.meta.isTouched && !field.state.meta.isValid;
               return (
                 <Field data-invalid={isInvalid}>
                   <FieldLabel htmlFor={field.name}>Portfolio URL</FieldLabel>
-                  <Input
+                  <UrlInput
                     id={field.name}
                     name={field.name}
-                    value={field.state.value}
+                    value={field.state.value ?? ""}
                     onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
+                    onChange={(value) => field.handleChange(value)}
+                    invalid={isInvalid}
                     aria-invalid={isInvalid}
-                    placeholder="https://yourportfolio.com"
+                    placeholder="yourportfolio.com"
                     autoComplete="url"
                   />
                   {isInvalid && field.state.meta.errors.length > 0 && (

@@ -63,6 +63,7 @@ async function main() {
             city: true,
             state: true,
             country: true,
+            zipCode: true,
             isProfilePublic: true,
             isAvailableForWork: true,
           },
@@ -97,7 +98,18 @@ async function main() {
           intent: row.intent,
           deletedAt: row.deletedAt,
         },
-        userProfile: row.profile ?? null,
+        userProfile: row.profile
+          ? {
+              profilePicture: row.profile.profilePicture ?? null,
+              bio: row.profile.bio ?? null,
+              city: row.profile.city ?? null,
+              state: row.profile.state ?? null,
+              country: row.profile.country ?? null,
+              zipCode: row.profile.zipCode ?? null,
+              isProfilePublic: row.profile.isProfilePublic,
+              isAvailableForWork: row.profile.isAvailableForWork,
+            }
+          : null,
         workExperiences: row.profile?.workExperiences ?? [],
         skills: (row.profile?.skills ?? []).map((s) => s.skill.name),
       });

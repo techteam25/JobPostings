@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LocationCombobox } from "@/components/ui/location-combobox";
 import {
   Popover,
   PopoverContent,
@@ -151,11 +152,14 @@ function SharedFilterControls() {
         <Label htmlFor="candidate-location" className="text-sm font-medium">
           Location
         </Label>
-        <Input
+        <LocationCombobox
           id="candidate-location"
           value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          placeholder="City, state, or country"
+          onChange={(value, meta) =>
+            setLocation(value, meta?.filterValue, meta?.zip)
+          }
+          placeholder="City, state, or zip"
+          clearAriaLabel="Clear location"
           maxLength={200}
         />
       </div>
