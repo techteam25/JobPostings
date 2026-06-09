@@ -8,6 +8,7 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import { cacheKeys } from "@shared/infrastructure/cache-keys";
 
 export function createSavedJobRoutes({
   controller,
@@ -40,8 +41,9 @@ export function createSavedJobRoutes({
     "/me/saved-jobs/:jobId",
     profileGuards.requireUserRole,
     validate(getJobSchema),
-    invalidateCacheMiddleware(() => "users/me/saved-jobs"),
-    invalidateCacheMiddleware(() => "jobs"),
+    invalidateCacheMiddleware(() => cacheKeys.userSavedJobs),
+    // Job listing/detail payloads carry the viewer's `isSaved` flag.
+    invalidateCacheMiddleware(() => cacheKeys.jobs),
     controller.saveJobForCurrentUser,
   );
 
@@ -50,8 +52,8 @@ export function createSavedJobRoutes({
     "/me/saved-jobs/:jobId",
     profileGuards.requireUserRole,
     validate(getJobSchema),
-    invalidateCacheMiddleware(() => "users/me/saved-jobs"),
-    invalidateCacheMiddleware(() => "jobs"),
+    invalidateCacheMiddleware(() => cacheKeys.userSavedJobs),
+    invalidateCacheMiddleware(() => cacheKeys.jobs),
     controller.unsaveJobForCurrentUser,
   );
 

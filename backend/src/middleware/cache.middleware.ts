@@ -3,11 +3,15 @@ import {
   CacheService,
   CacheOptions,
 } from "@shared/infrastructure/cache.service";
+import { pathKey, userScoped } from "@shared/infrastructure/cache-keys";
 import logger from "@shared/logger";
 
 export interface CacheMiddlewareOptions extends CacheOptions {
   keyGenerator?: (req: Request) => string;
 }
+
+export const defaultCacheKey = (req: Request): string =>
+  userScoped(pathKey(req), req.userId);
 
 /**
  * Middleware to cache GET request responses
@@ -24,7 +28,7 @@ export const cacheMiddleware = (options: CacheMiddlewareOptions) => {
       // Generate cache key
       const cacheKey = options.keyGenerator
         ? options.keyGenerator(req)
-        : `${(req.originalUrl || req.url).replace(/^\/api\//, "")}`;
+        : defaultCacheKey(req);
 
       // Try to get from cache
       const cached = await CacheService.get(cacheKey, {

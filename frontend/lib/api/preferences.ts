@@ -54,7 +54,7 @@ export const fetchJobAlert = async (
     {
       credentials: "include",
       headers: { Cookie: cookieStore.toString() },
-      next: { revalidate: 300, tags: [`job-alert-${alertId}`] },
+      cache: "no-store",
     },
   );
 

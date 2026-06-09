@@ -104,6 +104,9 @@ export async function initializeInfrastructure(): Promise<void> {
 // Create Express application
 const app: Application = express();
 
+// Trust the single proxy hop (nginx) so req.ip reflects the real client
+app.set("trust proxy", 1);
+
 // Request logging middleware (should be early)
 app.use(requestLogger);
 

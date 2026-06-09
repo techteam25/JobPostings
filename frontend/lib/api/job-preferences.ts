@@ -18,7 +18,7 @@ export const getJobPreferences = async (): Promise<
       headers: {
         Cookie: cookieStore.toString(),
       },
-      next: { revalidate: 300, tags: ["job-preferences"] },
+      cache: "no-store",
     },
   );
 
@@ -72,7 +72,9 @@ export const getAvailableWorkAreas = async (): Promise<
       headers: {
         Cookie: cookieStore.toString(),
       },
-      next: { revalidate: 300, tags: ["work-areas"] },
+      // Static reference catalog (same for every user, rarely changes) — cache
+      // it rather than refetching on every render.
+      next: { revalidate: 3600 },
     },
   );
 

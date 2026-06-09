@@ -48,7 +48,7 @@ export const searchCandidates = async (
     headers: {
       Cookie: cookieStore.toString(),
     },
-    next: { revalidate: 60, tags: ["candidate-search"] },
+    cache: "no-store",
   });
 
   return handlePaginatedApiResponse<CandidatePreview>(

@@ -22,7 +22,7 @@ export const getUserOrganizations = async (): Promise<
       headers: {
         Cookie: cookieStore.toString(),
       },
-      next: { revalidate: 300, tags: ["user-organizations"] },
+      cache: "no-store",
     },
   );
 
@@ -36,7 +36,9 @@ export const getOrganization = async (
     `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${id}`,
     {
       credentials: "include",
-      next: { revalidate: 300, tags: [`organization-${id}`] },
+      // no-store: org details must reflect edits immediately (updateOrganization
+      // only revalidatePath("/"), which would not bust a tagged data-cache entry).
+      cache: "no-store",
     },
   );
 

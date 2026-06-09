@@ -1,5 +1,5 @@
 import { BaseRepository } from "@shared/base/base.repository";
-import { jobInsights, jobsDetails } from "@/db/schema";
+import { jobApplications, jobInsights, jobsDetails } from "@/db/schema";
 import { db } from "@shared/db/connection";
 import { count, eq, sql, sum } from "drizzle-orm";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
@@ -41,7 +41,12 @@ export class JobInsightsRepository
   }
 
   /**
-   * Increments the application count for a specific job.
+   * Recomputes a job's active application count from job_applications.
+   * Withdrawn applications are excluded — withdrawal is a soft delete (the row
+   * is retained with status='withdrawn'), and the count tracks active
+   * applicants (see the `application_count >= 0` check constraint, added to
+   * keep the count non-negative on withdrawal).
+   * Idempotent — safe to re-run on event retries.
    * @param jobId The ID of the job.
    */
   async incrementJobApplications(jobId: number) {
@@ -50,7 +55,7 @@ export class JobInsightsRepository
         await db
           .update(jobInsights)
           .set({
-            applicationCount: sql`(${jobInsights.applicationCount} + 1)`,
+            applicationCount: sql`(SELECT COUNT(*) FROM ${jobApplications} WHERE ${jobApplications.jobId} = ${jobId} AND ${jobApplications.status} <> 'withdrawn')`,
           })
           .where(eq(jobInsights.job, jobId)),
     );

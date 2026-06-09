@@ -18,6 +18,7 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import { cacheKeys } from "@shared/infrastructure/cache-keys";
 
 export function createJobBoardRoutes({
   authenticate,
@@ -46,13 +47,9 @@ export function createJobBoardRoutes({
     "/",
     optionalAuthenticate,
     validate(searchParams),
-    cacheMiddleware({
-      ttl: 300,
-      keyGenerator: (req) => {
-        const base = (req.originalUrl || req.url).replace(/^\/api\//, "");
-        return req.userId ? `${base}:user:${req.userId}` : base;
-      },
-    }),
+    // Default key is per-user (the listing payload carries each viewer's
+    // `isSaved` flag); omitting keyGenerator falls back to defaultCacheKey.
+    cacheMiddleware({ ttl: 300 }),
     controller.getAllJobs,
   );
 
@@ -71,8 +68,12 @@ export function createJobBoardRoutes({
     validate(recommendationParams),
     cacheMiddleware({
       ttl: 300,
+      // Keyed under its own `recommendations` namespace (not `jobs/...`) so
+      // broad `jobs` invalidation on job create/update/delete and save/unsave
+      // does not evict this expensive per-user personalized result; it relies
+      // on its TTL for freshness.
       keyGenerator: (req) =>
-        `jobs/recommendations:user:${req.userId}:page:${req.query.page ?? 1}:limit:${req.query.limit ?? 10}`,
+        `recommendations:user:${req.userId}:page:${req.query.page ?? 1}:limit:${req.query.limit ?? 10}`,
     }),
     controller.getRecommendations,
   );
@@ -93,13 +94,8 @@ export function createJobBoardRoutes({
     "/:jobId",
     optionalAuthenticate,
     validate(getJobSchema),
-    cacheMiddleware({
-      ttl: 300,
-      keyGenerator: (req) => {
-        const base = (req.originalUrl || req.url).replace(/^\/api\//, "");
-        return req.userId ? `${base}:user:${req.userId}` : base;
-      },
-    }),
+    // Per-user default key (payload carries the viewer's `isSaved` flag).
+    cacheMiddleware({ ttl: 300 }),
     controller.getJobById,
   );
 
@@ -109,7 +105,7 @@ export function createJobBoardRoutes({
     authenticate,
     orgGuards.requireJobPostingRole(),
     validate(createJobSchema),
-    invalidateCacheMiddleware(() => `/api/jobs`),
+    invalidateCacheMiddleware(() => cacheKeys.jobs),
     controller.createJob,
   );
 
@@ -119,7 +115,7 @@ export function createJobBoardRoutes({
     authenticate,
     orgGuards.requireJobPostingRole(),
     validate(updateJobSchema),
-    invalidateCacheMiddleware(() => `/api/jobs`),
+    invalidateCacheMiddleware(() => cacheKeys.jobs),
     controller.updateJob,
   );
 
@@ -130,8 +126,9 @@ export function createJobBoardRoutes({
     jobBoardGuards.ensureJobOwnership,
     orgGuards.requireDeleteJobPermission(),
     validate(deleteJobSchema),
-    invalidateCacheMiddleware(() => `/api/jobs`),
-    invalidateCacheMiddleware((req) => `/api/jobs/${req.params.jobId}`),
+    // `jobs` is a prefix glob (`cache:jobs*`) that already covers the
+    // `jobs/<jobId>` detail key, so no separate per-id invalidation is needed.
+    invalidateCacheMiddleware(() => cacheKeys.jobs),
     controller.deleteJob,
   );
 
