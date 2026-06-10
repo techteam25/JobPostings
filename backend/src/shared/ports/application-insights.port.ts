@@ -1,3 +1,3 @@
 export interface ApplicationInsightsPort {
-  incrementJobApplications(jobId: number): Promise<void>;
+  syncJobApplicationCount(jobId: number): Promise<void>;
 }

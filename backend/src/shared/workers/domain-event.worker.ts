@@ -6,7 +6,10 @@ import {
   queueService,
 } from "@shared/infrastructure/queue.service";
 import logger from "@shared/logger";
-import type { ApplicationSubmittedPayload } from "@/modules/applications";
+import type {
+  ApplicationSubmittedPayload,
+  ApplicationWithdrawnPayload,
+} from "@/modules/applications";
 import type {
   UserDeactivatedPayload,
   UserDeletedPayload,
@@ -42,10 +45,18 @@ function createDomainEventHandler(deps: DomainEventWorkerDeps) {
       switch (event.eventType) {
         case DomainEventType.APPLICATION_SUBMITTED: {
           const payload = event.payload as ApplicationSubmittedPayload;
-          await deps.applicationInsights.incrementJobApplications(
-            payload.jobId,
-          );
-          logger.info("Incremented application count for job", {
+          await deps.applicationInsights.syncJobApplicationCount(payload.jobId);
+          logger.info("Synced application count for job", {
+            jobId: payload.jobId,
+            applicationId: payload.applicationId,
+          });
+          break;
+        }
+
+        case DomainEventType.APPLICATION_WITHDRAWN: {
+          const payload = event.payload as ApplicationWithdrawnPayload;
+          await deps.applicationInsights.syncJobApplicationCount(payload.jobId);
+          logger.info("Synced application count after withdrawal", {
             jobId: payload.jobId,
             applicationId: payload.applicationId,
           });

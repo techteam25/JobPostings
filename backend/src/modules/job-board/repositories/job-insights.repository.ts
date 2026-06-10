@@ -49,7 +49,7 @@ export class JobInsightsRepository
    * Idempotent — safe to re-run on event retries.
    * @param jobId The ID of the job.
    */
-  async incrementJobApplications(jobId: number) {
+  async syncJobApplicationCount(jobId: number) {
     await withDbErrorHandling(
       async () =>
         await db

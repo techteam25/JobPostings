@@ -15,9 +15,13 @@ import type { Request } from "express";
  * bug that the stale `/api/`-prefixed patterns used to cause).
  *
  * NOTE: the `:user:<id>` suffix is appended at the END of the key, so it
- * cannot be targeted with a prefix glob. To evict a single user's entry use
- * an EXACT `CacheService.del(userScoped(base, id))` — never `invalidate`,
- * which would prefix-collide (`...:user:1` also matches `...:user:12`).
+ * cannot be targeted with a prefix glob — a naive `invalidate` would
+ * prefix-collide (`...:user:1` also matches `...:user:12`). To evict ONE
+ * user's entries use either an EXACT `CacheService.del(userScoped(base, id))`
+ * (single known key) or `userScopedPattern(base, id)` (all of the user's
+ * keys under `base`, any query string): its embedded `*` tells
+ * `CacheService.invalidate` to use the pattern as-is instead of appending a
+ * trailing `*`, so the `:user:<id>` suffix stays anchored to the key end.
  */
 
 /** Base key for a request: path with the `/api/` mount prefix stripped. */
@@ -28,10 +32,18 @@ export const pathKey = (req: Request): string =>
 export const userScoped = (base: string, userId?: number): string =>
   userId ? `${base}:user:${userId}` : base;
 
+/**
+ * Suffix-anchored eviction pattern for ONE user's keys under `base`
+ * (matches `cache:<base>…:user:<id>` exactly — no `:user:12` collision when
+ * targeting user 1). Falls back to the broad prefix glob when no userId is
+ * available, which over-evicts but never leaves stale entries.
+ */
+export const userScopedPattern = (base: string, userId?: number): string =>
+  userId ? `${base}*:user:${userId}` : base;
+
 export const cacheKeys = {
   // ─── Job board ────────────────────────────────────────────────────
   jobs: "jobs",
-  job: (jobId: string | number) => `jobs/${jobId}`,
 
   // ─── Applications ─────────────────────────────────────────────────
   seekerApplications: "jobs/me/applications",
@@ -42,7 +54,6 @@ export const cacheKeys = {
 
   // ─── Organizations ────────────────────────────────────────────────
   organizations: "organizations",
-  organization: (orgId: string | number) => `organizations/${orgId}`,
   orgMembersOfUser: (userId: number | undefined) =>
     `organizations/members/${userId}`,
 

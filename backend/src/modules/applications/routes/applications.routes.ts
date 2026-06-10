@@ -81,10 +81,13 @@ export function createApplicationsRoutes({
     authenticate,
     orgGuards.requireJobPostingRole(),
     validate(updateApplicationStatusSchema),
-    // This route's path has no :jobId/:organizationId, so only the seeker's
-    // own list can be targeted here. The org-scoped employer views are
-    // invalidated by the org status route (org-applications.routes.ts).
     invalidateCacheMiddleware(() => cacheKeys.seekerApplications),
+    // This route's path has no :jobId/:organizationId, so the org-scoped
+    // employer views can't be targeted precisely — evict the whole
+    // `organizations` namespace rather than leave them stale until TTL.
+    // (The org status route in org-applications.routes.ts invalidates the
+    // same views narrowly; prefer it when org/job ids are known.)
+    invalidateCacheMiddleware(() => cacheKeys.organizations),
     controller.updateApplicationStatus,
   );
 

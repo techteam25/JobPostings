@@ -8,6 +8,7 @@ import {
 import { registry, z } from "@/swagger/registry";
 import { apiResponseSchema, errorResponseSchema } from "@shared/types";
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
+import { cacheKeys } from "@shared/infrastructure/cache-keys";
 import { auditRead } from "@/middleware/audit-read.middleware";
 
 import type { CompositionRoot } from "@/composition-root";
@@ -166,7 +167,12 @@ export function createInvitationRoutes(deps: InvitationRoutesDeps): Router {
     "/:organizationId/:token/accept",
     deps.authenticate,
     validate(acceptOrganizationInvitationSchema),
-    invalidateCacheMiddleware((req) => `organizations/members/${req.userId}`),
+    invalidateCacheMiddleware((req) => cacheKeys.orgMembersOfUser(req.userId)),
+    // Accepting an invite adds a membership to the user's org list. This is
+    // the accept route the frontend actually calls (mounted at /invitations);
+    // keep these invalidations in sync with the org-mounted accept route in
+    // modules/invitations/routes/invitations.routes.ts.
+    invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
     controller.acceptInvitation,
   );
 

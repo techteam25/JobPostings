@@ -24,6 +24,7 @@ import type { OrgMembershipQueryPort } from "@/modules/applications/ports/org-me
 import type { ApplicantQueryPort } from "@/modules/applications/ports/applicant-query.port";
 import type { EventBusPort } from "@shared/events";
 import { createApplicationSubmittedEvent } from "@/modules/applications/events/application-submitted.event";
+import { createApplicationWithdrawnEvent } from "@/modules/applications/events/application-withdrawn.event";
 
 import type {
   NewJobApplication,
@@ -330,6 +331,16 @@ export class ApplicationsService
       if (!success) {
         return fail(new DatabaseError("Failed to withdraw application"));
       }
+
+      // Withdrawal must trigger the application-count resync — the count
+      // excludes withdrawn rows and is otherwise only refreshed on submission.
+      await this.eventBus.publish(
+        createApplicationWithdrawnEvent({
+          applicationId,
+          jobId: application.application.jobId,
+          applicantId: userId,
+        }),
+      );
 
       const applicant = await this.applicantQuery.findById(userId);
 
