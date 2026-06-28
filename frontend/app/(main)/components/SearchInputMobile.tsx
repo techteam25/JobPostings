@@ -119,6 +119,7 @@ export const SearchInputMobile = ({
           <LocationCombobox
             ref={locationInputRef}
             value={localLocation}
+            includeCurrentLocation={false}
             onChange={(value) => setLocalLocation(value)}
             onKeyDown={handleLocationKeyDown}
             placeholder='City, state, zip code, or "remote"'

@@ -98,6 +98,7 @@ export const DesktopSearchBar = memo(function DesktopSearchBar({
       <LocationCombobox
         ref={locationRef}
         value={displayLocation}
+        includeCurrentLocation={false}
         onChange={(value) => setPendingLocation(value)}
         onKeyDown={handleLocationKeyDown}
         placeholder='City, state, zip code, or "remote"'

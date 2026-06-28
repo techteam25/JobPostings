@@ -3,7 +3,8 @@ import { z } from "zod";
 
 export const env = createEnv({
   server: {
-    MAPBOX_TOKEN: z.string().optional(),
+    /** Server-only key for Places API (New) + Geocoding API. Never expose to client. */
+    GOOGLE_MAPS_API_KEY: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_SERVER_URL: z.url(),
