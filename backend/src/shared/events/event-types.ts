@@ -7,6 +7,7 @@
  */
 export enum DomainEventType {
   APPLICATION_SUBMITTED = "applications.ApplicationSubmitted",
+  APPLICATION_WITHDRAWN = "applications.ApplicationWithdrawn",
   USER_DEACTIVATED = "identity.UserDeactivated",
   USER_DELETED = "identity.UserDeleted",
 }

@@ -5,12 +5,16 @@
 # User-specific stuff
 .idea
 .vscode
+.claude
 
 # macOS
 .DS_Store
 
 # Cursor AI rules (local only)
 .cursorrules
+
+# Claude AI
+.claude/
 
 # Documentation (local only)
 backend/documentation/

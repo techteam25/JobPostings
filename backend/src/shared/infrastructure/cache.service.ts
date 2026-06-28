@@ -113,9 +113,14 @@ export class CacheService {
       }
 
       const cachePattern = this.buildKey(pattern, options?.prefix);
-      const count = await redisCacheService.invalidatePattern(
-        `${cachePattern}*`,
-      );
+      // A pattern that already embeds a wildcard is used as-is (this allows
+      // suffix-anchored patterns like `jobs*:user:5`, which a trailing `*`
+      // would break by also matching `:user:51`). Otherwise the pattern is
+      // treated as a prefix glob.
+      const finalPattern = cachePattern.includes("*")
+        ? cachePattern
+        : `${cachePattern}*`;
+      const count = await redisCacheService.invalidatePattern(finalPattern);
 
       logger.debug("Cache invalidated", {
         pattern: cachePattern,

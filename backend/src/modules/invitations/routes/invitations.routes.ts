@@ -11,6 +11,7 @@ import {
   acceptOrganizationInvitationSchema,
 } from "@/validations/organization.validation";
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
+import { cacheKeys } from "@shared/infrastructure/cache-keys";
 
 export function createInvitationsRoutes({
   authenticate,
@@ -86,7 +87,9 @@ export function createInvitationsRoutes({
     "/:organizationId/:token/accept",
     authenticate,
     validate(acceptOrganizationInvitationSchema),
-    invalidateCacheMiddleware((req) => `organizations/members/${req.userId}`),
+    invalidateCacheMiddleware((req) => cacheKeys.orgMembersOfUser(req.userId)),
+    // Accepting an invite adds a membership to the user's org list.
+    invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
     controller.acceptInvitation,
   );
 

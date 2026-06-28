@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { DomainEventType } from "@shared/events";
 import type { DomainEvent } from "@shared/events";
 import type { ApplicationSubmittedPayload } from "@/modules/applications/events/application-submitted.event";
+import type { ApplicationWithdrawnPayload } from "@/modules/applications/events/application-withdrawn.event";
 import type { UserDeactivatedPayload } from "@/modules/identity/events/user-deactivated.event";
 
 const { mockRegisterWorker } = vi.hoisted(() => ({
@@ -29,19 +30,19 @@ vi.mock("@shared/logger", () => ({
 import { createDomainEventWorker } from "@shared/workers/domain-event.worker";
 
 describe("Domain Event Worker", () => {
-  const mockIncrementJobApplications = vi.fn().mockResolvedValue(undefined);
+  const mockSyncJobApplicationCount = vi.fn().mockResolvedValue(undefined);
   const mockPauseAlertsForUser = vi.fn().mockResolvedValue(0);
   let processDomainEvent: (job: any) => Promise<void>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockIncrementJobApplications.mockResolvedValue(undefined);
+    mockSyncJobApplicationCount.mockResolvedValue(undefined);
     mockPauseAlertsForUser.mockResolvedValue(0);
 
     // Create worker with mock ports and capture the registered handler
     const worker = createDomainEventWorker({
       applicationInsights: {
-        incrementJobApplications: mockIncrementJobApplications,
+        syncJobApplicationCount: mockSyncJobApplicationCount,
       },
       notificationsRepository: {
         pauseAlertsForUser: mockPauseAlertsForUser,
@@ -54,7 +55,7 @@ describe("Domain Event Worker", () => {
   });
 
   describe("processDomainEvent", () => {
-    it("should increment job application count for APPLICATION_SUBMITTED event", async () => {
+    it("should sync job application count for APPLICATION_SUBMITTED event", async () => {
       const payload: ApplicationSubmittedPayload = {
         applicationId: 1,
         jobId: 10,
@@ -76,8 +77,34 @@ describe("Domain Event Worker", () => {
 
       await processDomainEvent(mockJob);
 
-      expect(mockIncrementJobApplications).toHaveBeenCalledWith(10);
-      expect(mockIncrementJobApplications).toHaveBeenCalledOnce();
+      expect(mockSyncJobApplicationCount).toHaveBeenCalledWith(10);
+      expect(mockSyncJobApplicationCount).toHaveBeenCalledOnce();
+    });
+
+    it("should sync job application count for APPLICATION_WITHDRAWN event", async () => {
+      const payload: ApplicationWithdrawnPayload = {
+        applicationId: 2,
+        jobId: 11,
+        applicantId: 6,
+      };
+
+      const event: DomainEvent<ApplicationWithdrawnPayload> = {
+        eventType: DomainEventType.APPLICATION_WITHDRAWN,
+        payload,
+        occurredAt: new Date().toISOString(),
+        correlationId: "withdraw-correlation-id",
+      };
+
+      const mockJob = {
+        id: "job-1b",
+        data: event,
+        name: DomainEventType.APPLICATION_WITHDRAWN,
+      } as any;
+
+      await processDomainEvent(mockJob);
+
+      expect(mockSyncJobApplicationCount).toHaveBeenCalledWith(11);
+      expect(mockSyncJobApplicationCount).toHaveBeenCalledOnce();
     });
 
     it("should pause alerts for USER_DEACTIVATED event", async () => {
@@ -132,7 +159,7 @@ describe("Domain Event Worker", () => {
     });
 
     it("should rethrow errors from APPLICATION_SUBMITTED handler", async () => {
-      mockIncrementJobApplications.mockRejectedValueOnce(
+      mockSyncJobApplicationCount.mockRejectedValueOnce(
         new Error("DB connection failed"),
       );
 

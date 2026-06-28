@@ -22,10 +22,7 @@ export const getAllJobsApplicationsForOrganization = async (
       headers: {
         Cookie: cookieStore.toString(),
       },
-      next: {
-        revalidate: 60,
-        tags: [`organization-${organizationId}-applications`],
-      },
+      cache: "no-store",
     },
   );
 
@@ -46,14 +43,11 @@ export const getAllApplicationsByUser = async (): Promise<
       headers: {
         Cookie: cookieStore.toString(),
       },
-      next: { revalidate: 60, tags: ["user-applications"] },
+      cache: "no-store",
     },
   );
 
-  return handlePaginatedApiResponse(
-    res,
-    "Failed to fetch user's applications",
-  );
+  return handlePaginatedApiResponse(res, "Failed to fetch user's applications");
 };
 
 export const applyForJob = async (

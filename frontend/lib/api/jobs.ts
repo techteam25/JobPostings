@@ -22,7 +22,7 @@ export const getJobs = async (
     headers: {
       Cookie: cookieStore.toString(),
     },
-    next: { revalidate: 60, tags: ["jobs"] },
+    cache: "no-store",
   });
 
   return handlePaginatedApiResponse(res, "Failed to fetch jobs");
@@ -52,7 +52,7 @@ export const getOrganizationJobsList = async (
       headers: {
         Cookie: cookieStore.toString(),
       },
-      next: { revalidate: 60, tags: [`organization-${organizationId}-jobs`] },
+      cache: "no-store",
     },
   );
 
@@ -70,10 +70,7 @@ export const getOrganizationJobStats = async (
       headers: {
         Cookie: cookieStore.toString(),
       },
-      next: {
-        revalidate: 60,
-        tags: [`organization-${organizationId}-job-stats`],
-      },
+      cache: "no-store",
     },
   );
 

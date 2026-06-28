@@ -11,6 +11,7 @@ import type { PaginationMeta } from "@/lib/types";
 type UseCandidateSearchParams = {
   skills: string[];
   location?: string;
+  zipcode?: string;
   minYearsExperience?: number | null;
   openToWork?: boolean;
   page: number;
@@ -33,6 +34,7 @@ export function useCandidateSearch(
   const {
     skills,
     location,
+    zipcode,
     minYearsExperience,
     openToWork,
     page,
@@ -47,6 +49,7 @@ export function useCandidateSearch(
       {
         skills,
         location: location ?? "",
+        zipcode: zipcode ?? "",
         minYearsExperience: minYearsExperience ?? null,
         openToWork: openToWork ?? false,
         page,
@@ -59,6 +62,7 @@ export function useCandidateSearch(
       searchCandidates({
         skills,
         location: location?.trim() ? location.trim() : undefined,
+        zipcode: zipcode?.trim() ? zipcode.trim() : undefined,
         minYearsExperience: minYearsExperience ?? undefined,
         openToWork: openToWork ? true : undefined,
         page,

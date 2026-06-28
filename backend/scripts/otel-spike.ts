@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 // Spike script for Task 1271 — validate @opentelemetry/sdk-node + auto-instrumentations under Bun.
 // Run: bun run scripts/otel-spike.ts
 // Requires the observability stack up (services:up).
@@ -59,7 +58,7 @@ async function main() {
 
   // ── Probe 2: Express auto-instrumentation ────────────────────────────
   try {
-    const express = (await import("express")).default;
+    const express = await import("express");
     const app = express();
     app.get("/spike-ping", (_req, res) => res.json({ ok: true }));
     const server = app.listen(0);

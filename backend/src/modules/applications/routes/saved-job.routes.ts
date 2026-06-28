@@ -8,6 +8,10 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import {
+  cacheKeys,
+  userScopedPattern,
+} from "@shared/infrastructure/cache-keys";
 
 export function createSavedJobRoutes({
   controller,
@@ -40,8 +44,15 @@ export function createSavedJobRoutes({
     "/me/saved-jobs/:jobId",
     profileGuards.requireUserRole,
     validate(getJobSchema),
-    invalidateCacheMiddleware(() => "users/me/saved-jobs"),
-    invalidateCacheMiddleware(() => "jobs"),
+    invalidateCacheMiddleware((req) =>
+      userScopedPattern(cacheKeys.userSavedJobs, req.userId),
+    ),
+    // Job listing/detail payloads carry the viewer's `isSaved` flag, but a
+    // save only changes THIS user's flag — evict only their `jobs*` entries
+    // (anonymous and other users' cached payloads are unaffected).
+    invalidateCacheMiddleware((req) =>
+      userScopedPattern(cacheKeys.jobs, req.userId),
+    ),
     controller.saveJobForCurrentUser,
   );
 
@@ -50,8 +61,12 @@ export function createSavedJobRoutes({
     "/me/saved-jobs/:jobId",
     profileGuards.requireUserRole,
     validate(getJobSchema),
-    invalidateCacheMiddleware(() => "users/me/saved-jobs"),
-    invalidateCacheMiddleware(() => "jobs"),
+    invalidateCacheMiddleware((req) =>
+      userScopedPattern(cacheKeys.userSavedJobs, req.userId),
+    ),
+    invalidateCacheMiddleware((req) =>
+      userScopedPattern(cacheKeys.jobs, req.userId),
+    ),
     controller.unsaveJobForCurrentUser,
   );
 

@@ -33,14 +33,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(
-          poppins.className,
-          montserrat.className,
-          "bg-background min-h-screen",
-        )}
-      >
+    <html
+      lang="en"
+      className={cn(poppins.variable, montserrat.variable)}
+      suppressHydrationWarning
+    >
+      <body className="bg-background min-h-screen">
         <Providers>{children}</Providers>
         <WebVitalsReporter />
         <Toaster position="bottom-right" />

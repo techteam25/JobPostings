@@ -29,6 +29,7 @@ RUN groupadd --system --gid 1001 appgroup && \
 
 # Give appuser ownership of /app so Bun can write its runtime cache (.bun/)
 RUN chown appuser:appgroup /app
+RUN mkdir -p /app/uploads && chown appuser:appgroup /app/uploads
 
 # Copy bundled output (server + migrate scripts, no node_modules needed)
 COPY --from=builder --chown=appuser:appgroup /app/dist/server.js ./dist/server.js
