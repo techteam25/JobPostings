@@ -24,13 +24,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Check backend health before deployment
-        run: |
-          echo "Checking if backend is healthy before deploying frontend..."
-          curl -f https://api.getinvolved.team/health || \
-          (echo "Backend is not healthy, aborting frontend deployment" && exit 1)
-          echo "Backend is healthy, proceeding with frontend deployment"
-
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
         with:
@@ -93,11 +86,22 @@ jobs:
 
       - name: Health check
         run: |
-          echo "Waiting for frontend to start..."
-          sleep 15
-          echo "Checking frontend health..."
-          curl -f https://site.getinvolved.team || exit 1
-          echo "Frontend deployment successful!"
+          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            set -e
+            cd /opt/jobpostings
+            echo "Probing frontend container directly (bypasses Cloudflare)..."
+            for i in $(seq 1 12); do
+              if docker compose --env-file .env.production -f docker-compose.prod.yml exec -T frontend \
+                  bun -e "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+                echo "Frontend deployment successful!"
+                exit 0
+              fi
+              echo "Frontend not healthy yet (attempt $i/12); retrying in 5s..."
+              sleep 5
+            done
+            echo "Frontend failed health check"
+            exit 1
+          EOF
 
       - name: Cleanup
         if: always()

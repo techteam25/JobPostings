@@ -83,11 +83,22 @@ jobs:
 
       - name: Health check
         run: |
-          echo "Waiting for backend to start..."
-          sleep 10
-          echo "Checking backend health..."
-          curl -f https://api.getinvolved.team/health || exit 1
-          echo "Backend deployment successful!"
+          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            set -e
+            cd /opt/jobpostings
+            echo "Probing backend container directly (bypasses Cloudflare)..."
+            for i in $(seq 1 18); do
+              if docker compose --env-file .env.production -f docker-compose.prod.yml exec -T backend \
+                  bun -e "fetch('http://localhost:5500/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+                echo "Backend deployment successful!"
+                exit 0
+              fi
+              echo "Backend not healthy yet (attempt $i/18); retrying in 5s..."
+              sleep 5
+            done
+            echo "Backend failed health check"
+            exit 1
+          EOF
 
       - name: Cleanup
         if: always()
