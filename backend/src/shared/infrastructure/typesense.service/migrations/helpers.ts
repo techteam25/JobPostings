@@ -1,8 +1,6 @@
 import type { Client } from "typesense";
 import type { CollectionFieldSchema } from "typesense/lib/Typesense/Collection";
 
-import logger from "@shared/logger";
-
 /**
  * Add fields to an existing collection via PATCH. Idempotent: fields already
  * present on the collection are skipped, so a migration can re-run safely if
@@ -22,7 +20,7 @@ export async function addFields(
     .map((f) => f.name);
 
   if (skipped.length > 0) {
-    logger.warn(
+    console.warn(
       `addFields: field(s) already present on "${collectionName}", skipping: ${skipped.join(", ")}`,
     );
   }
