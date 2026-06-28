@@ -9,6 +9,7 @@ import { handlePaginatedApiResponse } from "./helpers";
 export type SearchCandidatesParams = {
   skills: string[];
   location?: string;
+  zipcode?: string;
   minYearsExperience?: number;
   openToWork?: boolean;
   page?: number;
@@ -29,6 +30,7 @@ export const searchCandidates = async (
     url.searchParams.append("skills", skill);
   }
   if (params.location) url.searchParams.set("location", params.location);
+  if (params.zipcode) url.searchParams.set("zipcode", params.zipcode);
   if (params.minYearsExperience !== undefined) {
     url.searchParams.set(
       "minYearsExperience",

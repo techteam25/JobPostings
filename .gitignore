@@ -13,6 +13,9 @@
 # Cursor AI rules (local only)
 .cursorrules
 
+# Claude AI
+.claude/
+
 # Documentation (local only)
 backend/documentation/
 

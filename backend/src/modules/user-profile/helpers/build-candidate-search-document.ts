@@ -14,6 +14,7 @@ export interface CandidateSearchBuilderProfile {
   city: string | null;
   state: string | null;
   country: string | null;
+  zipCode: string | null;
   isProfilePublic: boolean;
   isAvailableForWork: boolean;
 }
@@ -159,6 +160,11 @@ export function buildCandidateSearchDocument(
 
   if (userProfile.profilePicture) {
     doc.photoUrl = userProfile.profilePicture;
+  }
+
+  const zip = userProfile.zipCode?.trim();
+  if (zip) {
+    doc.zipCode = zip;
   }
 
   return doc;
