@@ -57,6 +57,7 @@ async function loadBuilderInput(
           city: profile.city ?? null,
           state: profile.state ?? null,
           country: profile.country ?? null,
+          zipCode: profile.zipCode ?? null,
           isProfilePublic: profile.isProfilePublic,
           isAvailableForWork: profile.isAvailableForWork,
         }

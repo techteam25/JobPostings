@@ -2,7 +2,7 @@ import mysql from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
 import type { MySql2Database } from "drizzle-orm/mysql2";
 import { reset, seed } from "drizzle-seed";
-import { eq, sql } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import type { Faker } from "@faker-js/faker";
 import crypto from "crypto";
 
@@ -13,7 +13,7 @@ import { jobsDetails } from "@/db/schema";
 import { env } from "@shared/config/env";
 import { auth } from "@/utils/auth";
 import logger from "@shared/logger";
-import { userEmailPreferences, userOnBoarding } from "./schema";
+import { userEmailPreferences } from "./schema";
 import { educations } from "./schema";
 import { workExperiences } from "./schema";
 
@@ -32,11 +32,13 @@ const ORG_COUNT = 10;
 const JOBS_PER_ORG = 10;
 const MEMBERS_PER_ORG = 3;
 
-async function seedUsers(db: DB, faker: Faker): Promise<{ userIds: number[] }> {
-  logger.info("Seeding users...");
+async function seedUsers(
+  db: DB,
+  faker: Faker,
+): Promise<{ userIds: number[]; profileIds: number[] }> {
+  logger.info("Seeding users via Better-Auth...");
 
-  const userIds: number[] = [];
-
+  // 1. user + account (via Better-Auth so password credentials exist for sign-in)
   for (let idx = 0; idx < USER_COUNT; idx++) {
     await auth.api.signUpEmail({
       body: {
@@ -46,69 +48,83 @@ async function seedUsers(db: DB, faker: Faker): Promise<{ userIds: number[] }> {
         image: faker.image.avatar(),
       },
     });
-
-    const userId = idx + 1;
-    userIds.push(userId);
-
-    const unsubscribeToken = crypto.randomBytes(32).toString("hex");
-    await db.insert(userEmailPreferences).values({
-      userId,
-      unsubscribeToken,
-      unsubscribeTokenExpiresAt: new Date(),
-      jobMatchNotifications: true,
-      applicationStatusNotifications: true,
-      savedJobUpdates: true,
-      weeklyJobDigest: true,
-      monthlyNewsletter: true,
-      marketingEmails: true,
-      accountSecurityAlerts: true,
-      globalUnsubscribe: false,
-    });
   }
 
-  const userCount = await db.select().from(schema.user);
-  logger.info(`✓ Verified ${userCount.length} users inserted`);
+  const insertedUsers = await db
+    .select({ id: schema.user.id })
+    .from(schema.user)
+    .orderBy(asc(schema.user.id));
+  const userIds = insertedUsers.map((u) => u.id);
 
-  return { userIds };
-}
+  // 2-4. Manually seed dependent rows. Each uses ON DUPLICATE KEY UPDATE as a
+  // no-op so that if Better-Auth's after-hook ever gets wired up and inserts
+  // these rows first, we don't blow up on the unique userId constraint.
+  logger.info("Seeding onboarding, email preferences, and profiles...");
 
-async function seedUserProfiles(
-  db: DB,
-  faker: Faker,
-  userIds: number[],
-): Promise<{ profileIds: number[] }> {
-  logger.info("Seeding user profiles...");
+  // 2. userOnBoarding — unique(userId)
+  await db
+    .insert(schema.userOnBoarding)
+    .values(
+      userIds.map((userId) => ({
+        userId,
+        intent: "seeker" as const,
+        status: "pending" as const,
+      })),
+    )
+    .onDuplicateKeyUpdate({ set: { userId: sql`user_id` } });
 
-  await seed(db, { userProfile }, { seed: 43 }).refine((f) => ({
-    userProfile: {
-      count: userIds.length,
-      columns: {
-        userId: f.int({
-          minValue: Math.min(...userIds),
-          maxValue: Math.max(...userIds),
-          isUnique: true,
-        }),
-        bio: f.loremIpsum({ sentencesCount: 3 }),
-        phoneNumber: f.phoneNumber({ template: "(###) ###-####" }),
-        address: f.streetAddress(),
-        linkedinUrl: f.default({ defaultValue: faker.internet.url() }),
-        portfolioUrl: f.default({ defaultValue: faker.internet.url() }),
-        city: f.city(),
-        state: f.state(),
-        zipCode: f.postcode(),
-        country: f.country(),
-        fileMetadata: f.default({ defaultValue: null }),
-        isProfilePublic: f.valuesFromArray({ values: [true, false] }),
-        isAvailableForWork: f.valuesFromArray({ values: [true, false] }),
-      },
-    },
-  }));
+  // 3. userEmailPreferences — unique(userId)
+  await db
+    .insert(userEmailPreferences)
+    .values(
+      userIds.map((userId) => ({
+        userId,
+        unsubscribeToken: crypto.randomBytes(32).toString("hex"),
+        unsubscribeTokenExpiresAt: new Date(),
+        jobMatchNotifications: true,
+        applicationStatusNotifications: true,
+        savedJobUpdates: true,
+        weeklyJobDigest: true,
+        monthlyNewsletter: true,
+        marketingEmails: true,
+        accountSecurityAlerts: true,
+        globalUnsubscribe: false,
+      })),
+    )
+    .onDuplicateKeyUpdate({ set: { userId: sql`user_id` } });
 
-  const profiles = await db.select({ id: userProfile.id }).from(userProfile);
+  // 4. userProfile — unique(userId)
+  await db
+    .insert(userProfile)
+    .values(
+      userIds.map((userId) => ({
+        userId,
+        bio: faker.lorem.sentences(3),
+        phoneNumber: `(${faker.string.numeric(3)}) ${faker.string.numeric(3)}-${faker.string.numeric(4)}`,
+        address: faker.location.streetAddress(),
+        linkedinUrl: faker.internet.url(),
+        portfolioUrl: faker.internet.url(),
+        city: faker.location.city(),
+        state: faker.location.state(),
+        zipCode: faker.location.zipCode(),
+        country: faker.location.country(),
+        fileMetadata: null,
+        isProfilePublic: faker.datatype.boolean(),
+        isAvailableForWork: faker.datatype.boolean(),
+      })),
+    )
+    .onDuplicateKeyUpdate({ set: { userId: sql`user_id` } });
+
+  const profiles = await db
+    .select({ id: userProfile.id })
+    .from(userProfile)
+    .orderBy(asc(userProfile.id));
   const profileIds = profiles.map((p) => p.id);
 
-  logger.info(`✓ ${profileIds.length} user profiles seeded`);
-  return { profileIds };
+  logger.info(
+    `✓ ${userIds.length} users seeded with onboarding, email preferences, and profiles`,
+  );
+  return { userIds, profileIds };
 }
 
 async function seedOrganizationsWithJobs(
@@ -228,9 +244,14 @@ async function seedOrganizationMembers(
     });
 
     await db
-      .update(userOnBoarding)
-      .set({ intent: "employer" })
-      .where(eq(userOnBoarding.userId, userId));
+      .update(schema.user)
+      .set({ intent: "employer", onboardingStatus: "completed" })
+      .where(eq(schema.user.id, userId));
+
+    await db
+      .update(schema.userOnBoarding)
+      .set({ intent: "employer", status: "completed" })
+      .where(eq(schema.userOnBoarding.userId, userId));
   }
 
   const additionalMembers: {
@@ -253,6 +274,21 @@ async function seedOrganizationMembers(
 
   if (additionalMembers.length > 0) {
     await db.insert(organizationMembers).values(additionalMembers);
+
+    // Additional org members (admin/recruiter/member) are employer-side too —
+    // flip their intent/onboarding in both `user` and `userOnBoarding` so the
+    // employer UI treats them correctly.
+    const additionalUserIds = additionalMembers.map((m) => m.userId);
+
+    await db
+      .update(schema.user)
+      .set({ intent: "employer", onboardingStatus: "completed" })
+      .where(inArray(schema.user.id, additionalUserIds));
+
+    await db
+      .update(schema.userOnBoarding)
+      .set({ intent: "employer", status: "completed" })
+      .where(inArray(schema.userOnBoarding.userId, additionalUserIds));
   }
 
   const ownerCount = orgIds.length;
@@ -389,8 +425,7 @@ async function runSeed() {
 
   logger.info("Starting database seeding...");
 
-  const { userIds } = await seedUsers(db, faker);
-  const { profileIds } = await seedUserProfiles(db, faker, userIds);
+  const { userIds, profileIds } = await seedUsers(db, faker);
   const { orgIds } = await seedOrganizationsWithJobs(db);
   await seedOrganizationMembers(db, userIds, orgIds);
   await seedEducations(db, faker, profileIds);

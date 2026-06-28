@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
+import { auditService } from "@shared/audit";
 import type { ProfileServicePort } from "@/modules/user-profile";
 import type { UserOrganizationsQueryPort } from "@/modules/user-profile/ports/org-query.port";
 import type {
@@ -130,6 +131,18 @@ export class ProfileController extends BaseController {
     );
 
     if (user.isSuccess) {
+      auditService.emit({
+        name: "profile.updated",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "profile", id: req.userId },
+        action: "updated profile",
+        outcome: "success",
+        metadata: { fields: Object.keys(profileData ?? {}) },
+      });
       return this.sendSuccess<UserWithProfile>(
         res,
         user.value,
@@ -170,6 +183,17 @@ export class ProfileController extends BaseController {
     );
 
     if (result.isSuccess) {
+      auditService.emit({
+        name: "profile.cv.uploaded",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "profile", id: req.userId },
+        action: "uploaded cv",
+        outcome: "success",
+      });
       return this.sendSuccess<{ message: string }>(
         res,
         result.value,
@@ -184,6 +208,17 @@ export class ProfileController extends BaseController {
     const result = await this.profileService.deleteResume(req.userId!);
 
     if (result.isSuccess) {
+      auditService.emit({
+        name: "profile.cv.deleted",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "profile", id: req.userId },
+        action: "deleted cv",
+        outcome: "success",
+      });
       return this.sendSuccess<{ message: string }>(
         res,
         result.value,
@@ -206,6 +241,18 @@ export class ProfileController extends BaseController {
     );
 
     if (result.isSuccess) {
+      auditService.emit({
+        name: "profile.visibility.changed",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "profile", id: req.userId },
+        action: "changed profile visibility",
+        outcome: "success",
+        metadata: { isProfilePublic },
+      });
       return this.sendSuccess<UserProfile>(
         res,
         result.value,

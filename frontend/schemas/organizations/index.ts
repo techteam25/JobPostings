@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeUrl } from "@/lib/url";
 
 // Base schema without refinements
 const baseOrganizationSchema = z.object({
@@ -13,7 +14,12 @@ const baseOrganizationSchema = z.object({
   zipCode: z.string(),
   industry: z.string(),
   size: z.string(),
-  url: z.url("Invalid URL format").nonempty("Website URL is required"),
+  url: z
+    .string()
+    .transform((v) => normalizeUrl(v))
+    .pipe(
+      z.string().min(1, "Website URL is required").url("Invalid URL format"),
+    ),
   mission: z.string().min(1, "Mission is required"),
   phone: z.string().min(10, "Phone number is required"),
   logo: z.union([z.undefined(), z.file()]),

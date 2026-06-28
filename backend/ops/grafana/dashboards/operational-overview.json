@@ -1,0 +1,276 @@
+{
+  "uid": "jobpostings-operational-overview",
+  "title": "Operational Overview",
+  "tags": ["jobpostings", "observability"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-30m", "to": "now" },
+  "editable": true,
+  "panels": [
+    {
+      "type": "row",
+      "id": 100,
+      "title": "HTTP (RED)",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 },
+      "collapsed": false
+    },
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Request Rate (req/s)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 1, "w": 8, "h": 5 },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "decimals": 2 }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_server_duration_milliseconds_count{job=\"jobpostings-backend\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Error Rate (5xx %)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 8, "y": 1, "w": 8, "h": 5 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red", "value": 0.05 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_server_duration_milliseconds_count{job=\"jobpostings-backend\",http_status_code=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_duration_milliseconds_count{job=\"jobpostings-backend\"}[5m])), 0.001)"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "p95 Duration (ms)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 16, "y": 1, "w": 8, "h": 5 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "decimals": 0 }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_duration_milliseconds_bucket{job=\"jobpostings-backend\"}[5m])))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "HTTP Duration (p50/p95/p99)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 6, "w": 24, "h": 7 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms" }
+      },
+      "targets": [
+        {
+          "refId": "p50",
+          "legendFormat": "p50",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_duration_milliseconds_bucket{job=\"jobpostings-backend\"}[5m])))"
+        },
+        {
+          "refId": "p95",
+          "legendFormat": "p95",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_duration_milliseconds_bucket{job=\"jobpostings-backend\"}[5m])))"
+        },
+        {
+          "refId": "p99",
+          "legendFormat": "p99",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_duration_milliseconds_bucket{job=\"jobpostings-backend\"}[5m])))"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 200,
+      "title": "BullMQ Health",
+      "gridPos": { "x": 0, "y": 13, "w": 24, "h": 1 },
+      "collapsed": false
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Queue Depth",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{queue}}",
+          "expr": "queue_depth{job=\"jobpostings-backend\"}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Job Throughput by Outcome (per min)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 12, "y": 14, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{queue}} {{outcome}}",
+          "expr": "sum by (queue, outcome) (rate(queue_job_total{job=\"jobpostings-backend\"}[5m])) * 60"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Job Duration p95 (seconds)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 22, "w": 24, "h": 7 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{queue}}",
+          "expr": "histogram_quantile(0.95, sum by (le, queue) (rate(queue_job_duration_seconds_bucket{job=\"jobpostings-backend\"}[5m])))"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 300,
+      "title": "Auth Outcomes",
+      "gridPos": { "x": 0, "y": 29, "w": 24, "h": 1 },
+      "collapsed": false
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Sign-in Rate by Outcome",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 30, "w": 12, "h": 7 },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{method}} {{outcome}} ({{provider}})",
+          "expr": "sum by (method, outcome, provider) (rate(auth_signin_total{job=\"jobpostings-backend\"}[5m])) * 60"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Sign-up Rate by Outcome",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 12, "y": 30, "w": 12, "h": 7 },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{method}} {{outcome}}",
+          "expr": "sum by (method, outcome) (rate(auth_signup_total{job=\"jobpostings-backend\"}[5m])) * 60"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Rate-limit Blocks (5m)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 37, "w": 24, "h": 4 },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(rate_limit_blocks_total{job=\"jobpostings-backend\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 400,
+      "title": "Typesense Search",
+      "gridPos": { "x": 0, "y": 41, "w": 24, "h": 1 },
+      "collapsed": false
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Search Duration (p50/p95/p99)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 42, "w": 12, "h": 7 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        {
+          "refId": "p50",
+          "legendFormat": "p50",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(typesense_search_duration_seconds_bucket{job=\"jobpostings-backend\"}[5m])))"
+        },
+        {
+          "refId": "p95",
+          "legendFormat": "p95",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(typesense_search_duration_seconds_bucket{job=\"jobpostings-backend\"}[5m])))"
+        },
+        {
+          "refId": "p99",
+          "legendFormat": "p99",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(typesense_search_duration_seconds_bucket{job=\"jobpostings-backend\"}[5m])))"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Search Result Count (p50/p95)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 12, "y": 42, "w": 12, "h": 7 },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "refId": "p50",
+          "legendFormat": "p50",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(typesense_search_result_count_bucket{job=\"jobpostings-backend\"}[5m])))"
+        },
+        {
+          "refId": "p95",
+          "legendFormat": "p95",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(typesense_search_result_count_bucket{job=\"jobpostings-backend\"}[5m])))"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Typesense Index Lag",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 49, "w": 24, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{index}}",
+          "expr": "typesense_index_lag{job=\"jobpostings-backend\"}"
+        }
+      ]
+    }
+  ]
+}

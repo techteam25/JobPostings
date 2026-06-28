@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
 import { ForbiddenError } from "@shared/errors";
+import { auditService } from "@shared/audit";
 import type { JobBoardServicePort } from "@/modules/job-board";
 import type {
   CreateJobSchema,
@@ -187,6 +188,18 @@ export class JobBoardController extends BaseController {
     const job = await this.jobBoardService.createJob(jobData);
 
     if (job.isSuccess) {
+      auditService.emit({
+        name: "job.created",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "job", id: job.value.id },
+        action: "created job",
+        outcome: "success",
+        metadata: { organizationId: req.organizationId },
+      });
       return this.sendSuccess<JobWithSkills>(
         res,
         job.value,
@@ -217,6 +230,29 @@ export class JobBoardController extends BaseController {
     );
 
     if (job.isSuccess) {
+      const eventName =
+        updateData.isActive === true
+          ? "job.published"
+          : updateData.isActive === false
+            ? "job.unpublished"
+            : "job.updated";
+      auditService.emit({
+        name: eventName,
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "job", id: jobId },
+        action:
+          eventName === "job.published"
+            ? "published job"
+            : eventName === "job.unpublished"
+              ? "unpublished job"
+              : "updated job",
+        outcome: "success",
+        metadata: { fields: Object.keys(updateData ?? {}) },
+      });
       return this.sendSuccess<Job>(res, job.value, "Job updated successfully");
     } else {
       return this.handleControllerError(res, job.error, "Failed to update job");
@@ -236,6 +272,18 @@ export class JobBoardController extends BaseController {
     );
 
     if (result.isSuccess) {
+      auditService.emit({
+        name: "job.deleted",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "job", id: jobId },
+        action: "deleted job",
+        outcome: "success",
+        metadata: { organizationId: req.organizationId },
+      });
       return this.sendSuccess<void>(res, undefined, "Job deleted successfully");
     } else {
       return this.handleControllerError(

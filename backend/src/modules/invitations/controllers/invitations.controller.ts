@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { BaseController } from "@shared/base/base.controller";
 import { ApiResponse, EmptyBody } from "@shared/types";
+import { auditService } from "@shared/audit";
 import type {
   CreateOrganizationInvitationInput,
   GetOrganizationInvitationDetailsInput,
@@ -42,6 +43,18 @@ export class InvitationsController extends BaseController {
     );
 
     if (result.isSuccess) {
+      auditService.emit({
+        name: "org.invitation.sent",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "invitation", id: result.value.invitationId },
+        action: "sent invitation",
+        outcome: "success",
+        metadata: { organizationId, role },
+      });
       return this.sendSuccess(res, result.value, result.value.message, 201);
     } else {
       return this.handleControllerError(res, result.error);
@@ -101,6 +114,32 @@ export class InvitationsController extends BaseController {
     );
 
     if (result.isSuccess) {
+      const actor = {
+        id: req.userId,
+        ip: req.ip,
+        userAgent: req.headers["user-agent"],
+      };
+      auditService.emit({
+        name: "org.invitation.accepted",
+        actor,
+        resource: {
+          type: "organization",
+          id: parseInt(organizationId),
+        },
+        action: "accepted invitation",
+        outcome: "success",
+      });
+      auditService.emit({
+        name: "org.member.added",
+        actor,
+        resource: {
+          type: "organization",
+          id: parseInt(organizationId),
+        },
+        action: "joined organization",
+        outcome: "success",
+        metadata: { userId: req.userId, via: "invitation" },
+      });
       return this.sendSuccess(res, result.value, result.value.message, 200);
     } else {
       return this.handleControllerError(res, result.error);
@@ -125,6 +164,17 @@ export class InvitationsController extends BaseController {
     );
 
     if (result.isSuccess) {
+      auditService.emit({
+        name: "org.invitation.revoked",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "invitation", id: invitationId },
+        action: "revoked invitation",
+        outcome: "success",
+      });
       return this.sendSuccess(res, result.value, result.value.message, 200);
     } else {
       return this.handleControllerError(res, result.error);

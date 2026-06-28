@@ -14,6 +14,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { UrlInput } from "@/components/ui/url-input";
 
 const defaultValues: ContactCompanyInfoData = {
   phone: "",
@@ -157,15 +158,17 @@ const ContactInfoForm = ({
                     <FieldLabel htmlFor={field.name}>
                       Company Website *
                     </FieldLabel>
-                    <Input
-                      className="rounded-xl"
+                    <UrlInput
+                      containerClassName="rounded-xl"
                       id={field.name}
                       name={field.name}
-                      value={field.state.value}
+                      value={field.state.value ?? ""}
                       onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
+                      onChange={(value) => field.handleChange(value)}
+                      invalid={isInvalid}
                       aria-invalid={isInvalid}
                       autoComplete="off"
+                      placeholder="example.com"
                     />
                     {isInvalid && field.state.meta.errors.length > 0 && (
                       <FieldError

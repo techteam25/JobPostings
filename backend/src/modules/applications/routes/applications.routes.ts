@@ -14,6 +14,7 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import { cacheKeys } from "@shared/infrastructure/cache-keys";
 import { uploadMiddleware } from "@/middleware/multer.middleware";
 
 export function createApplicationsRoutes({
@@ -80,7 +81,13 @@ export function createApplicationsRoutes({
     authenticate,
     orgGuards.requireJobPostingRole(),
     validate(updateApplicationStatusSchema),
-    invalidateCacheMiddleware(() => `/api/jobs/me/applications`),
+    invalidateCacheMiddleware(() => cacheKeys.seekerApplications),
+    // This route's path has no :jobId/:organizationId, so the org-scoped
+    // employer views can't be targeted precisely — evict the whole
+    // `organizations` namespace rather than leave them stale until TTL.
+    // (The org status route in org-applications.routes.ts invalidates the
+    // same views narrowly; prefer it when org/job ids are known.)
+    invalidateCacheMiddleware(() => cacheKeys.organizations),
     controller.updateApplicationStatus,
   );
 

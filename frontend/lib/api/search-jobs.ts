@@ -45,7 +45,7 @@ export const searchJobs = async (
     headers: {
       Cookie: cookieStore.toString(),
     },
-    next: { revalidate: 60, tags: ["search-jobs"] },
+    cache: "no-store",
   });
 
   return handlePaginatedApiResponse(res, "Failed to search jobs");

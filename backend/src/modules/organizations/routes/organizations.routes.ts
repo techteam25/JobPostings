@@ -16,6 +16,7 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import { cacheKeys } from "@shared/infrastructure/cache-keys";
 
 export function createOrganizationsRoutes({
   authenticate,
@@ -77,8 +78,10 @@ export function createOrganizationsRoutes({
     authenticate,
     uploadMiddleware.organizationLogo,
     validate(createOrganizationSchema),
-    invalidateCacheMiddleware(() => "/organizations"),
-    invalidateCacheMiddleware(() => "users/me/intent"),
+    invalidateCacheMiddleware(() => cacheKeys.organizations),
+    invalidateCacheMiddleware(() => cacheKeys.userIntent),
+    // Creating an org adds a membership to the user's org list.
+    invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
     controller.createOrganization,
   );
 
@@ -111,10 +114,11 @@ export function createOrganizationsRoutes({
     orgGuards.requireAdminOrOwnerRole(["owner"]),
     validate(updateOrganizationInputSchema),
     orgGuards.ensureIsOrganizationMember,
-    invalidateCacheMiddleware(() => "/organizations"),
-    invalidateCacheMiddleware(
-      (req) => `/organizations/${req.params.organizationId}`,
-    ),
+    // `organizations` prefix glob already covers the `organizations/<id>`
+    // detail key. Also refresh members' org lists (name/logo changes show
+    // there).
+    invalidateCacheMiddleware(() => cacheKeys.organizations),
+    invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
     controller.updateOrganization,
   );
 
@@ -129,10 +133,10 @@ export function createOrganizationsRoutes({
     orgGuards.requireAdminOrOwnerRole(["owner"]),
     validate(deleteOrganizationSchema),
     orgGuards.ensureIsOrganizationMember,
-    invalidateCacheMiddleware(() => "/organizations"),
-    invalidateCacheMiddleware(
-      (req) => `/organizations/${req.params.organizationId}`,
-    ),
+    // `organizations` prefix glob already covers the `organizations/<id>`
+    // detail key. Also drop the deleted org from members' org lists.
+    invalidateCacheMiddleware(() => cacheKeys.organizations),
+    invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
     controller.deleteOrganization,
   );
 

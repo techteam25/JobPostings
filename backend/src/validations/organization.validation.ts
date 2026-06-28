@@ -17,6 +17,15 @@ import { PaginationMeta } from "@shared/types";
 import { User } from "@/validations/userProfile.validation";
 import { isPossiblePhoneNumber } from "libphonenumber-js";
 
+const URL_PROTOCOL_REGEX = /^https?:\/\//i;
+const URL_PROTOCOL_ONLY_REGEX = /^https?:\/\/$/i;
+function normalizeUrl(input: unknown): string {
+  const trimmed = typeof input === "string" ? input.trim() : "";
+  if (!trimmed) return "";
+  if (URL_PROTOCOL_ONLY_REGEX.test(trimmed)) return "";
+  return URL_PROTOCOL_REGEX.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
 // Zod schemas for validation
 export const selectOrganizationSchema = createSelectSchema(organizations);
 export const selectOrganizationMembersSchema =
@@ -26,7 +35,10 @@ export const insertJobApplicationNoteSchema =
 // Base schema WITHOUT logo refinements (for use with .partial())
 const insertOrganizationBaseSchema = createInsertSchema(organizations, {
   name: z.string().min(1, "Name must be at least 1 characters").max(100),
-  url: z.url("Invalid organization website URL"),
+  url: z
+    .string()
+    .transform(normalizeUrl)
+    .pipe(z.string().url("Invalid organization website URL")),
   phone: z
     .string()
     .min(10, "Phone must be at least 10 characters")

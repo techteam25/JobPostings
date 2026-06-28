@@ -6,6 +6,8 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import { cacheKeys } from "@shared/infrastructure/cache-keys";
+import { auditRead } from "@/middleware/audit-read.middleware";
 import {
   jobApplicationManagementSchema,
   jobApplicationsManagementSchema,
@@ -50,6 +52,10 @@ export function createOrgApplicationsRoutes({
     authenticate,
     orgGuards.requireJobPostingRole(),
     orgGuards.ensureIsOrganizationMember,
+    auditRead("read.application.by_employer", (req) => ({
+      type: "application",
+      id: String(req.params.applicationId),
+    })),
     validate(jobApplicationManagementSchema),
     cacheMiddleware({ ttl: 300 }),
     controller.getJobApplicationForOrganization,
@@ -62,7 +68,20 @@ export function createOrgApplicationsRoutes({
     orgGuards.requireJobPostingRole(),
     orgGuards.ensureIsOrganizationMember,
     validate(updateJobStatusInputSchema),
-    invalidateCacheMiddleware(() => `/api/jobs/me/applications`),
+    // A status change is reflected in BOTH the applicant's seeker list and
+    // the employer's org-scoped views, so invalidate all of them. The
+    // `orgJobApplications` prefix glob also covers the single-application and
+    // notes detail keys nested beneath it.
+    invalidateCacheMiddleware(() => cacheKeys.seekerApplications),
+    invalidateCacheMiddleware((req) =>
+      cacheKeys.orgJobApplications(
+        String(req.params.organizationId),
+        String(req.params.jobId),
+      ),
+    ),
+    invalidateCacheMiddleware((req) =>
+      cacheKeys.orgApplications(String(req.params.organizationId)),
+    ),
     controller.updateOrgJobApplicationStatus,
   );
 

@@ -40,6 +40,15 @@ const envSchema = z.object({
 
   // Logger Configuration
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
+  LOG_FILE_PATH: z.string().default("logs/app.log"),
+
+  // OpenTelemetry Configuration
+  OTEL_ENABLED: z
+    .string()
+    .default("false")
+    .transform((v) => v === "true"),
+  OTEL_SERVICE_NAME: z.string().default("jobpostings-backend"),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.url().default("http://localhost:4317"),
 
   // redis configuration
   REDIS_CACHE_URL: z.url({ error: "REDIS_URL must be a valid URL" }),
@@ -129,6 +138,14 @@ function validateEnv(): Env {
 
           // Logger Configuration
           LOG_LEVEL: (process.env.LOG_LEVEL as LogLevel) || "info",
+          LOG_FILE_PATH: process.env.LOG_FILE_PATH || "logs/app.log",
+
+          // OpenTelemetry Configuration
+          OTEL_ENABLED: process.env.OTEL_ENABLED === "true",
+          OTEL_SERVICE_NAME:
+            process.env.OTEL_SERVICE_NAME || "jobpostings-backend",
+          OTEL_EXPORTER_OTLP_ENDPOINT:
+            process.env.OTEL_EXPORTER_OTLP_ENDPOINT || "http://localhost:4317",
 
           // Redis configuration
           REDIS_CACHE_URL: process.env.REDIS_URL || "redis://localhost:6379",

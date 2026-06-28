@@ -67,8 +67,15 @@ function CandidateSearchTableBody() {
   // first client render in sync (see `context/candidate-search-store.ts`).
   useCandidateSearchStoreHydration();
 
-  const { skills, location, minYearsExperience, openToWork, clearFilters } =
-    useCandidateSearchStore();
+  const {
+    skills,
+    location,
+    locationFilter,
+    locationZipcode,
+    minYearsExperience,
+    openToWork,
+    clearFilters,
+  } = useCandidateSearchStore();
 
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -84,6 +91,8 @@ function CandidateSearchTableBody() {
   const filtersKey = JSON.stringify({
     skills,
     location,
+    locationFilter,
+    locationZipcode,
     minYearsExperience: minYearsExperience ?? null,
     openToWork,
   });
@@ -114,7 +123,13 @@ function CandidateSearchTableBody() {
     refetch,
   } = useCandidateSearch({
     skills,
-    location,
+    // The backend matches against the Typesense-indexed full-form location
+    // ("Austin, Texas, United States"); we send `locationFilter` (not the
+    // short display `location`) so autocomplete picks actually match.
+    location: locationFilter,
+    // Zip/postal code hits a separate Typesense field (see migration
+    // `0006_add-zipcode-to-profiles`); empty string means no zip filter.
+    zipcode: locationZipcode,
     minYearsExperience,
     openToWork,
     page: pagination.pageIndex + 1,

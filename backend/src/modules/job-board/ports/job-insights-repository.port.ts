@@ -23,9 +23,9 @@ export interface JobInsightsRepositoryPort extends BaseRepositoryPort<
   incrementJobViews(jobId: number): Promise<void>;
 
   /**
-   * Increments the application count for a specific job.
+   * Recomputes the active (non-withdrawn) application count for a job.
    */
-  incrementJobApplications(jobId: number): Promise<void>;
+  syncJobApplicationCount(jobId: number): Promise<void>;
 
   /**
    * Retrieves job insights aggregated by organization ID.

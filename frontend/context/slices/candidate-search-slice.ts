@@ -10,6 +10,8 @@ export const candidateSearchFiltersSlice: StateCreator<
 > = (set) => ({
   skills: [],
   location: "",
+  locationFilter: "",
+  locationZipcode: "",
   minYearsExperience: null,
   openToWork: false,
 
@@ -22,13 +24,20 @@ export const candidateSearchFiltersSlice: StateCreator<
     ),
   removeSkill: (skill) =>
     set((state) => ({ skills: state.skills.filter((s) => s !== skill) })),
-  setLocation: (location) => set({ location }),
+  setLocation: (location, filterValue, zipcode) =>
+    set({
+      location,
+      locationFilter: filterValue ?? location,
+      locationZipcode: zipcode ?? "",
+    }),
   setMinYearsExperience: (minYearsExperience) => set({ minYearsExperience }),
   setOpenToWork: (openToWork) => set({ openToWork }),
   clearFilters: () =>
     set({
       skills: [],
       location: "",
+      locationFilter: "",
+      locationZipcode: "",
       minYearsExperience: null,
       openToWork: false,
     }),

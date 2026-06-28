@@ -1,0 +1,128 @@
+{
+  "uid": "jobpostings-audit-events",
+  "title": "Audit Events",
+  "tags": ["jobpostings", "observability", "audit"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "editable": true,
+  "templating": {
+    "list": [
+      {
+        "name": "actor",
+        "label": "Actor ID",
+        "type": "textbox",
+        "query": "",
+        "description": "Filter by actor.id (regex, empty = all)"
+      },
+      {
+        "name": "action",
+        "label": "Event Name",
+        "type": "textbox",
+        "query": "",
+        "description": "Filter by audit.name (regex, empty = all). e.g. auth.signin.failed"
+      },
+      {
+        "name": "resource",
+        "label": "Resource Type",
+        "type": "textbox",
+        "query": "",
+        "description": "Filter by resource.type (regex, empty = all). e.g. user, job, application"
+      },
+      {
+        "name": "outcome",
+        "label": "Outcome",
+        "type": "custom",
+        "current": { "selected": true, "text": "All", "value": ".*" },
+        "options": [
+          { "selected": true, "text": "All", "value": ".*" },
+          { "selected": false, "text": "success", "value": "success" },
+          { "selected": false, "text": "failure", "value": "failure" }
+        ],
+        "query": "All : .* , success : success , failure : failure"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Events in Window",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(count_over_time({service_name=\"jobpostings-backend\"} | json | event = `audit` | audit_name =~ `.*$action.*` | audit_actor_id =~ `.*$actor.*` | audit_resource_type =~ `.*$resource.*` | audit_outcome =~ `$outcome` [$__range]))",
+          "queryType": "instant"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Failures in Window",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(count_over_time({service_name=\"jobpostings-backend\"} | json | event = `audit` | audit_outcome = `failure` | audit_name =~ `.*$action.*` | audit_actor_id =~ `.*$actor.*` | audit_resource_type =~ `.*$resource.*` [$__range]))",
+          "queryType": "instant"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Events Over Time (by name)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{audit_name}}",
+          "expr": "sum by (audit_name) (count_over_time({service_name=\"jobpostings-backend\"} | json | event = `audit` | audit_name =~ `.*$action.*` | audit_actor_id =~ `.*$actor.*` | audit_resource_type =~ `.*$resource.*` | audit_outcome =~ `$outcome` [1m]))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "logs",
+      "title": "Audit Event Stream",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 18 },
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      },
+      "description": "Click a row to expand. Each row carries trace_id as a derived field — click the TraceID link to jump to Tempo.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=\"jobpostings-backend\"} | json | event = `audit` | audit_name =~ `.*$action.*` | audit_actor_id =~ `.*$actor.*` | audit_resource_type =~ `.*$resource.*` | audit_outcome =~ `$outcome` | line_format `{{.audit_name}} outcome={{.audit_outcome}} actor={{.audit_actor_id}} resource={{.audit_resource_type}}:{{.audit_resource_id}} trace_id={{.trace_id}}`"
+        }
+      ]
+    }
+  ]
+}

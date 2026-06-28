@@ -5,7 +5,9 @@ import {
   queueService,
 } from "@shared/infrastructure/queue.service";
 import { CacheService } from "@shared/infrastructure/cache.service";
+import { cacheKeys, userScoped } from "@shared/infrastructure/cache-keys";
 import { createUserDeletedEvent } from "@/modules/identity";
+import { auditService } from "@shared/audit";
 import logger from "@shared/logger";
 
 export interface AfterDeleteAccountDeps {
@@ -21,8 +23,10 @@ export interface AfterDeleteAccountDeps {
  * configured callbackURL regardless).
  *
  * - Queues the post-deletion confirmation email.
- * - Invalidates the (currently non-user-scoped — see bug 1266) 'users/me'
- *   cache key so a concurrent anonymous read can't return a stale hit.
+ * - Deletes this user's 'users/me' cache entry (the key is user-scoped, so an
+ *   exact del on `users/me:user:<id>` is required — a prefix `invalidate`
+ *   would collide with other users, e.g. `:user:1` matching `:user:12`) so a
+ *   concurrent in-flight read can't return a stale hit.
  * - Publishes UserDeletedEvent for cross-module cleanup (Typesense
  *   unindex, etc.) — handled by the domain-event worker.
  * - Emits a logger.info breadcrumb as the interim audit record (full
@@ -48,7 +52,7 @@ export async function runAfterDeleteAccount(
         intent,
       },
     ),
-    CacheService.del("users/me"),
+    CacheService.del(userScoped(cacheKeys.userProfile, userId)),
     deps.eventBus.publish(
       createUserDeletedEvent({
         userId,
@@ -67,8 +71,12 @@ export async function runAfterDeleteAccount(
     }
   });
 
-  logger.info(
-    { userId, email: user.email, event: "account.deleted" },
-    "User account deleted",
-  );
+  auditService.emit({
+    name: "account.deleted",
+    actor: { id: userId },
+    resource: { type: "user", id: userId },
+    action: "deleted account",
+    outcome: "success",
+    metadata: { intent, deletedAt },
+  });
 }

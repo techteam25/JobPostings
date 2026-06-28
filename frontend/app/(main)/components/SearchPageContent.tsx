@@ -144,7 +144,10 @@ export function SearchPageContent({
                 </div>
               </div>
               <FeatureErrorBoundary featureName="job listings">
-                <SearchJobsWrapper initialJobs={initialJobs} />
+                <SearchJobsWrapper
+                  initialJobs={initialJobs}
+                  isAuthenticated={isAuthenticated}
+                />
               </FeatureErrorBoundary>
             </TabsContent>
           </Tabs>

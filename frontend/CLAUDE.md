@@ -29,6 +29,7 @@ This is the **frontend** of **getINvolved**, a job board platform connecting mis
 The frontend is a client to a separate backend API. All server URLs come from `env.ts` (uses `@t3-oss/env-nextjs` for type-safe env vars):
 - `NEXT_PUBLIC_SERVER_URL` — backend API base URL
 - `NEXT_PUBLIC_FRONTEND_URL` — this app's URL
+- `GOOGLE_MAPS_API_KEY` — server-only key for Places API (New) + Geocoding API (location autocomplete via `/api/geocode`; never expose to client)
 
 Two patterns for API calls:
 - **Server Actions / Server Components:** `lib/api/` — modular `"use server"` functions using `fetch` with `cookies()` for auth. Organized by domain (jobs, organizations, applications, users, saved-jobs, preferences, invitations). Barrel-exported from `lib/api/index.ts`. Used for SSR data fetching with Next.js caching (`revalidate`, `tags`).

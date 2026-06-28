@@ -23,6 +23,8 @@ import { sendVerificationEmail } from "@/utils/auth/hooks/sendVerificationEmail"
 import { sendDeleteAccountVerification } from "@/utils/auth/hooks/sendDeleteAccountVerification";
 import { runBeforeDeleteAccount } from "@/utils/auth/hooks/beforeDeleteAccount";
 import { runAfterDeleteAccount } from "@/utils/auth/hooks/afterDeleteAccount";
+import { auditService } from "@shared/audit";
+import { authSigninTotal, authSignupTotal } from "@shared/metrics";
 
 // ─── Setter-Injected Dependencies ────────────────────────────────────
 // These are set by the central composition root at startup, before
@@ -202,6 +204,29 @@ export const auth = betterAuth({
     }),
 
     after: createAuthMiddleware(async (ctx) => {
+      // auth.signin.failed — emit when sign-in/email returned an APIError.
+      if (
+        ctx.path === "/sign-in/email" &&
+        ctx.context.returned instanceof APIError
+      ) {
+        const attemptedEmail = (ctx.body as { email?: string } | undefined)
+          ?.email;
+        auditService.emit({
+          name: "auth.signin.failed",
+          actor: buildAuthActor(ctx),
+          resource: { type: "user" },
+          action: "signed in",
+          outcome: "failure",
+          failureReason: ctx.context.returned.message,
+          metadata: attemptedEmail ? { attemptedEmail } : undefined,
+        });
+        authSigninTotal.add(1, {
+          method: "email",
+          outcome: "failure",
+          provider: "email",
+        });
+      }
+
       // Debug: log get-session outcomes to diagnose middleware redirect issue
       if (ctx.path === "/get-session") {
         const returned = ctx.context.returned;
@@ -224,7 +249,7 @@ export const auth = betterAuth({
       } else if (ctx.path === "/callback/:id") {
         return await handleOAuthRegistration(ctx);
       } else if (ctx.path === "/sign-in/email") {
-        await postUserAuthenticationActions(ctx);
+        return await postUserAuthenticationActions(ctx);
       } else if (ctx.path === "/change-password") {
         await changePasswordAction(ctx);
       } else if (
@@ -232,6 +257,8 @@ export const auth = betterAuth({
         ctx.request?.method === "POST"
       ) {
         await resetPasswordAction(ctx);
+      } else if (ctx.path === "/sign-out") {
+        emitSignOutAudit(ctx);
       }
       return;
     }),
@@ -264,16 +291,34 @@ function getSuccessResult(
   return returned as BetterAuthSuccessResponseSchema;
 }
 
+function buildAuthActor(
+  ctx: BetterAuthMiddlewareContext,
+  userId?: string | number,
+) {
+  const headers = ctx.headers;
+  const ip =
+    headers?.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
+  const userAgent = headers?.get("user-agent") || undefined;
+  return { id: userId, ip, userAgent };
+}
+
 function enrichResponse(
   userResult: BetterAuthSuccessResponseSchema,
   intent: "seeker" | "employer",
+  onboardingStatus: "pending" | "completed",
 ) {
+  const redirectUrl =
+    intent === "employer"
+      ? onboardingStatus === "completed"
+        ? "/employer/organizations"
+        : "/employer/onboarding"
+      : "/";
   return {
     ...userResult,
     user: {
       ...userResult.user,
       intent,
-      redirectUrl: intent === "employer" ? "/employer/onboarding" : "/",
+      redirectUrl,
     },
   };
 }
@@ -307,7 +352,17 @@ async function handleEmailRegistration(ctx: BetterAuthMiddlewareContext) {
       }
     });
 
-    return enrichResponse(userResult, body.intent);
+    auditService.emit({
+      name: "auth.signup",
+      actor: buildAuthActor(ctx, userId),
+      resource: { type: "user", id: userId },
+      action: "signed up",
+      outcome: "success",
+      metadata: { method: "email", intent: body.intent },
+    });
+    authSignupTotal.add(1, { method: "email", outcome: "success" });
+
+    return enrichResponse(userResult, body.intent, "pending");
   } catch (error) {
     logger.error(error, "Error during email registration post-actions");
     throw new APIError("INTERNAL_SERVER_ERROR", {
@@ -330,10 +385,10 @@ async function handleOAuthRegistration(ctx: BetterAuthMiddlewareContext) {
     // are all idempotent so repeat calls are harmless. We log any rejections
     // so silent failures surface rather than leaving a user in a half-created
     // state with no breadcrumb.
-    const intent =
-      (userResult.user as Record<string, unknown>).intent === "employer"
-        ? "employer"
-        : "seeker";
+    const userRecord = userResult.user as Record<string, unknown>;
+    const intent = userRecord.intent === "employer" ? "employer" : "seeker";
+    const onboardingStatus =
+      userRecord.onboardingStatus === "completed" ? "completed" : "pending";
 
     const POST_ACTION_STEPS = [
       "initializeUserIntent",
@@ -356,7 +411,24 @@ async function handleOAuthRegistration(ctx: BetterAuthMiddlewareContext) {
       }
     });
 
-    return enrichResponse(userResult, intent);
+    // OAuth callback fires on both first-time link and every subsequent
+    // sign-in. We emit auth.signin.success here; a dedicated
+    // auth.oauth.linked event would require a first-time-link detection
+    // path (e.g. hooking Better-Auth's /link-social route), which is not
+    // wired in v1.
+    auditService.emit({
+      name: "auth.signin.success",
+      actor: buildAuthActor(ctx, userId),
+      resource: { type: "user", id: userId },
+      action: "signed in",
+      outcome: "success",
+      metadata: { method: "oauth" },
+    });
+    const provider =
+      (ctx.params as { id?: string } | undefined)?.id ?? "unknown";
+    authSigninTotal.add(1, { method: "oauth", outcome: "success", provider });
+
+    return enrichResponse(userResult, intent, onboardingStatus);
   } catch (error) {
     logger.error(error, "Error during OAuth registration post-actions");
     return;
@@ -374,20 +446,26 @@ async function postUserAuthenticationActions(ctx: BetterAuthMiddlewareContext) {
     return;
   }
 
-  const intent =
-    (returned.user as Record<string, unknown>).intent === "employer"
-      ? "employer"
-      : "seeker";
-  const redirectUrl = intent === "employer" ? "/employer/organizations" : "/";
+  const userRecord = returned.user as Record<string, unknown>;
+  const intent = userRecord.intent === "employer" ? "employer" : "seeker";
+  const onboardingStatus =
+    userRecord.onboardingStatus === "completed" ? "completed" : "pending";
 
-  return {
-    ...returned,
-    user: {
-      ...returned.user,
-      intent,
-      redirectUrl,
-    },
-  };
+  auditService.emit({
+    name: "auth.signin.success",
+    actor: buildAuthActor(ctx, userId),
+    resource: { type: "user", id: userId },
+    action: "signed in",
+    outcome: "success",
+    metadata: { method: "email" },
+  });
+  authSigninTotal.add(1, {
+    method: "email",
+    outcome: "success",
+    provider: "email",
+  });
+
+  return enrichResponse(returned, intent, onboardingStatus);
 }
 
 async function changePasswordAction(ctx: BetterAuthMiddlewareContext) {
@@ -410,6 +488,14 @@ async function changePasswordAction(ctx: BetterAuthMiddlewareContext) {
         fullName: returned.user.name,
       },
     );
+    auditService.emit({
+      name: "auth.password.changed",
+      actor: buildAuthActor(ctx, returned.user.id),
+      resource: { type: "user", id: returned.user.id },
+      action: "changed password",
+      outcome: "success",
+      metadata: { flow: "change-password" },
+    });
     return;
   } catch (error) {
     logger.error(error, "Failed to queue password changed email");
@@ -436,9 +522,32 @@ async function resetPasswordAction(ctx: BetterAuthMiddlewareContext) {
         fullName: returned.user.name,
       },
     );
+    auditService.emit({
+      name: "auth.password.changed",
+      actor: buildAuthActor(ctx, returned.user.id),
+      resource: { type: "user", id: returned.user.id },
+      action: "changed password",
+      outcome: "success",
+      metadata: { flow: "reset-password" },
+    });
     return;
   } catch (error) {
     logger.error(error, "Failed to queue password changed email after reset");
     return;
   }
+}
+
+function emitSignOutAudit(ctx: BetterAuthMiddlewareContext) {
+  if (ctx.context.returned instanceof APIError) return;
+  const session = ctx.context.session as
+    | { user?: { id?: string | number } }
+    | undefined;
+  const userId = session?.user?.id;
+  auditService.emit({
+    name: "auth.signout",
+    actor: buildAuthActor(ctx, userId),
+    resource: { type: "user", id: userId },
+    action: "signed out",
+    outcome: "success",
+  });
 }
