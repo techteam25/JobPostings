@@ -23,6 +23,7 @@ import { sendVerificationEmail } from "@/utils/auth/hooks/sendVerificationEmail"
 import { sendDeleteAccountVerification } from "@/utils/auth/hooks/sendDeleteAccountVerification";
 import { runBeforeDeleteAccount } from "@/utils/auth/hooks/beforeDeleteAccount";
 import { runAfterDeleteAccount } from "@/utils/auth/hooks/afterDeleteAccount";
+import { getPostAuthRedirectUrl } from "@/utils/auth/post-auth-redirect";
 import { auditService } from "@shared/audit";
 import { authSigninTotal, authSignupTotal } from "@shared/metrics";
 
@@ -307,18 +308,12 @@ function enrichResponse(
   intent: "seeker" | "employer",
   onboardingStatus: "pending" | "completed",
 ) {
-  const redirectUrl =
-    intent === "employer"
-      ? onboardingStatus === "completed"
-        ? "/employer/organizations"
-        : "/employer/onboarding"
-      : "/";
   return {
     ...userResult,
     user: {
       ...userResult.user,
       intent,
-      redirectUrl,
+      redirectUrl: getPostAuthRedirectUrl(intent, onboardingStatus),
     },
   };
 }

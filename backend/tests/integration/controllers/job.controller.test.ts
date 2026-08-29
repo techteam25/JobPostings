@@ -65,6 +65,37 @@ describe("Job Controller Integration Tests", () => {
         : "";
     });
 
+    it("should create a job from the employer form payload returning 201", async () => {
+      const frontendFormPayload = {
+        title: "Communications Coordinator",
+        description:
+          "ability to ensure information is organized; strong written and oral communication skills.",
+        city: "Longview",
+        state: "TX",
+        country: "United States",
+        zipcode: 75602,
+        jobType: "full-time",
+        compensationType: "missionary",
+        isRemote: false,
+        applicationDeadline: "2030-12-09",
+        experience: "4",
+        employerId: 1,
+      };
+
+      const response = await request
+        .post("/api/jobs")
+        .set("Cookie", cookie)
+        .send(frontendFormPayload);
+
+      TestHelpers.validateApiResponse(response, 201);
+      expect(response.body.data).toHaveProperty(
+        "title",
+        frontendFormPayload.title,
+      );
+      expect(response.body.data).toHaveProperty("zipcode", "75602");
+      expect(response.body.data.skills).toEqual([]);
+    });
+
     it("should create a single job returning 201", async () => {
       const newJob = await jobPostingFixture();
 

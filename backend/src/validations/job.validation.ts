@@ -90,15 +90,35 @@ export const updateJobInsightsSchema = insertJobInsightsSchema
   .partial()
   .omit({ id: true });
 
+// Accept the employer form's zip (number input) and ISO date-only deadline.
+const createJobZipcodeSchema = z.preprocess((value) => {
+  if (value === null || value === undefined || value === "") return undefined;
+  const normalized = String(value).trim();
+  return normalized.length === 0 ? undefined : normalized;
+}, z.string().max(20).optional());
+
+const createJobDeadlineSchema = z
+  .union([
+    z.iso.datetime(),
+    z.iso.date().transform((date) => `${date}T00:00:00.000Z`),
+    z.null(),
+  ])
+  .optional();
+
 // Create job payload schema: use base schema, omit fields, extend, then add refinements
 const createJobPayloadBaseSchema = insertJobBaseSchema
-  .omit({ applicationDeadline: true, employerId: true })
+  .omit({ applicationDeadline: true, employerId: true, zipcode: true })
   .extend({
-    applicationDeadline: z.iso.datetime(),
-    skills: z.array(z.string().min(1).max(100)).min(1).max(50),
+    zipcode: createJobZipcodeSchema,
+    applicationDeadline: createJobDeadlineSchema,
+    skills: z.array(z.string().min(1).max(100)).max(50).optional(),
   });
 
 const createJobPayloadSchema = createJobPayloadBaseSchema
+  .extend({
+    // Form does not collect skills; repository already treats an empty list as valid.
+    skills: z.array(z.string().min(1).max(100)).max(50).default([]),
+  })
   .refine((data) => !(data.country === "United States" && !data.state), {
     message: "State is required for United States",
     path: ["state"],
