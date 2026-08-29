@@ -11,6 +11,7 @@ import { env } from "./env";
  */
 const SEARCH_URL = `${env.NEXT_PUBLIC_SERVER_URL}/jobs/search`;
 const JOBS_URL = `${env.NEXT_PUBLIC_SERVER_URL}/jobs`;
+const RECOMMENDATIONS_URL = `${env.NEXT_PUBLIC_SERVER_URL}/jobs/recommendations`;
 
 export function makeJobWithEmployer(
   overrides: { id?: number; title?: string } = {},
@@ -132,6 +133,12 @@ export const handlers = [
   http.get(JOBS_URL, () => {
     return HttpResponse.json(makeJobsPaginatedResponse([]));
   }),
+  http.get(RECOMMENDATIONS_URL, () => {
+    return HttpResponse.json({
+      ...makePaginatedResponse([]),
+      hasPersonalization: false,
+    });
+  }),
 ];
 
-export { SEARCH_URL, JOBS_URL };
+export { SEARCH_URL, JOBS_URL, RECOMMENDATIONS_URL };

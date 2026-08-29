@@ -35,7 +35,15 @@ export function useCreateJobForm(organizationId: number) {
       onChange: createJobSchema,
     },
     onSubmit: async (values) => {
-      await mutateAsync(values.value);
+      const { zipcode, applicationDeadline, ...rest } = values.value;
+      await mutateAsync({
+        ...rest,
+        zipcode: zipcode == null ? null : String(zipcode),
+        applicationDeadline: applicationDeadline
+          ? new Date(`${applicationDeadline}T00:00:00.000Z`).toISOString()
+          : null,
+        skills: [],
+      });
       router.push(`/employer/organizations/${organizationId}/jobs`);
     },
   });

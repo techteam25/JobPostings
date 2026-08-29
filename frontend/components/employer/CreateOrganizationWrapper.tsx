@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import DOMPurify from "isomorphic-dompurify";
 
 import { steps } from "@/app/employer/onboarding/steps";
@@ -28,8 +28,14 @@ const CreateOrganizationWrapper = () => {
     url: "",
     logo: undefined,
   });
+  const companyDataRef = useRef<CreateOrganizationData>(companyData);
   const [currentStep, setCurrentStep] = useState("general-info");
   const formRef = useRef<AnyFormApi | null>(null);
+
+  const updateCompanyData = (data: CreateOrganizationData) => {
+    companyDataRef.current = data;
+    setCompanyData(data);
+  };
   const { isCreatingOrganization, createOrganizationAsync } =
     useCreateOrganization();
 
@@ -48,28 +54,9 @@ const CreateOrganizationWrapper = () => {
   const validateAndSubmitCurrentForm = async (): Promise<boolean> => {
     if (!formRef.current) return false;
 
-    // Validate current form
-    await formRef.current.validateAllFields("blur");
+    await formRef.current.handleSubmit();
 
-    const formState = formRef.current.state;
-    const hasErrors =
-      formState.errors.length > 0 ||
-      Object.values(formState.fieldMeta).some((meta) => !meta?.isValid);
-
-    if (hasErrors) {
-      // Touch all fields to show errors
-      Object.keys(formState.fieldMeta).forEach((fieldName) => {
-        formRef.current?.setFieldMeta(fieldName, (prev) => ({
-          ...prev,
-          isTouched: true,
-        }));
-      });
-      return false;
-    }
-
-    // Update companyData with current form values
-    formRef.current.handleSubmit();
-    return true;
+    return formRef.current.state.isValid;
   };
 
   const handleNext = async () => {
@@ -86,7 +73,7 @@ const CreateOrganizationWrapper = () => {
     if (!formRef.current) return;
 
     // Update companyData with current form values before going back
-    formRef.current.handleSubmit();
+    await formRef.current.handleSubmit();
 
     const currentIndex = steps.findIndex((step) => step.key === currentStep);
     if (currentIndex > 0) {
@@ -98,9 +85,10 @@ const CreateOrganizationWrapper = () => {
     const isValid = await validateAndSubmitCurrentForm();
     if (!isValid) return;
 
+    const data = companyDataRef.current;
     const cleanedCompanyData: CreateOrganizationData = {
-      ...companyData,
-      mission: DOMPurify.sanitize(companyData.mission),
+      ...data,
+      mission: DOMPurify.sanitize(data.mission),
     };
 
     const formData = new FormData();
@@ -131,7 +119,7 @@ const CreateOrganizationWrapper = () => {
           {FormComponent && (
             <FormComponent
               organization={companyData}
-              setOrganizationData={setCompanyData}
+              setOrganizationData={updateCompanyData}
               formRef={formRef}
             />
           )}
