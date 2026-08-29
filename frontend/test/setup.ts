@@ -24,6 +24,34 @@ afterAll(() => {
   server.close();
 });
 
+// Node's experimental Web Storage is off unless `--localstorage-file` is set,
+// so jsdom can boot with `window.localStorage === undefined`. Zustand persist
+// then crashes on `setState`. Provide an in-memory stub when the real API is
+// missing so filter-store tests can run.
+if (typeof window !== "undefined" && typeof window.localStorage === "undefined") {
+  const memory = new Map<string, string>();
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    writable: true,
+    value: {
+      getItem: (key: string) => memory.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        memory.set(key, String(value));
+      },
+      removeItem: (key: string) => {
+        memory.delete(key);
+      },
+      clear: () => {
+        memory.clear();
+      },
+      get length() {
+        return memory.size;
+      },
+      key: (index: number) => [...memory.keys()][index] ?? null,
+    } satisfies Storage,
+  });
+}
+
 // Polyfill APIs missing in jsdom that Radix UI components need
 global.ResizeObserver = class ResizeObserver {
   observe() {}

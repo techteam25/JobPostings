@@ -185,7 +185,10 @@ describe("SearchJobsWrapper", () => {
       />,
     );
 
-    expect(await screen.findByText(/no matching jobs/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/didn't find any jobs that match your search/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/similar to jobs you might like/i)).toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /clear filters/i }));
