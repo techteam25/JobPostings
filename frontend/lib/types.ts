@@ -462,12 +462,13 @@ export type CreateJobInput = {
   city: string;
   state: string;
   country: string;
-  zipcode: number | null;
+  zipcode: number | string | null;
   jobType: "full-time" | "part-time" | "contract" | "volunteer" | "internship";
   compensationType: "paid" | "missionary" | "volunteer" | "stipend";
   isRemote: boolean;
   applicationDeadline: string | null;
   experience: string;
+  skills?: string[];
 };
 
 export type UpdateJobInput = Partial<CreateJobInput> & { isActive?: boolean };
