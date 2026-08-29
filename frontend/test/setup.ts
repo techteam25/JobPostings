@@ -47,7 +47,7 @@ if (typeof window !== "undefined" && typeof window.localStorage === "undefined")
       get length() {
         return memory.size;
       },
-      key: (index: number) => [...memory.keys()][index] ?? null,
+      key: (index: number) => Array.from(memory.keys())[index] ?? null,
     } satisfies Storage,
   });
 }
