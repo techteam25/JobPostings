@@ -14,7 +14,11 @@ export const useSocialAuth = () => {
     try {
       await authClient.signIn.social({
         provider,
-        callbackURL: `${env.NEXT_PUBLIC_FRONTEND_URL}/`,
+        // Better Auth redirects here after the provider callback; /post-login
+        // then routes by intent + onboardingStatus (same as email redirectUrl).
+        callbackURL: `${env.NEXT_PUBLIC_FRONTEND_URL}/post-login`,
+        errorCallbackURL: `${env.NEXT_PUBLIC_FRONTEND_URL}/sign-in`,
+        newUserCallbackURL: `${env.NEXT_PUBLIC_FRONTEND_URL}/post-login`,
       });
     } catch {
       toast.error("An unexpected error occurred");

@@ -22,6 +22,8 @@ type BetterAuthSession = {
     status: string;
     deletedAt?: Date | null | undefined;
     lastLoginAt?: Date | null | undefined;
+    intent?: "seeker" | "employer";
+    onboardingStatus?: "pending" | "completed";
   } | null;
 };
 
