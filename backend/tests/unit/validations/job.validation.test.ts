@@ -70,13 +70,11 @@ describe("createJobSchema — employer create-job form payload", () => {
   });
 
   it("accepts a job with no skills (form does not collect them)", () => {
-    const { skills: _skills, ...withoutSkills } = {
+    const result = parseBody({
       ...frontendCreateJobPayload,
       zipcode: "75602",
       applicationDeadline: "2030-12-09T00:00:00.000Z",
-    };
-
-    const result = parseBody(withoutSkills);
+    });
 
     expect(result.success).toBe(true);
     if (result.success) {
