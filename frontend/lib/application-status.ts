@@ -20,3 +20,22 @@ export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
 export function getApplicationStatusLabel(status: string): string {
   return APPLICATION_STATUS_LABELS[status as ApplicationStatus] || status;
 }
+
+const EMPLOYER_STATUS_TRANSITIONS: Record<
+  ApplicationStatus,
+  ApplicationStatus[]
+> = {
+  pending: ["reviewed"],
+  reviewed: ["shortlisted", "rejected"],
+  shortlisted: ["interviewing", "rejected"],
+  interviewing: ["hired", "rejected"],
+  rejected: [],
+  hired: [],
+  withdrawn: [],
+};
+
+export function getEmployerAllowedTransitions(
+  currentStatus: ApplicationStatus,
+): ApplicationStatus[] {
+  return EMPLOYER_STATUS_TRANSITIONS[currentStatus] ?? [];
+}
