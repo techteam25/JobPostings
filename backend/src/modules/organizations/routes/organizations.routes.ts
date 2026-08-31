@@ -10,6 +10,7 @@ import {
   getOrganizationSchema,
   deleteOrganizationSchema,
   uploadOrganizationLogoSchema,
+  removeOrganizationMemberSchema,
 } from "@/validations/organization.validation";
 import { getUserSchema } from "@/validations/user.validation";
 import {
@@ -138,6 +139,22 @@ export function createOrganizationsRoutes({
     invalidateCacheMiddleware(() => cacheKeys.organizations),
     invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
     controller.deleteOrganization,
+  );
+
+  /**
+   * Removes a member from an organization.
+   * Requires authentication and admin or owner role.
+   * @route DELETE /:organizationId/members/:memberId
+   */
+  router.delete(
+    "/:organizationId/members/:memberId",
+    authenticate,
+    orgGuards.requireAdminOrOwnerRole(["owner", "admin"]),
+    validate(removeOrganizationMemberSchema),
+    orgGuards.ensureIsOrganizationMember,
+    invalidateCacheMiddleware(() => cacheKeys.organizations),
+    invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
+    controller.removeOrganizationMember,
   );
 
   return router;

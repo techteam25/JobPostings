@@ -77,19 +77,21 @@ export class OrganizationsRepository
       // flatten members to include user details at the top level
       return {
         ...organization,
-        members: organization.members.map((member) => ({
-          id: member.id,
-          organizationId: member.organizationId,
-          userId: member.userId,
-          role: member.role,
-          isActive: member.isActive,
-          createdAt: member.createdAt,
-          updatedAt: member.updatedAt,
-          memberName: member.user.fullName,
-          memberEmail: member.user.email,
-          memberEmailVerified: member.user.emailVerified,
-          memberStatus: member.user.status,
-        })),
+        members: organization.members
+          .filter((member) => member.isActive)
+          .map((member) => ({
+            id: member.id,
+            organizationId: member.organizationId,
+            userId: member.userId,
+            role: member.role,
+            isActive: member.isActive,
+            createdAt: member.createdAt,
+            updatedAt: member.updatedAt,
+            memberName: member.user.fullName,
+            memberEmail: member.user.email,
+            memberEmailVerified: member.user.emailVerified,
+            memberStatus: member.user.status,
+          })),
       };
     });
   }
@@ -215,6 +217,7 @@ export class OrganizationsRepository
         where: and(
           eq(organizationMembers.userId, contactId),
           eq(organizationMembers.organizationId, organizationId),
+          eq(organizationMembers.isActive, true),
         ),
         with: {
           user: {
@@ -416,6 +419,47 @@ export class OrganizationsRepository
       if (!member) return false;
 
       return ["owner", "admin"].includes(member.role);
+    });
+  }
+
+  /**
+   * Finds an organization member by membership record ID.
+   * @param memberId The ID of the membership record.
+   * @param organizationId The ID of the organization.
+   * @returns The organization member or null if not found.
+   */
+  async findMemberById(memberId: number, organizationId: number) {
+    return await withDbErrorHandling(async () => {
+      const member = await db.query.organizationMembers.findFirst({
+        where: and(
+          eq(organizationMembers.id, memberId),
+          eq(organizationMembers.organizationId, organizationId),
+        ),
+      });
+      return member ?? null;
+    });
+  }
+
+  /**
+   * Deactivates an organization member, removing their active membership.
+   * @param memberId The ID of the membership record.
+   * @param organizationId The ID of the organization.
+   * @returns True if the member was deactivated, false otherwise.
+   */
+  async deactivateMember(memberId: number, organizationId: number) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(organizationMembers)
+        .set({ isActive: false })
+        .where(
+          and(
+            eq(organizationMembers.id, memberId),
+            eq(organizationMembers.organizationId, organizationId),
+            eq(organizationMembers.isActive, true),
+          ),
+        );
+
+      return result.affectedRows > 0;
     });
   }
 

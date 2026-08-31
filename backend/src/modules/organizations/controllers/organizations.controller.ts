@@ -12,6 +12,7 @@ import type {
   GetOrganizationSchema,
   UpdateOrganizationSchema,
   UploadOrganizationLogoSchema,
+  RemoveOrganizationMemberSchema,
   Organization,
   OrganizationMember,
 } from "@/validations/organization.validation";
@@ -230,6 +231,29 @@ export class OrganizationsController extends BaseController {
 
     if (result.isSuccess) {
       return this.sendSuccess(res, null, result.value.message, 204);
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Removes a member from an organization.
+   * @param req The Express request object with organization and member ID parameters.
+   * @param res The Express response object.
+   */
+  removeOrganizationMember = async (
+    req: Request<RemoveOrganizationMemberSchema["params"]>,
+    res: Response<ApiResponse<{ message: string }>>,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const memberId = parseInt(req.params.memberId);
+    const result = await this.organizationsService.removeOrganizationMember(
+      organizationId,
+      memberId,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, result.value, result.value.message, 200);
     } else {
       return this.handleControllerError(res, result.error);
     }

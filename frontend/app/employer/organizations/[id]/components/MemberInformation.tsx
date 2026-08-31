@@ -17,10 +17,10 @@ import {
 } from "lucide-react";
 import { Member } from "@/lib/types";
 import dynamic from "next/dynamic";
-import { DataTable } from "@/components/common";
-import { columns, memberGlobalFilter } from "./member-columns";
+import { MembersTable } from "./MembersTable";
 import { PendingInvitationsSection } from "./PendingInvitationsSection";
 import { useCanManageInvitations } from "../context/organization-context";
+import { useRemoveMember } from "@/app/employer/organizations/hooks/use-remove-member";
 
 const InviteMemberDialog = dynamic(() =>
   import("./InviteMemberDialog").then((mod) => ({
@@ -40,6 +40,8 @@ export function EmployeeListSection({
   const [searchTerm, setSearchTerm] = useState("");
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const canManageInvitations = useCanManageInvitations();
+  const { mutateAsync: removeMember, isPending: isRemovePending } =
+    useRemoveMember(organizationId);
 
   const totalMembers = members.length;
   const activeMembers = members.filter((m) => m.isActive).length;
@@ -208,12 +210,13 @@ export function EmployeeListSection({
             </span>
           </div>
 
-          <DataTable
-            columns={columns}
-            data={members}
-            globalFilter={searchTerm}
-            onGlobalFilterChange={setSearchTerm}
-            globalFilterFn={memberGlobalFilter}
+          <MembersTable
+            members={members}
+            canManageMembers={canManageInvitations}
+            onRemoveMember={removeMember}
+            isRemovePending={isRemovePending}
+            searchTerm={searchTerm}
+            onSearchTermChange={setSearchTerm}
           />
         </div>
       </Card>

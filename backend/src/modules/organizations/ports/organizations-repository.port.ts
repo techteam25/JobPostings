@@ -110,6 +110,19 @@ export interface OrganizationsRepositoryPort extends BaseRepositoryPort<
   hasDeletePermission(userId: number, orgId: number): Promise<boolean>;
 
   /**
+   * Finds an organization member by membership record ID.
+   */
+  findMemberById(
+    memberId: number,
+    organizationId: number,
+  ): Promise<OrganizationMember | null>;
+
+  /**
+   * Deactivates an organization member, removing their active membership.
+   */
+  deactivateMember(memberId: number, organizationId: number): Promise<boolean>;
+
+  /**
    * Creates an organization member record.
    * Used by the invitations module (via OrgMembershipCommandPort adapter)
    * when accepting invitations.

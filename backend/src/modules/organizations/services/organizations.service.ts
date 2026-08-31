@@ -12,6 +12,7 @@ import {
   DatabaseError,
   ForbiddenError,
   NotFoundError,
+  ValidationError,
 } from "@shared/errors";
 import { StorageFolder } from "@shared/constants/storage-folders";
 import type { FileUploadJobData } from "@/validations/file.validation";
@@ -455,6 +456,54 @@ export class OrganizationsService
       );
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Removes an active member from an organization.
+   * Owners cannot be removed through this action.
+   * @param organizationId The ID of the organization.
+   * @param memberId The ID of the membership record to remove.
+   * @returns A Result containing a success message or an error.
+   */
+  async removeOrganizationMember(organizationId: number, memberId: number) {
+    try {
+      const member = await this.organizationsRepository.findMemberById(
+        memberId,
+        organizationId,
+      );
+
+      if (!member) {
+        return fail(new NotFoundError("Organization member not found"));
+      }
+
+      if (!member.isActive) {
+        return fail(new ValidationError("Member is not active"));
+      }
+
+      if (member.role === "owner") {
+        return fail(
+          new ForbiddenError(
+            "Organization owners cannot be removed. Transfer ownership first.",
+          ),
+        );
+      }
+
+      const deactivated = await this.organizationsRepository.deactivateMember(
+        memberId,
+        organizationId,
+      );
+
+      if (!deactivated) {
+        return fail(new DatabaseError("Failed to remove organization member"));
+      }
+
+      return ok({ message: "Member removed successfully" });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to remove organization member"));
     }
   }
 }

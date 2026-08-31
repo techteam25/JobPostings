@@ -362,6 +362,14 @@ export const deleteOrganizationSchema = z.object({
   params: organizationIdParamSchema,
 });
 
+export const removeOrganizationMemberSchema = z.object({
+  body: z.object({}).strict(),
+  query: z.object({}).strict(),
+  params: organizationIdParamSchema.extend({
+    memberId: z.string().regex(/^\d+$/, "memberId is required"),
+  }),
+});
+
 export type NewOrganization = z.infer<typeof insertOrganizationSchema>;
 export type Organization = z.infer<typeof selectOrganizationSchema>;
 
@@ -376,6 +384,9 @@ export type UploadOrganizationLogoSchema = z.infer<
 >;
 export type UpdateOrganizationSchema = z.infer<typeof updateOrganizationSchema>;
 export type DeleteOrganizationSchema = z.infer<typeof deleteOrganizationSchema>;
+export type RemoveOrganizationMemberSchema = z.infer<
+  typeof removeOrganizationMemberSchema
+>;
 export type JobApplicationManagementSchema = z.infer<
   typeof jobApplicationManagementSchema
 >;

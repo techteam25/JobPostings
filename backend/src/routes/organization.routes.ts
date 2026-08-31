@@ -4,6 +4,7 @@ import {
   createOrganizationSchema,
   getOrganizationSchema,
   deleteOrganizationSchema,
+  removeOrganizationMemberSchema,
   updateOrganizationSchema,
   organizationJobApplicationsResponseSchema,
   updateJobStatusInputSchema,
@@ -394,6 +395,47 @@ registry.registerPath({
     },
     500: {
       description: "Server error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/organizations/{organizationId}/members/{memberId}",
+  summary: "Remove an organization member",
+  tags: ["Organizations"],
+  security: [{ cookie: [] }],
+  request: {
+    params: removeOrganizationMemberSchema.shape["params"],
+  },
+  responses: {
+    200: {
+      description: "Member removed successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.object({
+              message: z.string(),
+            }),
+          ),
+        },
+      },
+    },
+    403: {
+      description: "Forbidden",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Member not found",
       content: {
         "application/json": {
           schema: errorResponseSchema,

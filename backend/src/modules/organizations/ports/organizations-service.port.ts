@@ -73,4 +73,9 @@ export interface OrganizationsServicePort {
   ): Promise<Result<UserOrganizationInterface[], Error>>;
 
   hasDeletePermission(userId: number, organizationId: number): Promise<boolean>;
+
+  removeOrganizationMember(
+    organizationId: number,
+    memberId: number,
+  ): Promise<Result<{ message: string }, Error>>;
 }
