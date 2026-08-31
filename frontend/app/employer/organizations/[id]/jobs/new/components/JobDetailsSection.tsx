@@ -10,10 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { CreateJobFormApi } from "../hooks/use-create-job-form";
+import type { JobFormApi } from "../hooks/use-create-job-form";
 
 interface JobDetailsSectionProps {
-  form: CreateJobFormApi;
+  form: JobFormApi;
 }
 
 export function JobDetailsSection({ form }: JobDetailsSectionProps) {
@@ -99,9 +99,7 @@ export function JobDetailsSection({ form }: JobDetailsSectionProps) {
                 type="date"
                 value={field.state.value ?? ""}
                 onBlur={field.handleBlur}
-                onChange={(e) =>
-                  field.handleChange(e.target.value || null)
-                }
+                onChange={(e) => field.handleChange(e.target.value || null)}
               />
             </div>
           )}

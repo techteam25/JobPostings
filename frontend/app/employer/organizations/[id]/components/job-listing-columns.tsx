@@ -11,7 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { toast } from "sonner";
 import { Job } from "@/schemas/responses/jobs";
 import { formatToReadableDate } from "@/lib/utils";
 import { JobStatusBadge } from "./JobStatusBadge";
@@ -60,7 +59,11 @@ function ActionsCell({
             View Applicants
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => toast.info("Job editing is coming soon")}
+            onClick={() =>
+              router.push(
+                `/employer/organizations/${organizationId}/jobs/${job.id}/edit`,
+              )
+            }
           >
             Edit Job
           </DropdownMenuItem>

@@ -52,3 +52,4 @@ export function useCreateJobForm(organizationId: number) {
 }
 
 export type CreateJobFormApi = ReturnType<typeof useCreateJobForm>["form"];
+export type JobFormApi = CreateJobFormApi;

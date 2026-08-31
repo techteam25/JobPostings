@@ -3,8 +3,12 @@ import { render, screen, within } from "@/test/test-utils";
 import type { Job } from "@/schemas/responses/jobs";
 import { JobListingTable } from "../JobListingTable";
 
+const { mockPush } = vi.hoisted(() => ({
+  mockPush: vi.fn(),
+}));
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: mockPush, replace: vi.fn() }),
 }));
 
 function createJob(overrides: Partial<Job> = {}): Job {
@@ -28,6 +32,45 @@ function createJob(overrides: Partial<Job> = {}): Job {
     ...overrides,
   };
 }
+
+describe("JobListingTable edit action", () => {
+  const organizationId = 10;
+  const onCloseJob = vi.fn().mockResolvedValue(undefined);
+  const onReopenJob = vi.fn().mockResolvedValue(undefined);
+  const onDuplicate = vi.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
+
+  async function openOptionsMenu(jobTitle: string) {
+    const user = userEvent.setup();
+    const row = screen.getByText(jobTitle).closest("tr");
+    if (!row) throw new Error(`Row not found for job: ${jobTitle}`);
+
+    await user.click(within(row).getByRole("button", { name: /options/i }));
+    return user;
+  }
+
+  it("navigates to the edit page when Edit Job is selected", async () => {
+    render(
+      <JobListingTable
+        jobs={[createJob({ id: 99, title: "Editable Role" })]}
+        organizationId={organizationId}
+        onCloseJob={onCloseJob}
+        onReopenJob={onReopenJob}
+        onDuplicate={onDuplicate}
+      />,
+    );
+
+    const user = await openOptionsMenu("Editable Role");
+    await user.click(screen.getByRole("menuitem", { name: /edit job/i }));
+
+    expect(mockPush).toHaveBeenCalledWith(
+      "/employer/organizations/10/jobs/99/edit",
+    );
+  });
+});
 
 describe("JobListingTable reopen action", () => {
   const organizationId = 10;
