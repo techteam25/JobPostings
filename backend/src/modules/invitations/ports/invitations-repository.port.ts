@@ -74,4 +74,17 @@ export interface InvitationsRepositoryPort {
    * @returns The number of expired invitations.
    */
   expirePendingInvitations(): Promise<number>;
+
+  /**
+   * Finds pending invitations for an organization.
+   */
+  findPendingByOrganizationId(organizationId: number): Promise<
+    Array<{
+      id: number;
+      email: string;
+      role: "owner" | "admin" | "recruiter" | "member";
+      expiresAt: Date;
+      createdAt: Date;
+    }>
+  >;
 }

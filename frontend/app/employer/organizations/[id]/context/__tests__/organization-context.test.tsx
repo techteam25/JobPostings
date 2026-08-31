@@ -4,6 +4,7 @@ import {
   OrganizationProvider,
   useOrganization,
   useIsOwner,
+  useCanManageInvitations,
 } from "../organization-context";
 import { OrganizationWithMembers } from "@/lib/types";
 import { mockOrganization } from "@/test/fixtures/mockOrganization.fixture";
@@ -107,6 +108,32 @@ describe("OrganizationContext", () => {
     it("returns false when current user is admin", () => {
       const { result } = renderHook(() => useIsOwner(), {
         wrapper: createWrapper(mockOrganization, 300),
+      });
+
+      expect(result.current).toBe(false);
+    });
+  });
+
+  describe("useCanManageInvitations", () => {
+    it("returns true when current user is owner", () => {
+      const { result } = renderHook(() => useCanManageInvitations(), {
+        wrapper: createWrapper(mockOrganization, 100),
+      });
+
+      expect(result.current).toBe(true);
+    });
+
+    it("returns true when current user is admin", () => {
+      const { result } = renderHook(() => useCanManageInvitations(), {
+        wrapper: createWrapper(mockOrganization, 300),
+      });
+
+      expect(result.current).toBe(true);
+    });
+
+    it("returns false when current user is member", () => {
+      const { result } = renderHook(() => useCanManageInvitations(), {
+        wrapper: createWrapper(mockOrganization, 200),
       });
 
       expect(result.current).toBe(false);

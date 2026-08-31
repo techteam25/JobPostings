@@ -426,19 +426,19 @@ export type Invitation = {
   updatedAt: Date;
 };
 
+export type PendingInvitation = {
+  id: number;
+  email: string;
+  role: "owner" | "admin" | "recruiter" | "member";
+  expiresAt: Date;
+  createdAt: Date;
+};
+
 export type InvitationDetails = {
-  invitation: {
-    id: number;
-    email: string;
-    role: string;
-    status: string;
-    expiresAt: Date;
-  };
-  organization: {
-    id: number;
-    name: string;
-    logoUrl: string | null;
-  };
+  organizationName: string;
+  role: string;
+  inviterName: string;
+  expiresAt: string;
 };
 
 export type OrganizationJobStats = {

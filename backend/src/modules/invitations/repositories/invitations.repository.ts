@@ -201,6 +201,32 @@ export class InvitationsRepository implements InvitationsRepositoryPort {
   }
 
   /**
+   * Finds pending invitations for an organization.
+   * @param organizationId The organization ID.
+   * @returns Pending invitations without token data.
+   */
+  async findPendingByOrganizationId(organizationId: number) {
+    return await withDbErrorHandling(async () => {
+      const invitations = await db.query.organizationInvitations.findMany({
+        where: and(
+          eq(organizationInvitations.organizationId, organizationId),
+          eq(organizationInvitations.status, "pending"),
+        ),
+        columns: {
+          id: true,
+          email: true,
+          role: true,
+          expiresAt: true,
+          createdAt: true,
+        },
+        orderBy: (invitations, { desc }) => [desc(invitations.createdAt)],
+      });
+
+      return invitations;
+    });
+  }
+
+  /**
    * Expires all pending invitations that have passed their expiration date.
    * Updates invitation status to 'expired' and sets expiredAt timestamp.
    * @returns The number of expired invitations.

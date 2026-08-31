@@ -57,3 +57,8 @@ export function useCanDeleteJobs(): boolean {
   const { currentUserRole } = useOrganization();
   return currentUserRole === "owner" || currentUserRole === "admin";
 }
+
+export function useCanManageInvitations(): boolean {
+  const { currentUserRole } = useOrganization();
+  return currentUserRole === "owner" || currentUserRole === "admin";
+}

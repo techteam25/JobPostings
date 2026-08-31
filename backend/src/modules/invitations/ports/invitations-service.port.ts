@@ -10,6 +10,14 @@ export type OrganizationInvitationDetails = {
   expiresAt: Date;
 };
 
+export type PendingOrganizationInvitationSummary = {
+  id: number;
+  email: string;
+  role: "owner" | "admin" | "recruiter" | "member";
+  expiresAt: Date;
+  createdAt: Date;
+};
+
 export interface InvitationsServicePort {
   /**
    * Sends an invitation to join an organization.
@@ -45,4 +53,11 @@ export interface InvitationsServicePort {
     invitationId: number,
     requesterId: number,
   ): Promise<Result<{ message: string }, Error>>;
+
+  /**
+   * Lists pending invitations for an organization.
+   */
+  listPendingInvitations(
+    organizationId: number,
+  ): Promise<Result<PendingOrganizationInvitationSummary[], Error>>;
 }

@@ -458,6 +458,20 @@ export const cancelOrganizationInvitationSchema = z.object({
   query: z.object({}).strict(),
 });
 
+export const listOrganizationInvitationsSchema = z.object({
+  body: z.object({}).strict(),
+  params: organizationIdParamSchema,
+  query: z.object({}).strict(),
+});
+
+export const pendingOrganizationInvitationSchema = z.object({
+  id: z.number(),
+  email: z.string(),
+  role: z.enum(["owner", "admin", "recruiter", "member"]),
+  expiresAt: z.coerce.date(),
+  createdAt: z.coerce.date(),
+});
+
 export type OrganizationInvitation = z.infer<
   typeof selectOrganizationInvitationSchema
 >;
@@ -475,6 +489,12 @@ export type GetOrganizationInvitationDetailsInput = z.infer<
 >;
 export type CancelOrganizationInvitationInput = z.infer<
   typeof cancelOrganizationInvitationSchema
+>;
+export type ListOrganizationInvitationsInput = z.infer<
+  typeof listOrganizationInvitationsSchema
+>;
+export type PendingOrganizationInvitation = z.infer<
+  typeof pendingOrganizationInvitationSchema
 >;
 
 export type OrganizationWithMembersInterface = Organization & {

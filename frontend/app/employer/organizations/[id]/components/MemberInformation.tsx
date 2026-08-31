@@ -19,6 +19,8 @@ import { Member } from "@/lib/types";
 import dynamic from "next/dynamic";
 import { DataTable } from "@/components/common";
 import { columns, memberGlobalFilter } from "./member-columns";
+import { PendingInvitationsSection } from "./PendingInvitationsSection";
+import { useCanManageInvitations } from "../context/organization-context";
 
 const InviteMemberDialog = dynamic(() =>
   import("./InviteMemberDialog").then((mod) => ({
@@ -37,6 +39,7 @@ export function EmployeeListSection({
 }: EmployeeListSectionProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const canManageInvitations = useCanManageInvitations();
 
   const totalMembers = members.length;
   const activeMembers = members.filter((m) => m.isActive).length;
@@ -139,6 +142,11 @@ export function EmployeeListSection({
           </div>
         </Card>
       </div>
+
+      <PendingInvitationsSection
+        organizationId={organizationId}
+        canManageInvitations={canManageInvitations}
+      />
 
       {/* Table Section */}
       <Card className="w-full border-0 shadow-sm">
