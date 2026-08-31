@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useTransition } from "react";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { SavedJob } from "@/lib/types";
@@ -85,8 +86,11 @@ export const SavedJobCard = memo(function SavedJobCard({
               Job Closed
             </Button>
           ) : (
-            <Button className="bg-primary/90 text-primary-foreground hover:bg-primary w-full cursor-pointer">
-              View Job Details
+            <Button
+              asChild
+              className="bg-primary/90 text-primary-foreground hover:bg-primary w-full cursor-pointer"
+            >
+              <Link href={`/jobs/${savedJob.job.id}`}>View Job Details</Link>
             </Button>
           )}
         </div>
