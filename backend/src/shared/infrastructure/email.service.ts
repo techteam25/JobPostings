@@ -658,6 +658,47 @@ ${footer}`,
   }
 
   /**
+   * Sends a transactional email notifying the successor that they are now
+   * the organization owner. Bypasses email preference flags.
+   */
+  async sendOwnershipTransferredEmail(
+    _userId: number,
+    email: string,
+    fullName: string,
+    organizationId: number,
+    organizationName: string,
+    previousOwnerFullName: string,
+  ): Promise<void> {
+    const template = await this.loadTemplate("ownershipTransferred");
+
+    const organizationLink = `${env.FRONTEND_URL}/employer/organizations/${organizationId}`;
+    const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+    const htmlContent = template
+      .replace(/{{logoPath}}/g, logoPath)
+      .replace(/{{name}}/g, this.escapeHtml(fullName))
+      .replace(/{{organizationName}}/g, this.escapeHtml(organizationName))
+      .replace(
+        /{{previousOwnerFullName}}/g,
+        this.escapeHtml(previousOwnerFullName),
+      )
+      .replace(/{{organizationLink}}/g, organizationLink);
+
+    try {
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: `You are now the owner of ${organizationName} on getInvolved`,
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      logger.error(error, "Email service error");
+    }
+  }
+
+  /**
    * Sends an application status update notification email to the applicant.
    * @param email The recipient's email address.
    * @param fullName The recipient's full name.

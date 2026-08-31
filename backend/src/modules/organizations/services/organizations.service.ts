@@ -25,6 +25,8 @@ import type { OrganizationsRepositoryPort } from "@/modules/organizations";
 import type { IntentSyncPort } from "@/modules/organizations/ports/intent-sync.port";
 import { OrganizationsLogoFile } from "@/modules/organizations/types/organizations.module.types";
 import type { EmployerDocument } from "@shared/ports/typesense-employer-service.port";
+import type { EventBusPort } from "@shared/events";
+import { createOwnershipTransferredEvent } from "@/modules/organizations/events/ownership-transferred.event";
 
 /**
  * Service class for managing organization CRUD and membership operations.
@@ -38,6 +40,7 @@ export class OrganizationsService
   constructor(
     private organizationsRepository: OrganizationsRepositoryPort,
     private intentSync: IntentSyncPort,
+    private eventBus: EventBusPort,
   ) {
     super();
   }
@@ -623,6 +626,25 @@ export class OrganizationsService
           ),
         );
       }
+
+      const organization =
+        await this.organizationsRepository.findById(organizationId);
+      const newOwnerMember = await this.organizationsRepository.findByContact(
+        successor.userId,
+        organizationId,
+      );
+
+      await this.eventBus.publish(
+        createOwnershipTransferredEvent({
+          organizationId,
+          organizationName: organization.name,
+          previousOwnerUserId: actorMember.userId,
+          previousOwnerFullName: actorMember.user.fullName,
+          newOwnerUserId: successor.userId,
+          newOwnerEmail: newOwnerMember.user.email,
+          newOwnerFullName: newOwnerMember.user.fullName,
+        }),
+      );
 
       return ok({
         message: "Ownership transferred successfully",

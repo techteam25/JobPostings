@@ -207,6 +207,7 @@ function createMockEmailService(): EmailServicePort {
     sendJobDeletionEmail: vi.fn(),
     sendOrganizationInvitation: vi.fn(),
     sendOrganizationWelcome: vi.fn(),
+    sendOwnershipTransferredEmail: vi.fn(),
     sendApplicationStatusUpdate: vi.fn(),
     sendJobAlertNotification: vi.fn(),
     sendUnsubscribeConfirmation: vi.fn(),

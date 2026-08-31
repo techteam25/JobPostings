@@ -218,6 +218,7 @@ export function createCompositionRoot(): CompositionRoot {
     typesenseEmployerService,
     typesenseProfileService,
     publicCandidateProfileQuery: profileToPublicCandidateAdapter,
+    eventBus,
   });
 
   // Organizations → other modules (adapters using module's repo + service)

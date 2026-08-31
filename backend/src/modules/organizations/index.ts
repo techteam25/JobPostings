@@ -9,3 +9,5 @@ export { createOrganizationsGuards } from "./guards/organizations.guards";
 export type { OrganizationsGuards } from "./guards/organizations.guards";
 export type { IntentSyncPort } from "./ports/intent-sync.port";
 export { OrganizationsRepository } from "./repositories/organizations.repository";
+export type { OwnershipTransferredPayload } from "./events/ownership-transferred.event";
+export { createOwnershipTransferredEvent } from "./events/ownership-transferred.event";

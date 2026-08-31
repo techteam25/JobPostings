@@ -75,6 +75,14 @@ export interface EmailJobPayloads {
     organizationName: string;
     role: string;
   };
+  sendOwnershipTransferredEmail: {
+    userId: number;
+    email: string;
+    fullName: string;
+    organizationId: number;
+    organizationName: string;
+    previousOwnerFullName: string;
+  };
 }
 
 /** Any email job name */

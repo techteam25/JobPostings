@@ -76,6 +76,19 @@ export interface EmailServicePort {
   ): Promise<void>;
 
   /**
+   * Sends a transactional email notifying the successor that they are
+   * now the organization owner. Bypasses email preference flags.
+   */
+  sendOwnershipTransferredEmail(
+    userId: number,
+    email: string,
+    fullName: string,
+    organizationId: number,
+    organizationName: string,
+    previousOwnerFullName: string,
+  ): Promise<void>;
+
+  /**
    * Sends an application status update notification email to the applicant.
    */
   sendApplicationStatusUpdate(
