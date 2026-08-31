@@ -9,6 +9,7 @@ interface JobListingTableProps {
   jobs: Job[];
   organizationId: number;
   onCloseJob: (jobId: number) => Promise<void>;
+  onReopenJob: (jobId: number) => Promise<void>;
   onDuplicate: (job: Job) => Promise<void>;
 }
 
@@ -16,11 +17,18 @@ export function JobListingTable({
   jobs,
   organizationId,
   onCloseJob,
+  onReopenJob,
   onDuplicate,
 }: JobListingTableProps) {
   const columns = useMemo(
-    () => getJobListingColumns({ organizationId, onCloseJob, onDuplicate }),
-    [organizationId, onCloseJob, onDuplicate],
+    () =>
+      getJobListingColumns({
+        organizationId,
+        onCloseJob,
+        onReopenJob,
+        onDuplicate,
+      }),
+    [organizationId, onCloseJob, onReopenJob, onDuplicate],
   );
 
   return <DataTable columns={columns} data={jobs} />;

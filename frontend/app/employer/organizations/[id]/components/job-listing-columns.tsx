@@ -19,14 +19,20 @@ import { JobStatusBadge } from "./JobStatusBadge";
 interface JobActionsContext {
   organizationId: number;
   onCloseJob: (jobId: number) => Promise<void>;
+  onReopenJob: (jobId: number) => Promise<void>;
   onDuplicate: (job: Job) => Promise<void>;
+  canDeleteJobs?: boolean;
+  onRequestDelete?: (job: Job) => void;
 }
 
 function ActionsCell({
   job,
   organizationId,
   onCloseJob,
+  onReopenJob,
   onDuplicate,
+  canDeleteJobs,
+  onRequestDelete,
 }: { job: Job } & JobActionsContext) {
   const router = useRouter();
 
@@ -61,14 +67,26 @@ function ActionsCell({
           <DropdownMenuItem onClick={() => onDuplicate(job)}>
             Duplicate
           </DropdownMenuItem>
-          {job.isActive && (
+          {job.isActive ? (
             <DropdownMenuItem
               className="text-destructive"
               onClick={() => onCloseJob(job.id)}
             >
               Close Job
             </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={() => onReopenJob(job.id)}>
+              Reopen
+            </DropdownMenuItem>
           )}
+          {canDeleteJobs && onRequestDelete ? (
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => onRequestDelete(job)}
+            >
+              Delete Job
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

@@ -35,6 +35,10 @@ export function JobListingsSection({
     await updateJobAsync({ jobId, data: { isActive: false } });
   };
 
+  const handleReopenJob = async (jobId: number) => {
+    await updateJobAsync({ jobId, data: { isActive: true } });
+  };
+
   const handleDuplicate = async (job: Job) => {
     await createJobAsync({
       title: `${job.title} (Copy)`,
@@ -118,6 +122,7 @@ export function JobListingsSection({
               jobs={filteredJobs}
               organizationId={organizationId}
               onCloseJob={handleCloseJob}
+              onReopenJob={handleReopenJob}
               onDuplicate={handleDuplicate}
             />
           </div>
