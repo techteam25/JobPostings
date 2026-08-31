@@ -133,6 +133,16 @@ export interface OrganizationsRepositoryPort extends BaseRepositoryPort<
   ): Promise<boolean>;
 
   /**
+   * Atomically promotes an active admin to owner and demotes the current
+   * owner to admin. Returns false if either conditional update misses.
+   */
+  transferOwnership(input: {
+    organizationId: number;
+    previousOwnerMemberId: number;
+    newOwnerMemberId: number;
+  }): Promise<boolean>;
+
+  /**
    * Creates an organization member record.
    * Used by the invitations module (via OrgMembershipCommandPort adapter)
    * when accepting invitations.

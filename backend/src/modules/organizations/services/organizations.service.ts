@@ -545,6 +545,101 @@ export class OrganizationsService
   }
 
   /**
+   * Transfers organization ownership to an active admin in one step.
+   * The caller becomes admin; the successor becomes the only owner.
+   */
+  async transferOwnership(
+    organizationId: number,
+    actorUserId: number,
+    successorMemberId: number,
+  ) {
+    try {
+      let actorMember;
+      try {
+        actorMember = await this.organizationsRepository.findByContact(
+          actorUserId,
+          organizationId,
+        );
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return fail(new ForbiddenError());
+        }
+        throw error;
+      }
+
+      if (actorMember.role !== "owner") {
+        return fail(new ForbiddenError());
+      }
+
+      const successor = await this.organizationsRepository.findMemberById(
+        successorMemberId,
+        organizationId,
+      );
+
+      const successorInvalid =
+        !successor ||
+        !successor.isActive ||
+        successor.role !== "admin" ||
+        successor.id === actorMember.id ||
+        successor.userId === actorUserId;
+
+      if (successorInvalid) {
+        return fail(
+          new ConflictError(
+            "Ownership can only be transferred to another active admin.",
+            { code: "OWNERSHIP_SUCCESSOR_INVALID" },
+          ),
+        );
+      }
+
+      const transferred = await this.organizationsRepository.transferOwnership({
+        organizationId,
+        previousOwnerMemberId: actorMember.id,
+        newOwnerMemberId: successor.id,
+      });
+
+      if (!transferred) {
+        let stillOwner;
+        try {
+          stillOwner = await this.organizationsRepository.findByContact(
+            actorUserId,
+            organizationId,
+          );
+        } catch (error) {
+          if (error instanceof NotFoundError) {
+            return fail(new ForbiddenError());
+          }
+          throw error;
+        }
+
+        if (stillOwner.role !== "owner") {
+          return fail(new ForbiddenError());
+        }
+
+        return fail(
+          new ConflictError(
+            "Ownership can only be transferred to another active admin.",
+            { code: "OWNERSHIP_SUCCESSOR_INVALID" },
+          ),
+        );
+      }
+
+      return ok({
+        message: "Ownership transferred successfully",
+        previousOwnerUserId: actorMember.userId,
+        newOwnerUserId: successor.userId,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to transfer organization ownership"),
+      );
+    }
+  }
+
+  /**
    * Shared preamble for member mutations: must exist, be active, and not be owner.
    */
   private async requireActiveNonOwnerMember(

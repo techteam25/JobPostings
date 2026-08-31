@@ -6,6 +6,7 @@ import {
   deleteOrganizationSchema,
   removeOrganizationMemberSchema,
   updateOrganizationMemberRoleSchema,
+  transferOrganizationOwnershipSchema,
   updateOrganizationSchema,
   organizationJobApplicationsResponseSchema,
   updateJobStatusInputSchema,
@@ -485,6 +486,75 @@ registry.registerPath({
     },
     404: {
       description: "Member not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/organizations/{organizationId}/ownership",
+  summary: "Transfer organization ownership",
+  description:
+    "Transfers ownership to an active admin. The caller becomes an admin. Only the current owner may call this endpoint.",
+  tags: ["Organizations"],
+  security: [{ cookie: [] }],
+  request: {
+    params: transferOrganizationOwnershipSchema.shape["params"],
+    body: {
+      content: {
+        "application/json": {
+          schema: transferOrganizationOwnershipSchema.shape["body"],
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Ownership transferred successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.object({
+              message: z.string(),
+              previousOwnerUserId: z.number(),
+              newOwnerUserId: z.number(),
+            }),
+          ),
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    403: {
+      description: "Forbidden — caller is not the organization owner",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    409: {
+      description:
+        "Successor is not an eligible active admin (OWNERSHIP_SUCCESSOR_INVALID)",
       content: {
         "application/json": {
           schema: errorResponseSchema,

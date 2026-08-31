@@ -12,6 +12,7 @@ import {
   uploadOrganizationLogoSchema,
   removeOrganizationMemberSchema,
   updateOrganizationMemberRoleSchema,
+  transferOrganizationOwnershipSchema,
 } from "@/validations/organization.validation";
 import { getUserSchema } from "@/validations/user.validation";
 import {
@@ -175,6 +176,21 @@ export function createOrganizationsRoutes({
     invalidateCacheMiddleware(() => cacheKeys.organizations),
     invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
     controller.updateOrganizationMemberRole,
+  );
+
+  /**
+   * Transfers organization ownership to an active admin.
+   * Requires authentication and owner role.
+   * @route POST /:organizationId/ownership
+   */
+  router.post(
+    "/:organizationId/ownership",
+    authenticate,
+    orgGuards.requireAdminOrOwnerRole(["owner"]),
+    validate(transferOrganizationOwnershipSchema),
+    invalidateCacheMiddleware(() => cacheKeys.organizations),
+    invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
+    controller.transferOwnership,
   );
 
   return router;

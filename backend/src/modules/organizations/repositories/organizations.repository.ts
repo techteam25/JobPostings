@@ -493,6 +493,68 @@ export class OrganizationsRepository
   }
 
   /**
+   * Atomically promotes an active admin to owner and demotes the current
+   * owner to admin. Both updates are conditional on the expected roles so
+   * concurrent transfers fail closed instead of creating two owners.
+   */
+  async transferOwnership(input: {
+    organizationId: number;
+    previousOwnerMemberId: number;
+    newOwnerMemberId: number;
+  }) {
+    return await withDbErrorHandling(async () => {
+      class OwnershipTransferInvariantError extends Error {
+        constructor() {
+          super("Ownership transfer invariant failed");
+          this.name = "OwnershipTransferInvariantError";
+        }
+      }
+
+      try {
+        await db.transaction(async (tx) => {
+          const [promoteResult] = await tx
+            .update(organizationMembers)
+            .set({ role: "owner" })
+            .where(
+              and(
+                eq(organizationMembers.id, input.newOwnerMemberId),
+                eq(organizationMembers.organizationId, input.organizationId),
+                eq(organizationMembers.isActive, true),
+                eq(organizationMembers.role, "admin"),
+              ),
+            );
+
+          if (promoteResult.affectedRows !== 1) {
+            throw new OwnershipTransferInvariantError();
+          }
+
+          const [demoteResult] = await tx
+            .update(organizationMembers)
+            .set({ role: "admin" })
+            .where(
+              and(
+                eq(organizationMembers.id, input.previousOwnerMemberId),
+                eq(organizationMembers.organizationId, input.organizationId),
+                eq(organizationMembers.isActive, true),
+                eq(organizationMembers.role, "owner"),
+              ),
+            );
+
+          if (demoteResult.affectedRows !== 1) {
+            throw new OwnershipTransferInvariantError();
+          }
+        });
+        return true;
+      } catch (error) {
+        if (error instanceof OwnershipTransferInvariantError) {
+          return false;
+        }
+        throw error;
+      }
+    });
+  }
+
+  /**
    * Creates an organization member record.
    * @param data The member data.
    * @returns The created member.

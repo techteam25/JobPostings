@@ -85,4 +85,19 @@ export interface OrganizationsServicePort {
     memberId: number,
     role: OrganizationRole,
   ): Promise<Result<{ message: string }, Error>>;
+
+  transferOwnership(
+    organizationId: number,
+    actorUserId: number,
+    successorMemberId: number,
+  ): Promise<
+    Result<
+      {
+        message: string;
+        previousOwnerUserId: number;
+        newOwnerUserId: number;
+      },
+      Error
+    >
+  >;
 }

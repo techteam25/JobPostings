@@ -14,6 +14,7 @@ import type {
   UploadOrganizationLogoSchema,
   RemoveOrganizationMemberSchema,
   UpdateOrganizationMemberRoleSchema,
+  TransferOrganizationOwnershipSchema,
   Organization,
   OrganizationMember,
 } from "@/validations/organization.validation";
@@ -282,6 +283,78 @@ export class OrganizationsController extends BaseController {
     );
 
     if (result.isSuccess) {
+      return this.sendSuccess(res, result.value, result.value.message, 200);
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Transfers organization ownership to another active admin.
+   * Requires the caller to be the current owner.
+   */
+  transferOwnership = async (
+    req: Request<
+      TransferOrganizationOwnershipSchema["params"],
+      EmptyBody,
+      TransferOrganizationOwnershipSchema["body"]
+    >,
+    res: Response<
+      ApiResponse<{
+        message: string;
+        previousOwnerUserId: number;
+        newOwnerUserId: number;
+      }>
+    >,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const result = await this.organizationsService.transferOwnership(
+      organizationId,
+      req.userId!,
+      req.body.memberId,
+    );
+
+    if (result.isSuccess) {
+      const actor = {
+        id: req.userId,
+        ip: req.ip,
+        userAgent: req.headers["user-agent"],
+      };
+      auditService.emit({
+        name: "org.ownership.transferred",
+        actor,
+        resource: { type: "organization", id: organizationId },
+        action: "transferred ownership",
+        outcome: "success",
+        metadata: {
+          previousOwnerUserId: result.value.previousOwnerUserId,
+          newOwnerUserId: result.value.newOwnerUserId,
+        },
+      });
+      auditService.emit({
+        name: "org.member.role.changed",
+        actor,
+        resource: { type: "organization", id: organizationId },
+        action: "changed member role",
+        outcome: "success",
+        metadata: {
+          userId: result.value.previousOwnerUserId,
+          role: "admin",
+          via: "ownership-transfer",
+        },
+      });
+      auditService.emit({
+        name: "org.member.role.changed",
+        actor,
+        resource: { type: "organization", id: organizationId },
+        action: "changed member role",
+        outcome: "success",
+        metadata: {
+          userId: result.value.newOwnerUserId,
+          role: "owner",
+          via: "ownership-transfer",
+        },
+      });
       return this.sendSuccess(res, result.value, result.value.message, 200);
     } else {
       return this.handleControllerError(res, result.error);

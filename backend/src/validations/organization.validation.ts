@@ -389,6 +389,14 @@ export const updateOrganizationMemberRoleSchema = z.object({
   }),
 });
 
+export const transferOrganizationOwnershipSchema = z.object({
+  body: z.object({
+    memberId: z.number().int().positive("memberId is required"),
+  }),
+  query: z.object({}).strict(),
+  params: organizationIdParamSchema,
+});
+
 export type NewOrganization = z.infer<typeof insertOrganizationSchema>;
 export type Organization = z.infer<typeof selectOrganizationSchema>;
 
@@ -408,6 +416,9 @@ export type RemoveOrganizationMemberSchema = z.infer<
 >;
 export type UpdateOrganizationMemberRoleSchema = z.infer<
   typeof updateOrganizationMemberRoleSchema
+>;
+export type TransferOrganizationOwnershipSchema = z.infer<
+  typeof transferOrganizationOwnershipSchema
 >;
 export type JobApplicationManagementSchema = z.infer<
   typeof jobApplicationManagementSchema

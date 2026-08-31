@@ -7,6 +7,7 @@ import { mockOrganization } from "@/test/fixtures/mockOrganization.fixture";
 vi.mock("next/navigation", () => ({
   usePathname: () => "/employer/organizations/1/settings",
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 // Mock next/dynamic to render content synchronously
