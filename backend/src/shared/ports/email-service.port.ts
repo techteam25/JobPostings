@@ -57,6 +57,7 @@ export interface EmailServicePort {
    */
   sendOrganizationInvitation(
     email: string,
+    organizationId: number,
     organizationName: string,
     inviterName: string,
     role: string,

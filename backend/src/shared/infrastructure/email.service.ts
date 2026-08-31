@@ -576,6 +576,7 @@ ${footer}`,
    */
   async sendOrganizationInvitation(
     email: string,
+    organizationId: number,
     organizationName: string,
     inviterName: string,
     role: string,
@@ -584,7 +585,7 @@ ${footer}`,
   ): Promise<void> {
     const template = await this.loadTemplate("organizationInvitation");
 
-    const acceptanceLink = `${env.FRONTEND_URL}/invitations/accept?token=${token}`;
+    const acceptanceLink = `${env.FRONTEND_URL}/invitations/${organizationId}/${token}`;
     const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
 
     // Format role for display (capitalize first letter)

@@ -35,6 +35,7 @@ const organizationInvitationSchema = z.object({
   userId: z.number(),
   email: z.email(),
   fullName: z.string(),
+  organizationId: z.number(),
   organizationName: z.string(),
   inviterName: z.string(),
   role: z.string(),
@@ -230,6 +231,7 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
         const d = data as EmailJobPayload<"sendOrganizationInvitation">;
         await deps.emailService.sendOrganizationInvitation(
           d.email,
+          d.organizationId,
           d.organizationName,
           d.inviterName,
           d.role,
