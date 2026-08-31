@@ -1,5 +1,5 @@
 import userEvent from "@testing-library/user-event";
-import { render, screen, within } from "@/test/test-utils";
+import { render, screen } from "@/test/test-utils";
 import type { Job } from "@/schemas/responses/jobs";
 import { JobListingTable } from "../JobListingTable";
 
@@ -33,6 +33,18 @@ function createJob(overrides: Partial<Job> = {}): Job {
   };
 }
 
+async function openOptionsMenu(jobTitle: string) {
+  const user = userEvent.setup();
+
+  await user.click(
+    screen.getByRole("button", {
+      name: new RegExp(`options for ${jobTitle}`, "i"),
+    }),
+  );
+
+  return user;
+}
+
 describe("JobListingTable edit action", () => {
   const organizationId = 10;
   const onCloseJob = vi.fn().mockResolvedValue(undefined);
@@ -42,15 +54,6 @@ describe("JobListingTable edit action", () => {
   beforeEach(() => {
     mockPush.mockClear();
   });
-
-  async function openOptionsMenu(jobTitle: string) {
-    const user = userEvent.setup();
-    const row = screen.getByText(jobTitle).closest("tr");
-    if (!row) throw new Error(`Row not found for job: ${jobTitle}`);
-
-    await user.click(within(row).getByRole("button", { name: /options/i }));
-    return user;
-  }
 
   it("navigates to the edit page when Edit Job is selected", async () => {
     render(
@@ -77,15 +80,6 @@ describe("JobListingTable reopen action", () => {
   const onCloseJob = vi.fn().mockResolvedValue(undefined);
   const onReopenJob = vi.fn().mockResolvedValue(undefined);
   const onDuplicate = vi.fn().mockResolvedValue(undefined);
-
-  async function openOptionsMenu(jobTitle: string) {
-    const user = userEvent.setup();
-    const row = screen.getByText(jobTitle).closest("tr");
-    if (!row) throw new Error(`Row not found for job: ${jobTitle}`);
-
-    await user.click(within(row).getByRole("button", { name: /options/i }));
-    return user;
-  }
 
   it("offers Reopen for a closed listing", async () => {
     render(
@@ -151,15 +145,6 @@ describe("JobListingTable delete action", () => {
   const onReopenJob = vi.fn().mockResolvedValue(undefined);
   const onDuplicate = vi.fn().mockResolvedValue(undefined);
   const onDeleteJob = vi.fn().mockResolvedValue(undefined);
-
-  async function openOptionsMenu(jobTitle: string) {
-    const user = userEvent.setup();
-    const row = screen.getByText(jobTitle).closest("tr");
-    if (!row) throw new Error(`Row not found for job: ${jobTitle}`);
-
-    await user.click(within(row).getByRole("button", { name: /options/i }));
-    return user;
-  }
 
   it("offers Delete Job when the user can delete listings", async () => {
     render(

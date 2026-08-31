@@ -43,6 +43,7 @@ function ActionsCell({
             variant="ghost"
             size="sm"
             className="hover:bg-primary hover:text-primary-foreground [&_svg]:size-4"
+            aria-label={`Options for ${job.title}`}
           >
             Options
             <MoreVertical className="ml-2" />
