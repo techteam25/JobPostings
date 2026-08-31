@@ -101,3 +101,125 @@ describe("JobListingTable reopen action", () => {
     expect(onReopenJob).toHaveBeenCalledWith(42);
   });
 });
+
+describe("JobListingTable delete action", () => {
+  const organizationId = 10;
+  const onCloseJob = vi.fn().mockResolvedValue(undefined);
+  const onReopenJob = vi.fn().mockResolvedValue(undefined);
+  const onDuplicate = vi.fn().mockResolvedValue(undefined);
+  const onDeleteJob = vi.fn().mockResolvedValue(undefined);
+
+  async function openOptionsMenu(jobTitle: string) {
+    const user = userEvent.setup();
+    const row = screen.getByText(jobTitle).closest("tr");
+    if (!row) throw new Error(`Row not found for job: ${jobTitle}`);
+
+    await user.click(within(row).getByRole("button", { name: /options/i }));
+    return user;
+  }
+
+  it("offers Delete Job when the user can delete listings", async () => {
+    render(
+      <JobListingTable
+        jobs={[createJob({ id: 1, title: "Role To Delete" })]}
+        organizationId={organizationId}
+        onCloseJob={onCloseJob}
+        onReopenJob={onReopenJob}
+        onDuplicate={onDuplicate}
+        canDeleteJobs
+        onDeleteJob={onDeleteJob}
+      />,
+    );
+
+    await openOptionsMenu("Role To Delete");
+    expect(
+      screen.getByRole("menuitem", { name: /delete job/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not offer Delete Job when the user cannot delete listings", async () => {
+    render(
+      <JobListingTable
+        jobs={[createJob({ id: 1, title: "Protected Role" })]}
+        organizationId={organizationId}
+        onCloseJob={onCloseJob}
+        onReopenJob={onReopenJob}
+        onDuplicate={onDuplicate}
+        canDeleteJobs={false}
+        onDeleteJob={onDeleteJob}
+      />,
+    );
+
+    await openOptionsMenu("Protected Role");
+    expect(
+      screen.queryByRole("menuitem", { name: /delete job/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("removes the listing when delete is confirmed", async () => {
+    render(
+      <JobListingTable
+        jobs={[createJob({ id: 5, title: "Delete Me" })]}
+        organizationId={organizationId}
+        onCloseJob={onCloseJob}
+        onReopenJob={onReopenJob}
+        onDuplicate={onDuplicate}
+        canDeleteJobs
+        onDeleteJob={onDeleteJob}
+      />,
+    );
+
+    const user = await openOptionsMenu("Delete Me");
+    await user.click(screen.getByRole("menuitem", { name: /delete job/i }));
+    await user.click(screen.getByRole("button", { name: /^delete$/i }));
+
+    expect(onDeleteJob).toHaveBeenCalledWith(5);
+    expect(screen.queryByText("Delete Me")).not.toBeInTheDocument();
+  });
+
+  it("leaves the listing when delete is cancelled", async () => {
+    render(
+      <JobListingTable
+        jobs={[createJob({ id: 6, title: "Keep Me" })]}
+        organizationId={organizationId}
+        onCloseJob={onCloseJob}
+        onReopenJob={onReopenJob}
+        onDuplicate={onDuplicate}
+        canDeleteJobs
+        onDeleteJob={onDeleteJob}
+      />,
+    );
+
+    const user = await openOptionsMenu("Keep Me");
+    await user.click(screen.getByRole("menuitem", { name: /delete job/i }));
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(onDeleteJob).not.toHaveBeenCalled();
+    expect(screen.getByText("Keep Me")).toBeInTheDocument();
+  });
+
+  it("leaves the listing when delete fails", async () => {
+    const failingDelete = vi
+      .fn()
+      .mockRejectedValue(new Error("Failed to delete job"));
+
+    render(
+      <JobListingTable
+        jobs={[createJob({ id: 7, title: "Failed Delete" })]}
+        organizationId={organizationId}
+        onCloseJob={onCloseJob}
+        onReopenJob={onReopenJob}
+        onDuplicate={onDuplicate}
+        canDeleteJobs
+        onDeleteJob={failingDelete}
+      />,
+    );
+
+    const user = await openOptionsMenu("Failed Delete");
+    await user.click(screen.getByRole("menuitem", { name: /delete job/i }));
+    await user.click(screen.getByRole("button", { name: /^delete$/i }));
+
+    expect(failingDelete).toHaveBeenCalledWith(7);
+    expect(screen.getByText("Failed Delete")).toBeInTheDocument();
+  });
+});

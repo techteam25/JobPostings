@@ -52,3 +52,8 @@ export function useIsOwner(): boolean {
   const { currentUserRole } = useOrganization();
   return currentUserRole === "owner";
 }
+
+export function useCanDeleteJobs(): boolean {
+  const { currentUserRole } = useOrganization();
+  return currentUserRole === "owner" || currentUserRole === "admin";
+}

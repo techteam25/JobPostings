@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,7 +14,9 @@ import { PaginatedApiResponse } from "@/lib/types";
 import {
   useUpdateJob,
   useCreateJob,
+  useDeleteJob,
 } from "@/app/employer/organizations/hooks/use-manage-jobs";
+import { useCanDeleteJobs } from "@/app/employer/organizations/[id]/context/organization-context";
 import { useJobListingFilters } from "@/app/employer/organizations/[id]/hooks/use-job-listing-filters";
 import { JobListingTable } from "./JobListingTable";
 
@@ -28,8 +31,12 @@ export function JobListingsSection({
 }: JobListingInformationProps) {
   const { activeTab, setActiveTab, searchTerm, setSearchTerm, filteredJobs } =
     useJobListingFilters(jobsList.data);
+  const router = useRouter();
+  const canDeleteJobs = useCanDeleteJobs();
   const { mutateAsync: updateJobAsync } = useUpdateJob(organizationId);
   const { mutateAsync: createJobAsync } = useCreateJob(organizationId);
+  const { mutateAsync: deleteJobAsync, isPending: isDeletePending } =
+    useDeleteJob(organizationId);
 
   const handleCloseJob = async (jobId: number) => {
     await updateJobAsync({ jobId, data: { isActive: false } });
@@ -55,6 +62,11 @@ export function JobListingsSection({
         : null,
       experience: job.experience || "",
     });
+  };
+
+  const handleDeleteJob = async (jobId: number) => {
+    await deleteJobAsync(jobId);
+    router.refresh();
   };
 
   return (
@@ -124,6 +136,9 @@ export function JobListingsSection({
               onCloseJob={handleCloseJob}
               onReopenJob={handleReopenJob}
               onDuplicate={handleDuplicate}
+              canDeleteJobs={canDeleteJobs}
+              onDeleteJob={handleDeleteJob}
+              isDeletePending={isDeletePending}
             />
           </div>
         </Card>
