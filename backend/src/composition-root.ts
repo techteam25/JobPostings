@@ -45,6 +45,7 @@ import {
   JobBoardToApplicationsAdapter,
   ProfileToJobBoardAdapter,
   ProfileToRecommendationAdapter,
+  ProfileToPublicCandidateAdapter,
   FileMetadataUpdateAdapter,
   JobBoardToSharedInsightsAdapter,
   IdentityToProfileWriteAdapter,
@@ -207,11 +208,16 @@ export function createCompositionRoot(): CompositionRoot {
   );
 
   // Organizations module (needs intent sync adapter)
+  const profileToPublicCandidateAdapter = new ProfileToPublicCandidateAdapter(
+    profileRepository,
+  );
+
   const organizations = createOrganizationsModule({
     intentSync: intentSyncAdapter,
     organizationsRepository,
     typesenseEmployerService,
     typesenseProfileService,
+    publicCandidateProfileQuery: profileToPublicCandidateAdapter,
   });
 
   // Organizations → other modules (adapters using module's repo + service)

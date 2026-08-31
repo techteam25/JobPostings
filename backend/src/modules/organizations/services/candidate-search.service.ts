@@ -1,6 +1,6 @@
 import { BaseService } from "@shared/base/base.service";
 import { fail, ok } from "@shared/result";
-import { AppError } from "@shared/errors";
+import { AppError, NotFoundError } from "@shared/errors";
 import { TypesenseQueryBuilder } from "@shared/infrastructure/typesense.service/typesense-queryBuilder";
 import { buildPaginationMeta } from "@shared/infrastructure/typesense.service/build-search-pagination";
 import logger from "@shared/logger";
@@ -14,6 +14,10 @@ import type {
   CandidateSearchServicePort,
 } from "@/modules/organizations/ports/candidate-search-service.port";
 import type {
+  PublicCandidateProfile,
+  PublicCandidateProfileQueryPort,
+} from "@shared/ports/public-candidate-profile-query.port";
+import type {
   CandidatePreview,
   SearchCandidatesSchema,
 } from "@/validations/candidate-search.validation";
@@ -22,7 +26,10 @@ export class CandidateSearchService
   extends BaseService
   implements CandidateSearchServicePort
 {
-  constructor(private typesenseProfileService: TypesenseProfileServicePort) {
+  constructor(
+    private typesenseProfileService: TypesenseProfileServicePort,
+    private publicCandidateProfileQuery: PublicCandidateProfileQueryPort,
+  ) {
     super();
   }
 
@@ -103,6 +110,22 @@ export class CandidateSearchService
     }
   }
 
+  async getPublicCandidateProfile(userId: number) {
+    try {
+      const profile =
+        await this.publicCandidateProfileQuery.getPublicProfile(userId);
+
+      if (!profile) {
+        return fail(new NotFoundError("Candidate profile not found"));
+      }
+
+      return ok(this.toPublicCandidateProfile(profile));
+    } catch (error) {
+      logger.error(error, "Failed to get candidate profile");
+      return fail(new AppError("Failed to get candidate profile"));
+    }
+  }
+
   /**
    * Maps the validated sortBy/sortOrder to a Typesense `sort_by` string.
    * Returns undefined for `relevant` so text-match scoring wins.
@@ -134,6 +157,38 @@ export class CandidateSearchService
       location: doc.location,
       yearsOfExperience: doc.yearsOfExperience,
       openToWork: doc.openToWork,
+    };
+  }
+
+  private toPublicCandidateProfile(
+    profile: PublicCandidateProfile,
+  ): PublicCandidateProfile {
+    return {
+      userId: profile.userId,
+      name: profile.name,
+      photoUrl: profile.photoUrl,
+      headline: profile.headline,
+      bio: profile.bio,
+      skills: profile.skills,
+      location: profile.location,
+      yearsOfExperience: profile.yearsOfExperience,
+      openToWork: profile.openToWork,
+      workExperiences: profile.workExperiences.map((we) => ({
+        jobTitle: we.jobTitle,
+        companyName: we.companyName,
+        description: we.description,
+        current: we.current,
+        startDate: we.startDate,
+        endDate: we.endDate,
+      })),
+      educations: profile.educations.map((ed) => ({
+        schoolName: ed.schoolName,
+        major: ed.major,
+        graduated: ed.graduated,
+        startDate: ed.startDate,
+        endDate: ed.endDate,
+      })),
+      certifications: [...profile.certifications],
     };
   }
 }

@@ -7,6 +7,8 @@ import type {
   TypesenseProfileServicePort,
 } from "@shared/ports/typesense-profile-service.port";
 import type { SearchCandidatesSchema } from "@/validations/candidate-search.validation";
+import type { PublicCandidateProfileQueryPort } from "@shared/ports/public-candidate-profile-query.port";
+import type { PublicCandidateProfile } from "@/validations/candidate-search.validation";
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 
@@ -45,6 +47,32 @@ function makeSearchResult(
   return { hits: docs, found: found ?? docs.length, page };
 }
 
+function createMockPublicCandidateProfileQuery(): PublicCandidateProfileQueryPort {
+  return {
+    getPublicProfile: vi.fn(),
+  };
+}
+
+function makePublicProfile(
+  overrides: Partial<PublicCandidateProfile> = {},
+): PublicCandidateProfile {
+  return {
+    userId: 42,
+    name: "Jane Doe",
+    photoUrl: "https://cdn.example.com/avatar.png",
+    headline: "Senior Software Engineer",
+    bio: "Full-stack developer with mission focus.",
+    skills: ["TypeScript", "React"],
+    location: "Austin, TX, USA",
+    yearsOfExperience: 6,
+    openToWork: true,
+    workExperiences: [],
+    educations: [],
+    certifications: [],
+    ...overrides,
+  };
+}
+
 function makeFilters(
   overrides: Partial<SearchCandidatesSchema["query"]> = {},
 ): SearchCandidatesSchema["query"] {
@@ -63,10 +91,15 @@ function makeFilters(
 describe("CandidateSearchService", () => {
   let service: CandidateSearchService;
   let typesenseProfileService: TypesenseProfileServicePort;
+  let publicCandidateProfileQuery: PublicCandidateProfileQueryPort;
 
   beforeEach(() => {
     typesenseProfileService = createMockTypesenseProfileService();
-    service = new CandidateSearchService(typesenseProfileService);
+    publicCandidateProfileQuery = createMockPublicCandidateProfileQuery();
+    service = new CandidateSearchService(
+      typesenseProfileService,
+      publicCandidateProfileQuery,
+    );
 
     // Default stub so every test has a valid response unless overridden.
     vi.mocked(
@@ -409,6 +442,36 @@ describe("CandidateSearchService", () => {
       expect(result.isFailure).toBe(true);
       if (result.isFailure) {
         expect(result.error.message).toBe("Failed to search candidates");
+      }
+    });
+  });
+
+  describe("getPublicCandidateProfile", () => {
+    it("returns the allowlisted public profile when the query port finds one", async () => {
+      const profile = makePublicProfile();
+      vi.mocked(publicCandidateProfileQuery.getPublicProfile).mockResolvedValue(
+        profile,
+      );
+
+      const result = await service.getPublicCandidateProfile(42);
+
+      expect(result.isSuccess).toBe(true);
+      if (result.isSuccess) {
+        expect(result.value).toEqual(profile);
+        expect(result.value).not.toHaveProperty("email");
+      }
+    });
+
+    it("returns NotFound when the profile is private or missing", async () => {
+      vi.mocked(publicCandidateProfileQuery.getPublicProfile).mockResolvedValue(
+        null,
+      );
+
+      const result = await service.getPublicCandidateProfile(999);
+
+      expect(result.isFailure).toBe(true);
+      if (result.isFailure) {
+        expect(result.error.message).toBe("Candidate profile not found");
       }
     });
   });

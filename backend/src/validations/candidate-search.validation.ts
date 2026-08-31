@@ -51,3 +51,56 @@ export const searchCandidatesSchema = z.object({
 
 export type SearchCandidatesSchema = z.infer<typeof searchCandidatesSchema>;
 export type CandidatePreview = z.infer<typeof candidatePreviewSchema>;
+
+export const publicCandidateWorkExperienceSchema = z
+  .object({
+    jobTitle: z.string(),
+    companyName: z.string(),
+    description: z.string().nullable(),
+    current: z.boolean(),
+    startDate: z.string(),
+    endDate: z.string().nullable(),
+  })
+  .openapi("PublicCandidateWorkExperience");
+
+export const publicCandidateEducationSchema = z
+  .object({
+    schoolName: z.string(),
+    major: z.string(),
+    graduated: z.boolean(),
+    startDate: z.string(),
+    endDate: z.string().nullable(),
+  })
+  .openapi("PublicCandidateEducation");
+
+export const publicCandidateProfileSchema = z
+  .object({
+    userId: z.number().int(),
+    name: z.string(),
+    photoUrl: z.string().nullable(),
+    headline: z.string(),
+    bio: z.string().nullable(),
+    skills: z.array(z.string()),
+    location: z.string(),
+    yearsOfExperience: z.number().int(),
+    openToWork: z.boolean(),
+    workExperiences: z.array(publicCandidateWorkExperienceSchema),
+    educations: z.array(publicCandidateEducationSchema),
+    certifications: z.array(z.string()),
+  })
+  .openapi("PublicCandidateProfile");
+
+export const getCandidateProfileSchema = z.object({
+  body: z.object({}).strict(),
+  query: z.object({}).strict(),
+  params: z.object({
+    userId: z.string().regex(/^\d+$/, "Invalid candidate ID format"),
+  }),
+});
+
+export type PublicCandidateProfile = z.infer<
+  typeof publicCandidateProfileSchema
+>;
+export type GetCandidateProfileSchema = z.infer<
+  typeof getCandidateProfileSchema
+>;

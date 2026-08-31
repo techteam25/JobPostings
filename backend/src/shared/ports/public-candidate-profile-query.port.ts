@@ -1,40 +1,25 @@
-export type CandidatePreview = {
-  userId: number;
-  name: string;
-  photoUrl: string | null;
-  headline: string;
-  skills: string[];
-  location: string;
-  yearsOfExperience: number;
-  openToWork: boolean;
-};
-
-export type CandidateSortBy =
-  | "relevant"
-  | "recent"
-  | "name"
-  | "yearsOfExperience";
-
-export type CandidateSortOrder = "asc" | "desc";
-
-export type PublicCandidateWorkExperience = {
+export interface PublicCandidateWorkExperience {
   jobTitle: string;
   companyName: string;
   description: string | null;
   current: boolean;
   startDate: string;
   endDate: string | null;
-};
+}
 
-export type PublicCandidateEducation = {
+export interface PublicCandidateEducation {
   schoolName: string;
   major: string;
   graduated: boolean;
   startDate: string;
   endDate: string | null;
-};
+}
 
-export type PublicCandidateProfile = {
+/**
+ * Allowlisted public profile shape for employer candidate search.
+ * Never includes contact details or private fields (email, phone, resume).
+ */
+export interface PublicCandidateProfile {
   userId: number;
   name: string;
   photoUrl: string | null;
@@ -47,4 +32,8 @@ export type PublicCandidateProfile = {
   workExperiences: PublicCandidateWorkExperience[];
   educations: PublicCandidateEducation[];
   certifications: string[];
-};
+}
+
+export interface PublicCandidateProfileQueryPort {
+  getPublicProfile(userId: number): Promise<PublicCandidateProfile | null>;
+}

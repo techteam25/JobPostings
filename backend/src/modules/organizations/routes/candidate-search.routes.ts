@@ -6,7 +6,10 @@ import validate from "@/middleware/validation.middleware";
 import { cacheMiddleware } from "@/middleware/cache.middleware";
 import { pathKey } from "@shared/infrastructure/cache-keys";
 import { auditRead } from "@/middleware/audit-read.middleware";
-import { searchCandidatesSchema } from "@/validations/candidate-search.validation";
+import {
+  searchCandidatesSchema,
+  getCandidateProfileSchema,
+} from "@/validations/candidate-search.validation";
 
 export function createCandidateSearchRoutes({
   authenticate,
@@ -40,6 +43,24 @@ export function createCandidateSearchRoutes({
     validate(searchCandidatesSchema),
     cacheMiddleware({ ttl: 300, keyGenerator: pathKey }),
     controller.searchCandidates,
+  );
+
+  /**
+   * Returns the allowlisted public profile for a single candidate.
+   * Private or hidden profiles return 404 — same boundary as search.
+   *
+   * @route GET /candidates/:userId
+   */
+  router.get(
+    "/candidates/:userId",
+    authenticate,
+    orgGuards.requireJobPostingRole(),
+    auditRead("read.profile.cross_user", (req) => ({
+      type: "candidate_profile",
+      targetUserId: req.params.userId,
+    })),
+    validate(getCandidateProfileSchema),
+    controller.getCandidateProfile,
   );
 
   return router;

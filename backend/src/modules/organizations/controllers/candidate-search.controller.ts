@@ -6,6 +6,7 @@ import type { CandidateSearchServicePort } from "@/modules/organizations/ports/c
 import {
   searchCandidatesQuerySchema,
   type CandidatePreview,
+  type PublicCandidateProfile,
 } from "@/validations/candidate-search.validation";
 
 /**
@@ -41,5 +42,28 @@ export class CandidateSearchController extends BaseController {
         "Failed to search candidates",
       );
     }
+  };
+
+  getCandidateProfile = async (
+    req: Request,
+    res: Response<{ success: boolean; data: PublicCandidateProfile }>,
+  ) => {
+    const userId = Number(req.params.userId);
+    const result =
+      await this.candidateSearchService.getPublicCandidateProfile(userId);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Candidate profile retrieved successfully",
+      );
+    }
+
+    return this.handleControllerError(
+      res,
+      result.error,
+      "Failed to get candidate profile",
+    );
   };
 }
