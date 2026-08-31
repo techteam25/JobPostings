@@ -351,5 +351,52 @@ describe("Organization Ownership Controller Integration Tests", () => {
       expect(roles[adminMemberId]).toBe("owner");
       expect(roles[ownerMemberId]).toBe("admin");
     });
+
+    it("moves owner-only org settings to the new owner after transfer", async () => {
+      await request
+        .post(`/api/organizations/${organizationId}/ownership`)
+        .set("Cookie", ownerCookie)
+        .send({ memberId: adminMemberId });
+
+      const adminSignIn = await request.post("/api/auth/sign-in/email").send({
+        email: "org.admin.transfer@example.com",
+        password: "Password@123",
+      });
+      const newOwnerCookie = adminSignIn.headers["set-cookie"]![0]!;
+
+      const updateDenied = await request
+        .put(`/api/organizations/${organizationId}`)
+        .set("Cookie", ownerCookie)
+        .send({ city: "Denied City" });
+      TestHelpers.validateApiResponse(updateDenied, 403);
+
+      const logoDenied = await request
+        .post(`/api/organizations/${organizationId}/logo`)
+        .set("Cookie", ownerCookie);
+      TestHelpers.validateApiResponse(logoDenied, 403);
+
+      const deleteDenied = await request
+        .delete(`/api/organizations/${organizationId}`)
+        .set("Cookie", ownerCookie);
+      TestHelpers.validateApiResponse(deleteDenied, 403);
+
+      const updateAllowed = await request
+        .put(`/api/organizations/${organizationId}`)
+        .set("Cookie", newOwnerCookie)
+        .send({ city: "New Owner City" });
+      TestHelpers.validateApiResponse(updateAllowed, 200);
+      expect(updateAllowed.body.data.city).toBe("New Owner City");
+
+      const logoAllowed = await request
+        .post(`/api/organizations/${organizationId}/logo`)
+        .set("Cookie", newOwnerCookie);
+      // New owner passes the owner guard; missing file fails validation instead.
+      expect(logoAllowed.status).not.toBe(403);
+
+      const deleteAllowed = await request
+        .delete(`/api/organizations/${organizationId}`)
+        .set("Cookie", newOwnerCookie);
+      expect(deleteAllowed.status).toBe(204);
+    });
   });
 });
