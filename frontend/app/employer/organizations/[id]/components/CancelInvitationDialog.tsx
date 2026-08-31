@@ -1,19 +1,10 @@
 "use client";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import type { PendingInvitation } from "@/lib/types";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import type { PendingOrganizationInvitation } from "@/lib/types";
 
 interface CancelInvitationDialogProps {
-  invitation: PendingInvitation | null;
+  invitation: PendingOrganizationInvitation | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => Promise<void>;
@@ -30,25 +21,22 @@ export function CancelInvitationDialog({
   if (!invitation) return null;
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Cancel Invitation</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to cancel the invitation for{" "}
-            <span className="font-medium">{invitation.email}</span>? They will
-            no longer be able to accept this invitation.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>
-            Keep Invitation
-          </AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} disabled={isPending}>
-            {isPending ? "Cancelling..." : "Cancel Invitation"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmationDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Cancel Invitation"
+      description={
+        <>
+          Are you sure you want to cancel the invitation for{" "}
+          <span className="font-medium">{invitation.email}</span>? They will no
+          longer be able to accept this invitation.
+        </>
+      }
+      cancelLabel="Keep Invitation"
+      confirmLabel="Cancel Invitation"
+      pendingLabel="Cancelling..."
+      isPending={isPending}
+      onConfirm={onConfirm}
+    />
   );
 }

@@ -7,6 +7,7 @@ import type {
   OrganizationMember,
   OrganizationWithMembers,
   UserOrganizationInterface,
+  OrganizationRole,
 } from "@/validations/organization.validation";
 import { OrganizationsLogoFile } from "@/modules/organizations/types/organizations.module.types";
 
@@ -82,6 +83,6 @@ export interface OrganizationsServicePort {
   updateOrganizationMemberRole(
     organizationId: number,
     memberId: number,
-    role: "owner" | "admin" | "recruiter" | "member",
+    role: OrganizationRole,
   ): Promise<Result<{ message: string }, Error>>;
 }

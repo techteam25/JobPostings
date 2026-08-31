@@ -13,6 +13,7 @@ import { calculatePagination } from "@shared/db/utils";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import { DatabaseError, NotFoundError } from "@shared/errors";
 import type { NewOrganization } from "@/validations/organization.validation";
+import type { OrganizationRole } from "@/validations/organization.validation";
 import type { OrganizationsRepositoryPort } from "@/modules/organizations";
 
 /**
@@ -301,7 +302,7 @@ export class OrganizationsRepository
    */
   async checkHasElevatedRole(
     userId: number,
-    roles: ("owner" | "admin" | "recruiter" | "member")[],
+    roles: OrganizationRole[],
   ): Promise<boolean> {
     return withDbErrorHandling(
       async () =>
@@ -473,7 +474,7 @@ export class OrganizationsRepository
   async updateMemberRole(
     memberId: number,
     organizationId: number,
-    role: "owner" | "admin" | "recruiter" | "member",
+    role: OrganizationRole,
   ) {
     return await withDbErrorHandling(async () => {
       const [result] = await db
@@ -499,7 +500,7 @@ export class OrganizationsRepository
   async createMember(data: {
     userId: number;
     organizationId: number;
-    role: "owner" | "admin" | "recruiter" | "member";
+    role: OrganizationRole;
   }) {
     return await withDbErrorHandling(
       async () =>

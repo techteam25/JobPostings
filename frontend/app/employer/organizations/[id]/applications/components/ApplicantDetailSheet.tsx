@@ -57,20 +57,27 @@ export function ApplicantDetailSheet({
   }
 
   const statusLabel = getApplicationStatusLabel(application.status);
-  const allowedTransitions = getEmployerAllowedTransitions(
-    application.status as ApplicationStatus,
-  );
+  const allowedTransitions = getEmployerAllowedTransitions(application.status);
   const notes = notesQuery.data ?? [];
 
   const handleStatusMove = async (nextStatus: ApplicationStatus) => {
     try {
-      await updateStatus({
+      const updated = await updateStatus({
         jobId: application.jobId,
         applicationId: application.applicationId,
         status: nextStatus,
       });
 
-      onStatusChange({ ...application, status: nextStatus });
+      onStatusChange({
+        ...application,
+        status: updated.status,
+        reviewedAt: updated.reviewedAt
+          ? new Date(updated.reviewedAt)
+          : application.reviewedAt,
+        appliedAt: updated.appliedAt
+          ? new Date(updated.appliedAt)
+          : application.appliedAt,
+      });
       toast.success(
         `Application moved to ${getApplicationStatusLabel(nextStatus)}`,
       );

@@ -190,7 +190,15 @@ describe("JobApplicationListing", () => {
     ]);
 
     vi.mocked(instance.patch).mockResolvedValue({
-      data: { success: true },
+      data: {
+        success: true,
+        data: createApplication({
+          applicationId: 1,
+          applicantName: "Pending Applicant",
+          status: "reviewed",
+          reviewedAt: new Date("2025-06-20T12:00:00Z"),
+        }),
+      },
     });
 
     render(
@@ -220,6 +228,7 @@ describe("JobApplicationListing", () => {
 
     expect(getStatCardValue("New")).toBe("0");
     expect(getStatCardValue("Active")).toBe("1");
+    expect(screen.getByText(/Reviewed:/i)).toBeInTheDocument();
   });
 
   it("leaves status unchanged when a status move fails", async () => {

@@ -9,6 +9,7 @@ import type {
   UserOrganizationInterface,
   OrganizationWithMembers,
   OrganizationMember,
+  OrganizationRole,
 } from "@/validations/organization.validation";
 
 type OrganizationSelect = typeof organizations.$inferSelect;
@@ -78,7 +79,7 @@ export interface OrganizationsRepositoryPort extends BaseRepositoryPort<
    */
   checkHasElevatedRole(
     userId: number,
-    roles: ("owner" | "admin" | "recruiter" | "member")[],
+    roles: OrganizationRole[],
   ): Promise<boolean>;
 
   /**
@@ -128,7 +129,7 @@ export interface OrganizationsRepositoryPort extends BaseRepositoryPort<
   updateMemberRole(
     memberId: number,
     organizationId: number,
-    role: "owner" | "admin" | "recruiter" | "member",
+    role: OrganizationRole,
   ): Promise<boolean>;
 
   /**
@@ -139,7 +140,7 @@ export interface OrganizationsRepositoryPort extends BaseRepositoryPort<
   createMember(data: {
     userId: number;
     organizationId: number;
-    role: "owner" | "admin" | "recruiter" | "member";
+    role: OrganizationRole;
   }): Promise<OrganizationMember | undefined>;
 
   /**

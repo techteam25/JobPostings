@@ -26,6 +26,15 @@ function normalizeUrl(input: unknown): string {
   return URL_PROTOCOL_REGEX.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
+/** Shared org membership / invitation role (DB enum + API contracts). */
+export const organizationRoleSchema = z.enum([
+  "owner",
+  "admin",
+  "recruiter",
+  "member",
+]);
+export type OrganizationRole = z.infer<typeof organizationRoleSchema>;
+
 // Zod schemas for validation
 export const selectOrganizationSchema = createSelectSchema(organizations);
 export const selectOrganizationMembersSchema =
@@ -372,7 +381,7 @@ export const removeOrganizationMemberSchema = z.object({
 
 export const updateOrganizationMemberRoleSchema = z.object({
   body: z.object({
-    role: z.enum(["owner", "admin", "recruiter", "member"]),
+    role: organizationRoleSchema,
   }),
   query: z.object({}).strict(),
   params: organizationIdParamSchema.extend({
@@ -433,7 +442,7 @@ export const insertOrganizationInvitationSchema = createInsertSchema(
   organizationInvitations,
   {
     email: z.email("Invalid email address").toLowerCase(),
-    role: z.enum(["owner", "admin", "recruiter", "member"]),
+    role: organizationRoleSchema,
   },
 ).omit({
   id: true,
@@ -450,7 +459,7 @@ export const insertOrganizationInvitationSchema = createInsertSchema(
 export const createOrganizationInvitationSchema = z.object({
   body: z.object({
     email: z.email("Invalid email address").toLowerCase(),
-    role: z.enum(["owner", "admin", "recruiter", "member"]).default("member"),
+    role: organizationRoleSchema.default("member"),
   }),
   params: organizationIdParamSchema,
   query: z.object({}).strict(),
@@ -491,7 +500,7 @@ export const listOrganizationInvitationsSchema = z.object({
 export const pendingOrganizationInvitationSchema = z.object({
   id: z.number(),
   email: z.string(),
-  role: z.enum(["owner", "admin", "recruiter", "member"]),
+  role: organizationRoleSchema,
   expiresAt: z.coerce.date(),
   createdAt: z.coerce.date(),
 });
@@ -526,7 +535,7 @@ export type OrganizationWithMembersInterface = Organization & {
     id: number;
     userId: number;
     organizationId: number;
-    role: "owner" | "admin" | "recruiter" | "member";
+    role: OrganizationRole;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;

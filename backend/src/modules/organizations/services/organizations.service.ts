@@ -16,7 +16,10 @@ import {
 } from "@shared/errors";
 import { StorageFolder } from "@shared/constants/storage-folders";
 import type { FileUploadJobData } from "@/validations/file.validation";
-import type { NewOrganization } from "@/validations/organization.validation";
+import type {
+  NewOrganization,
+  OrganizationRole,
+} from "@/validations/organization.validation";
 import type { OrganizationsServicePort } from "@/modules/organizations";
 import type { OrganizationsRepositoryPort } from "@/modules/organizations";
 import type { IntentSyncPort } from "@/modules/organizations/ports/intent-sync.port";
@@ -468,25 +471,13 @@ export class OrganizationsService
    */
   async removeOrganizationMember(organizationId: number, memberId: number) {
     try {
-      const member = await this.organizationsRepository.findMemberById(
-        memberId,
+      const memberResult = await this.requireActiveNonOwnerMember(
         organizationId,
+        memberId,
+        "Organization owners cannot be removed. Transfer ownership first.",
       );
-
-      if (!member) {
-        return fail(new NotFoundError("Organization member not found"));
-      }
-
-      if (!member.isActive) {
-        return fail(new ValidationError("Member is not active"));
-      }
-
-      if (member.role === "owner") {
-        return fail(
-          new ForbiddenError(
-            "Organization owners cannot be removed. Transfer ownership first.",
-          ),
-        );
+      if (memberResult.isFailure) {
+        return this.handleError(memberResult.error);
       }
 
       const deactivated = await this.organizationsRepository.deactivateMember(
@@ -518,28 +509,16 @@ export class OrganizationsService
   async updateOrganizationMemberRole(
     organizationId: number,
     memberId: number,
-    role: "owner" | "admin" | "recruiter" | "member",
+    role: OrganizationRole,
   ) {
     try {
-      const member = await this.organizationsRepository.findMemberById(
-        memberId,
+      const memberResult = await this.requireActiveNonOwnerMember(
         organizationId,
+        memberId,
+        "Organization owners cannot have their role changed. Transfer ownership first.",
       );
-
-      if (!member) {
-        return fail(new NotFoundError("Organization member not found"));
-      }
-
-      if (!member.isActive) {
-        return fail(new ValidationError("Member is not active"));
-      }
-
-      if (member.role === "owner") {
-        return fail(
-          new ForbiddenError(
-            "Organization owners cannot have their role changed. Transfer ownership first.",
-          ),
-        );
+      if (memberResult.isFailure) {
+        return this.handleError(memberResult.error);
       }
 
       const updated = await this.organizationsRepository.updateMemberRole(
@@ -563,5 +542,33 @@ export class OrganizationsService
         new DatabaseError("Failed to update organization member role"),
       );
     }
+  }
+
+  /**
+   * Shared preamble for member mutations: must exist, be active, and not be owner.
+   */
+  private async requireActiveNonOwnerMember(
+    organizationId: number,
+    memberId: number,
+    ownerForbiddenMessage: string,
+  ) {
+    const member = await this.organizationsRepository.findMemberById(
+      memberId,
+      organizationId,
+    );
+
+    if (!member) {
+      return fail(new NotFoundError("Organization member not found"));
+    }
+
+    if (!member.isActive) {
+      return fail(new ValidationError("Member is not active"));
+    }
+
+    if (member.role === "owner") {
+      return fail(new ForbiddenError(ownerForbiddenMessage));
+    }
+
+    return ok(member);
   }
 }

@@ -61,8 +61,10 @@ describe("ApplicantDetailSheet notes", () => {
     render(
       <ApplicantDetailSheet
         application={createApplication()}
+        organizationId={1}
         open
         onOpenChange={vi.fn()}
+        onStatusChange={vi.fn()}
       />,
     );
 
@@ -92,8 +94,10 @@ describe("ApplicantDetailSheet notes", () => {
     render(
       <ApplicantDetailSheet
         application={createApplication()}
+        organizationId={1}
         open
         onOpenChange={vi.fn()}
+        onStatusChange={vi.fn()}
       />,
     );
 
@@ -119,8 +123,10 @@ describe("ApplicantDetailSheet notes", () => {
     render(
       <ApplicantDetailSheet
         application={createApplication()}
+        organizationId={1}
         open
         onOpenChange={vi.fn()}
+        onStatusChange={vi.fn()}
       />,
     );
 
@@ -148,8 +154,10 @@ describe("ApplicantDetailSheet notes", () => {
     render(
       <ApplicantDetailSheet
         application={createApplication()}
+        organizationId={1}
         open
         onOpenChange={vi.fn()}
+        onStatusChange={vi.fn()}
       />,
     );
 

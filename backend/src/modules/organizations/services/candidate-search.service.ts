@@ -13,10 +13,7 @@ import type {
   CandidateSearchResult,
   CandidateSearchServicePort,
 } from "@/modules/organizations/ports/candidate-search-service.port";
-import type {
-  PublicCandidateProfile,
-  PublicCandidateProfileQueryPort,
-} from "@shared/ports/public-candidate-profile-query.port";
+import type { PublicCandidateProfileQueryPort } from "@shared/ports/public-candidate-profile-query.port";
 import type {
   CandidatePreview,
   SearchCandidatesSchema,
@@ -119,7 +116,7 @@ export class CandidateSearchService
         return fail(new NotFoundError("Candidate profile not found"));
       }
 
-      return ok(this.toPublicCandidateProfile(profile));
+      return ok(profile);
     } catch (error) {
       logger.error(error, "Failed to get candidate profile");
       return fail(new AppError("Failed to get candidate profile"));
@@ -157,38 +154,6 @@ export class CandidateSearchService
       location: doc.location,
       yearsOfExperience: doc.yearsOfExperience,
       openToWork: doc.openToWork,
-    };
-  }
-
-  private toPublicCandidateProfile(
-    profile: PublicCandidateProfile,
-  ): PublicCandidateProfile {
-    return {
-      userId: profile.userId,
-      name: profile.name,
-      photoUrl: profile.photoUrl,
-      headline: profile.headline,
-      bio: profile.bio,
-      skills: profile.skills,
-      location: profile.location,
-      yearsOfExperience: profile.yearsOfExperience,
-      openToWork: profile.openToWork,
-      workExperiences: profile.workExperiences.map((we) => ({
-        jobTitle: we.jobTitle,
-        companyName: we.companyName,
-        description: we.description,
-        current: we.current,
-        startDate: we.startDate,
-        endDate: we.endDate,
-      })),
-      educations: profile.educations.map((ed) => ({
-        schoolName: ed.schoolName,
-        major: ed.major,
-        graduated: ed.graduated,
-        startDate: ed.startDate,
-        endDate: ed.endDate,
-      })),
-      certifications: [...profile.certifications],
     };
   }
 }

@@ -40,10 +40,12 @@ export function JobListingsSection({
 
   const handleCloseJob = async (jobId: number) => {
     await updateJobAsync({ jobId, data: { isActive: false } });
+    router.refresh();
   };
 
   const handleReopenJob = async (jobId: number) => {
     await updateJobAsync({ jobId, data: { isActive: true } });
+    router.refresh();
   };
 
   const handleDuplicate = async (job: Job) => {

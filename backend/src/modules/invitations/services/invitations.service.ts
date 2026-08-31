@@ -21,6 +21,7 @@ import type {
 import type { InvitationsRepositoryPort } from "@/modules/invitations";
 import type { OrgMembershipCommandPort } from "@/modules/invitations";
 import type { UserEmailQueryPort } from "@/modules/invitations";
+import type { OrganizationRole } from "@/validations/organization.validation";
 
 /**
  * Service class for managing organization invitation operations.
@@ -48,7 +49,7 @@ export class InvitationsService
   async sendInvitation(
     organizationId: number,
     email: string,
-    role: "owner" | "admin" | "recruiter" | "member",
+    role: OrganizationRole,
     requesterId: number,
   ): Promise<Result<{ invitationId: number; message: string }, Error>> {
     try {

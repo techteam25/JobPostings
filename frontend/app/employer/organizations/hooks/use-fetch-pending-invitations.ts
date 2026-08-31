@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { instance } from "@/lib/axios-instance";
-import type { ApiResponse, PendingInvitation } from "@/lib/types";
+import type { ApiResponse, PendingOrganizationInvitation } from "@/lib/types";
 
 export const pendingInvitationsQueryKey = (organizationId: number) =>
   ["pending-invitations", String(organizationId)] as const;
@@ -13,7 +13,9 @@ export const useFetchPendingInvitations = (
   const { data, error, isFetching } = useQuery({
     queryKey: pendingInvitationsQueryKey(organizationId),
     queryFn: async () => {
-      const response = await instance.get<ApiResponse<PendingInvitation[]>>(
+      const response = await instance.get<
+        ApiResponse<PendingOrganizationInvitation[]>
+      >(
         `/organizations/${organizationId}/invitations`,
         { withCredentials: true },
       );
@@ -24,7 +26,7 @@ export const useFetchPendingInvitations = (
 
   if (!data?.success) {
     return {
-      pendingInvitations: [] as PendingInvitation[],
+      pendingInvitations: [] as PendingOrganizationInvitation[],
       error: data?.message || "Could not fetch pending invitations.",
       isFetching,
     };

@@ -22,7 +22,7 @@ export function EditJobForm({ organizationId, job }: EditJobFormProps) {
         e.stopPropagation();
         await form.handleSubmit();
       }}
-      className="space-y-6"
+      className="flex flex-col gap-6"
     >
       <JobBasicInfoSection form={form} />
       <JobLocationSection form={form} />

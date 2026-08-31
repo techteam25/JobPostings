@@ -5,6 +5,7 @@ import { db } from "@shared/db/connection";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import { DatabaseError } from "@shared/errors";
 import type { InvitationsRepositoryPort } from "@/modules/invitations";
+import type { OrganizationRole } from "@/validations/organization.validation";
 
 /**
  * Repository class for managing invitation-related database operations.
@@ -64,7 +65,7 @@ export class InvitationsRepository implements InvitationsRepositoryPort {
   async createInvitation(data: {
     organizationId: number;
     email: string;
-    role: "owner" | "admin" | "recruiter" | "member";
+    role: OrganizationRole;
     token: string;
     invitedBy: number;
     expiresAt: Date;

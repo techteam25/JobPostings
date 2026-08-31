@@ -2,6 +2,7 @@ import { MutableRefObject } from "react";
 
 import { CreateOrganizationData } from "@/schemas/organizations";
 import { AnyFormApi } from "@tanstack/form-core";
+import type { ApplicationStatus } from "@/lib/application-status";
 
 export enum JobTypeEnum {
   FullTime = "Full-time",
@@ -17,6 +18,8 @@ export interface TCreateOrganizationFormProps {
 
   formRef?: MutableRefObject<AnyFormApi | null>;
 }
+
+export type OrganizationRole = "owner" | "admin" | "recruiter" | "member";
 
 export type Organization = {
   id: number;
@@ -45,7 +48,7 @@ export type OrganizationWithMembers = Organization & {
     id: number;
     organizationId: number;
     userId: number;
-    role: "owner" | "admin" | "recruiter" | "member";
+    role: OrganizationRole;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -62,7 +65,7 @@ export type UserOrganizationMembership = {
   id: number;
   userId: number;
   organizationId: number;
-  role: "owner" | "admin" | "recruiter" | "member";
+  role: OrganizationRole;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -79,14 +82,7 @@ export type OrganizationJobApplications = {
   jobId: number;
   applicantName: string;
   applicantEmail: string;
-  status:
-    | "pending"
-    | "reviewed"
-    | "shortlisted"
-    | "interviewing"
-    | "rejected"
-    | "hired"
-    | "withdrawn";
+  status: ApplicationStatus;
   coverLetter: string | null;
   resumeUrl: string | null;
   appliedAt: Date;
@@ -431,10 +427,10 @@ export type Invitation = {
   updatedAt: Date;
 };
 
-export type PendingInvitation = {
+export type PendingOrganizationInvitation = {
   id: number;
   email: string;
-  role: "owner" | "admin" | "recruiter" | "member";
+  role: OrganizationRole;
   expiresAt: Date;
   createdAt: Date;
 };

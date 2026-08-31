@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useFetchPendingInvitations } from "@/app/employer/organizations/hooks/use-fetch-pending-invitations";
 import { useCancelInvitation } from "@/app/employer/organizations/hooks/use-manage-invitations";
-import type { PendingInvitation } from "@/lib/types";
+import type { PendingOrganizationInvitation } from "@/lib/types";
 import { formatToReadableDate } from "@/lib/utils";
 import { CancelInvitationDialog } from "./CancelInvitationDialog";
 
@@ -27,7 +27,7 @@ export function PendingInvitationsSection({
   const { mutateAsync: cancelInvitation, isPending } =
     useCancelInvitation(organizationId);
   const [invitationToCancel, setInvitationToCancel] =
-    useState<PendingInvitation | null>(null);
+    useState<PendingOrganizationInvitation | null>(null);
 
   if (!canManageInvitations) {
     return null;
