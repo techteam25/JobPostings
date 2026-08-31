@@ -11,6 +11,7 @@ import {
   deleteOrganizationSchema,
   uploadOrganizationLogoSchema,
   removeOrganizationMemberSchema,
+  updateOrganizationMemberRoleSchema,
 } from "@/validations/organization.validation";
 import { getUserSchema } from "@/validations/user.validation";
 import {
@@ -27,7 +28,9 @@ export function createOrganizationsRoutes({
   authenticate: RequestHandler;
   orgGuards: Pick<
     OrganizationsGuards,
-    "requireAdminOrOwnerRole" | "ensureIsOrganizationMember"
+    | "requireAdminOrOwnerRole"
+    | "ensureIsOrganizationMember"
+    | "validateRoleAssignment"
   >;
   controller: OrganizationsController;
 }): Router {
@@ -155,6 +158,23 @@ export function createOrganizationsRoutes({
     invalidateCacheMiddleware(() => cacheKeys.organizations),
     invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
     controller.removeOrganizationMember,
+  );
+
+  /**
+   * Updates an organization member's role.
+   * Requires authentication, admin or owner role, and valid role assignment.
+   * @route PATCH /:organizationId/members/:memberId
+   */
+  router.patch(
+    "/:organizationId/members/:memberId",
+    authenticate,
+    orgGuards.requireAdminOrOwnerRole(["owner", "admin"]),
+    orgGuards.ensureIsOrganizationMember,
+    validate(updateOrganizationMemberRoleSchema),
+    orgGuards.validateRoleAssignment,
+    invalidateCacheMiddleware(() => cacheKeys.organizations),
+    invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
+    controller.updateOrganizationMemberRole,
   );
 
   return router;

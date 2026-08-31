@@ -506,4 +506,62 @@ export class OrganizationsService
       return fail(new DatabaseError("Failed to remove organization member"));
     }
   }
+
+  /**
+   * Updates an active member's role in an organization.
+   * Owners cannot have their role changed through this action.
+   * @param organizationId The ID of the organization.
+   * @param memberId The ID of the membership record to update.
+   * @param role The new role to assign.
+   * @returns A Result containing a success message or an error.
+   */
+  async updateOrganizationMemberRole(
+    organizationId: number,
+    memberId: number,
+    role: "owner" | "admin" | "recruiter" | "member",
+  ) {
+    try {
+      const member = await this.organizationsRepository.findMemberById(
+        memberId,
+        organizationId,
+      );
+
+      if (!member) {
+        return fail(new NotFoundError("Organization member not found"));
+      }
+
+      if (!member.isActive) {
+        return fail(new ValidationError("Member is not active"));
+      }
+
+      if (member.role === "owner") {
+        return fail(
+          new ForbiddenError(
+            "Organization owners cannot have their role changed. Transfer ownership first.",
+          ),
+        );
+      }
+
+      const updated = await this.organizationsRepository.updateMemberRole(
+        memberId,
+        organizationId,
+        role,
+      );
+
+      if (!updated) {
+        return fail(
+          new DatabaseError("Failed to update organization member role"),
+        );
+      }
+
+      return ok({ message: "Member role updated successfully" });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to update organization member role"),
+      );
+    }
+  }
 }

@@ -370,6 +370,16 @@ export const removeOrganizationMemberSchema = z.object({
   }),
 });
 
+export const updateOrganizationMemberRoleSchema = z.object({
+  body: z.object({
+    role: z.enum(["owner", "admin", "recruiter", "member"]),
+  }),
+  query: z.object({}).strict(),
+  params: organizationIdParamSchema.extend({
+    memberId: z.string().regex(/^\d+$/, "memberId is required"),
+  }),
+});
+
 export type NewOrganization = z.infer<typeof insertOrganizationSchema>;
 export type Organization = z.infer<typeof selectOrganizationSchema>;
 
@@ -386,6 +396,9 @@ export type UpdateOrganizationSchema = z.infer<typeof updateOrganizationSchema>;
 export type DeleteOrganizationSchema = z.infer<typeof deleteOrganizationSchema>;
 export type RemoveOrganizationMemberSchema = z.infer<
   typeof removeOrganizationMemberSchema
+>;
+export type UpdateOrganizationMemberRoleSchema = z.infer<
+  typeof updateOrganizationMemberRoleSchema
 >;
 export type JobApplicationManagementSchema = z.infer<
   typeof jobApplicationManagementSchema

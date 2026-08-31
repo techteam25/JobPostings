@@ -44,16 +44,18 @@ function getStatusColor(status: string) {
 interface MemberActionsContext {
   canManageMembers: boolean;
   onRequestRemove: (member: Member) => void;
+  onRequestChangeRole: (member: Member) => void;
 }
 
 function MemberActionsCell({
   member,
   canManageMembers,
   onRequestRemove,
+  onRequestChangeRole,
 }: { member: Member } & MemberActionsContext) {
-  const canRemove = canManageMembers && member.role !== "owner";
+  const canManage = canManageMembers && member.role !== "owner";
 
-  if (!canRemove) {
+  if (!canManage) {
     return <div className="text-right" />;
   }
 
@@ -71,6 +73,9 @@ function MemberActionsCell({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => onRequestChangeRole(member)}>
+            Change Role
+          </DropdownMenuItem>
           <DropdownMenuItem
             className="text-destructive"
             onClick={() => onRequestRemove(member)}
@@ -86,6 +91,7 @@ function MemberActionsCell({
 export function getMemberColumns({
   canManageMembers,
   onRequestRemove,
+  onRequestChangeRole,
 }: MemberActionsContext): ColumnDef<Member>[] {
   return [
     {
@@ -218,6 +224,7 @@ export function getMemberColumns({
           member={row.original}
           canManageMembers={canManageMembers}
           onRequestRemove={onRequestRemove}
+          onRequestChangeRole={onRequestChangeRole}
         />
       ),
       enableSorting: false,

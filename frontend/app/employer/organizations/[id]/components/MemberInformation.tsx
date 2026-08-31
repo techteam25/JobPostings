@@ -21,6 +21,7 @@ import { MembersTable } from "./MembersTable";
 import { PendingInvitationsSection } from "./PendingInvitationsSection";
 import { useCanManageInvitations } from "../context/organization-context";
 import { useRemoveMember } from "@/app/employer/organizations/hooks/use-remove-member";
+import { useChangeMemberRole } from "@/app/employer/organizations/hooks/use-change-member-role";
 
 const InviteMemberDialog = dynamic(() =>
   import("./InviteMemberDialog").then((mod) => ({
@@ -42,6 +43,8 @@ export function EmployeeListSection({
   const canManageInvitations = useCanManageInvitations();
   const { mutateAsync: removeMember, isPending: isRemovePending } =
     useRemoveMember(organizationId);
+  const { mutateAsync: changeMemberRole, isPending: isChangeRolePending } =
+    useChangeMemberRole(organizationId);
 
   const totalMembers = members.length;
   const activeMembers = members.filter((m) => m.isActive).length;
@@ -215,6 +218,8 @@ export function EmployeeListSection({
             canManageMembers={canManageInvitations}
             onRemoveMember={removeMember}
             isRemovePending={isRemovePending}
+            onChangeMemberRole={changeMemberRole}
+            isChangeRolePending={isChangeRolePending}
             searchTerm={searchTerm}
             onSearchTermChange={setSearchTerm}
           />

@@ -198,4 +198,185 @@ describe("Organization Members Controller Integration Tests", () => {
       );
     });
   });
+
+  describe("PATCH /organizations/:organizationId/members/:memberId", () => {
+    let organizationId: number;
+    let ownerCookie: string;
+    let recruiterCookie: string;
+    let recruiterMemberId: number;
+    let ownerMemberId: number;
+
+    beforeEach(async () => {
+      const { owner, member, orgs } = await seedJobsScenario();
+      organizationId = orgs[0]!.id;
+
+      const ownerSignIn = await request.post("/api/auth/sign-in/email").send({
+        email: "owner.user@example.com",
+        password: "Password@123",
+      });
+      ownerCookie = ownerSignIn.headers["set-cookie"]![0]!;
+
+      const recruiterSignIn = await request
+        .post("/api/auth/sign-in/email")
+        .send({
+          email: "org.member@example.com",
+          password: "Password@123",
+        });
+      recruiterCookie = recruiterSignIn.headers["set-cookie"]![0]!;
+
+      const recruiterMember = await db.query.organizationMembers.findFirst({
+        where: and(
+          eq(organizationMembers.userId, member.id),
+          eq(organizationMembers.organizationId, organizationId),
+        ),
+      });
+      recruiterMemberId = recruiterMember!.id;
+
+      const ownerMember = await db.query.organizationMembers.findFirst({
+        where: and(
+          eq(organizationMembers.userId, owner.id),
+          eq(organizationMembers.organizationId, organizationId),
+        ),
+      });
+      ownerMemberId = ownerMember!.id;
+    });
+
+    it("should change a member role successfully returning 200", async () => {
+      const response = await request
+        .patch(
+          `/api/organizations/${organizationId}/members/${recruiterMemberId}`,
+        )
+        .set("Cookie", ownerCookie)
+        .send({ role: "admin" });
+
+      TestHelpers.validateApiResponse(response, 200);
+      expect(response.body).toHaveProperty("success", true);
+      expect(response.body.data).toHaveProperty(
+        "message",
+        "Member role updated successfully",
+      );
+
+      const updatedMember = await db.query.organizationMembers.findFirst({
+        where: eq(organizationMembers.id, recruiterMemberId),
+      });
+      expect(updatedMember!.role).toBe("admin");
+
+      const orgResponse = await request
+        .get(`/api/organizations/${organizationId}`)
+        .set("Cookie", ownerCookie);
+
+      TestHelpers.validateApiResponse(orgResponse, 200);
+      const listedMember = orgResponse.body.data.members.find(
+        (member: { id: number }) => member.id === recruiterMemberId,
+      );
+      expect(listedMember).toBeDefined();
+      expect(listedMember.role).toBe("admin");
+    });
+
+    it("should deny recruiters from changing roles returning 403", async () => {
+      const targetUser = await createUser({
+        email: "role.target@example.com",
+      });
+      await createOrganizationMember(targetUser.id, organizationId, "member");
+
+      const targetMember = await db.query.organizationMembers.findFirst({
+        where: and(
+          eq(organizationMembers.userId, targetUser.id),
+          eq(organizationMembers.organizationId, organizationId),
+        ),
+      });
+
+      const response = await request
+        .patch(
+          `/api/organizations/${organizationId}/members/${targetMember!.id}`,
+        )
+        .set("Cookie", recruiterCookie)
+        .send({ role: "recruiter" });
+
+      TestHelpers.validateApiResponse(response, 403);
+      expect(response.body).toHaveProperty("success", false);
+
+      const unchangedMember = await db.query.organizationMembers.findFirst({
+        where: eq(organizationMembers.id, targetMember!.id),
+      });
+      expect(unchangedMember!.role).toBe("member");
+    });
+
+    it("should deny members from changing roles returning 403", async () => {
+      const plainMemberUser = await createUser({
+        email: "plain.role.member@example.com",
+      });
+      await createOrganizationMember(
+        plainMemberUser.id,
+        organizationId,
+        "member",
+      );
+
+      const plainMemberSignIn = await request
+        .post("/api/auth/sign-in/email")
+        .send({
+          email: "plain.role.member@example.com",
+          password: "Password@123",
+        });
+      const plainMemberCookie = plainMemberSignIn.headers["set-cookie"]![0]!;
+
+      const response = await request
+        .patch(
+          `/api/organizations/${organizationId}/members/${recruiterMemberId}`,
+        )
+        .set("Cookie", plainMemberCookie)
+        .send({ role: "member" });
+
+      TestHelpers.validateApiResponse(response, 403);
+      expect(response.body).toHaveProperty("success", false);
+
+      const unchangedMember = await db.query.organizationMembers.findFirst({
+        where: eq(organizationMembers.id, recruiterMemberId),
+      });
+      expect(unchangedMember!.role).toBe("recruiter");
+    });
+
+    it("should fail when changing an owner role returning 403", async () => {
+      const response = await request
+        .patch(`/api/organizations/${organizationId}/members/${ownerMemberId}`)
+        .set("Cookie", ownerCookie)
+        .send({ role: "admin" });
+
+      TestHelpers.validateApiResponse(response, 403);
+      expect(response.body.message).toContain("owner");
+
+      const ownerMember = await db.query.organizationMembers.findFirst({
+        where: eq(organizationMembers.id, ownerMemberId),
+      });
+      expect(ownerMember!.role).toBe("owner");
+    });
+
+    it("should deny assigning a role at or above the actor returning 403", async () => {
+      const adminUser = await createUser({
+        email: "org.admin.role@example.com",
+      });
+      await createOrganizationMember(adminUser.id, organizationId, "admin");
+
+      const adminSignIn = await request.post("/api/auth/sign-in/email").send({
+        email: "org.admin.role@example.com",
+        password: "Password@123",
+      });
+      const adminCookie = adminSignIn.headers["set-cookie"]![0]!;
+
+      const response = await request
+        .patch(
+          `/api/organizations/${organizationId}/members/${recruiterMemberId}`,
+        )
+        .set("Cookie", adminCookie)
+        .send({ role: "admin" });
+
+      TestHelpers.validateApiResponse(response, 403);
+      expect(response.body).toHaveProperty("success", false);
+
+      const unchangedMember = await db.query.organizationMembers.findFirst({
+        where: eq(organizationMembers.id, recruiterMemberId),
+      });
+      expect(unchangedMember!.role).toBe("recruiter");
+    });
+  });
 });

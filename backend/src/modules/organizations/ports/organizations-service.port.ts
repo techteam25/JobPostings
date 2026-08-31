@@ -78,4 +78,10 @@ export interface OrganizationsServicePort {
     organizationId: number,
     memberId: number,
   ): Promise<Result<{ message: string }, Error>>;
+
+  updateOrganizationMemberRole(
+    organizationId: number,
+    memberId: number,
+    role: "owner" | "admin" | "recruiter" | "member",
+  ): Promise<Result<{ message: string }, Error>>;
 }

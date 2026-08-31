@@ -29,9 +29,11 @@ function createMember(overrides: Partial<Member> = {}): Member {
 
 describe("MembersTable", () => {
   const onRemoveMember = vi.fn().mockResolvedValue(undefined);
+  const onChangeMemberRole = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
     onRemoveMember.mockClear();
+    onChangeMemberRole.mockClear();
   });
 
   it("removes a member from the members table after confirmation", async () => {
@@ -50,6 +52,7 @@ describe("MembersTable", () => {
         ]}
         canManageMembers
         onRemoveMember={onRemoveMember}
+        onChangeMemberRole={onChangeMemberRole}
         searchTerm=""
         onSearchTermChange={vi.fn()}
       />,
@@ -81,6 +84,7 @@ describe("MembersTable", () => {
         members={[removableMember]}
         canManageMembers
         onRemoveMember={onRemoveMember}
+        onChangeMemberRole={onChangeMemberRole}
         searchTerm=""
         onSearchTermChange={vi.fn()}
       />,
@@ -109,6 +113,7 @@ describe("MembersTable", () => {
         members={[removableMember]}
         canManageMembers
         onRemoveMember={failingRemove}
+        onChangeMemberRole={onChangeMemberRole}
         searchTerm=""
         onSearchTermChange={vi.fn()}
       />,
@@ -126,12 +131,13 @@ describe("MembersTable", () => {
     expect(screen.getByText("Removable User")).toBeInTheDocument();
   });
 
-  it("does not offer remove actions without admin permission", async () => {
+  it("does not offer member actions without admin permission", async () => {
     render(
       <MembersTable
         members={[createMember({ memberName: "Regular Member" })]}
         canManageMembers={false}
         onRemoveMember={onRemoveMember}
+        onChangeMemberRole={onChangeMemberRole}
         searchTerm=""
         onSearchTermChange={vi.fn()}
       />,
@@ -142,7 +148,7 @@ describe("MembersTable", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("does not offer remove for owners", async () => {
+  it("does not offer actions for owners", async () => {
     render(
       <MembersTable
         members={[
@@ -150,6 +156,7 @@ describe("MembersTable", () => {
         ]}
         canManageMembers
         onRemoveMember={onRemoveMember}
+        onChangeMemberRole={onChangeMemberRole}
         searchTerm=""
         onSearchTermChange={vi.fn()}
       />,
@@ -158,5 +165,84 @@ describe("MembersTable", () => {
     expect(
       screen.queryByRole("button", { name: /actions for owner user/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("changes a member role from the members actions", async () => {
+    const user = userEvent.setup();
+    const targetMember = createMember({
+      id: 42,
+      role: "member",
+      memberName: "Role Change User",
+    });
+
+    render(
+      <MembersTable
+        members={[targetMember]}
+        canManageMembers
+        onRemoveMember={onRemoveMember}
+        onChangeMemberRole={onChangeMemberRole}
+        searchTerm=""
+        onSearchTermChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("member")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: /actions for role change user/i }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: /change role/i }));
+    await user.click(screen.getByRole("combobox"));
+    await user.click(screen.getByRole("option", { name: /^recruiter$/i }));
+    await user.click(screen.getByRole("button", { name: /^save role$/i }));
+
+    await waitFor(() => {
+      expect(onChangeMemberRole).toHaveBeenCalledWith({
+        memberId: 42,
+        role: "recruiter",
+      });
+    });
+    await waitFor(() => {
+      expect(screen.getByText("recruiter")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("member")).not.toBeInTheDocument();
+  });
+
+  it("keeps the old role when role change fails", async () => {
+    const user = userEvent.setup();
+    const failingChange = vi.fn().mockRejectedValue(new Error("Failed"));
+    const targetMember = createMember({
+      id: 42,
+      role: "member",
+      memberName: "Role Change User",
+    });
+
+    render(
+      <MembersTable
+        members={[targetMember]}
+        canManageMembers
+        onRemoveMember={onRemoveMember}
+        onChangeMemberRole={failingChange}
+        searchTerm=""
+        onSearchTermChange={vi.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /actions for role change user/i }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: /change role/i }));
+    await user.click(screen.getByRole("combobox"));
+    await user.click(screen.getByRole("option", { name: /^admin$/i }));
+    await user.click(screen.getByRole("button", { name: /^save role$/i }));
+
+    await waitFor(() => {
+      expect(failingChange).toHaveBeenCalledWith({
+        memberId: 42,
+        role: "admin",
+      });
+    });
+    expect(screen.getByText("member")).toBeInTheDocument();
+    expect(screen.queryByText("admin")).not.toBeInTheDocument();
   });
 });

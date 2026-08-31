@@ -464,6 +464,34 @@ export class OrganizationsRepository
   }
 
   /**
+   * Updates an active organization member's role.
+   * @param memberId The ID of the membership record.
+   * @param organizationId The ID of the organization.
+   * @param role The new role to assign.
+   * @returns True if the role was updated, false otherwise.
+   */
+  async updateMemberRole(
+    memberId: number,
+    organizationId: number,
+    role: "owner" | "admin" | "recruiter" | "member",
+  ) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(organizationMembers)
+        .set({ role })
+        .where(
+          and(
+            eq(organizationMembers.id, memberId),
+            eq(organizationMembers.organizationId, organizationId),
+            eq(organizationMembers.isActive, true),
+          ),
+        );
+
+      return result.affectedRows > 0;
+    });
+  }
+
+  /**
    * Creates an organization member record.
    * @param data The member data.
    * @returns The created member.

@@ -5,6 +5,7 @@ import {
   getOrganizationSchema,
   deleteOrganizationSchema,
   removeOrganizationMemberSchema,
+  updateOrganizationMemberRoleSchema,
   updateOrganizationSchema,
   organizationJobApplicationsResponseSchema,
   updateJobStatusInputSchema,
@@ -416,6 +417,54 @@ registry.registerPath({
   responses: {
     200: {
       description: "Member removed successfully",
+      content: {
+        "application/json": {
+          schema: apiResponseSchema(
+            z.object({
+              message: z.string(),
+            }),
+          ),
+        },
+      },
+    },
+    403: {
+      description: "Forbidden",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+    404: {
+      description: "Member not found",
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/organizations/{organizationId}/members/{memberId}",
+  summary: "Update an organization member's role",
+  tags: ["Organizations"],
+  security: [{ cookie: [] }],
+  request: {
+    params: updateOrganizationMemberRoleSchema.shape["params"],
+    body: {
+      content: {
+        "application/json": {
+          schema: updateOrganizationMemberRoleSchema.shape["body"],
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Member role updated successfully",
       content: {
         "application/json": {
           schema: apiResponseSchema(

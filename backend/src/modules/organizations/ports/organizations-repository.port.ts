@@ -123,6 +123,15 @@ export interface OrganizationsRepositoryPort extends BaseRepositoryPort<
   deactivateMember(memberId: number, organizationId: number): Promise<boolean>;
 
   /**
+   * Updates an active organization member's role.
+   */
+  updateMemberRole(
+    memberId: number,
+    organizationId: number,
+    role: "owner" | "admin" | "recruiter" | "member",
+  ): Promise<boolean>;
+
+  /**
    * Creates an organization member record.
    * Used by the invitations module (via OrgMembershipCommandPort adapter)
    * when accepting invitations.
