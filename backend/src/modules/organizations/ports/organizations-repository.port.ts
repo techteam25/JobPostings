@@ -154,9 +154,11 @@ export interface OrganizationsRepositoryPort extends BaseRepositoryPort<
   }): Promise<OrganizationMember | undefined>;
 
   /**
-   * Returns active organizations where the given user is the only active
-   * owner. Used by the identity module to block account deletion when
-   * the user's departure would orphan organizations.
+   * Classifies active organizations the user actively owns into blocking
+   * (other active members exist) vs will-be-deleted (user is sole active member).
    */
-  findSoleOwnedOrgs(userId: number): Promise<{ id: number; name: string }[]>;
+  classifyOwnedOrgs(userId: number): Promise<{
+    blocking: { id: number; name: string; hasActiveAdmin: boolean }[];
+    willBeDeleted: { id: number; name: string; hasActiveAdmin: boolean }[];
+  }>;
 }

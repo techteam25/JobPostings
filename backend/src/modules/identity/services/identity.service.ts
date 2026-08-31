@@ -20,6 +20,9 @@ import {
 } from "@shared/infrastructure/queue.service";
 import { enqueueCandidateSearchSync } from "@shared/infrastructure/typesense.service/candidate-search-enqueue";
 
+const WALK_AWAY_BLOCKED_MESSAGE =
+  "You own organizations that must be transferred or deleted before you can leave your account.";
+
 export class IdentityService
   extends BaseService
   implements IdentityServicePort
@@ -87,6 +90,11 @@ export class IdentityService
 
       if (user.status !== "active") {
         return fail(new ValidationError("Account is already deactivated"));
+      }
+
+      const walkAway = await this.prepareWalkAway(userId);
+      if (walkAway.isFailure) {
+        return walkAway;
       }
 
       const deactivatedUser =
@@ -209,10 +217,11 @@ export class IdentityService
     return ok(updatedUser);
   }
 
-  async getBlockingOwnedOrgs(userId: number) {
+  async getWalkAwayOrgs(userId: number) {
     try {
-      const orgs = await this.orgOwnershipQuery.findSoleOwnedOrgs(userId);
-      return ok(orgs);
+      const classification =
+        await this.orgOwnershipQuery.classifyOwnedOrgs(userId);
+      return ok(classification);
     } catch (error) {
       if (error instanceof AppError) {
         return this.handleError(error);
@@ -220,6 +229,50 @@ export class IdentityService
       return fail(
         new DatabaseError("Failed to query blocking owned organizations"),
       );
+    }
+  }
+
+  /**
+   * Classify owned orgs; refuse when any block; otherwise tear down solo orgs.
+   * Used by self-deactivate and the account before-delete hook.
+   */
+  async prepareWalkAway(userId: number) {
+    try {
+      const classification =
+        await this.orgOwnershipQuery.classifyOwnedOrgs(userId);
+
+      if (classification.blocking.length > 0) {
+        return fail(
+          new ValidationError(WALK_AWAY_BLOCKED_MESSAGE, classification),
+        );
+      }
+
+      if (classification.willBeDeleted.length > 0) {
+        const orgIds = classification.willBeDeleted.map((org) => org.id);
+        const teardown = await this.orgOwnershipQuery.teardownSoloOrgs(
+          userId,
+          orgIds,
+        );
+
+        if (teardown === "aborted") {
+          const afterAbort =
+            await this.orgOwnershipQuery.classifyOwnedOrgs(userId);
+          return fail(
+            new ValidationError(WALK_AWAY_BLOCKED_MESSAGE, afterAbort),
+          );
+        }
+      }
+
+      return ok(undefined);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to prepare organization walk-away";
+      return fail(new DatabaseError(message));
     }
   }
 }

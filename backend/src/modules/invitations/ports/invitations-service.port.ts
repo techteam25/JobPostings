@@ -56,4 +56,12 @@ export interface InvitationsServicePort {
   listPendingInvitations(
     organizationId: number,
   ): Promise<Result<PendingOrganizationInvitation[], Error>>;
+
+  /**
+   * Cancels all pending invitations for an organization (used by walk-away teardown).
+   */
+  cancelAllPendingForOrganization(
+    organizationId: number,
+    cancelledBy: number,
+  ): Promise<Result<{ cancelledCount: number }, Error>>;
 }

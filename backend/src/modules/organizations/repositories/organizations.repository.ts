@@ -603,60 +603,96 @@ export class OrganizationsRepository
   }
 
   /**
-   * Returns active organizations where the given user is the only active
-   * owner. Two-step query: (1) find orgs where user is an active owner;
-   * (2) count distinct active owners per org; keep those with count === 1
-   * and status === 'active'.
+   * Classifies active organizations the user actively owns:
+   * - blocking: ≥1 other active member (any role)
+   * - willBeDeleted: user is the only active member
+   * Pending invitations and inactive members do not count.
    */
-  async findSoleOwnedOrgs(
-    userId: number,
-  ): Promise<{ id: number; name: string }[]> {
+  async classifyOwnedOrgs(userId: number): Promise<{
+    blocking: { id: number; name: string; hasActiveAdmin: boolean }[];
+    willBeDeleted: { id: number; name: string; hasActiveAdmin: boolean }[];
+  }> {
     return withDbErrorHandling(async () => {
       const userOwnedRows = await db
-        .select({ orgId: organizationMembers.organizationId })
+        .select({
+          orgId: organizationMembers.organizationId,
+          orgName: organizations.name,
+        })
         .from(organizationMembers)
+        .innerJoin(
+          organizations,
+          eq(organizationMembers.organizationId, organizations.id),
+        )
         .where(
           and(
             eq(organizationMembers.userId, userId),
             eq(organizationMembers.role, "owner"),
             eq(organizationMembers.isActive, true),
+            eq(organizations.status, "active"),
           ),
         );
 
-      if (userOwnedRows.length === 0) return [];
+      if (userOwnedRows.length === 0) {
+        return { blocking: [], willBeDeleted: [] };
+      }
 
       const candidateOrgIds = userOwnedRows.map((r) => r.orgId);
 
-      const ownerCounts = await db
+      const otherMemberStats = await db
         .select({
           orgId: organizationMembers.organizationId,
-          ownerCount: sql<number>`COUNT(DISTINCT ${organizationMembers.userId})`,
+          otherActiveCount: sql<number>`COUNT(*)`,
+          activeAdminCount: sql<number>`SUM(CASE WHEN ${organizationMembers.role} = 'admin' THEN 1 ELSE 0 END)`,
         })
         .from(organizationMembers)
         .where(
           and(
             inArray(organizationMembers.organizationId, candidateOrgIds),
-            eq(organizationMembers.role, "owner"),
             eq(organizationMembers.isActive, true),
+            sql`${organizationMembers.userId} <> ${userId}`,
           ),
         )
         .groupBy(organizationMembers.organizationId);
 
-      const soleOwnedOrgIds = ownerCounts
-        .filter((c) => Number(c.ownerCount) === 1)
-        .map((c) => c.orgId);
+      const statsByOrg = new Map(
+        otherMemberStats.map((row) => [
+          row.orgId,
+          {
+            otherActiveCount: Number(row.otherActiveCount),
+            activeAdminCount: Number(row.activeAdminCount),
+          },
+        ]),
+      );
 
-      if (soleOwnedOrgIds.length === 0) return [];
+      const blocking: {
+        id: number;
+        name: string;
+        hasActiveAdmin: boolean;
+      }[] = [];
+      const willBeDeleted: {
+        id: number;
+        name: string;
+        hasActiveAdmin: boolean;
+      }[] = [];
 
-      return db
-        .select({ id: organizations.id, name: organizations.name })
-        .from(organizations)
-        .where(
-          and(
-            inArray(organizations.id, soleOwnedOrgIds),
-            eq(organizations.status, "active"),
-          ),
-        );
+      for (const row of userOwnedRows) {
+        const stats = statsByOrg.get(row.orgId) ?? {
+          otherActiveCount: 0,
+          activeAdminCount: 0,
+        };
+        const entry = {
+          id: row.orgId,
+          name: row.orgName,
+          hasActiveAdmin: stats.activeAdminCount > 0,
+        };
+        if (stats.otherActiveCount > 0) {
+          blocking.push(entry);
+        } else {
+          willBeDeleted.push(entry);
+        }
+      }
+
+      return { blocking, willBeDeleted };
     });
   }
 }

@@ -253,4 +253,32 @@ export class InvitationsRepository implements InvitationsRepositoryPort {
       return result[0].affectedRows;
     });
   }
+
+  /**
+   * Cancels all pending invitations for an organization.
+   */
+  async cancelAllPendingForOrganization(
+    organizationId: number,
+    cancelledBy: number,
+  ): Promise<number> {
+    return await withDbErrorHandling(async () => {
+      const now = new Date();
+      const result = await db
+        .update(organizationInvitations)
+        .set({
+          status: "cancelled",
+          cancelledAt: now,
+          cancelledBy,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(organizationInvitations.organizationId, organizationId),
+            eq(organizationInvitations.status, "pending"),
+          ),
+        );
+
+      return result[0].affectedRows;
+    });
+  }
 }

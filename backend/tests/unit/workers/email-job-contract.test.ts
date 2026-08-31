@@ -194,7 +194,11 @@ function createMockIdentityRepository(): IdentityRepositoryPort {
 
 function createMockOrgOwnershipQuery() {
   return {
-    findSoleOwnedOrgs: vi.fn().mockResolvedValue([]),
+    classifyOwnedOrgs: vi.fn().mockResolvedValue({
+      blocking: [],
+      willBeDeleted: [],
+    }),
+    teardownSoloOrgs: vi.fn().mockResolvedValue("completed"),
   };
 }
 

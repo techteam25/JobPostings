@@ -83,4 +83,13 @@ export interface InvitationsRepositoryPort {
   findPendingByOrganizationId(
     organizationId: number,
   ): Promise<PendingOrganizationInvitation[]>;
+
+  /**
+   * Cancels all pending invitations for an organization (walk-away teardown).
+   * @returns Number of invitations cancelled.
+   */
+  cancelAllPendingForOrganization(
+    organizationId: number,
+    cancelledBy: number,
+  ): Promise<number>;
 }

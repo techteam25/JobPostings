@@ -352,6 +352,28 @@ export class InvitationsService
   }
 
   /**
+   * Cancels all pending invitations for an organization (walk-away teardown).
+   */
+  async cancelAllPendingForOrganization(
+    organizationId: number,
+    cancelledBy: number,
+  ): Promise<Result<{ cancelledCount: number }, Error>> {
+    try {
+      const cancelledCount =
+        await this.invitationsRepository.cancelAllPendingForOrganization(
+          organizationId,
+          cancelledBy,
+        );
+      return ok({ cancelledCount });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to cancel pending invitations"));
+    }
+  }
+
+  /**
    * Cancels an organization invitation (soft delete).
    * @param invitationId The invitation ID.
    * @param requesterId The ID of the user canceling the invitation.

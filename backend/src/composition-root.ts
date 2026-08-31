@@ -290,6 +290,19 @@ export function createCompositionRoot(): CompositionRoot {
     emailService,
   });
 
+  // Identity walk-away teardown needs org delete + invitation cancel.
+  // Bind after both modules exist (identity was composed earlier with the
+  // repository-backed classify half of this adapter).
+  organizationsToIdentityAdapter.bindTeardown({
+    deleteOrganization: (organizationId) =>
+      organizations.service.deleteOrganization(organizationId),
+    cancelAllPendingForOrganization: (organizationId, cancelledBy) =>
+      invitations.service.cancelAllPendingForOrganization(
+        organizationId,
+        cancelledBy,
+      ),
+  });
+
   // ─── 6. Auth Dependency Injection ──────────────────────────────────
   // Inject dependencies into the auth module (Better-Auth hooks)
 

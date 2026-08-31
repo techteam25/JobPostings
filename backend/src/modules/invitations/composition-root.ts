@@ -35,7 +35,7 @@ export function createInvitationsModule(deps: InvitationsModuleDeps) {
     invitationsRepository: repository,
   });
 
-  return { controller, guards, repository, workers };
+  return { controller, guards, repository, service, workers };
 }
 
 export type InvitationsModule = ReturnType<typeof createInvitationsModule>;

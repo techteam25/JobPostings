@@ -17,7 +17,8 @@ interface IdentityModuleDeps {
  * Composition root for the Identity module.
  *
  * Receives shared infrastructure (email, event bus) and the cross-module
- * OrgOwnershipQueryPort (for sole-owner checks during account deletion).
+ * OrgOwnershipQueryPort (for walk-away ownership checks during account
+ * deactivation and deletion).
  * The repository and service are exposed for cross-module adapters and
  * auth-hook wiring in the central composition root.
  */
