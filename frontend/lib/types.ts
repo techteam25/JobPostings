@@ -69,6 +69,11 @@ export type UserOrganizationMembership = {
   organization: Organization;
 };
 
+export type ApplicationNote = {
+  note: string;
+  createdAt: string;
+};
+
 export type OrganizationJobApplications = {
   applicationId: number;
   jobId: number;

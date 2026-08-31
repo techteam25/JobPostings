@@ -18,27 +18,25 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { OrganizationJobApplications, PaginatedApiResponse } from "@/lib/types";
-import { getApplicationStatusLabel } from "@/lib/application-status";
+import {
+  getApplicationStatusLabel,
+  type ApplicationStatus,
+} from "@/lib/application-status";
 import { formatToReadableDate } from "@/lib/utils";
 import { ApplicantDetailSheet } from "./ApplicantDetailSheet";
 
 interface JobApplicationListingProps {
+  organizationId: number;
   applications: PaginatedApiResponse<OrganizationJobApplications>;
 }
 
-type StatusKey =
-  | "pending"
-  | "reviewed"
-  | "shortlisted"
-  | "interviewing"
-  | "rejected"
-  | "hired"
-  | "withdrawn";
+type StatusKey = ApplicationStatus;
 
 export const JobApplicationListing = ({
+  organizationId,
   applications,
 }: JobApplicationListingProps) => {
-  const appData = applications.data;
+  const [appData, setAppData] = useState(applications.data);
   const [selectedApplication, setSelectedApplication] =
     useState<OrganizationJobApplications | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -46,6 +44,17 @@ export const JobApplicationListing = ({
   const openApplicantDetail = (application: OrganizationJobApplications) => {
     setSelectedApplication(application);
     setDetailOpen(true);
+  };
+
+  const handleStatusChange = (updated: OrganizationJobApplications) => {
+    setAppData((current) =>
+      current.map((application) =>
+        application.applicationId === updated.applicationId
+          ? updated
+          : application,
+      ),
+    );
+    setSelectedApplication(updated);
   };
 
   const stats = useMemo(() => {
@@ -388,8 +397,10 @@ export const JobApplicationListing = ({
 
       <ApplicantDetailSheet
         application={selectedApplication}
+        organizationId={organizationId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        onStatusChange={handleStatusChange}
       />
     </div>
   );

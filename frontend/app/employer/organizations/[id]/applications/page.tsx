@@ -63,7 +63,10 @@ export default async function OrganizationJobApplicationsPage({
 
   return (
     <div className="mx-auto w-full">
-      <JobApplicationListing applications={receivedApplications} />
+      <JobApplicationListing
+        organizationId={Number(id)}
+        applications={receivedApplications}
+      />
     </div>
   );
 }

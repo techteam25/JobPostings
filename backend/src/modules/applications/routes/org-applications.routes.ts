@@ -92,6 +92,12 @@ export function createOrgApplicationsRoutes({
     orgGuards.requireJobPostingRole(),
     orgGuards.ensureIsOrganizationMember,
     validate(createJobApplicationNoteSchema),
+    invalidateCacheMiddleware((req) =>
+      cacheKeys.orgJobApplications(
+        String(req.params.organizationId),
+        String(req.params.jobId),
+      ),
+    ),
     controller.attachNoteToJobApplication,
   );
 
