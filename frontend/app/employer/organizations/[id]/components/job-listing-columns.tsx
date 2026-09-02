@@ -18,7 +18,7 @@ import { JobStatusBadge } from "./JobStatusBadge";
 interface JobActionsContext {
   organizationId: number;
   onCloseJob: (jobId: number) => Promise<void>;
-  onReopenJob: (jobId: number) => Promise<void>;
+  onRequestReopen: (job: Job) => void;
   onDuplicate: (job: Job) => Promise<void>;
   canDeleteJobs?: boolean;
   onRequestDelete?: (job: Job) => void;
@@ -28,7 +28,7 @@ function ActionsCell({
   job,
   organizationId,
   onCloseJob,
-  onReopenJob,
+  onRequestReopen,
   onDuplicate,
   canDeleteJobs,
   onRequestDelete,
@@ -79,7 +79,7 @@ function ActionsCell({
               Close Job
             </DropdownMenuItem>
           ) : (
-            <DropdownMenuItem onClick={() => onReopenJob(job.id)}>
+            <DropdownMenuItem onClick={() => onRequestReopen(job)}>
               Reopen
             </DropdownMenuItem>
           )}

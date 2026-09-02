@@ -5,12 +5,13 @@ import { Job } from "@/schemas/responses/jobs";
 import { DataTable } from "@/components/common";
 import { getJobListingColumns } from "./job-listing-columns";
 import { DeleteJobDialog } from "./DeleteJobDialog";
+import { ReopenJobDialog } from "./ReopenJobDialog";
 
 interface JobListingTableProps {
   jobs: Job[];
   organizationId: number;
   onCloseJob: (jobId: number) => Promise<void>;
-  onReopenJob: (jobId: number) => Promise<void>;
+  onReopenJob: (jobId: number, applicationDeadline: string) => Promise<void>;
   onDuplicate: (job: Job) => Promise<void>;
   canDeleteJobs?: boolean;
   onDeleteJob?: (jobId: number) => Promise<void>;
@@ -28,6 +29,7 @@ export function JobListingTable({
   isDeletePending = false,
 }: JobListingTableProps) {
   const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
+  const [jobToReopen, setJobToReopen] = useState<Job | null>(null);
   const [deletedJobIds, setDeletedJobIds] = useState<Set<number>>(new Set());
 
   const visibleJobs = useMemo(
@@ -40,13 +42,25 @@ export function JobListingTable({
       getJobListingColumns({
         organizationId,
         onCloseJob,
-        onReopenJob,
+        onRequestReopen: setJobToReopen,
         onDuplicate,
         canDeleteJobs,
         onRequestDelete: setJobToDelete,
       }),
-    [organizationId, onCloseJob, onReopenJob, onDuplicate, canDeleteJobs],
+    [organizationId, onCloseJob, onDuplicate, canDeleteJobs],
   );
+
+  const handleConfirmReopen = async (applicationDeadline: string) => {
+    if (!jobToReopen) return;
+
+    try {
+      await onReopenJob(jobToReopen.id, applicationDeadline);
+    } catch {
+      return;
+    }
+
+    setJobToReopen(null);
+  };
 
   const handleConfirmDelete = async () => {
     if (!jobToDelete || !onDeleteJob) return;
@@ -72,6 +86,15 @@ export function JobListingTable({
         }}
         onConfirm={handleConfirmDelete}
         isPending={isDeletePending}
+      />
+      <ReopenJobDialog
+        key={jobToReopen?.id ?? "idle"}
+        job={jobToReopen}
+        open={jobToReopen !== null}
+        onOpenChange={(open) => {
+          if (!open) setJobToReopen(null);
+        }}
+        onConfirm={handleConfirmReopen}
       />
     </>
   );

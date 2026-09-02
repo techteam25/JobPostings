@@ -104,13 +104,15 @@ export function JobLocationSection({ form }: JobLocationSectionProps) {
                 <FieldLabel htmlFor={field.name}>Zip Code</FieldLabel>
                 <Input
                   id={field.name}
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="postal-code"
                   placeholder="e.g. 94105"
                   value={field.state.value ?? ""}
                   onBlur={field.handleBlur}
                   onChange={(e) =>
                     field.handleChange(
-                      e.target.value ? Number(e.target.value) : null,
+                      e.target.value.trim() === "" ? null : e.target.value,
                     )
                   }
                   aria-invalid={isInvalid}

@@ -1,3 +1,4 @@
+import { fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { render, screen } from "@/test/test-utils";
 import type { Job } from "@/schemas/responses/jobs";
@@ -81,6 +82,10 @@ describe("JobListingTable reopen action", () => {
   const onReopenJob = vi.fn().mockResolvedValue(undefined);
   const onDuplicate = vi.fn().mockResolvedValue(undefined);
 
+  beforeEach(() => {
+    onReopenJob.mockClear();
+  });
+
   it("offers Reopen for a closed listing", async () => {
     render(
       <JobListingTable
@@ -135,7 +140,55 @@ describe("JobListingTable reopen action", () => {
     const user = await openOptionsMenu("Closed Role");
     await user.click(screen.getByRole("menuitem", { name: /reopen/i }));
 
-    expect(onReopenJob).toHaveBeenCalledWith(42);
+    expect(onReopenJob).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("dialog", { name: /reopen job listing/i }),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/application deadline/i), {
+      target: { value: "2028-06-01" },
+    });
+    await user.click(screen.getByRole("button", { name: /^reopen$/i }));
+
+    expect(onReopenJob).toHaveBeenCalledWith(42, "2028-06-01");
+  });
+
+  it("does not reopen when the deadline dialog is cancelled", async () => {
+    render(
+      <JobListingTable
+        jobs={[createJob({ id: 42, title: "Closed Role", isActive: false })]}
+        organizationId={organizationId}
+        onCloseJob={onCloseJob}
+        onReopenJob={onReopenJob}
+        onDuplicate={onDuplicate}
+      />,
+    );
+
+    const user = await openOptionsMenu("Closed Role");
+    await user.click(screen.getByRole("menuitem", { name: /reopen/i }));
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(onReopenJob).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("dialog", { name: /reopen job listing/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("uses a pointer cursor on options menu items", async () => {
+    render(
+      <JobListingTable
+        jobs={[createJob({ id: 1, title: "Closed Role", isActive: false })]}
+        organizationId={organizationId}
+        onCloseJob={onCloseJob}
+        onReopenJob={onReopenJob}
+        onDuplicate={onDuplicate}
+      />,
+    );
+
+    await openOptionsMenu("Closed Role");
+    expect(screen.getByRole("menuitem", { name: /reopen/i })).toHaveClass(
+      "cursor-pointer",
+    );
   });
 });
 

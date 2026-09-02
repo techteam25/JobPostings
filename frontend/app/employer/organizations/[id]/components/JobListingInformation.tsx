@@ -43,8 +43,19 @@ export function JobListingsSection({
     router.refresh();
   };
 
-  const handleReopenJob = async (jobId: number) => {
-    await updateJobAsync({ jobId, data: { isActive: true } });
+  const handleReopenJob = async (
+    jobId: number,
+    applicationDeadline: string,
+  ) => {
+    await updateJobAsync({
+      jobId,
+      data: {
+        isActive: true,
+        applicationDeadline: new Date(
+          `${applicationDeadline}T00:00:00.000Z`,
+        ).toISOString(),
+      },
+    });
     router.refresh();
   };
 

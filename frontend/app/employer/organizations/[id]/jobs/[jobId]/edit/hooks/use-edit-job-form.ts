@@ -13,7 +13,10 @@ export function mapJobToFormValues(job: Job) {
     city: job.city,
     state: job.state || "",
     country: job.country,
-    zipcode: job.zipcode,
+    zipcode:
+      job.zipcode == null || String(job.zipcode).trim() === ""
+        ? null
+        : String(job.zipcode),
     jobType: job.jobType,
     compensationType: job.compensationType,
     isRemote: job.isRemote,
