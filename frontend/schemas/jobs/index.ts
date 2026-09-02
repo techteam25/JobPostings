@@ -10,15 +10,10 @@ export const createJobSchema = z.object({
   state: z.string(),
   country: z.string().min(1, "Country is required"),
   zipcode: z
-    .union([z.string(), z.number(), z.null()])
-    .transform((value) => {
-      if (value == null) return null;
-      const normalized = String(value).trim();
-      return normalized.length === 0 ? null : normalized;
-    })
-    .refine((value) => value === null || value.length <= 20, {
-      message: "Zip code cannot exceed 20 characters",
-    }),
+    .string()
+    .trim()
+    .max(20, "Zip code cannot exceed 20 characters")
+    .nullable(),
   jobType: z.enum([
     "full-time",
     "part-time",
