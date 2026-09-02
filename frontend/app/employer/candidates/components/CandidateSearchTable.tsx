@@ -16,11 +16,17 @@ import {
   useCandidateSearchStore,
   useCandidateSearchStoreHydration,
 } from "@/context/candidate-search-store";
-import type { CandidateSortBy, CandidateSortOrder } from "@/types/candidate";
+import type {
+  CandidatePreview,
+  CandidateSortBy,
+  CandidateSortOrder,
+} from "@/types/candidate";
 
 import { useCandidateSearch } from "../hooks/useCandidateSearch";
-import { candidateColumns } from "./candidate-columns";
+import { useCandidateProfile } from "../hooks/useCandidateProfile";
+import { createCandidateColumns } from "./candidate-columns";
 import { CandidateFiltersBar } from "./CandidateFiltersBar";
+import { CandidateProfileSheet } from "./CandidateProfileSheet";
 
 const COLUMN_TO_SORT_FIELD: Record<string, CandidateSortBy> = {
   name: "name",
@@ -82,6 +88,33 @@ function CandidateSearchTableBody() {
     pageSize: 20,
   });
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [selectedCandidate, setSelectedCandidate] =
+    useState<CandidatePreview | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const openCandidateProfile = (candidate: CandidatePreview) => {
+    setSelectedCandidate(candidate);
+    setProfileOpen(true);
+  };
+
+  const columns = useMemo(
+    () => createCandidateColumns({ onViewProfile: openCandidateProfile }),
+    [],
+  );
+
+  const {
+    data: profileResponse,
+    isLoading: isProfileLoading,
+    isError: isProfileError,
+  } = useCandidateProfile(
+    selectedCandidate?.userId ?? null,
+    profileOpen && selectedCandidate !== null,
+  );
+
+  const profile =
+    profileResponse?.success && profileResponse.data
+      ? profileResponse.data
+      : null;
 
   // Reset to page 1 when filters change (render-phase derived state —
   // avoids cascading effects; safe under React 19 & Strict Mode).
@@ -165,7 +198,7 @@ function CandidateSearchTableBody() {
         ) : (
           <>
             <DataTable
-              columns={candidateColumns}
+              columns={columns}
               data={data}
               manualPagination
               pageIndex={pagination.pageIndex}
@@ -220,6 +253,18 @@ function CandidateSearchTableBody() {
           </>
         )}
       </div>
+
+      <CandidateProfileSheet
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+        profile={profile}
+        isLoading={isProfileLoading}
+        isError={
+          isProfileError ||
+          (profileResponse !== undefined &&
+            (!profileResponse.success || !profileResponse.data))
+        }
+      />
     </div>
   );
 }

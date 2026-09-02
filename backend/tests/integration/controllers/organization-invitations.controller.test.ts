@@ -505,6 +505,113 @@ describe("Organization Invitations Controller Integration Tests", async () => {
     });
   });
 
+  describe("GET /organizations/:organizationId/invitations", () => {
+    let organizationId: number;
+    let inviterId: number;
+    let pendingInvitationId: number;
+    let ownerCookie: string;
+
+    beforeEach(async () => {
+      await seedUserWithRoleScenario("owner", "owner@example.com");
+      const ownerUser = await db.query.user.findFirst({
+        where: eq(user.email, "owner@example.com"),
+      });
+      inviterId = ownerUser!.id;
+
+      const signInResponse = await request
+        .post("/api/auth/sign-in/email")
+        .send({ email: "owner@example.com", password: "Password@123" });
+      ownerCookie = signInResponse.headers["set-cookie"]?.[0] || "";
+
+      const orgResponse = await request
+        .get("/api/organizations")
+        .set("Cookie", ownerCookie);
+      organizationId = orgResponse.body.data[0].id;
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      const [pendingInvitation] = await db
+        .insert(organizationInvitations)
+        .values({
+          organizationId,
+          email: "pending@example.com",
+          role: "member",
+          token: randomUUID(),
+          invitedBy: inviterId,
+          status: "pending",
+          expiresAt,
+        })
+        .$returningId();
+
+      if (!pendingInvitation) {
+        throw new Error("Failed to create pending invitation");
+      }
+      pendingInvitationId = pendingInvitation.id;
+
+      await db.insert(organizationInvitations).values({
+        organizationId,
+        email: "cancelled@example.com",
+        role: "member",
+        token: randomUUID(),
+        invitedBy: inviterId,
+        status: "cancelled",
+        expiresAt,
+        cancelledAt: new Date(),
+        cancelledBy: inviterId,
+      });
+    });
+
+    describe("Owner listing invitations", () => {
+      it("should list pending invitations returning 200", async () => {
+        const response = await request
+          .get(`/api/organizations/${organizationId}/invitations`)
+          .set("Cookie", ownerCookie);
+
+        TestHelpers.validateApiResponse(response, 200);
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0]).toMatchObject({
+          id: pendingInvitationId,
+          email: "pending@example.com",
+          role: "member",
+        });
+        expect(response.body.data[0]).not.toHaveProperty("token");
+      });
+    });
+
+    describe("Recruiter listing invitations", () => {
+      let recruiterCookie: string;
+
+      beforeEach(async () => {
+        await seedUserWithRoleScenario("recruiter", "recruiter@example.com");
+        const signInResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({ email: "recruiter@example.com", password: "Password@123" });
+        recruiterCookie = signInResponse.headers["set-cookie"]?.[0] || "";
+      });
+
+      it("should fail with permission denied returning 403", async () => {
+        const response = await request
+          .get(`/api/organizations/${organizationId}/invitations`)
+          .set("Cookie", recruiterCookie);
+
+        expect(response.status).toBe(403);
+        expect(response.body.message).toContain("permission");
+      });
+    });
+
+    describe("Unauthenticated requests", () => {
+      it("should fail without authentication returning 401", async () => {
+        const response = await request.get(
+          `/api/organizations/${organizationId}/invitations`,
+        );
+
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe("Authentication required");
+      });
+    });
+  });
+
   describe("DELETE /organizations/:organizationId/invitations/:invitationId", () => {
     let organizationId: number;
     let inviterId: number;

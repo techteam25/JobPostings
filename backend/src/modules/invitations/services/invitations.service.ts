@@ -21,6 +21,7 @@ import type {
 import type { InvitationsRepositoryPort } from "@/modules/invitations";
 import type { OrgMembershipCommandPort } from "@/modules/invitations";
 import type { UserEmailQueryPort } from "@/modules/invitations";
+import type { OrganizationRole } from "@/validations/organization.validation";
 
 /**
  * Service class for managing organization invitation operations.
@@ -48,7 +49,7 @@ export class InvitationsService
   async sendInvitation(
     organizationId: number,
     email: string,
-    role: "owner" | "admin" | "recruiter" | "member",
+    role: OrganizationRole,
     requesterId: number,
   ): Promise<Result<{ invitationId: number; message: string }, Error>> {
     try {
@@ -135,6 +136,7 @@ export class InvitationsService
           {
             userId: requesterId,
             email: email, // Email is already normalized to lowercase by Zod validation
+            organizationId,
             organizationName,
             inviterName,
             role: roleDisplay,
@@ -325,6 +327,49 @@ export class InvitationsService
         return this.handleError(error);
       }
       return fail(new DatabaseError("Failed to accept invitation"));
+    }
+  }
+
+  /**
+   * Lists pending invitations for an organization.
+   * @param organizationId The ID of the organization.
+   * @returns Pending invitations without sensitive token data.
+   */
+  async listPendingInvitations(organizationId: number) {
+    try {
+      const invitations =
+        await this.invitationsRepository.findPendingByOrganizationId(
+          organizationId,
+        );
+
+      return ok(invitations);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to fetch pending invitations"));
+    }
+  }
+
+  /**
+   * Cancels all pending invitations for an organization (walk-away teardown).
+   */
+  async cancelAllPendingForOrganization(
+    organizationId: number,
+    cancelledBy: number,
+  ): Promise<Result<{ cancelledCount: number }, Error>> {
+    try {
+      const cancelledCount =
+        await this.invitationsRepository.cancelAllPendingForOrganization(
+          organizationId,
+          cancelledBy,
+        );
+      return ok({ cancelledCount });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to cancel pending invitations"));
     }
   }
 

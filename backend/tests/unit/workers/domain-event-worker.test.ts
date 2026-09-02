@@ -4,17 +4,23 @@ import type { DomainEvent } from "@shared/events";
 import type { ApplicationSubmittedPayload } from "@/modules/applications/events/application-submitted.event";
 import type { ApplicationWithdrawnPayload } from "@/modules/applications/events/application-withdrawn.event";
 import type { UserDeactivatedPayload } from "@/modules/identity/events/user-deactivated.event";
+import type { OwnershipTransferredPayload } from "@/modules/organizations/events/ownership-transferred.event";
+import { emailJobSchemas } from "@/modules/notifications/workers/send-email.worker";
 
-const { mockRegisterWorker } = vi.hoisted(() => ({
+const { mockRegisterWorker, mockAddJob } = vi.hoisted(() => ({
   mockRegisterWorker: vi.fn(),
+  mockAddJob: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@shared/infrastructure/queue.service", () => ({
   queueService: {
     registerWorker: mockRegisterWorker,
+    addJob: mockAddJob,
   },
   QUEUE_NAMES: {
     DOMAIN_EVENTS_QUEUE: "domainEventsQueue",
+    EMAIL_QUEUE: "emailQueue",
+    TYPESENSE_USER_PROFILE_QUEUE: "typesenseUserProfileQueue",
   },
 }));
 
@@ -38,8 +44,8 @@ describe("Domain Event Worker", () => {
     vi.clearAllMocks();
     mockSyncJobApplicationCount.mockResolvedValue(undefined);
     mockPauseAlertsForUser.mockResolvedValue(0);
+    mockAddJob.mockResolvedValue(undefined);
 
-    // Create worker with mock ports and capture the registered handler
     const worker = createDomainEventWorker({
       applicationInsights: {
         syncJobApplicationCount: mockSyncJobApplicationCount,
@@ -50,7 +56,6 @@ describe("Domain Event Worker", () => {
     });
     worker.initialize();
 
-    // The handler is the second argument passed to registerWorker
     processDomainEvent = mockRegisterWorker.mock.calls[0]![1];
   });
 
@@ -69,13 +74,11 @@ describe("Domain Event Worker", () => {
         correlationId: "test-correlation-id",
       };
 
-      const mockJob = {
+      await processDomainEvent({
         id: "job-1",
         data: event,
         name: DomainEventType.APPLICATION_SUBMITTED,
-      } as any;
-
-      await processDomainEvent(mockJob);
+      } as any);
 
       expect(mockSyncJobApplicationCount).toHaveBeenCalledWith(10);
       expect(mockSyncJobApplicationCount).toHaveBeenCalledOnce();
@@ -95,13 +98,11 @@ describe("Domain Event Worker", () => {
         correlationId: "withdraw-correlation-id",
       };
 
-      const mockJob = {
+      await processDomainEvent({
         id: "job-1b",
         data: event,
         name: DomainEventType.APPLICATION_WITHDRAWN,
-      } as any;
-
-      await processDomainEvent(mockJob);
+      } as any);
 
       expect(mockSyncJobApplicationCount).toHaveBeenCalledWith(11);
       expect(mockSyncJobApplicationCount).toHaveBeenCalledOnce();
@@ -123,16 +124,57 @@ describe("Domain Event Worker", () => {
         correlationId: "deactivation-correlation-id",
       };
 
-      const mockJob = {
+      await processDomainEvent({
         id: "job-2",
         data: event,
         name: DomainEventType.USER_DEACTIVATED,
-      } as any;
-
-      await processDomainEvent(mockJob);
+      } as any);
 
       expect(mockPauseAlertsForUser).toHaveBeenCalledWith(1);
       expect(mockPauseAlertsForUser).toHaveBeenCalledOnce();
+    });
+
+    it("should enqueue successor ownership email for OWNERSHIP_TRANSFERRED event", async () => {
+      const payload: OwnershipTransferredPayload = {
+        organizationId: 42,
+        organizationName: "Acme Corp",
+        previousOwnerUserId: 10,
+        previousOwnerFullName: "Former Owner",
+        newOwnerUserId: 20,
+        newOwnerEmail: "new.owner@example.com",
+        newOwnerFullName: "New Owner",
+      };
+
+      const event: DomainEvent<OwnershipTransferredPayload> = {
+        eventType: DomainEventType.OWNERSHIP_TRANSFERRED,
+        payload,
+        occurredAt: new Date().toISOString(),
+        correlationId: "ownership-transfer-correlation-id",
+      };
+
+      await processDomainEvent({
+        id: "job-ownership-1",
+        data: event,
+        name: DomainEventType.OWNERSHIP_TRANSFERRED,
+      } as any);
+
+      expect(mockAddJob).toHaveBeenCalledWith(
+        "emailQueue",
+        "sendOwnershipTransferredEmail",
+        {
+          userId: 20,
+          email: "new.owner@example.com",
+          fullName: "New Owner",
+          organizationId: 42,
+          organizationName: "Acme Corp",
+          previousOwnerFullName: "Former Owner",
+        },
+      );
+
+      const emailPayload = mockAddJob.mock.calls[0]![2];
+      const parsed =
+        emailJobSchemas.sendOwnershipTransferredEmail.safeParse(emailPayload);
+      expect(parsed.success).toBe(true);
     });
 
     it("should log warning for unknown event types", async () => {
@@ -144,13 +186,11 @@ describe("Domain Event Worker", () => {
         occurredAt: new Date().toISOString(),
       };
 
-      const mockJob = {
+      await processDomainEvent({
         id: "job-3",
         data: event,
         name: "unknown.EventType",
-      } as any;
-
-      await processDomainEvent(mockJob);
+      } as any);
 
       expect(logger.warn).toHaveBeenCalledWith(
         "Unknown domain event type",
@@ -169,15 +209,13 @@ describe("Domain Event Worker", () => {
         occurredAt: new Date().toISOString(),
       };
 
-      const mockJob = {
-        id: "job-4",
-        data: event,
-        name: DomainEventType.APPLICATION_SUBMITTED,
-      } as any;
-
-      await expect(processDomainEvent(mockJob)).rejects.toThrow(
-        "DB connection failed",
-      );
+      await expect(
+        processDomainEvent({
+          id: "job-4",
+          data: event,
+          name: DomainEventType.APPLICATION_SUBMITTED,
+        } as any),
+      ).rejects.toThrow("DB connection failed");
     });
 
     it("should rethrow errors from USER_DEACTIVATED handler", async () => {
@@ -195,15 +233,13 @@ describe("Domain Event Worker", () => {
         occurredAt: new Date().toISOString(),
       };
 
-      const mockJob = {
-        id: "job-5",
-        data: event,
-        name: DomainEventType.USER_DEACTIVATED,
-      } as any;
-
-      await expect(processDomainEvent(mockJob)).rejects.toThrow(
-        "Failed to pause alerts",
-      );
+      await expect(
+        processDomainEvent({
+          id: "job-5",
+          data: event,
+          name: DomainEventType.USER_DEACTIVATED,
+        } as any),
+      ).rejects.toThrow("Failed to pause alerts");
     });
   });
 });

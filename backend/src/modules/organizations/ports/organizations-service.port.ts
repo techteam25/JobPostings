@@ -7,6 +7,7 @@ import type {
   OrganizationMember,
   OrganizationWithMembers,
   UserOrganizationInterface,
+  OrganizationRole,
 } from "@/validations/organization.validation";
 import { OrganizationsLogoFile } from "@/modules/organizations/types/organizations.module.types";
 
@@ -73,4 +74,30 @@ export interface OrganizationsServicePort {
   ): Promise<Result<UserOrganizationInterface[], Error>>;
 
   hasDeletePermission(userId: number, organizationId: number): Promise<boolean>;
+
+  removeOrganizationMember(
+    organizationId: number,
+    memberId: number,
+  ): Promise<Result<{ message: string }, Error>>;
+
+  updateOrganizationMemberRole(
+    organizationId: number,
+    memberId: number,
+    role: OrganizationRole,
+  ): Promise<Result<{ message: string }, Error>>;
+
+  transferOwnership(
+    organizationId: number,
+    actorUserId: number,
+    successorMemberId: number,
+  ): Promise<
+    Result<
+      {
+        message: string;
+        previousOwnerUserId: number;
+        newOwnerUserId: number;
+      },
+      Error
+    >
+  >;
 }

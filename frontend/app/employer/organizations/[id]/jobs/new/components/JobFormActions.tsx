@@ -3,18 +3,20 @@
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { CreateJobFormApi } from "../hooks/use-create-job-form";
+import type { JobFormApi } from "../hooks/use-create-job-form";
 
 interface JobFormActionsProps {
-  form: CreateJobFormApi;
+  form: JobFormApi;
   isPending: boolean;
   organizationId: number;
+  mode?: "create" | "edit";
 }
 
 export function JobFormActions({
   form,
   isPending,
   organizationId,
+  mode = "create",
 }: JobFormActionsProps) {
   const router = useRouter();
 
@@ -31,9 +33,7 @@ export function JobFormActions({
             type="button"
             variant="outline"
             onClick={() =>
-              router.push(
-                `/employer/organizations/${organizationId}/jobs`,
-              )
+              router.push(`/employer/organizations/${organizationId}/jobs`)
             }
           >
             Cancel
@@ -46,8 +46,10 @@ export function JobFormActions({
             {isPending ? (
               <>
                 <Loader2 className="mr-2 animate-spin" />
-                Creating...
+                {mode === "edit" ? "Saving..." : "Creating..."}
               </>
+            ) : mode === "edit" ? (
+              "Save Changes"
             ) : (
               "Post Job"
             )}

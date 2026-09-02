@@ -29,6 +29,9 @@ export function createIdentityRoutes({
     identityController.deactivateSelf,
   );
 
+  // GET /users/me/walk-away-organizations
+  router.get("/me/walk-away-organizations", identityController.getWalkAwayOrgs);
+
   // Admin routes for user management
 
   // PUT /users/:id

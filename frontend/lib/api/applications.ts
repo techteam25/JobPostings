@@ -16,7 +16,7 @@ export const getAllJobsApplicationsForOrganization = async (
 ): Promise<ServerActionPaginatedResponse<OrganizationJobApplications>> => {
   const cookieStore = await cookies();
   const res = await fetch(
-    `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${organizationId}/applications`,
+    `${env.NEXT_PUBLIC_SERVER_URL}/organizations/${organizationId}/applications?limit=100`,
     {
       credentials: "include",
       headers: {

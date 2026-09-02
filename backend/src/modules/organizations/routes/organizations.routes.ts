@@ -10,6 +10,9 @@ import {
   getOrganizationSchema,
   deleteOrganizationSchema,
   uploadOrganizationLogoSchema,
+  removeOrganizationMemberSchema,
+  updateOrganizationMemberRoleSchema,
+  transferOrganizationOwnershipSchema,
 } from "@/validations/organization.validation";
 import { getUserSchema } from "@/validations/user.validation";
 import {
@@ -26,7 +29,9 @@ export function createOrganizationsRoutes({
   authenticate: RequestHandler;
   orgGuards: Pick<
     OrganizationsGuards,
-    "requireAdminOrOwnerRole" | "ensureIsOrganizationMember"
+    | "requireAdminOrOwnerRole"
+    | "ensureIsOrganizationMember"
+    | "validateRoleAssignment"
   >;
   controller: OrganizationsController;
 }): Router {
@@ -138,6 +143,54 @@ export function createOrganizationsRoutes({
     invalidateCacheMiddleware(() => cacheKeys.organizations),
     invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
     controller.deleteOrganization,
+  );
+
+  /**
+   * Removes a member from an organization.
+   * Requires authentication and admin or owner role.
+   * @route DELETE /:organizationId/members/:memberId
+   */
+  router.delete(
+    "/:organizationId/members/:memberId",
+    authenticate,
+    orgGuards.requireAdminOrOwnerRole(["owner", "admin"]),
+    validate(removeOrganizationMemberSchema),
+    orgGuards.ensureIsOrganizationMember,
+    invalidateCacheMiddleware(() => cacheKeys.organizations),
+    invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
+    controller.removeOrganizationMember,
+  );
+
+  /**
+   * Updates an organization member's role.
+   * Requires authentication, admin or owner role, and valid role assignment.
+   * @route PATCH /:organizationId/members/:memberId
+   */
+  router.patch(
+    "/:organizationId/members/:memberId",
+    authenticate,
+    orgGuards.requireAdminOrOwnerRole(["owner", "admin"]),
+    orgGuards.ensureIsOrganizationMember,
+    validate(updateOrganizationMemberRoleSchema),
+    orgGuards.validateRoleAssignment,
+    invalidateCacheMiddleware(() => cacheKeys.organizations),
+    invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
+    controller.updateOrganizationMemberRole,
+  );
+
+  /**
+   * Transfers organization ownership to an active admin.
+   * Requires authentication and owner role.
+   * @route POST /:organizationId/ownership
+   */
+  router.post(
+    "/:organizationId/ownership",
+    authenticate,
+    orgGuards.requireAdminOrOwnerRole(["owner"]),
+    validate(transferOrganizationOwnershipSchema),
+    invalidateCacheMiddleware(() => cacheKeys.organizations),
+    invalidateCacheMiddleware(() => cacheKeys.userOrganizations),
+    controller.transferOwnership,
   );
 
   return router;

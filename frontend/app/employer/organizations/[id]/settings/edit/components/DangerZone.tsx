@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Trash2 } from "lucide-react";
 import {
   AlertDialog,
@@ -18,12 +19,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useOrganization } from "../../../context/organization-context";
 import { useDeleteOrganization } from "../../../hooks/use-delete-organization";
+import { useTransferOwnership } from "@/app/employer/organizations/hooks/use-transfer-ownership";
+import { TransferOwnershipControl } from "../../../components/TransferOwnershipControl";
 
 export function DangerZone() {
-  const { organization } = useOrganization();
+  const router = useRouter();
+  const { organization, currentUserId } = useOrganization();
   const { mutateAsync: deleteOrg, isPending } = useDeleteOrganization(
     organization.id,
   );
+  const { mutateAsync: transferOwnership, isPending: isTransferPending } =
+    useTransferOwnership(organization.id);
   const [confirmName, setConfirmName] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -44,7 +50,19 @@ export function DangerZone() {
         Irreversible and destructive actions for this organization.
       </p>
 
-      <div className="mt-4">
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <TransferOwnershipControl
+          members={organization.members}
+          currentUserId={currentUserId}
+          isPending={isTransferPending}
+          onTransferOwnership={transferOwnership}
+          onTransferred={() => {
+            router.push(
+              `/employer/organizations/${organization.id}/settings?tab=members`,
+            );
+          }}
+        />
+
         <AlertDialog open={open} onOpenChange={setOpen}>
           <AlertDialogTrigger asChild>
             <Button variant="destructive">

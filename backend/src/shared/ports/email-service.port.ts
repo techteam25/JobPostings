@@ -57,6 +57,7 @@ export interface EmailServicePort {
    */
   sendOrganizationInvitation(
     email: string,
+    organizationId: number,
     organizationName: string,
     inviterName: string,
     role: string,
@@ -72,6 +73,19 @@ export interface EmailServicePort {
     name: string,
     organizationName: string,
     role: string,
+  ): Promise<void>;
+
+  /**
+   * Sends a transactional email notifying the successor that they are
+   * now the organization owner. Bypasses email preference flags.
+   */
+  sendOwnershipTransferredEmail(
+    userId: number,
+    email: string,
+    fullName: string,
+    organizationId: number,
+    organizationName: string,
+    previousOwnerFullName: string,
   ): Promise<void>;
 
   /**

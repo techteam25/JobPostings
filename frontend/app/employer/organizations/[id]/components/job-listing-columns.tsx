@@ -11,7 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { toast } from "sonner";
 import { Job } from "@/schemas/responses/jobs";
 import { formatToReadableDate } from "@/lib/utils";
 import { JobStatusBadge } from "./JobStatusBadge";
@@ -19,14 +18,20 @@ import { JobStatusBadge } from "./JobStatusBadge";
 interface JobActionsContext {
   organizationId: number;
   onCloseJob: (jobId: number) => Promise<void>;
+  onRequestReopen: (job: Job) => void;
   onDuplicate: (job: Job) => Promise<void>;
+  canDeleteJobs?: boolean;
+  onRequestDelete?: (job: Job) => void;
 }
 
 function ActionsCell({
   job,
   organizationId,
   onCloseJob,
+  onRequestReopen,
   onDuplicate,
+  canDeleteJobs,
+  onRequestDelete,
 }: { job: Job } & JobActionsContext) {
   const router = useRouter();
 
@@ -38,6 +43,7 @@ function ActionsCell({
             variant="ghost"
             size="sm"
             className="hover:bg-primary hover:text-primary-foreground [&_svg]:size-4"
+            aria-label={`Options for ${job.title}`}
           >
             Options
             <MoreVertical className="ml-2" />
@@ -54,21 +60,37 @@ function ActionsCell({
             View Applicants
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => toast.info("Job editing is coming soon")}
+            onClick={() =>
+              router.push(
+                `/employer/organizations/${organizationId}/jobs/${job.id}/edit`,
+              )
+            }
           >
             Edit Job
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onDuplicate(job)}>
             Duplicate
           </DropdownMenuItem>
-          {job.isActive && (
+          {job.isActive ? (
             <DropdownMenuItem
               className="text-destructive"
               onClick={() => onCloseJob(job.id)}
             >
               Close Job
             </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={() => onRequestReopen(job)}>
+              Reopen
+            </DropdownMenuItem>
           )}
+          {canDeleteJobs && onRequestDelete ? (
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => onRequestDelete(job)}
+            >
+              Delete Job
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

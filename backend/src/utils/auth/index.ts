@@ -53,6 +53,14 @@ export function setAuthDependencies(deps: {
   eventBus = deps.eventBus;
 }
 
+/** Exposed for integration tests of auth hooks that need the wired identity service. */
+export function getAuthIdentityService(): IdentityServicePort {
+  if (!identityService) {
+    throw new Error("Identity service not initialized");
+  }
+  return identityService;
+}
+
 type UserRegistrationPayload = {
   name: string;
   email: string;

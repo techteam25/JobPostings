@@ -45,6 +45,7 @@ import {
   JobBoardToApplicationsAdapter,
   ProfileToJobBoardAdapter,
   ProfileToRecommendationAdapter,
+  ProfileToPublicCandidateAdapter,
   FileMetadataUpdateAdapter,
   JobBoardToSharedInsightsAdapter,
   IdentityToProfileWriteAdapter,
@@ -207,11 +208,17 @@ export function createCompositionRoot(): CompositionRoot {
   );
 
   // Organizations module (needs intent sync adapter)
+  const profileToPublicCandidateAdapter = new ProfileToPublicCandidateAdapter(
+    profileRepository,
+  );
+
   const organizations = createOrganizationsModule({
     intentSync: intentSyncAdapter,
     organizationsRepository,
     typesenseEmployerService,
     typesenseProfileService,
+    publicCandidateProfileQuery: profileToPublicCandidateAdapter,
+    eventBus,
   });
 
   // Organizations → other modules (adapters using module's repo + service)
@@ -281,6 +288,19 @@ export function createCompositionRoot(): CompositionRoot {
     orgMembership: orgsToInvitationsAdapter,
     userEmailQuery: identityToInvitationsAdapter,
     emailService,
+  });
+
+  // Identity walk-away teardown needs org delete + invitation cancel.
+  // Bind after both modules exist (identity was composed earlier with the
+  // repository-backed classify half of this adapter).
+  organizationsToIdentityAdapter.bindTeardown({
+    deleteOrganization: (organizationId) =>
+      organizations.service.deleteOrganization(organizationId),
+    cancelAllPendingForOrganization: (organizationId, cancelledBy) =>
+      invitations.service.cancelAllPendingForOrganization(
+        organizationId,
+        cancelledBy,
+      ),
   });
 
   // ─── 6. Auth Dependency Injection ──────────────────────────────────

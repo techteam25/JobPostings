@@ -1,17 +1,18 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 
 import type { OrganizationsRepositoryPort } from "@/modules/organizations/ports/organizations-repository.port";
-import type { GetOrganizationSchema } from "@/validations/organization.validation";
+import type {
+  GetOrganizationSchema,
+  OrganizationRole,
+} from "@/validations/organization.validation";
 import { NotFoundError } from "@shared/errors";
 import logger from "@shared/logger";
-
-type OrgRole = "owner" | "admin" | "recruiter" | "member";
 
 /**
  * Gets the numeric level for a role (higher = more permissions).
  */
-function getRoleLevel(role: OrgRole): number {
-  const roleLevels: Record<OrgRole, number> = {
+function getRoleLevel(role: OrganizationRole): number {
+  const roleLevels: Record<OrganizationRole, number> = {
     owner: 4,
     admin: 3,
     recruiter: 2,
@@ -24,7 +25,10 @@ function getRoleLevel(role: OrgRole): number {
  * Validates if the inviter can assign the requested role based on role hierarchy.
  * Can only assign roles lower than your own.
  */
-function canAssignRole(inviterRole: OrgRole, requestedRole: OrgRole): boolean {
+function canAssignRole(
+  inviterRole: OrganizationRole,
+  requestedRole: OrganizationRole,
+): boolean {
   return getRoleLevel(requestedRole) < getRoleLevel(inviterRole);
 }
 
@@ -325,8 +329,8 @@ export function createOrganizationsGuards(deps: {
       }
 
       const isAllowed = canAssignRole(
-        requesterMember.role as OrgRole,
-        requestedRole as OrgRole,
+        requesterMember.role as OrganizationRole,
+        requestedRole as OrganizationRole,
       );
 
       if (!isAllowed) {

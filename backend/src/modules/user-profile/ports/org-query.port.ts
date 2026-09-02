@@ -1,5 +1,8 @@
 import type { Result } from "@shared/result";
-import type { UserOrganizationInterface } from "@/validations/organization.validation";
+import type {
+  UserOrganizationInterface,
+  OrganizationRole,
+} from "@/validations/organization.validation";
 
 /**
  * Port for querying organization role information from the user-profile module's perspective.
@@ -11,7 +14,7 @@ import type { UserOrganizationInterface } from "@/validations/organization.valid
 export interface OrgRoleQueryPort {
   checkHasElevatedRole(
     userId: number,
-    roles: ("owner" | "admin" | "recruiter" | "member")[],
+    roles: OrganizationRole[],
   ): Promise<boolean>;
 }
 

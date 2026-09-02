@@ -14,6 +14,7 @@ import type {
   UserDeactivatedPayload,
   UserDeletedPayload,
 } from "@/modules/identity";
+import type { OwnershipTransferredPayload } from "@/modules/organizations";
 import type { ApplicationInsightsPort } from "@shared/ports/application-insights.port";
 import type { NotificationsRepositoryPort } from "@/modules/notifications";
 import type { ModuleWorkers } from "@shared/types/module-workers";
@@ -105,6 +106,27 @@ function createDomainEventHandler(deps: DomainEventWorkerDeps) {
           );
           logger.info("Queued Typesense unindex for deleted user", {
             userId: deletedPayload.userId,
+          });
+          break;
+        }
+
+        case DomainEventType.OWNERSHIP_TRANSFERRED: {
+          const ownershipPayload = event.payload as OwnershipTransferredPayload;
+          await queueService.addJob(
+            QUEUE_NAMES.EMAIL_QUEUE,
+            "sendOwnershipTransferredEmail",
+            {
+              userId: ownershipPayload.newOwnerUserId,
+              email: ownershipPayload.newOwnerEmail,
+              fullName: ownershipPayload.newOwnerFullName,
+              organizationId: ownershipPayload.organizationId,
+              organizationName: ownershipPayload.organizationName,
+              previousOwnerFullName: ownershipPayload.previousOwnerFullName,
+            },
+          );
+          logger.info("Queued ownership transferred email for new owner", {
+            organizationId: ownershipPayload.organizationId,
+            newOwnerUserId: ownershipPayload.newOwnerUserId,
           });
           break;
         }

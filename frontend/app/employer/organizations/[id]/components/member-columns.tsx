@@ -41,148 +41,194 @@ function getStatusColor(status: string) {
   }
 }
 
-export const columns: ColumnDef<Member>[] = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    id: "avatar",
-    cell: ({ row }) => (
-      <Avatar className="bg-secondary h-9 w-9">
-        <AvatarFallback className="bg-secondary h-9 w-9">
-          {row.original.memberName
-            .split(" ")
-            .map((n) => n[0])
-            .join("")}
-        </AvatarFallback>
-      </Avatar>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "memberName",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
-      >
-        Name
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => (
-      <span className="text-secondary-foreground">
-        {row.getValue("memberName")}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "role",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
-      >
-        Role
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => (
-      <span className="text-secondary-foreground">{row.getValue("role")}</span>
-    ),
-  },
-  {
-    accessorKey: "memberEmail",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
-      >
-        Email
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => (
-      <span className="text-secondary-foreground">
-        {row.getValue("memberEmail")}
-      </span>
-    ),
-  },
-  {
-    id: "status",
-    accessorFn: (row) => (row.isActive ? "Active" : "Inactive"),
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      return (
-        <Badge className={`${getStatusColor(status)} border-0`}>{status}</Badge>
-      );
+interface MemberActionsContext {
+  canManageMembers: boolean;
+  onRequestRemove: (member: Member) => void;
+  onRequestChangeRole: (member: Member) => void;
+}
+
+function MemberActionsCell({
+  member,
+  canManageMembers,
+  onRequestRemove,
+  onRequestChangeRole,
+}: { member: Member } & MemberActionsContext) {
+  const canManage = canManageMembers && member.role !== "owner";
+
+  if (!canManage) {
+    return <div className="text-right" />;
+  }
+
+  return (
+    <div className="text-right">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:bg-primary hover:text-primary-foreground [&_svg]:size-4"
+            aria-label={`Actions for ${member.memberName}`}
+          >
+            <MoreVertical />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => onRequestChangeRole(member)}>
+            Change Role
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-destructive"
+            onClick={() => onRequestRemove(member)}
+          >
+            Remove Member
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+export function getMemberColumns({
+  canManageMembers,
+  onRequestRemove,
+  onRequestChangeRole,
+}: MemberActionsContext): ColumnDef<Member>[] {
+  return [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
     },
-  },
-  {
-    accessorKey: "createdAt",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
-      >
-        Join Date
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => (
-      <span className="text-secondary-foreground">
-        {formatToReadableDate(row.getValue("createdAt"))}
-      </span>
-    ),
-  },
-  {
-    id: "actions",
-    header: () => <div className="text-right">Actions</div>,
-    cell: () => (
-      <div className="text-right">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-primary hover:text-primary-foreground [&_svg]:size-4"
-            >
-              <MoreVertical />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>View Profile</DropdownMenuItem>
-            <DropdownMenuItem>Edit Details</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-];
+    {
+      id: "avatar",
+      cell: ({ row }) => (
+        <Avatar className="bg-secondary h-9 w-9">
+          <AvatarFallback className="bg-secondary h-9 w-9">
+            {row.original.memberName
+              .split(" ")
+              .map((n) => n[0])
+              .join("")}
+          </AvatarFallback>
+        </Avatar>
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "memberName",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="-ml-4"
+        >
+          Name
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => (
+        <span className="text-secondary-foreground">
+          {row.getValue("memberName")}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "role",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="-ml-4"
+        >
+          Role
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => (
+        <span className="text-secondary-foreground">
+          {row.getValue("role")}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "memberEmail",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="-ml-4"
+        >
+          Email
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => (
+        <span className="text-secondary-foreground">
+          {row.getValue("memberEmail")}
+        </span>
+      ),
+    },
+    {
+      id: "status",
+      accessorFn: (row) => (row.isActive ? "Active" : "Inactive"),
+      header: "Status",
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string;
+        return (
+          <Badge className={`${getStatusColor(status)} border-0`}>
+            {status}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "createdAt",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="-ml-4"
+        >
+          Join Date
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => (
+        <span className="text-secondary-foreground">
+          {formatToReadableDate(row.getValue("createdAt"))}
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-right">Actions</div>,
+      cell: ({ row }) => (
+        <MemberActionsCell
+          member={row.original}
+          canManageMembers={canManageMembers}
+          onRequestRemove={onRequestRemove}
+          onRequestChangeRole={onRequestChangeRole}
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+  ];
+}

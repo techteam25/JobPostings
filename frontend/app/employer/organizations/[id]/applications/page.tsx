@@ -20,7 +20,27 @@ export default async function OrganizationJobApplicationsPage({
   const { id } = await params;
   const receivedApplications = await getAllJobsApplicationsForOrganization(id);
 
-  if (!receivedApplications.success || receivedApplications.data.length === 0) {
+  if (!receivedApplications.success) {
+    return (
+      <Empty className="mx-auto w-full">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <CircleOff />
+          </EmptyMedia>
+          <EmptyTitle>Unable to load applications</EmptyTitle>
+          <EmptyDescription></EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <p>
+            We could not load job applications for this organization. Please try
+            again later.
+          </p>
+        </EmptyContent>
+      </Empty>
+    );
+  }
+
+  if (receivedApplications.data.length === 0) {
     return (
       <Empty className="mx-auto w-full">
         <EmptyHeader>
@@ -43,7 +63,10 @@ export default async function OrganizationJobApplicationsPage({
 
   return (
     <div className="mx-auto w-full">
-      <JobApplicationListing applications={receivedApplications} />
+      <JobApplicationListing
+        organizationId={Number(id)}
+        applications={receivedApplications}
+      />
     </div>
   );
 }

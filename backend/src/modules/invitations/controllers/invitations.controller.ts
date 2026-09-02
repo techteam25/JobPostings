@@ -7,6 +7,8 @@ import type {
   GetOrganizationInvitationDetailsInput,
   AcceptOrganizationInvitationInput,
   CancelOrganizationInvitationInput,
+  ListOrganizationInvitationsInput,
+  PendingOrganizationInvitation,
 } from "@/validations/organization.validation";
 import type { InvitationsServicePort } from "@/modules/invitations";
 
@@ -141,6 +143,31 @@ export class InvitationsController extends BaseController {
         metadata: { userId: req.userId, via: "invitation" },
       });
       return this.sendSuccess(res, result.value, result.value.message, 200);
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Lists pending invitations for an organization (authenticated endpoint, admin/owner only).
+   * @param req The Express request object with organization ID.
+   * @param res The Express response object.
+   */
+  listPendingInvitations = async (
+    req: Request<ListOrganizationInvitationsInput["params"]>,
+    res: Response<ApiResponse<PendingOrganizationInvitation[]>>,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+
+    const result =
+      await this.invitationsService.listPendingInvitations(organizationId);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Pending invitations retrieved successfully",
+      );
     } else {
       return this.handleControllerError(res, result.error);
     }

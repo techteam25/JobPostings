@@ -10,4 +10,5 @@ export enum DomainEventType {
   APPLICATION_WITHDRAWN = "applications.ApplicationWithdrawn",
   USER_DEACTIVATED = "identity.UserDeactivated",
   USER_DELETED = "identity.UserDeleted",
+  OWNERSHIP_TRANSFERRED = "organizations.OwnershipTransferred",
 }

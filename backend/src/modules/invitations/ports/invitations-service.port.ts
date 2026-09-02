@@ -1,11 +1,15 @@
 import type { Result } from "@shared/result";
+import type {
+  OrganizationRole,
+  PendingOrganizationInvitation,
+} from "@/validations/organization.validation";
 
 /**
  * Details returned when viewing an invitation.
  */
 export type OrganizationInvitationDetails = {
   organizationName: string;
-  role: "owner" | "admin" | "recruiter" | "member";
+  role: OrganizationRole;
   inviterName: string;
   expiresAt: Date;
 };
@@ -17,7 +21,7 @@ export interface InvitationsServicePort {
   sendInvitation(
     organizationId: number,
     email: string,
-    role: "owner" | "admin" | "recruiter" | "member",
+    role: OrganizationRole,
     requesterId: number,
   ): Promise<Result<{ invitationId: number; message: string }, Error>>;
 
@@ -45,4 +49,19 @@ export interface InvitationsServicePort {
     invitationId: number,
     requesterId: number,
   ): Promise<Result<{ message: string }, Error>>;
+
+  /**
+   * Lists pending invitations for an organization.
+   */
+  listPendingInvitations(
+    organizationId: number,
+  ): Promise<Result<PendingOrganizationInvitation[], Error>>;
+
+  /**
+   * Cancels all pending invitations for an organization (used by walk-away teardown).
+   */
+  cancelAllPendingForOrganization(
+    organizationId: number,
+    cancelledBy: number,
+  ): Promise<Result<{ cancelledCount: number }, Error>>;
 }

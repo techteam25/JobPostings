@@ -287,13 +287,13 @@ export class ApplicationsController extends BaseController {
     res: Response<ApiResponse<JobApplicationWithNotes>>,
   ) => {
     const applicationId = parseInt(req.params.applicationId);
-    const jobId = parseInt(req.params.jobId);
+    const userId = req.userId!;
 
     const note = req.body;
 
     const result = await this.applicationsService.createJobApplicationNote(
       applicationId,
-      jobId,
+      userId,
       note,
     );
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -26,14 +26,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { env } from "@/env";
 import { authClient } from "@/lib/auth";
+import { instance } from "@/lib/axios-instance";
+
+type WalkAwayOrg = {
+  id: number;
+  name: string;
+  hasActiveAdmin: boolean;
+};
+
+type WalkAwayClassification = {
+  blocking: WalkAwayOrg[];
+  willBeDeleted: WalkAwayOrg[];
+};
 
 type DialogState =
   | { kind: "form" }
   | { kind: "submitting" }
   | { kind: "sent" }
-  | { kind: "blocked"; orgs: BlockingOrg[] };
-
-type BlockingOrg = { id: number; name: string };
+  | {
+      kind: "blocked";
+      blocking: WalkAwayOrg[];
+      willBeDeleted: WalkAwayOrg[];
+    };
 
 interface DeleteAccountDialogProps {
   email: string;
@@ -60,15 +74,47 @@ export default function DeleteAccountDialog({
   const [open, setOpen] = useState(false);
   const [typedEmail, setTypedEmail] = useState("");
   const [state, setState] = useState<DialogState>({ kind: "form" });
+  const [preview, setPreview] = useState<WalkAwayClassification>({
+    blocking: [],
+    willBeDeleted: [],
+  });
 
   const canSubmit = typedEmail === email && state.kind === "form";
   const bullets = intent === "employer" ? EMPLOYER_BULLETS : SEEKER_BULLETS;
+
+  useEffect(() => {
+    if (!open || intent !== "employer") return;
+
+    let cancelled = false;
+    void instance
+      .get("/users/me/walk-away-organizations", { withCredentials: true })
+      .then((response) => {
+        if (cancelled) return;
+        const data = response.data?.data;
+        setPreview({
+          blocking: Array.isArray(data?.blocking) ? data.blocking : [],
+          willBeDeleted: Array.isArray(data?.willBeDeleted)
+            ? data.willBeDeleted
+            : [],
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPreview({ blocking: [], willBeDeleted: [] });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, intent]);
 
   function resetAndClose(nextOpen: boolean) {
     setOpen(nextOpen);
     if (!nextOpen) {
       setTypedEmail("");
       setState({ kind: "form" });
+      setPreview({ blocking: [], willBeDeleted: [] });
     }
   }
 
@@ -83,9 +129,13 @@ export default function DeleteAccountDialog({
       return;
     }
 
-    const blockingOrgs = extractBlockingOrgs(error);
-    if (blockingOrgs) {
-      setState({ kind: "blocked", orgs: blockingOrgs });
+    const blocked = extractWalkAwayDetails(error);
+    if (blocked && blocked.blocking.length > 0) {
+      setState({
+        kind: "blocked",
+        blocking: blocked.blocking,
+        willBeDeleted: blocked.willBeDeleted,
+      });
       return;
     }
 
@@ -116,7 +166,8 @@ export default function DeleteAccountDialog({
               <SentView email={email} onClose={() => resetAndClose(false)} />
             ) : state.kind === "blocked" ? (
               <BlockedView
-                orgs={state.orgs}
+                blocking={state.blocking}
+                willBeDeleted={state.willBeDeleted}
                 onClose={() => resetAndClose(false)}
               />
             ) : (
@@ -129,6 +180,10 @@ export default function DeleteAccountDialog({
                 isSubmitting={state.kind === "submitting"}
                 canSubmit={canSubmit}
                 intent={intent}
+                willBeDeleted={
+                  preview.blocking.length === 0 ? preview.willBeDeleted : []
+                }
+                hasBlockingOrgs={preview.blocking.length > 0}
               />
             )}
           </AlertDialogContent>
@@ -147,6 +202,8 @@ interface FormViewProps {
   isSubmitting: boolean;
   canSubmit: boolean;
   intent: "seeker" | "employer";
+  willBeDeleted: WalkAwayOrg[];
+  hasBlockingOrgs: boolean;
 }
 
 function FormView({
@@ -158,7 +215,14 @@ function FormView({
   isSubmitting,
   canSubmit,
   intent,
+  willBeDeleted,
+  hasBlockingOrgs,
 }: FormViewProps) {
+  const showSoloDeleteConfirm =
+    intent === "employer" && !hasBlockingOrgs && willBeDeleted.length > 0;
+  const showGenericOwnerNotice =
+    intent === "employer" && !showSoloDeleteConfirm;
+
   return (
     <>
       <AlertDialogHeader>
@@ -171,11 +235,24 @@ function FormView({
                 <li key={item}>{item}</li>
               ))}
             </ul>
-            {intent === "employer" && (
+            {showGenericOwnerNotice && (
               <p className="text-muted-foreground text-sm italic">
                 To delete an organization you own, transfer ownership or delete
                 the organization first.
               </p>
+            )}
+            {showSoloDeleteConfirm && (
+              <div className="space-y-2">
+                <p className="text-muted-foreground text-sm">
+                  Deleting your account will permanently delete these
+                  organizations:
+                </p>
+                <ul className="text-muted-foreground list-disc space-y-1 pl-5 text-sm">
+                  {willBeDeleted.map((org) => (
+                    <li key={org.id}>{org.name}</li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
         </AlertDialogDescription>
@@ -241,10 +318,12 @@ function SentView({ email, onClose }: { email: string; onClose: () => void }) {
 }
 
 function BlockedView({
-  orgs,
+  blocking,
+  willBeDeleted,
   onClose,
 }: {
-  orgs: BlockingOrg[];
+  blocking: WalkAwayOrg[];
+  willBeDeleted: WalkAwayOrg[];
   onClose: () => void;
 }) {
   return (
@@ -259,15 +338,16 @@ function BlockedView({
         <AlertDialogDescription asChild>
           <div className="space-y-3">
             <p>
-              You are the sole owner of the following organization
-              {orgs.length > 1 ? "s" : ""}. Transfer ownership or delete the
-              organization before deleting your account:
+              You own the following organization
+              {blocking.length > 1 ? "s" : ""} with other active members.
+              Transfer ownership or delete the organization before deleting your
+              account:
             </p>
             <ul className="flex flex-col gap-2">
-              {orgs.map((org) => (
+              {blocking.map((org) => (
                 <li key={org.id}>
                   <Link
-                    href={`/employer/organizations/${org.id}/settings/edit`}
+                    href={orgDeepLink(org)}
                     className="text-primary inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
                   >
                     {org.name}
@@ -276,6 +356,19 @@ function BlockedView({
                 </li>
               ))}
             </ul>
+            {willBeDeleted.length > 0 && (
+              <div className="space-y-2">
+                <p>
+                  These organizations will be deleted once nothing blocks your
+                  account deletion:
+                </p>
+                <ul className="text-muted-foreground list-disc space-y-1 pl-5 text-sm">
+                  {willBeDeleted.map((org) => (
+                    <li key={org.id}>{org.name}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </AlertDialogDescription>
       </AlertDialogHeader>
@@ -288,25 +381,54 @@ function BlockedView({
   );
 }
 
-function extractBlockingOrgs(error: unknown): BlockingOrg[] | null {
+function orgDeepLink(org: WalkAwayOrg): string {
+  if (org.hasActiveAdmin) {
+    return `/employer/organizations/${org.id}/settings?tab=members`;
+  }
+  return `/employer/organizations/${org.id}/settings/edit`;
+}
+
+function parseOrg(entry: unknown): WalkAwayOrg | null {
+  if (!entry || typeof entry !== "object") return null;
+  const id = (entry as { id?: unknown }).id;
+  const name = (entry as { name?: unknown }).name;
+  if (typeof id !== "number" || typeof name !== "string") return null;
+  return {
+    id,
+    name,
+    hasActiveAdmin: Boolean(
+      (entry as { hasActiveAdmin?: unknown }).hasActiveAdmin,
+    ),
+  };
+}
+
+function extractWalkAwayDetails(error: unknown): WalkAwayClassification | null {
   if (!error || typeof error !== "object") return null;
   const maybeDetails = (error as { details?: unknown }).details;
   if (!maybeDetails || typeof maybeDetails !== "object") return null;
-  const maybeOrgs = (maybeDetails as { orgs?: unknown }).orgs;
-  if (!Array.isArray(maybeOrgs)) return null;
-  const orgs: BlockingOrg[] = [];
-  for (const entry of maybeOrgs) {
-    if (
-      entry &&
-      typeof entry === "object" &&
-      typeof (entry as { id?: unknown }).id === "number" &&
-      typeof (entry as { name?: unknown }).name === "string"
-    ) {
-      orgs.push({
-        id: (entry as { id: number }).id,
-        name: (entry as { name: string }).name,
-      });
-    }
-  }
-  return orgs.length > 0 ? orgs : null;
+
+  const details = maybeDetails as {
+    blocking?: unknown;
+    willBeDeleted?: unknown;
+    orgs?: unknown;
+  };
+
+  const blockingSource = Array.isArray(details.blocking)
+    ? details.blocking
+    : Array.isArray(details.orgs)
+      ? details.orgs
+      : [];
+  const willBeDeletedSource = Array.isArray(details.willBeDeleted)
+    ? details.willBeDeleted
+    : [];
+
+  const blocking = blockingSource
+    .map(parseOrg)
+    .filter((org): org is WalkAwayOrg => org !== null);
+  const willBeDeleted = willBeDeletedSource
+    .map(parseOrg)
+    .filter((org): org is WalkAwayOrg => org !== null);
+
+  if (blocking.length === 0 && willBeDeleted.length === 0) return null;
+  return { blocking, willBeDeleted };
 }

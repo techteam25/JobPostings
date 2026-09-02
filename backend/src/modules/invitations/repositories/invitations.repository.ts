@@ -5,6 +5,7 @@ import { db } from "@shared/db/connection";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import { DatabaseError } from "@shared/errors";
 import type { InvitationsRepositoryPort } from "@/modules/invitations";
+import type { OrganizationRole } from "@/validations/organization.validation";
 
 /**
  * Repository class for managing invitation-related database operations.
@@ -64,7 +65,7 @@ export class InvitationsRepository implements InvitationsRepositoryPort {
   async createInvitation(data: {
     organizationId: number;
     email: string;
-    role: "owner" | "admin" | "recruiter" | "member";
+    role: OrganizationRole;
     token: string;
     invitedBy: number;
     expiresAt: Date;
@@ -201,6 +202,32 @@ export class InvitationsRepository implements InvitationsRepositoryPort {
   }
 
   /**
+   * Finds pending invitations for an organization.
+   * @param organizationId The organization ID.
+   * @returns Pending invitations without token data.
+   */
+  async findPendingByOrganizationId(organizationId: number) {
+    return await withDbErrorHandling(async () => {
+      const invitations = await db.query.organizationInvitations.findMany({
+        where: and(
+          eq(organizationInvitations.organizationId, organizationId),
+          eq(organizationInvitations.status, "pending"),
+        ),
+        columns: {
+          id: true,
+          email: true,
+          role: true,
+          expiresAt: true,
+          createdAt: true,
+        },
+        orderBy: (invitations, { desc }) => [desc(invitations.createdAt)],
+      });
+
+      return invitations;
+    });
+  }
+
+  /**
    * Expires all pending invitations that have passed their expiration date.
    * Updates invitation status to 'expired' and sets expiredAt timestamp.
    * @returns The number of expired invitations.
@@ -220,6 +247,34 @@ export class InvitationsRepository implements InvitationsRepositoryPort {
           and(
             eq(organizationInvitations.status, "pending"),
             lt(organizationInvitations.expiresAt, now),
+          ),
+        );
+
+      return result[0].affectedRows;
+    });
+  }
+
+  /**
+   * Cancels all pending invitations for an organization.
+   */
+  async cancelAllPendingForOrganization(
+    organizationId: number,
+    cancelledBy: number,
+  ): Promise<number> {
+    return await withDbErrorHandling(async () => {
+      const now = new Date();
+      const result = await db
+        .update(organizationInvitations)
+        .set({
+          status: "cancelled",
+          cancelledAt: now,
+          cancelledBy,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(organizationInvitations.organizationId, organizationId),
+            eq(organizationInvitations.status, "pending"),
           ),
         );
 

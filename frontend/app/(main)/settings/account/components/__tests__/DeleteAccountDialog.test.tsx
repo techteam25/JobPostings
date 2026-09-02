@@ -1,10 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import DeleteAccountDialog from "../DeleteAccountDialog";
 
 const deleteUserMock = vi.fn();
+const getMock = vi.fn();
 
 vi.mock("@/lib/auth", () => ({
   authClient: {
@@ -14,6 +15,12 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/env", () => ({
   env: { NEXT_PUBLIC_FRONTEND_URL: "http://localhost:3000" },
+}));
+
+vi.mock("@/lib/axios-instance", () => ({
+  instance: {
+    get: (...args: unknown[]) => getMock(...args),
+  },
 }));
 
 const toastErrorMock = vi.fn();
@@ -26,6 +33,9 @@ vi.mock("sonner", () => ({
 describe("DeleteAccountDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getMock.mockResolvedValue({
+      data: { data: { blocking: [], willBeDeleted: [] } },
+    });
   });
 
   it("renders seeker-specific bullet list for seekers", async () => {
@@ -41,6 +51,7 @@ describe("DeleteAccountDialog", () => {
     expect(
       screen.queryByText(/membership in organizations/i),
     ).not.toBeInTheDocument();
+    expect(getMock).not.toHaveBeenCalled();
   });
 
   it("renders employer-specific bullet list and sole-owner notice for employers", async () => {
@@ -58,6 +69,37 @@ describe("DeleteAccountDialog", () => {
     expect(
       screen.queryByText(/your job applications/i),
     ).not.toBeInTheDocument();
+  });
+
+  it("lists solo orgs that will be deleted on the confirm dialog for employers", async () => {
+    getMock.mockResolvedValue({
+      data: {
+        data: {
+          blocking: [],
+          willBeDeleted: [
+            { id: 11, name: "Solo Missions", hasActiveAdmin: false },
+          ],
+        },
+      },
+    });
+    const user = userEvent.setup();
+    render(<DeleteAccountDialog email="solo@test.com" intent="employer" />);
+
+    await user.click(screen.getByRole("button", { name: /delete account/i }));
+
+    await waitFor(() => {
+      expect(getMock).toHaveBeenCalledWith(
+        "/users/me/walk-away-organizations",
+        {
+          withCredentials: true,
+        },
+      );
+    });
+
+    expect(
+      await screen.findByText(/will permanently delete these organizations/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Solo Missions")).toBeInTheDocument();
   });
 
   it("keeps submit disabled until the typed email matches", async () => {
@@ -99,15 +141,22 @@ describe("DeleteAccountDialog", () => {
     expect(screen.getByText(/expires in one hour/i)).toBeInTheDocument();
   });
 
-  it("shows the blocked view with deep links when the backend returns sole-owner orgs", async () => {
+  it("shows blocked view with smart links and solo preview when backend returns two lists", async () => {
     deleteUserMock.mockResolvedValue({
       data: null,
       error: {
         message: "You own organizations",
         details: {
+          blocking: [
+            { id: 101, name: "Acme Missions", hasActiveAdmin: true },
+            { id: 202, name: "No Admin Org", hasActiveAdmin: false },
+          ],
+          willBeDeleted: [
+            { id: 303, name: "Solo Preview", hasActiveAdmin: false },
+          ],
           orgs: [
-            { id: 101, name: "Acme Missions" },
-            { id: 202, name: "Beacon Outreach" },
+            { id: 101, name: "Acme Missions", hasActiveAdmin: true },
+            { id: 202, name: "No Admin Org", hasActiveAdmin: false },
           ],
         },
       },
@@ -130,13 +179,18 @@ describe("DeleteAccountDialog", () => {
     const acmeLink = screen.getByRole("link", { name: /acme missions/i });
     expect(acmeLink).toHaveAttribute(
       "href",
-      "/employer/organizations/101/settings/edit",
+      "/employer/organizations/101/settings?tab=members",
     );
-    const beaconLink = screen.getByRole("link", { name: /beacon outreach/i });
-    expect(beaconLink).toHaveAttribute(
+    const noAdminLink = screen.getByRole("link", { name: /no admin org/i });
+    expect(noAdminLink).toHaveAttribute(
       "href",
       "/employer/organizations/202/settings/edit",
     );
+
+    expect(
+      screen.getByText(/will be deleted once nothing blocks/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Solo Preview")).toBeInTheDocument();
   });
 
   it("toasts a generic error for non-blocking failures and returns to the form", async () => {
