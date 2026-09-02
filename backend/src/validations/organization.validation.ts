@@ -26,6 +26,15 @@ function normalizeUrl(input: unknown): string {
   return URL_PROTOCOL_REGEX.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
+/** Shared org membership / invitation role (DB enum + API contracts). */
+export const organizationRoleSchema = z.enum([
+  "owner",
+  "admin",
+  "recruiter",
+  "member",
+]);
+export type OrganizationRole = z.infer<typeof organizationRoleSchema>;
+
 // Zod schemas for validation
 export const selectOrganizationSchema = createSelectSchema(organizations);
 export const selectOrganizationMembersSchema =
@@ -362,6 +371,32 @@ export const deleteOrganizationSchema = z.object({
   params: organizationIdParamSchema,
 });
 
+export const removeOrganizationMemberSchema = z.object({
+  body: z.object({}).strict(),
+  query: z.object({}).strict(),
+  params: organizationIdParamSchema.extend({
+    memberId: z.string().regex(/^\d+$/, "memberId is required"),
+  }),
+});
+
+export const updateOrganizationMemberRoleSchema = z.object({
+  body: z.object({
+    role: organizationRoleSchema,
+  }),
+  query: z.object({}).strict(),
+  params: organizationIdParamSchema.extend({
+    memberId: z.string().regex(/^\d+$/, "memberId is required"),
+  }),
+});
+
+export const transferOrganizationOwnershipSchema = z.object({
+  body: z.object({
+    memberId: z.number().int().positive("memberId is required"),
+  }),
+  query: z.object({}).strict(),
+  params: organizationIdParamSchema,
+});
+
 export type NewOrganization = z.infer<typeof insertOrganizationSchema>;
 export type Organization = z.infer<typeof selectOrganizationSchema>;
 
@@ -376,6 +411,15 @@ export type UploadOrganizationLogoSchema = z.infer<
 >;
 export type UpdateOrganizationSchema = z.infer<typeof updateOrganizationSchema>;
 export type DeleteOrganizationSchema = z.infer<typeof deleteOrganizationSchema>;
+export type RemoveOrganizationMemberSchema = z.infer<
+  typeof removeOrganizationMemberSchema
+>;
+export type UpdateOrganizationMemberRoleSchema = z.infer<
+  typeof updateOrganizationMemberRoleSchema
+>;
+export type TransferOrganizationOwnershipSchema = z.infer<
+  typeof transferOrganizationOwnershipSchema
+>;
 export type JobApplicationManagementSchema = z.infer<
   typeof jobApplicationManagementSchema
 >;
@@ -409,7 +453,7 @@ export const insertOrganizationInvitationSchema = createInsertSchema(
   organizationInvitations,
   {
     email: z.email("Invalid email address").toLowerCase(),
-    role: z.enum(["owner", "admin", "recruiter", "member"]),
+    role: organizationRoleSchema,
   },
 ).omit({
   id: true,
@@ -426,7 +470,7 @@ export const insertOrganizationInvitationSchema = createInsertSchema(
 export const createOrganizationInvitationSchema = z.object({
   body: z.object({
     email: z.email("Invalid email address").toLowerCase(),
-    role: z.enum(["owner", "admin", "recruiter", "member"]).default("member"),
+    role: organizationRoleSchema.default("member"),
   }),
   params: organizationIdParamSchema,
   query: z.object({}).strict(),
@@ -458,6 +502,20 @@ export const cancelOrganizationInvitationSchema = z.object({
   query: z.object({}).strict(),
 });
 
+export const listOrganizationInvitationsSchema = z.object({
+  body: z.object({}).strict(),
+  params: organizationIdParamSchema,
+  query: z.object({}).strict(),
+});
+
+export const pendingOrganizationInvitationSchema = z.object({
+  id: z.number(),
+  email: z.string(),
+  role: organizationRoleSchema,
+  expiresAt: z.coerce.date(),
+  createdAt: z.coerce.date(),
+});
+
 export type OrganizationInvitation = z.infer<
   typeof selectOrganizationInvitationSchema
 >;
@@ -476,13 +534,19 @@ export type GetOrganizationInvitationDetailsInput = z.infer<
 export type CancelOrganizationInvitationInput = z.infer<
   typeof cancelOrganizationInvitationSchema
 >;
+export type ListOrganizationInvitationsInput = z.infer<
+  typeof listOrganizationInvitationsSchema
+>;
+export type PendingOrganizationInvitation = z.infer<
+  typeof pendingOrganizationInvitationSchema
+>;
 
 export type OrganizationWithMembersInterface = Organization & {
   members: {
     id: number;
     userId: number;
     organizationId: number;
-    role: "owner" | "admin" | "recruiter" | "member";
+    role: OrganizationRole;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;

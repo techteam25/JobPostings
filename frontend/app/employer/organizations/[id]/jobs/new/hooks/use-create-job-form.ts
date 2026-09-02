@@ -15,7 +15,7 @@ export function useCreateJobForm(organizationId: number) {
       city: "",
       state: "",
       country: "United States",
-      zipcode: null as number | null,
+      zipcode: null as string | null,
       jobType: "full-time" as
         | "full-time"
         | "part-time"
@@ -52,3 +52,4 @@ export function useCreateJobForm(organizationId: number) {
 }
 
 export type CreateJobFormApi = ReturnType<typeof useCreateJobForm>["form"];
+export type JobFormApi = CreateJobFormApi;

@@ -35,6 +35,7 @@ const organizationInvitationSchema = z.object({
   userId: z.number(),
   email: z.email(),
   fullName: z.string(),
+  organizationId: z.number(),
   organizationName: z.string(),
   inviterName: z.string(),
   role: z.string(),
@@ -49,6 +50,12 @@ const organizationWelcomeSchema = z.object({
   name: z.string(),
   organizationName: z.string(),
   role: z.string(),
+});
+
+const ownershipTransferredSchema = baseEmailSchema.extend({
+  organizationId: z.number(),
+  organizationName: z.string(),
+  previousOwnerFullName: z.string(),
 });
 
 const applicationStatusUpdateSchema = baseEmailSchema.extend({
@@ -103,6 +110,7 @@ export const emailJobSchemas = {
   sendJobDeletionEmail: jobDeletionSchema,
   sendOrganizationInvitation: organizationInvitationSchema,
   sendOrganizationWelcome: organizationWelcomeSchema,
+  sendOwnershipTransferredEmail: ownershipTransferredSchema,
   sendApplicationStatusUpdate: applicationStatusUpdateSchema,
   sendPasswordChangedEmail: baseEmailSchema,
   sendJobAlertNotification: jobAlertNotificationSchema,
@@ -230,6 +238,7 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
         const d = data as EmailJobPayload<"sendOrganizationInvitation">;
         await deps.emailService.sendOrganizationInvitation(
           d.email,
+          d.organizationId,
           d.organizationName,
           d.inviterName,
           d.role,
@@ -245,6 +254,18 @@ function createEmailHandler(deps: SendEmailWorkerDeps) {
           d.name,
           d.organizationName,
           d.role,
+        );
+        break;
+      }
+      case "sendOwnershipTransferredEmail": {
+        const d = data as EmailJobPayload<"sendOwnershipTransferredEmail">;
+        await deps.emailService.sendOwnershipTransferredEmail(
+          d.userId,
+          d.email,
+          d.fullName,
+          d.organizationId,
+          d.organizationName,
+          d.previousOwnerFullName,
         );
         break;
       }

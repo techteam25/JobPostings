@@ -7,6 +7,7 @@ import type {
   UserProfile,
   UserWithProfile,
 } from "@/validations/userProfile.validation";
+import type { OrganizationRole } from "@/validations/organization.validation";
 import type { PaginationMeta } from "@shared/types";
 import {
   ProfilePictureFile,
@@ -50,7 +51,7 @@ export interface ProfileServicePort {
 
   hasPrerequisiteRoles(
     sessionUserId: number,
-    roles: ("owner" | "admin" | "recruiter" | "member")[],
+    roles: OrganizationRole[],
   ): Promise<Result<boolean, AppError>>;
 
   getAuthenticatedUserIntent(userId: number): Promise<

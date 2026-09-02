@@ -13,6 +13,7 @@ import { calculatePagination } from "@shared/db/utils";
 import { withDbErrorHandling } from "@shared/db/dbErrorHandler";
 import { DatabaseError, NotFoundError } from "@shared/errors";
 import type { NewOrganization } from "@/validations/organization.validation";
+import type { OrganizationRole } from "@/validations/organization.validation";
 import type { OrganizationsRepositoryPort } from "@/modules/organizations";
 
 /**
@@ -77,19 +78,21 @@ export class OrganizationsRepository
       // flatten members to include user details at the top level
       return {
         ...organization,
-        members: organization.members.map((member) => ({
-          id: member.id,
-          organizationId: member.organizationId,
-          userId: member.userId,
-          role: member.role,
-          isActive: member.isActive,
-          createdAt: member.createdAt,
-          updatedAt: member.updatedAt,
-          memberName: member.user.fullName,
-          memberEmail: member.user.email,
-          memberEmailVerified: member.user.emailVerified,
-          memberStatus: member.user.status,
-        })),
+        members: organization.members
+          .filter((member) => member.isActive)
+          .map((member) => ({
+            id: member.id,
+            organizationId: member.organizationId,
+            userId: member.userId,
+            role: member.role,
+            isActive: member.isActive,
+            createdAt: member.createdAt,
+            updatedAt: member.updatedAt,
+            memberName: member.user.fullName,
+            memberEmail: member.user.email,
+            memberEmailVerified: member.user.emailVerified,
+            memberStatus: member.user.status,
+          })),
       };
     });
   }
@@ -215,6 +218,7 @@ export class OrganizationsRepository
         where: and(
           eq(organizationMembers.userId, contactId),
           eq(organizationMembers.organizationId, organizationId),
+          eq(organizationMembers.isActive, true),
         ),
         with: {
           user: {
@@ -298,7 +302,7 @@ export class OrganizationsRepository
    */
   async checkHasElevatedRole(
     userId: number,
-    roles: ("owner" | "admin" | "recruiter" | "member")[],
+    roles: OrganizationRole[],
   ): Promise<boolean> {
     return withDbErrorHandling(
       async () =>
@@ -420,6 +424,137 @@ export class OrganizationsRepository
   }
 
   /**
+   * Finds an organization member by membership record ID.
+   * @param memberId The ID of the membership record.
+   * @param organizationId The ID of the organization.
+   * @returns The organization member or null if not found.
+   */
+  async findMemberById(memberId: number, organizationId: number) {
+    return await withDbErrorHandling(async () => {
+      const member = await db.query.organizationMembers.findFirst({
+        where: and(
+          eq(organizationMembers.id, memberId),
+          eq(organizationMembers.organizationId, organizationId),
+        ),
+      });
+      return member ?? null;
+    });
+  }
+
+  /**
+   * Deactivates an organization member, removing their active membership.
+   * @param memberId The ID of the membership record.
+   * @param organizationId The ID of the organization.
+   * @returns True if the member was deactivated, false otherwise.
+   */
+  async deactivateMember(memberId: number, organizationId: number) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(organizationMembers)
+        .set({ isActive: false })
+        .where(
+          and(
+            eq(organizationMembers.id, memberId),
+            eq(organizationMembers.organizationId, organizationId),
+            eq(organizationMembers.isActive, true),
+          ),
+        );
+
+      return result.affectedRows > 0;
+    });
+  }
+
+  /**
+   * Updates an active organization member's role.
+   * @param memberId The ID of the membership record.
+   * @param organizationId The ID of the organization.
+   * @param role The new role to assign.
+   * @returns True if the role was updated, false otherwise.
+   */
+  async updateMemberRole(
+    memberId: number,
+    organizationId: number,
+    role: OrganizationRole,
+  ) {
+    return await withDbErrorHandling(async () => {
+      const [result] = await db
+        .update(organizationMembers)
+        .set({ role })
+        .where(
+          and(
+            eq(organizationMembers.id, memberId),
+            eq(organizationMembers.organizationId, organizationId),
+            eq(organizationMembers.isActive, true),
+          ),
+        );
+
+      return result.affectedRows > 0;
+    });
+  }
+
+  /**
+   * Atomically promotes an active admin to owner and demotes the current
+   * owner to admin. Both updates are conditional on the expected roles so
+   * concurrent transfers fail closed instead of creating two owners.
+   */
+  async transferOwnership(input: {
+    organizationId: number;
+    previousOwnerMemberId: number;
+    newOwnerMemberId: number;
+  }) {
+    return await withDbErrorHandling(async () => {
+      class OwnershipTransferInvariantError extends Error {
+        constructor() {
+          super("Ownership transfer invariant failed");
+          this.name = "OwnershipTransferInvariantError";
+        }
+      }
+
+      try {
+        await db.transaction(async (tx) => {
+          const [promoteResult] = await tx
+            .update(organizationMembers)
+            .set({ role: "owner" })
+            .where(
+              and(
+                eq(organizationMembers.id, input.newOwnerMemberId),
+                eq(organizationMembers.organizationId, input.organizationId),
+                eq(organizationMembers.isActive, true),
+                eq(organizationMembers.role, "admin"),
+              ),
+            );
+
+          if (promoteResult.affectedRows !== 1) {
+            throw new OwnershipTransferInvariantError();
+          }
+
+          const [demoteResult] = await tx
+            .update(organizationMembers)
+            .set({ role: "admin" })
+            .where(
+              and(
+                eq(organizationMembers.id, input.previousOwnerMemberId),
+                eq(organizationMembers.organizationId, input.organizationId),
+                eq(organizationMembers.isActive, true),
+                eq(organizationMembers.role, "owner"),
+              ),
+            );
+
+          if (demoteResult.affectedRows !== 1) {
+            throw new OwnershipTransferInvariantError();
+          }
+        });
+        return true;
+      } catch (error) {
+        if (error instanceof OwnershipTransferInvariantError) {
+          return false;
+        }
+        throw error;
+      }
+    });
+  }
+
+  /**
    * Creates an organization member record.
    * @param data The member data.
    * @returns The created member.
@@ -427,7 +562,7 @@ export class OrganizationsRepository
   async createMember(data: {
     userId: number;
     organizationId: number;
-    role: "owner" | "admin" | "recruiter" | "member";
+    role: OrganizationRole;
   }) {
     return await withDbErrorHandling(
       async () =>
@@ -468,60 +603,96 @@ export class OrganizationsRepository
   }
 
   /**
-   * Returns active organizations where the given user is the only active
-   * owner. Two-step query: (1) find orgs where user is an active owner;
-   * (2) count distinct active owners per org; keep those with count === 1
-   * and status === 'active'.
+   * Classifies active organizations the user actively owns:
+   * - blocking: ≥1 other active member (any role)
+   * - willBeDeleted: user is the only active member
+   * Pending invitations and inactive members do not count.
    */
-  async findSoleOwnedOrgs(
-    userId: number,
-  ): Promise<{ id: number; name: string }[]> {
+  async classifyOwnedOrgs(userId: number): Promise<{
+    blocking: { id: number; name: string; hasActiveAdmin: boolean }[];
+    willBeDeleted: { id: number; name: string; hasActiveAdmin: boolean }[];
+  }> {
     return withDbErrorHandling(async () => {
       const userOwnedRows = await db
-        .select({ orgId: organizationMembers.organizationId })
+        .select({
+          orgId: organizationMembers.organizationId,
+          orgName: organizations.name,
+        })
         .from(organizationMembers)
+        .innerJoin(
+          organizations,
+          eq(organizationMembers.organizationId, organizations.id),
+        )
         .where(
           and(
             eq(organizationMembers.userId, userId),
             eq(organizationMembers.role, "owner"),
             eq(organizationMembers.isActive, true),
+            eq(organizations.status, "active"),
           ),
         );
 
-      if (userOwnedRows.length === 0) return [];
+      if (userOwnedRows.length === 0) {
+        return { blocking: [], willBeDeleted: [] };
+      }
 
       const candidateOrgIds = userOwnedRows.map((r) => r.orgId);
 
-      const ownerCounts = await db
+      const otherMemberStats = await db
         .select({
           orgId: organizationMembers.organizationId,
-          ownerCount: sql<number>`COUNT(DISTINCT ${organizationMembers.userId})`,
+          otherActiveCount: sql<number>`COUNT(*)`,
+          activeAdminCount: sql<number>`SUM(CASE WHEN ${organizationMembers.role} = 'admin' THEN 1 ELSE 0 END)`,
         })
         .from(organizationMembers)
         .where(
           and(
             inArray(organizationMembers.organizationId, candidateOrgIds),
-            eq(organizationMembers.role, "owner"),
             eq(organizationMembers.isActive, true),
+            sql`${organizationMembers.userId} <> ${userId}`,
           ),
         )
         .groupBy(organizationMembers.organizationId);
 
-      const soleOwnedOrgIds = ownerCounts
-        .filter((c) => Number(c.ownerCount) === 1)
-        .map((c) => c.orgId);
+      const statsByOrg = new Map(
+        otherMemberStats.map((row) => [
+          row.orgId,
+          {
+            otherActiveCount: Number(row.otherActiveCount),
+            activeAdminCount: Number(row.activeAdminCount),
+          },
+        ]),
+      );
 
-      if (soleOwnedOrgIds.length === 0) return [];
+      const blocking: {
+        id: number;
+        name: string;
+        hasActiveAdmin: boolean;
+      }[] = [];
+      const willBeDeleted: {
+        id: number;
+        name: string;
+        hasActiveAdmin: boolean;
+      }[] = [];
 
-      return db
-        .select({ id: organizations.id, name: organizations.name })
-        .from(organizations)
-        .where(
-          and(
-            inArray(organizations.id, soleOwnedOrgIds),
-            eq(organizations.status, "active"),
-          ),
-        );
+      for (const row of userOwnedRows) {
+        const stats = statsByOrg.get(row.orgId) ?? {
+          otherActiveCount: 0,
+          activeAdminCount: 0,
+        };
+        const entry = {
+          id: row.orgId,
+          name: row.orgName,
+          hasActiveAdmin: stats.activeAdminCount > 0,
+        };
+        if (stats.otherActiveCount > 0) {
+          blocking.push(entry);
+        } else {
+          willBeDeleted.push(entry);
+        }
+      }
+
+      return { blocking, willBeDeleted };
     });
   }
 }

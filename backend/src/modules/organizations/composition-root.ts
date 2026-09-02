@@ -8,12 +8,16 @@ import { createTypesenseEmployerIndexerWorker } from "./workers/typesense-employ
 import type { IntentSyncPort } from "./ports/intent-sync.port";
 import type { TypesenseEmployerServicePort } from "@shared/ports/typesense-employer-service.port";
 import type { TypesenseProfileServicePort } from "@shared/ports/typesense-profile-service.port";
+import type { PublicCandidateProfileQueryPort } from "@shared/ports/public-candidate-profile-query.port";
+import type { EventBusPort } from "@shared/events/event-bus.port";
 
 interface OrganizationsModuleDeps {
   intentSync: IntentSyncPort;
   organizationsRepository: OrganizationsRepository;
   typesenseEmployerService: TypesenseEmployerServicePort;
   typesenseProfileService: TypesenseProfileServicePort;
+  publicCandidateProfileQuery: PublicCandidateProfileQueryPort;
+  eventBus: EventBusPort;
 }
 
 /**
@@ -25,9 +29,14 @@ interface OrganizationsModuleDeps {
  */
 export function createOrganizationsModule(deps: OrganizationsModuleDeps) {
   const repository = deps.organizationsRepository;
-  const service = new OrganizationsService(repository, deps.intentSync);
+  const service = new OrganizationsService(
+    repository,
+    deps.intentSync,
+    deps.eventBus,
+  );
   const candidateSearchService = new CandidateSearchService(
     deps.typesenseProfileService,
+    deps.publicCandidateProfileQuery,
   );
   const controller = new OrganizationsController(service);
   const candidateSearchController = new CandidateSearchController(

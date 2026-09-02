@@ -15,6 +15,7 @@ export function middleware(req: NextRequest) {
     "/forgot-password",
     "/reset-password",
     "/account-deleted",
+    "/invitations",
   ];
   const isPublicRoute =
     pathname === "/" ||

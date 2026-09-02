@@ -1,6 +1,6 @@
 import { BaseService } from "@shared/base/base.service";
 import { fail, ok } from "@shared/result";
-import { AppError } from "@shared/errors";
+import { AppError, NotFoundError } from "@shared/errors";
 import { TypesenseQueryBuilder } from "@shared/infrastructure/typesense.service/typesense-queryBuilder";
 import { buildPaginationMeta } from "@shared/infrastructure/typesense.service/build-search-pagination";
 import logger from "@shared/logger";
@@ -13,6 +13,7 @@ import type {
   CandidateSearchResult,
   CandidateSearchServicePort,
 } from "@/modules/organizations/ports/candidate-search-service.port";
+import type { PublicCandidateProfileQueryPort } from "@shared/ports/public-candidate-profile-query.port";
 import type {
   CandidatePreview,
   SearchCandidatesSchema,
@@ -22,7 +23,10 @@ export class CandidateSearchService
   extends BaseService
   implements CandidateSearchServicePort
 {
-  constructor(private typesenseProfileService: TypesenseProfileServicePort) {
+  constructor(
+    private typesenseProfileService: TypesenseProfileServicePort,
+    private publicCandidateProfileQuery: PublicCandidateProfileQueryPort,
+  ) {
     super();
   }
 
@@ -100,6 +104,22 @@ export class CandidateSearchService
     } catch (error) {
       logger.error(error, "Failed to search candidates");
       return fail(new AppError("Failed to search candidates"));
+    }
+  }
+
+  async getPublicCandidateProfile(userId: number) {
+    try {
+      const profile =
+        await this.publicCandidateProfileQuery.getPublicProfile(userId);
+
+      if (!profile) {
+        return fail(new NotFoundError("Candidate profile not found"));
+      }
+
+      return ok(profile);
+    } catch (error) {
+      logger.error(error, "Failed to get candidate profile");
+      return fail(new AppError("Failed to get candidate profile"));
     }
   }
 

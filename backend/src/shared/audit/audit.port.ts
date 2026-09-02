@@ -39,6 +39,7 @@ export const AuditEventName = z.enum([
   "org.member.added",
   "org.member.removed",
   "org.member.role.changed",
+  "org.ownership.transferred",
   "org.invitation.sent",
   "org.invitation.accepted",
   "org.invitation.revoked",

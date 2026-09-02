@@ -7,6 +7,7 @@ import validate from "@/middleware/validation.middleware";
 import {
   createOrganizationInvitationSchema,
   cancelOrganizationInvitationSchema,
+  listOrganizationInvitationsSchema,
   getOrganizationInvitationDetailsSchema,
   acceptOrganizationInvitationSchema,
 } from "@/validations/organization.validation";
@@ -45,6 +46,19 @@ export function createInvitationsRoutes({
     validate(createOrganizationInvitationSchema),
     orgGuards.validateRoleAssignment,
     controller.sendInvitation,
+  );
+
+  /**
+   * Lists pending invitations for an organization (authenticated endpoint, admin/owner only).
+   * @route GET /:organizationId/invitations
+   */
+  router.get(
+    "/:organizationId/invitations",
+    authenticate,
+    orgGuards.requireAdminOrOwnerRole(["owner", "admin"]),
+    orgGuards.ensureIsOrganizationMember,
+    validate(listOrganizationInvitationsSchema),
+    controller.listPendingInvitations,
   );
 
   /**

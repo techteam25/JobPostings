@@ -576,6 +576,7 @@ ${footer}`,
    */
   async sendOrganizationInvitation(
     email: string,
+    organizationId: number,
     organizationName: string,
     inviterName: string,
     role: string,
@@ -584,7 +585,7 @@ ${footer}`,
   ): Promise<void> {
     const template = await this.loadTemplate("organizationInvitation");
 
-    const acceptanceLink = `${env.FRONTEND_URL}/invitations/accept?token=${token}`;
+    const acceptanceLink = `${env.FRONTEND_URL}/invitations/${organizationId}/${token}`;
     const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
 
     // Format role for display (capitalize first letter)
@@ -647,6 +648,47 @@ ${footer}`,
         from: env.EMAIL_FROM,
         to: email,
         subject: `Welcome to ${organizationName} on getInvolved!`,
+        html: htmlContent,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      logger.error(error, "Email service error");
+    }
+  }
+
+  /**
+   * Sends a transactional email notifying the successor that they are now
+   * the organization owner. Bypasses email preference flags.
+   */
+  async sendOwnershipTransferredEmail(
+    _userId: number,
+    email: string,
+    fullName: string,
+    organizationId: number,
+    organizationName: string,
+    previousOwnerFullName: string,
+  ): Promise<void> {
+    const template = await this.loadTemplate("ownershipTransferred");
+
+    const organizationLink = `${env.FRONTEND_URL}/employer/organizations/${organizationId}`;
+    const logoPath = await this.getImageAsBase64("GetInvolved_Logo.png");
+
+    const htmlContent = template
+      .replace(/{{logoPath}}/g, logoPath)
+      .replace(/{{name}}/g, this.escapeHtml(fullName))
+      .replace(/{{organizationName}}/g, this.escapeHtml(organizationName))
+      .replace(
+        /{{previousOwnerFullName}}/g,
+        this.escapeHtml(previousOwnerFullName),
+      )
+      .replace(/{{organizationLink}}/g, organizationLink);
+
+    try {
+      const mailOptions = {
+        from: env.EMAIL_FROM,
+        to: email,
+        subject: `You are now the owner of ${organizationName} on getInvolved`,
         html: htmlContent,
       };
 

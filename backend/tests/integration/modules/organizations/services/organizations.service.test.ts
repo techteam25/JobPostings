@@ -32,12 +32,19 @@ describe("OrganizationsService", () => {
     };
   }
 
+  function createMockEventBus() {
+    return {
+      publish: vi.fn(async () => {}),
+    };
+  }
+
   describe("isRolePermitted", () => {
     it("should return true when user has job posting role", async () => {
       const mockIntentSync = createMockIntentSync();
       const organizationsService = new OrganizationsService(
         new OrganizationsRepository(),
         mockIntentSync,
+        createMockEventBus(),
       );
 
       const result = await organizationsService.isRolePermitted(1);
@@ -52,6 +59,7 @@ describe("OrganizationsService", () => {
       const organizationsService = new OrganizationsService(
         new OrganizationsRepository(),
         mockIntentSync,
+        createMockEventBus(),
       );
 
       const result = await organizationsService.isRolePermitted(999);

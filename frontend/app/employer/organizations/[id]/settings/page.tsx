@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,9 @@ const EmployeeListSection = dynamic(
 export default function SettingsPage() {
   const { organization } = useOrganization();
   const isOwner = useIsOwner();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const defaultTab = tabParam === "members" ? "members" : "company";
 
   return (
     <div className="flex flex-1 flex-col">
@@ -65,7 +69,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="border-border mb-6 flex gap-6 border-b">
-          <Tabs defaultValue="company" className="w-full">
+          <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList>
               <TabsTrigger
                 value="company"

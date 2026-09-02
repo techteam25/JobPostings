@@ -21,6 +21,7 @@ import type {
   NewUserProfile,
   UpdateUserProfile,
 } from "@/validations/userProfile.validation";
+import type { OrganizationRole } from "@/validations/organization.validation";
 import type { FileUploadJobData } from "@/validations/file.validation";
 import { StorageFolder } from "@shared/constants/storage-folders";
 import {
@@ -400,10 +401,7 @@ export class ProfileService extends BaseService implements ProfileServicePort {
     }
   }
 
-  async hasPrerequisiteRoles(
-    sessionUserId: number,
-    roles: ("owner" | "admin" | "recruiter" | "member")[],
-  ) {
+  async hasPrerequisiteRoles(sessionUserId: number, roles: OrganizationRole[]) {
     try {
       return ok(
         await this.orgRoleQuery.checkHasElevatedRole(sessionUserId, roles),

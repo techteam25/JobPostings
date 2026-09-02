@@ -1,4 +1,5 @@
 import type { OrgMembershipCommandPort } from "@/modules/invitations";
+import type { OrganizationRole } from "@/validations/organization.validation";
 
 /**
  * Adapter bridging the organizations repository into the invitations module's
@@ -15,14 +16,15 @@ export class OrganizationsToInvitationsAdapter implements OrgMembershipCommandPo
       createMember(data: {
         userId: number;
         organizationId: number;
-        role: "owner" | "admin" | "recruiter" | "member";
+        role: OrganizationRole;
       }): Promise<
-        { userId: number; organizationId: number; role: string } | undefined
+        | { userId: number; organizationId: number; role: OrganizationRole }
+        | undefined
       >;
       findByContact(
         contactId: number,
         organizationId: number,
-      ): Promise<{ id: number; role: string } | null>;
+      ): Promise<{ id: number; role: OrganizationRole } | null>;
       findById(
         id: number,
       ): Promise<
@@ -34,9 +36,10 @@ export class OrganizationsToInvitationsAdapter implements OrgMembershipCommandPo
   async createMember(data: {
     userId: number;
     organizationId: number;
-    role: "owner" | "admin" | "recruiter" | "member";
+    role: OrganizationRole;
   }): Promise<
-    { userId: number; organizationId: number; role: string } | undefined
+    | { userId: number; organizationId: number; role: OrganizationRole }
+    | undefined
   > {
     return this.organizationsRepository.createMember(data);
   }
@@ -44,7 +47,7 @@ export class OrganizationsToInvitationsAdapter implements OrgMembershipCommandPo
   async findByContact(
     contactId: number,
     organizationId: number,
-  ): Promise<{ id: number; role: string } | null> {
+  ): Promise<{ id: number; role: OrganizationRole } | null> {
     const member = await this.organizationsRepository.findByContact(
       contactId,
       organizationId,

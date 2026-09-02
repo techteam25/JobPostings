@@ -291,6 +291,7 @@ export class ApplicationsRepository implements ApplicationsRepositoryPort {
     return await tx
       .select({
         id: jobApplications.id,
+        reviewedAt: jobApplications.reviewedAt,
       })
       .from(jobApplications)
       .innerJoin(jobsDetails, eq(jobsDetails.id, jobApplications.jobId))
@@ -352,9 +353,20 @@ export class ApplicationsRepository implements ApplicationsRepositoryPort {
           throw new NotFoundError("jobApplications", applicationId);
         }
 
+        const existing = application[0]!;
+        const updates: {
+          status: typeof status;
+          reviewedAt?: Date;
+        } = { status };
+
+        // Stamp first review time when leaving pending (or any later status).
+        if (status !== "pending" && !existing.reviewedAt) {
+          updates.reviewedAt = new Date();
+        }
+
         const [result] = await tx
           .update(jobApplications)
-          .set({ status })
+          .set(updates)
           .where(eq(jobApplications.id, applicationId));
 
         if (result.affectedRows === 0) {

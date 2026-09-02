@@ -84,4 +84,24 @@ describe("EmailService HTML escaping", () => {
       "&lt;b onmouseover=&quot;steal()&quot;&gt;Bob&lt;/b&gt;",
     );
   });
+
+  it("sendOwnershipTransferredEmail bypasses email preferences", async () => {
+    (
+      mockEmailPreferencesQuery.canSendEmailType as ReturnType<typeof vi.fn>
+    ).mockClear();
+
+    await service.sendOwnershipTransferredEmail(
+      1,
+      "owner@test.com",
+      "New Owner",
+      42,
+      "Acme Corp",
+      "Former Owner",
+    );
+
+    expect(mockEmailPreferencesQuery.canSendEmailType).not.toHaveBeenCalled();
+    expect(sendMailMock).toHaveBeenCalledOnce();
+    expect(sendMailMock.mock.calls[0]![0].to).toBe("owner@test.com");
+    expect(sendMailMock.mock.calls[0]![0].subject).toContain("Acme Corp");
+  });
 });

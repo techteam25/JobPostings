@@ -9,6 +9,7 @@ import type {
   UserOrganizationInterface,
   OrganizationWithMembers,
   OrganizationMember,
+  OrganizationRole,
 } from "@/validations/organization.validation";
 
 type OrganizationSelect = typeof organizations.$inferSelect;
@@ -78,7 +79,7 @@ export interface OrganizationsRepositoryPort extends BaseRepositoryPort<
    */
   checkHasElevatedRole(
     userId: number,
-    roles: ("owner" | "admin" | "recruiter" | "member")[],
+    roles: OrganizationRole[],
   ): Promise<boolean>;
 
   /**
@@ -110,6 +111,38 @@ export interface OrganizationsRepositoryPort extends BaseRepositoryPort<
   hasDeletePermission(userId: number, orgId: number): Promise<boolean>;
 
   /**
+   * Finds an organization member by membership record ID.
+   */
+  findMemberById(
+    memberId: number,
+    organizationId: number,
+  ): Promise<OrganizationMember | null>;
+
+  /**
+   * Deactivates an organization member, removing their active membership.
+   */
+  deactivateMember(memberId: number, organizationId: number): Promise<boolean>;
+
+  /**
+   * Updates an active organization member's role.
+   */
+  updateMemberRole(
+    memberId: number,
+    organizationId: number,
+    role: OrganizationRole,
+  ): Promise<boolean>;
+
+  /**
+   * Atomically promotes an active admin to owner and demotes the current
+   * owner to admin. Returns false if either conditional update misses.
+   */
+  transferOwnership(input: {
+    organizationId: number;
+    previousOwnerMemberId: number;
+    newOwnerMemberId: number;
+  }): Promise<boolean>;
+
+  /**
    * Creates an organization member record.
    * Used by the invitations module (via OrgMembershipCommandPort adapter)
    * when accepting invitations.
@@ -117,13 +150,15 @@ export interface OrganizationsRepositoryPort extends BaseRepositoryPort<
   createMember(data: {
     userId: number;
     organizationId: number;
-    role: "owner" | "admin" | "recruiter" | "member";
+    role: OrganizationRole;
   }): Promise<OrganizationMember | undefined>;
 
   /**
-   * Returns active organizations where the given user is the only active
-   * owner. Used by the identity module to block account deletion when
-   * the user's departure would orphan organizations.
+   * Classifies active organizations the user actively owns into blocking
+   * (other active members exist) vs will-be-deleted (user is sole active member).
    */
-  findSoleOwnedOrgs(userId: number): Promise<{ id: number; name: string }[]>;
+  classifyOwnedOrgs(userId: number): Promise<{
+    blocking: { id: number; name: string; hasActiveAdmin: boolean }[];
+    willBeDeleted: { id: number; name: string; hasActiveAdmin: boolean }[];
+  }>;
 }

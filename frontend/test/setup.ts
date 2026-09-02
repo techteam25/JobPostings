@@ -28,7 +28,10 @@ afterAll(() => {
 // so jsdom can boot with `window.localStorage === undefined`. Zustand persist
 // then crashes on `setState`. Provide an in-memory stub when the real API is
 // missing so filter-store tests can run.
-if (typeof window !== "undefined" && typeof window.localStorage === "undefined") {
+if (
+  typeof window !== "undefined" &&
+  typeof window.localStorage === "undefined"
+) {
   const memory = new Map<string, string>();
   Object.defineProperty(window, "localStorage", {
     configurable: true,
@@ -105,4 +108,10 @@ if (typeof window !== "undefined" && !window.matchMedia) {
 afterEach(() => {
   cleanup();
   server.resetHandlers();
+
+  // Radix Dialog/Sheet/Dropdown can leave scroll-lock on document.body between
+  // tests when parallel workers or incomplete unmount timing interfere.
+  document.body.removeAttribute("data-scroll-locked");
+  document.body.style.pointerEvents = "";
+  document.body.style.overflow = "";
 });

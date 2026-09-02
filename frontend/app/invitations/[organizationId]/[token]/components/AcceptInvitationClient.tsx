@@ -3,17 +3,19 @@
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAcceptInvitation } from "@/app/employer/organizations/hooks/use-manage-invitations";
 import type { InvitationDetails } from "@/lib/types";
 
 interface AcceptInvitationClientProps {
+  organizationId: number;
   token: string;
   invitation: InvitationDetails;
 }
 
 export const AcceptInvitationClient = ({
+  organizationId,
   token,
   invitation,
 }: AcceptInvitationClientProps) => {
@@ -21,20 +23,21 @@ export const AcceptInvitationClient = ({
   const acceptMutation = useAcceptInvitation();
 
   const handleAccept = () => {
-    acceptMutation.mutate(token, {
-      onSuccess: () => {
-        router.push(
-          `/employer/organizations/${invitation.organization.id}`,
-        );
+    acceptMutation.mutate(
+      { organizationId, token },
+      {
+        onSuccess: () => {
+          router.push(`/employer/organizations/${organizationId}`);
+        },
       },
-    });
+    );
   };
 
   const handleDecline = () => {
     router.push("/");
   };
 
-  const orgInitials = invitation.organization.name
+  const orgInitials = invitation.organizationName
     .split(" ")
     .map((w) => w[0])
     .join("")
@@ -47,43 +50,32 @@ export const AcceptInvitationClient = ({
         <CardHeader className="text-center">
           <div className="mb-4 flex justify-center">
             <Avatar className="h-16 w-16">
-              {invitation.organization.logoUrl && (
-                <AvatarImage
-                  src={invitation.organization.logoUrl}
-                  alt={invitation.organization.name}
-                />
-              )}
-              <AvatarFallback className="text-lg">
-                {orgInitials}
-              </AvatarFallback>
+              <AvatarFallback className="text-lg">{orgInitials}</AvatarFallback>
             </Avatar>
           </div>
-          <CardTitle className="text-2xl">
-            You&apos;re Invited!
-          </CardTitle>
+          <CardTitle className="text-2xl">You&apos;re Invited!</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="text-center">
             <p className="text-gray-600">
-              You&apos;ve been invited to join{" "}
               <span className="font-semibold text-gray-900">
-                {invitation.organization.name}
+                {invitation.inviterName}
+              </span>{" "}
+              invited you to join{" "}
+              <span className="font-semibold text-gray-900">
+                {invitation.organizationName}
               </span>{" "}
               as a{" "}
               <Badge variant="secondary" className="ml-1">
-                {invitation.invitation.role}
+                {invitation.role}
               </Badge>
             </p>
           </div>
 
           <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
             <p>
-              <span className="font-medium">Email:</span>{" "}
-              {invitation.invitation.email}
-            </p>
-            <p className="mt-1">
               <span className="font-medium">Expires:</span>{" "}
-              {new Date(invitation.invitation.expiresAt).toLocaleDateString()}
+              {new Date(invitation.expiresAt).toLocaleDateString()}
             </p>
           </div>
 

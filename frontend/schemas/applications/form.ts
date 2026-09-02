@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { jobApplicationSchema } from "./index";
+import { jobApplicationSchema } from "./job-application";
 
 // ─── File Upload Constants ─────────────────────────────────────────────────
 export const RESUME_MAX_SIZE = 5 * 1024 * 1024; // 5MB

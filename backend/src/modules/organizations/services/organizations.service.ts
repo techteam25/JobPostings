@@ -12,15 +12,21 @@ import {
   DatabaseError,
   ForbiddenError,
   NotFoundError,
+  ValidationError,
 } from "@shared/errors";
 import { StorageFolder } from "@shared/constants/storage-folders";
 import type { FileUploadJobData } from "@/validations/file.validation";
-import type { NewOrganization } from "@/validations/organization.validation";
+import type {
+  NewOrganization,
+  OrganizationRole,
+} from "@/validations/organization.validation";
 import type { OrganizationsServicePort } from "@/modules/organizations";
 import type { OrganizationsRepositoryPort } from "@/modules/organizations";
 import type { IntentSyncPort } from "@/modules/organizations/ports/intent-sync.port";
 import { OrganizationsLogoFile } from "@/modules/organizations/types/organizations.module.types";
 import type { EmployerDocument } from "@shared/ports/typesense-employer-service.port";
+import type { EventBusPort } from "@shared/events";
+import { createOwnershipTransferredEvent } from "@/modules/organizations/events/ownership-transferred.event";
 
 /**
  * Service class for managing organization CRUD and membership operations.
@@ -34,6 +40,7 @@ export class OrganizationsService
   constructor(
     private organizationsRepository: OrganizationsRepositoryPort,
     private intentSync: IntentSyncPort,
+    private eventBus: EventBusPort,
   ) {
     super();
   }
@@ -456,5 +463,229 @@ export class OrganizationsService
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Removes an active member from an organization.
+   * Owners cannot be removed through this action.
+   * @param organizationId The ID of the organization.
+   * @param memberId The ID of the membership record to remove.
+   * @returns A Result containing a success message or an error.
+   */
+  async removeOrganizationMember(organizationId: number, memberId: number) {
+    try {
+      const memberResult = await this.requireActiveNonOwnerMember(
+        organizationId,
+        memberId,
+        "Organization owners cannot be removed. Transfer ownership first.",
+      );
+      if (memberResult.isFailure) {
+        return this.handleError(memberResult.error);
+      }
+
+      const deactivated = await this.organizationsRepository.deactivateMember(
+        memberId,
+        organizationId,
+      );
+
+      if (!deactivated) {
+        return fail(new DatabaseError("Failed to remove organization member"));
+      }
+
+      return ok({ message: "Member removed successfully" });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to remove organization member"));
+    }
+  }
+
+  /**
+   * Updates an active member's role in an organization.
+   * Owners cannot have their role changed through this action.
+   * @param organizationId The ID of the organization.
+   * @param memberId The ID of the membership record to update.
+   * @param role The new role to assign.
+   * @returns A Result containing a success message or an error.
+   */
+  async updateOrganizationMemberRole(
+    organizationId: number,
+    memberId: number,
+    role: OrganizationRole,
+  ) {
+    try {
+      const memberResult = await this.requireActiveNonOwnerMember(
+        organizationId,
+        memberId,
+        "Organization owners cannot have their role changed. Transfer ownership first.",
+      );
+      if (memberResult.isFailure) {
+        return this.handleError(memberResult.error);
+      }
+
+      const updated = await this.organizationsRepository.updateMemberRole(
+        memberId,
+        organizationId,
+        role,
+      );
+
+      if (!updated) {
+        return fail(
+          new DatabaseError("Failed to update organization member role"),
+        );
+      }
+
+      return ok({ message: "Member role updated successfully" });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to update organization member role"),
+      );
+    }
+  }
+
+  /**
+   * Transfers organization ownership to an active admin in one step.
+   * The caller becomes admin; the successor becomes the only owner.
+   */
+  async transferOwnership(
+    organizationId: number,
+    actorUserId: number,
+    successorMemberId: number,
+  ) {
+    try {
+      let actorMember;
+      try {
+        actorMember = await this.organizationsRepository.findByContact(
+          actorUserId,
+          organizationId,
+        );
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return fail(new ForbiddenError());
+        }
+        throw error;
+      }
+
+      if (actorMember.role !== "owner") {
+        return fail(new ForbiddenError());
+      }
+
+      const successor = await this.organizationsRepository.findMemberById(
+        successorMemberId,
+        organizationId,
+      );
+
+      const successorInvalid =
+        !successor ||
+        !successor.isActive ||
+        successor.role !== "admin" ||
+        successor.id === actorMember.id ||
+        successor.userId === actorUserId;
+
+      if (successorInvalid) {
+        return fail(
+          new ConflictError(
+            "Ownership can only be transferred to another active admin.",
+            { code: "OWNERSHIP_SUCCESSOR_INVALID" },
+          ),
+        );
+      }
+
+      const transferred = await this.organizationsRepository.transferOwnership({
+        organizationId,
+        previousOwnerMemberId: actorMember.id,
+        newOwnerMemberId: successor.id,
+      });
+
+      if (!transferred) {
+        let stillOwner;
+        try {
+          stillOwner = await this.organizationsRepository.findByContact(
+            actorUserId,
+            organizationId,
+          );
+        } catch (error) {
+          if (error instanceof NotFoundError) {
+            return fail(new ForbiddenError());
+          }
+          throw error;
+        }
+
+        if (stillOwner.role !== "owner") {
+          return fail(new ForbiddenError());
+        }
+
+        return fail(
+          new ConflictError(
+            "Ownership can only be transferred to another active admin.",
+            { code: "OWNERSHIP_SUCCESSOR_INVALID" },
+          ),
+        );
+      }
+
+      const organization =
+        await this.organizationsRepository.findById(organizationId);
+      const newOwnerMember = await this.organizationsRepository.findByContact(
+        successor.userId,
+        organizationId,
+      );
+
+      await this.eventBus.publish(
+        createOwnershipTransferredEvent({
+          organizationId,
+          organizationName: organization.name,
+          previousOwnerUserId: actorMember.userId,
+          previousOwnerFullName: actorMember.user.fullName,
+          newOwnerUserId: successor.userId,
+          newOwnerEmail: newOwnerMember.user.email,
+          newOwnerFullName: newOwnerMember.user.fullName,
+        }),
+      );
+
+      return ok({
+        message: "Ownership transferred successfully",
+        previousOwnerUserId: actorMember.userId,
+        newOwnerUserId: successor.userId,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to transfer organization ownership"),
+      );
+    }
+  }
+
+  /**
+   * Shared preamble for member mutations: must exist, be active, and not be owner.
+   */
+  private async requireActiveNonOwnerMember(
+    organizationId: number,
+    memberId: number,
+    ownerForbiddenMessage: string,
+  ) {
+    const member = await this.organizationsRepository.findMemberById(
+      memberId,
+      organizationId,
+    );
+
+    if (!member) {
+      return fail(new NotFoundError("Organization member not found"));
+    }
+
+    if (!member.isActive) {
+      return fail(new ValidationError("Member is not active"));
+    }
+
+    if (member.role === "owner") {
+      return fail(new ForbiddenError(ownerForbiddenMessage));
+    }
+
+    return ok(member);
   }
 }

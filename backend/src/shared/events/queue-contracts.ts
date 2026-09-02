@@ -61,6 +61,7 @@ export interface EmailJobPayloads {
   sendOrganizationInvitation: {
     userId: number;
     email: string;
+    organizationId: number;
     organizationName: string;
     inviterName: string;
     role: string;
@@ -73,6 +74,14 @@ export interface EmailJobPayloads {
     name: string;
     organizationName: string;
     role: string;
+  };
+  sendOwnershipTransferredEmail: {
+    userId: number;
+    email: string;
+    fullName: string;
+    organizationId: number;
+    organizationName: string;
+    previousOwnerFullName: string;
   };
 }
 

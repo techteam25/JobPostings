@@ -11,4 +11,9 @@ export type { UserDeactivatedPayload } from "./events/user-deactivated.event";
 export { createUserDeactivatedEvent } from "./events/user-deactivated.event";
 export type { UserDeletedPayload } from "./events/user-deleted.event";
 export { createUserDeletedEvent } from "./events/user-deleted.event";
-export type { OrgOwnershipQueryPort } from "./ports/org-ownership-query.port";
+export type {
+  OrgOwnershipQueryPort,
+  WalkAwayClassification,
+  WalkAwayOrg,
+  SoloOrgTeardownResult,
+} from "./ports/org-ownership-query.port";

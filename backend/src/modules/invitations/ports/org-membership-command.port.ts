@@ -1,3 +1,5 @@
+import type { OrganizationRole } from "@/validations/organization.validation";
+
 /**
  * Cross-module port for the invitations module to create members and
  * check existing memberships without importing directly from the
@@ -10,9 +12,10 @@ export interface OrgMembershipCommandPort {
   createMember(data: {
     userId: number;
     organizationId: number;
-    role: "owner" | "admin" | "recruiter" | "member";
+    role: OrganizationRole;
   }): Promise<
-    { userId: number; organizationId: number; role: string } | undefined
+    | { userId: number; organizationId: number; role: OrganizationRole }
+    | undefined
   >;
 
   /**
@@ -22,7 +25,7 @@ export interface OrgMembershipCommandPort {
   findByContact(
     contactId: number,
     organizationId: number,
-  ): Promise<{ id: number; role: string } | null>;
+  ): Promise<{ id: number; role: OrganizationRole } | null>;
 
   /**
    * Gets the name of an organization by its ID.

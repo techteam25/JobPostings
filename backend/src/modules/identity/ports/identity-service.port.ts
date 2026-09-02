@@ -1,6 +1,7 @@
 import type { Result } from "@shared/result";
 import type { AppError } from "@shared/errors";
 import { UpdateUser, User } from "@/validations/userProfile.validation";
+import type { WalkAwayClassification } from "./org-ownership-query.port";
 
 export interface IdentityServicePort {
   updateUser(
@@ -17,7 +18,13 @@ export interface IdentityServicePort {
 
   activateUser(id: number): Promise<Result<User | undefined, AppError>>;
 
-  getBlockingOwnedOrgs(
+  getWalkAwayOrgs(
     userId: number,
-  ): Promise<Result<{ id: number; name: string }[], AppError>>;
+  ): Promise<Result<WalkAwayClassification, AppError>>;
+
+  /**
+   * Classify owned orgs; refuse when any block; otherwise tear down solo orgs.
+   * Used by self-deactivate and the account before-delete hook.
+   */
+  prepareWalkAway(userId: number): Promise<Result<void, AppError>>;
 }

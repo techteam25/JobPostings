@@ -194,7 +194,11 @@ function createMockIdentityRepository(): IdentityRepositoryPort {
 
 function createMockOrgOwnershipQuery() {
   return {
-    findSoleOwnedOrgs: vi.fn().mockResolvedValue([]),
+    classifyOwnedOrgs: vi.fn().mockResolvedValue({
+      blocking: [],
+      willBeDeleted: [],
+    }),
+    teardownSoloOrgs: vi.fn().mockResolvedValue("completed"),
   };
 }
 
@@ -207,6 +211,7 @@ function createMockEmailService(): EmailServicePort {
     sendJobDeletionEmail: vi.fn(),
     sendOrganizationInvitation: vi.fn(),
     sendOrganizationWelcome: vi.fn(),
+    sendOwnershipTransferredEmail: vi.fn(),
     sendApplicationStatusUpdate: vi.fn(),
     sendJobAlertNotification: vi.fn(),
     sendUnsubscribeConfirmation: vi.fn(),

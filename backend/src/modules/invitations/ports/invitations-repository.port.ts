@@ -1,6 +1,8 @@
 import type {
   OrganizationInvitationDetailsInterface,
   OrganizationInvitation,
+  OrganizationRole,
+  PendingOrganizationInvitation,
 } from "@/validations/organization.validation";
 
 export interface InvitationsRepositoryPort {
@@ -25,7 +27,7 @@ export interface InvitationsRepositoryPort {
   createInvitation(data: {
     organizationId: number;
     email: string;
-    role: "owner" | "admin" | "recruiter" | "member";
+    role: OrganizationRole;
     token: string;
     invitedBy: number;
     expiresAt: Date;
@@ -74,4 +76,20 @@ export interface InvitationsRepositoryPort {
    * @returns The number of expired invitations.
    */
   expirePendingInvitations(): Promise<number>;
+
+  /**
+   * Finds pending invitations for an organization.
+   */
+  findPendingByOrganizationId(
+    organizationId: number,
+  ): Promise<PendingOrganizationInvitation[]>;
+
+  /**
+   * Cancels all pending invitations for an organization (walk-away teardown).
+   * @returns Number of invitations cancelled.
+   */
+  cancelAllPendingForOrganization(
+    organizationId: number,
+    cancelledBy: number,
+  ): Promise<number>;
 }

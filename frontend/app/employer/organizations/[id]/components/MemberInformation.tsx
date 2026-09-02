@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,8 +18,16 @@ import {
 } from "lucide-react";
 import { Member } from "@/lib/types";
 import dynamic from "next/dynamic";
-import { DataTable } from "@/components/common";
-import { columns, memberGlobalFilter } from "./member-columns";
+import { MembersTable } from "./MembersTable";
+import { PendingInvitationsSection } from "./PendingInvitationsSection";
+import { TransferOwnershipControl } from "./TransferOwnershipControl";
+import {
+  useCanManageInvitations,
+  useOrganization,
+} from "../context/organization-context";
+import { useRemoveMember } from "@/app/employer/organizations/hooks/use-remove-member";
+import { useChangeMemberRole } from "@/app/employer/organizations/hooks/use-change-member-role";
+import { useTransferOwnership } from "@/app/employer/organizations/hooks/use-transfer-ownership";
 
 const InviteMemberDialog = dynamic(() =>
   import("./InviteMemberDialog").then((mod) => ({
@@ -35,8 +44,17 @@ export function EmployeeListSection({
   members,
   organizationId,
 }: EmployeeListSectionProps) {
+  const router = useRouter();
+  const { currentUserId } = useOrganization();
   const [searchTerm, setSearchTerm] = useState("");
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const canManageInvitations = useCanManageInvitations();
+  const { mutateAsync: removeMember, isPending: isRemovePending } =
+    useRemoveMember(organizationId);
+  const { mutateAsync: changeMemberRole, isPending: isChangeRolePending } =
+    useChangeMemberRole(organizationId);
+  const { mutateAsync: transferOwnership, isPending: isTransferPending } =
+    useTransferOwnership(organizationId);
 
   const totalMembers = members.length;
   const activeMembers = members.filter((m) => m.isActive).length;
@@ -67,10 +85,21 @@ export function EmployeeListSection({
   return (
     <div className="flex h-full w-full flex-col p-8">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <h1 className="text-foreground text-2xl font-semibold">
           Employee List
         </h1>
+        <TransferOwnershipControl
+          members={members}
+          currentUserId={currentUserId}
+          isPending={isTransferPending}
+          onTransferOwnership={transferOwnership}
+          onTransferred={() => {
+            router.push(
+              `/employer/organizations/${organizationId}/settings?tab=members`,
+            );
+          }}
+        />
       </div>
 
       {/* Stats Cards */}
@@ -140,6 +169,11 @@ export function EmployeeListSection({
         </Card>
       </div>
 
+      <PendingInvitationsSection
+        organizationId={organizationId}
+        canManageInvitations={canManageInvitations}
+      />
+
       {/* Table Section */}
       <Card className="w-full border-0 shadow-sm">
         <div className="border-b p-6">
@@ -200,12 +234,15 @@ export function EmployeeListSection({
             </span>
           </div>
 
-          <DataTable
-            columns={columns}
-            data={members}
-            globalFilter={searchTerm}
-            onGlobalFilterChange={setSearchTerm}
-            globalFilterFn={memberGlobalFilter}
+          <MembersTable
+            members={members}
+            canManageMembers={canManageInvitations}
+            onRemoveMember={removeMember}
+            isRemovePending={isRemovePending}
+            onChangeMemberRole={changeMemberRole}
+            isChangeRolePending={isChangeRolePending}
+            searchTerm={searchTerm}
+            onSearchTermChange={setSearchTerm}
           />
         </div>
       </Card>

@@ -8,6 +8,7 @@ import type {
 } from "@/modules/user-profile";
 import type { Result } from "@shared/result";
 import type { UserOrganizationInterface } from "@/validations/organization.validation";
+import type { OrganizationRole } from "@/validations/organization.validation";
 
 /**
  * Adapter bridging the organizations module into the user-profile module's
@@ -25,7 +26,7 @@ export class OrganizationsToProfileAdapter
 
   async checkHasElevatedRole(
     userId: number,
-    roles: ("owner" | "admin" | "recruiter" | "member")[],
+    roles: OrganizationRole[],
   ): Promise<boolean> {
     return this.organizationsRepository.checkHasElevatedRole(userId, roles);
   }

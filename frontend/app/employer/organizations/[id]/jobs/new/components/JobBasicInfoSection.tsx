@@ -2,11 +2,11 @@
 
 import { Input } from "@/components/ui/input";
 import { DynamicRichTextEditor } from "@/components/common";
-import type { CreateJobFormApi } from "../hooks/use-create-job-form";
+import type { JobFormApi } from "../hooks/use-create-job-form";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 
 interface JobBasicInfoSectionProps {
-  form: CreateJobFormApi;
+  form: JobFormApi;
 }
 
 export function JobBasicInfoSection({ form }: JobBasicInfoSectionProps) {

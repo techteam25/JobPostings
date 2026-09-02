@@ -2,6 +2,7 @@ import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { instance } from "@/lib/axios-instance";
 import type { SendInvitationInput } from "@/lib/types";
+import { pendingInvitationsQueryKey } from "./use-fetch-pending-invitations";
 
 export const useSendInvitation = (organizationId: number) => {
   const queryClient = useQueryClient();
@@ -17,6 +18,9 @@ export const useSendInvitation = (organizationId: number) => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["fetch-organization", String(organizationId)],
+      });
+      queryClient.invalidateQueries({
+        queryKey: pendingInvitationsQueryKey(organizationId),
       });
       toast.success("Invitation sent successfully");
     },
@@ -40,6 +44,9 @@ export const useCancelInvitation = (organizationId: number) => {
       queryClient.invalidateQueries({
         queryKey: ["fetch-organization", String(organizationId)],
       });
+      queryClient.invalidateQueries({
+        queryKey: pendingInvitationsQueryKey(organizationId),
+      });
       toast.success("Invitation cancelled");
     },
     onError: (error: Error) => {
@@ -50,9 +57,15 @@ export const useCancelInvitation = (organizationId: number) => {
 
 export const useAcceptInvitation = () => {
   return useMutation({
-    mutationFn: async (token: string) => {
+    mutationFn: async ({
+      organizationId,
+      token,
+    }: {
+      organizationId: number;
+      token: string;
+    }) => {
       const response = await instance.post(
-        `/invitations/${token}/accept`,
+        `/invitations/${organizationId}/${token}/accept`,
         {},
         { withCredentials: true },
       );

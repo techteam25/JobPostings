@@ -56,6 +56,20 @@ export class IdentityController extends BaseController {
     }
   };
 
+  getWalkAwayOrgs = async (req: Request, res: Response) => {
+    const result = await this.identityService.getWalkAwayOrgs(req.userId!);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Walk-away organizations retrieved successfully",
+      );
+    }
+
+    return this.handleControllerError(res, result.error);
+  };
+
   deactivateUser = async (
     req: Request<GetUserSchema["params"]>,
     res: Response,
