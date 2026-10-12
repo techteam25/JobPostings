@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollableArea } from "@/components/ui/scroll-affordance";
 import { Separator } from "@/components/ui/separator";
 import { EducationFormFields } from "./EducationFormFields";
 import { useBatchCreateEducations } from "../hooks/manage-educations";
@@ -70,7 +71,7 @@ export function AddEducationDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="grid max-h-[90vh] max-w-2xl grid-rows-[auto_minmax(0,1fr)]">
         <DialogHeader>
           <DialogTitle>Add Education</DialogTitle>
           <DialogDescription>
@@ -83,91 +84,98 @@ export function AddEducationDialog({
             e.preventDefault();
             form.handleSubmit();
           }}
+          className="flex min-h-0 flex-col gap-6"
         >
-          <form.Field name="educations" mode="array">
-            {(arrayField) => (
-              <div className="flex flex-col gap-6">
-                {arrayField.state.value.map((_, index) => (
-                  <div key={index}>
-                    {index > 0 && <Separator className="mb-6" />}
-                    <div className="flex flex-col gap-4">
-                      {arrayField.state.value.length > 1 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">
-                            Entry {index + 1}
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => arrayField.removeValue(index)}
-                          >
-                            <Trash2 data-icon="inline-start" />
-                            Remove
-                          </Button>
-                        </div>
-                      )}
-
-                      <form.Field name={`educations[${index}].schoolName`}>
-                        {(schoolNameField) => (
-                          <form.Field name={`educations[${index}].program`}>
-                            {(programField) => (
-                              <form.Field name={`educations[${index}].major`}>
-                                {(majorField) => (
-                                  <form.Field
-                                    name={`educations[${index}].startDate`}
-                                  >
-                                    {(startDateField) => (
-                                      <form.Field
-                                        name={`educations[${index}].endDate`}
-                                      >
-                                        {(endDateField) => (
-                                          <form.Field
-                                            name={`educations[${index}].graduated`}
-                                          >
-                                            {(graduatedField) => (
-                                              <EducationFormFields
-                                                schoolNameField={
-                                                  schoolNameField
-                                                }
-                                                programField={programField}
-                                                majorField={majorField}
-                                                startDateField={startDateField}
-                                                endDateField={endDateField}
-                                                graduatedField={graduatedField}
-                                              />
-                                            )}
-                                          </form.Field>
-                                        )}
-                                      </form.Field>
-                                    )}
-                                  </form.Field>
-                                )}
-                              </form.Field>
-                            )}
-                          </form.Field>
+          <ScrollableArea className="flex-1">
+            <form.Field name="educations" mode="array">
+              {(arrayField) => (
+                <div className="flex flex-col gap-6">
+                  {arrayField.state.value.map((_, index) => (
+                    <div key={index}>
+                      {index > 0 && <Separator className="mb-6" />}
+                      <div className="flex flex-col gap-4">
+                        {arrayField.state.value.length > 1 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">
+                              Entry {index + 1}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => arrayField.removeValue(index)}
+                            >
+                              <Trash2 data-icon="inline-start" />
+                              Remove
+                            </Button>
+                          </div>
                         )}
-                      </form.Field>
+
+                        <form.Field name={`educations[${index}].schoolName`}>
+                          {(schoolNameField) => (
+                            <form.Field name={`educations[${index}].program`}>
+                              {(programField) => (
+                                <form.Field name={`educations[${index}].major`}>
+                                  {(majorField) => (
+                                    <form.Field
+                                      name={`educations[${index}].startDate`}
+                                    >
+                                      {(startDateField) => (
+                                        <form.Field
+                                          name={`educations[${index}].endDate`}
+                                        >
+                                          {(endDateField) => (
+                                            <form.Field
+                                              name={`educations[${index}].graduated`}
+                                            >
+                                              {(graduatedField) => (
+                                                <EducationFormFields
+                                                  schoolNameField={
+                                                    schoolNameField
+                                                  }
+                                                  programField={programField}
+                                                  majorField={majorField}
+                                                  startDateField={
+                                                    startDateField
+                                                  }
+                                                  endDateField={endDateField}
+                                                  graduatedField={
+                                                    graduatedField
+                                                  }
+                                                />
+                                              )}
+                                            </form.Field>
+                                          )}
+                                        </form.Field>
+                                      )}
+                                    </form.Field>
+                                  )}
+                                </form.Field>
+                              )}
+                            </form.Field>
+                          )}
+                        </form.Field>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => arrayField.pushValue({ ...emptyEntry })}
-                >
-                  <Plus data-icon="inline-start" />
-                  Add Another
-                </Button>
-              </div>
-            )}
-          </form.Field>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => arrayField.pushValue({ ...emptyEntry })}
+                  >
+                    <Plus data-icon="inline-start" />
+                    Add Another
+                  </Button>
+                </div>
+              )}
+            </form.Field>
+          </ScrollableArea>
 
-          <DialogFooter className="mt-6">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"

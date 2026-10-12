@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollableArea } from "@/components/ui/scroll-affordance";
 import { WorkExperienceFormFields } from "./WorkExperienceFormFields";
 import { useUpdateWorkExperience } from "../hooks/manage-work-experiences";
 import { workExperienceFormSchema } from "@/schemas/work-experiences";
@@ -62,7 +63,7 @@ export function EditWorkExperienceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="grid max-h-[90vh] max-w-2xl grid-rows-[auto_minmax(0,1fr)]">
         <DialogHeader>
           <DialogTitle>Edit Work Experience</DialogTitle>
           <DialogDescription>
@@ -75,41 +76,44 @@ export function EditWorkExperienceDialog({
             e.preventDefault();
             form.handleSubmit();
           }}
+          className="flex min-h-0 flex-col gap-6"
         >
-          <form.Field name="companyName">
-            {(companyNameField) => (
-              <form.Field name="jobTitle">
-                {(jobTitleField) => (
-                  <form.Field name="description">
-                    {(descriptionField) => (
-                      <form.Field name="startDate">
-                        {(startDateField) => (
-                          <form.Field name="endDate">
-                            {(endDateField) => (
-                              <form.Field name="current">
-                                {(currentField) => (
-                                  <WorkExperienceFormFields
-                                    companyNameField={companyNameField}
-                                    jobTitleField={jobTitleField}
-                                    descriptionField={descriptionField}
-                                    startDateField={startDateField}
-                                    endDateField={endDateField}
-                                    currentField={currentField}
-                                  />
-                                )}
-                              </form.Field>
-                            )}
-                          </form.Field>
-                        )}
-                      </form.Field>
-                    )}
-                  </form.Field>
-                )}
-              </form.Field>
-            )}
-          </form.Field>
+          <ScrollableArea className="flex-1">
+            <form.Field name="companyName">
+              {(companyNameField) => (
+                <form.Field name="jobTitle">
+                  {(jobTitleField) => (
+                    <form.Field name="description">
+                      {(descriptionField) => (
+                        <form.Field name="startDate">
+                          {(startDateField) => (
+                            <form.Field name="endDate">
+                              {(endDateField) => (
+                                <form.Field name="current">
+                                  {(currentField) => (
+                                    <WorkExperienceFormFields
+                                      companyNameField={companyNameField}
+                                      jobTitleField={jobTitleField}
+                                      descriptionField={descriptionField}
+                                      startDateField={startDateField}
+                                      endDateField={endDateField}
+                                      currentField={currentField}
+                                    />
+                                  )}
+                                </form.Field>
+                              )}
+                            </form.Field>
+                          )}
+                        </form.Field>
+                      )}
+                    </form.Field>
+                  )}
+                </form.Field>
+              )}
+            </form.Field>
+          </ScrollableArea>
 
-          <DialogFooter className="mt-6">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
