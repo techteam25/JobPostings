@@ -25,3 +25,6 @@ secrets/
 
 # architecture docs
 docs/
+
+# Personal todo (local only)
+jesse-todo.md
