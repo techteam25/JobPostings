@@ -1,5 +1,4 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,6 +19,8 @@ import { FeatureErrorBoundary } from "@/components/common/FeatureErrorBoundary";
 import ProfileVisibilityDialog from "@/app/(main)/me/profile/components/ProfileVisibilityDialog";
 import Link from "next/link";
 import ResumeContextMenu from "@/app/(main)/me/profile/components/ResumeContextMenu";
+import ProfileStrengthCard from "@/app/(main)/me/profile/components/ProfileStrengthCard";
+import { computeProfileCompletion } from "@/lib/profile-completion";
 
 export default async function ProfilePage() {
   const profile = await getUserInformation();
@@ -27,6 +28,8 @@ export default async function ProfilePage() {
   if (!profile || !profile.success) {
     return <ProfileSkeleton />;
   }
+
+  const completion = computeProfileCompletion(profile.data);
 
   const avatarInitials = profile.data.fullName
     .split(" ")
@@ -260,31 +263,11 @@ export default async function ProfilePage() {
           </div>
 
           {/* Profile Strength Indicator - Unique addition */}
-          <Card className="border-border bg-secondary">
-            <CardContent className="p-6">
-              <div className="mb-4 flex items-start justify-between">
-                <div>
-                  <h3 className="text-foreground mb-1 font-bold">
-                    Profile Strength: Strong
-                  </h3>
-                  <p className="text-secondary-foreground text-sm">
-                    Your profile is 95% complete
-                  </p>
-                </div>
-                <Badge className="text-primary-foreground bg-ring">95%</Badge>
-              </div>
-              <div className="bg-input mb-3 h-2.5 w-full rounded-full">
-                <div
-                  className="bg-ring h-2.5 rounded-full"
-                  style={{ width: "95%" }}
-                ></div>
-              </div>
-              <p className="text-secondary-foreground text-xs">
-                Add work history to reach 100% and increase your visibility to
-                employers
-              </p>
-            </CardContent>
-          </Card>
+          <ProfileStrengthCard
+            percentage={completion.percentage}
+            label={completion.label}
+            missing={completion.missing}
+          />
         </FeatureErrorBoundary>
       </main>
     </div>
