@@ -26,5 +26,7 @@ secrets/
 # architecture docs
 docs/
 
+# Private directories (secrets/keys) anywhere in the project — never commit
+**/_private/
 # Personal todo (local only)
 jesse-todo.md
