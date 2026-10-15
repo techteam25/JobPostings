@@ -40,6 +40,15 @@ import { Spinner } from "@/components/ui/spinner";
 import { Separator } from "@/components/ui/separator";
 import { DynamicRichTextEditor } from "@/components/common/DynamicRichTextEditor";
 import { cn } from "@/lib/utils";
+import { useFocusHighlight } from "@/lib/use-focus-highlight";
+
+const FOCUS_ID_MAP: Record<string, string> = {
+  photo: "photo-field",
+  phone: "phoneNumber",
+  location: "city",
+  bio: "bio-field",
+  resume: "resume-field",
+};
 
 interface ProfileEditFormProps {
   user: UserWithProfile;
@@ -144,6 +153,8 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
   const country = useStore(form.store, (s) => s.values.country);
   const isUS = country === "United States";
 
+  useFocusHighlight(FOCUS_ID_MAP);
+
   return (
     <form
       onSubmit={(e) => {
@@ -154,7 +165,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
       className="flex flex-col gap-8"
     >
       {/* Profile Picture */}
-      <div className="flex flex-col items-center gap-2">
+      <div id="photo-field" className="flex flex-col items-center gap-2">
         <div className="relative">
           <Avatar className="h-24 w-24">
             {avatarSrc && <AvatarImage src={avatarSrc} alt={user.fullName} />}
@@ -252,7 +263,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             const isUnderMin = bioCharCount > 0 && bioCharCount < BIO_MIN;
 
             return (
-              <Field data-invalid={isOverLimit || isUnderMin}>
+              <Field id="bio-field" data-invalid={isOverLimit || isUnderMin}>
                 <FieldLabel htmlFor={field.name}>Bio</FieldLabel>
                 <DynamicRichTextEditor
                   defaultValue={field.state.value}
@@ -292,7 +303,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
       </FieldGroup>
 
       {/* Resume Upload */}
-      <div className="flex flex-col gap-2">
+      <div id="resume-field" className="flex flex-col gap-2">
         <p className="text-sm font-medium">Resume</p>
         <div className="border-border flex items-center justify-between rounded-lg border p-4">
           <div className="flex items-center gap-3">
