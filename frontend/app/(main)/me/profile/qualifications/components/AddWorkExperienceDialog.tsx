@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollableArea } from "@/components/ui/scroll-affordance";
 import { Separator } from "@/components/ui/separator";
 import { WorkExperienceFormFields } from "./WorkExperienceFormFields";
 import { useBatchCreateWorkExperiences } from "../hooks/manage-work-experiences";
@@ -72,7 +73,7 @@ export function AddWorkExperienceDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="grid max-h-[90vh] max-w-2xl grid-rows-[auto_minmax(0,1fr)]">
         <DialogHeader>
           <DialogTitle>Add Work Experience</DialogTitle>
           <DialogDescription>
@@ -85,99 +86,104 @@ export function AddWorkExperienceDialog({
             e.preventDefault();
             form.handleSubmit();
           }}
+          className="flex min-h-0 flex-col gap-6"
         >
-          <form.Field name="workExperiences" mode="array">
-            {(arrayField) => (
-              <div className="flex flex-col gap-6">
-                {arrayField.state.value.map((_, index) => (
-                  <div key={index}>
-                    {index > 0 && <Separator className="mb-6" />}
-                    <div className="flex flex-col gap-4">
-                      {arrayField.state.value.length > 1 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">
-                            Entry {index + 1}
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => arrayField.removeValue(index)}
-                          >
-                            <Trash2 data-icon="inline-start" />
-                            Remove
-                          </Button>
-                        </div>
-                      )}
-
-                      <form.Field
-                        name={`workExperiences[${index}].companyName`}
-                      >
-                        {(companyNameField) => (
-                          <form.Field
-                            name={`workExperiences[${index}].jobTitle`}
-                          >
-                            {(jobTitleField) => (
-                              <form.Field
-                                name={`workExperiences[${index}].description`}
-                              >
-                                {(descriptionField) => (
-                                  <form.Field
-                                    name={`workExperiences[${index}].startDate`}
-                                  >
-                                    {(startDateField) => (
-                                      <form.Field
-                                        name={`workExperiences[${index}].endDate`}
-                                      >
-                                        {(endDateField) => (
-                                          <form.Field
-                                            name={`workExperiences[${index}].current`}
-                                          >
-                                            {(currentField) => (
-                                              <WorkExperienceFormFields
-                                                companyNameField={
-                                                  companyNameField
-                                                }
-                                                jobTitleField={jobTitleField}
-                                                descriptionField={
-                                                  descriptionField
-                                                }
-                                                startDateField={startDateField}
-                                                endDateField={endDateField}
-                                                currentField={currentField}
-                                              />
-                                            )}
-                                          </form.Field>
-                                        )}
-                                      </form.Field>
-                                    )}
-                                  </form.Field>
-                                )}
-                              </form.Field>
-                            )}
-                          </form.Field>
+          <ScrollableArea className="flex-1">
+            <form.Field name="workExperiences" mode="array">
+              {(arrayField) => (
+                <div className="flex flex-col gap-6">
+                  {arrayField.state.value.map((_, index) => (
+                    <div key={index}>
+                      {index > 0 && <Separator className="mb-6" />}
+                      <div className="flex flex-col gap-4">
+                        {arrayField.state.value.length > 1 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">
+                              Entry {index + 1}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => arrayField.removeValue(index)}
+                            >
+                              <Trash2 data-icon="inline-start" />
+                              Remove
+                            </Button>
+                          </div>
                         )}
-                      </form.Field>
+
+                        <form.Field
+                          name={`workExperiences[${index}].companyName`}
+                        >
+                          {(companyNameField) => (
+                            <form.Field
+                              name={`workExperiences[${index}].jobTitle`}
+                            >
+                              {(jobTitleField) => (
+                                <form.Field
+                                  name={`workExperiences[${index}].description`}
+                                >
+                                  {(descriptionField) => (
+                                    <form.Field
+                                      name={`workExperiences[${index}].startDate`}
+                                    >
+                                      {(startDateField) => (
+                                        <form.Field
+                                          name={`workExperiences[${index}].endDate`}
+                                        >
+                                          {(endDateField) => (
+                                            <form.Field
+                                              name={`workExperiences[${index}].current`}
+                                            >
+                                              {(currentField) => (
+                                                <WorkExperienceFormFields
+                                                  companyNameField={
+                                                    companyNameField
+                                                  }
+                                                  jobTitleField={jobTitleField}
+                                                  descriptionField={
+                                                    descriptionField
+                                                  }
+                                                  startDateField={
+                                                    startDateField
+                                                  }
+                                                  endDateField={endDateField}
+                                                  currentField={currentField}
+                                                />
+                                              )}
+                                            </form.Field>
+                                          )}
+                                        </form.Field>
+                                      )}
+                                    </form.Field>
+                                  )}
+                                </form.Field>
+                              )}
+                            </form.Field>
+                          )}
+                        </form.Field>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => arrayField.pushValue({ ...emptyEntry })}
-                >
-                  <Plus data-icon="inline-start" />
-                  Add Another
-                </Button>
-              </div>
-            )}
-          </form.Field>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => arrayField.pushValue({ ...emptyEntry })}
+                  >
+                    <Plus data-icon="inline-start" />
+                    Add Another
+                  </Button>
+                </div>
+              )}
+            </form.Field>
+          </ScrollableArea>
 
-          <DialogFooter className="mt-6">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
