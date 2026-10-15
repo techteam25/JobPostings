@@ -2,16 +2,24 @@
 
 import { useMemo, useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bookmark, Building2, Menu } from "lucide-react";
 import { toast } from "sonner";
 
 import { useFetchJobDetails } from "@/app/(main)/hooks/use-fetch-jobs";
 import { saveJobForUser, removeSavedJobForUser } from "@/lib/api";
 import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 
+import { Bookmark, Building2, Menu, Briefcase } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Toggle } from "@/components/ui/toggle";
 import {
   Tooltip,
@@ -42,6 +50,11 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
 
   const hasSaved = jobData?.hasSaved ?? false;
 
+  // No job is selected (e.g. the list is empty). The details query is disabled
+  // in this case, so react-query reports `isPending` forever and we'd otherwise
+  // be stuck on the loading skeleton. Resolve to an explicit empty state.
+  const noSelection = jobId === undefined;
+
   const handleSaveJobChange = () => {
     if (!jobId) return;
 
@@ -61,6 +74,10 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
       await queryClient.invalidateQueries({ queryKey: ["job-details", jobId] });
     });
   };
+
+  if (noSelection) {
+    return <JobDetailEmptyState />;
+  }
 
   if (fetchingJobDetails || !jobDetails) {
     return (
@@ -150,6 +167,23 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
     </Card>
   );
 };
+
+function JobDetailEmptyState() {
+  return (
+    <Empty className="from-muted/50 to-background h-full bg-linear-to-b from-30%">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Briefcase />
+        </EmptyMedia>
+        <EmptyTitle>Nothing to show here</EmptyTitle>
+        <EmptyDescription>
+          There are no jobs to display right now. Once there are listings,
+          select one to see its details here.
+        </EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
+}
 
 function SkeletonCard() {
   return (
