@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { getUserInformation } from "@/lib/api";
+import { getJobPreferences } from "@/lib/api/job-preferences";
 import { FeatureErrorBoundary } from "@/components/common/FeatureErrorBoundary";
 import ProfileVisibilityDialog from "@/app/(main)/me/profile/components/ProfileVisibilityDialog";
 import Link from "next/link";
@@ -23,13 +24,18 @@ import ProfileStrengthCard from "@/app/(main)/me/profile/components/ProfileStren
 import { computeProfileCompletion } from "@/lib/profile-completion";
 
 export default async function ProfilePage() {
-  const profile = await getUserInformation();
+  const [profile, jobPreferences] = await Promise.all([
+    getUserInformation(),
+    getJobPreferences(),
+  ]);
 
   if (!profile || !profile.success) {
     return <ProfileSkeleton />;
   }
 
-  const completion = computeProfileCompletion(profile.data);
+  const jobPreference = jobPreferences?.success ? jobPreferences.data : null;
+
+  const completion = computeProfileCompletion(profile.data, jobPreference);
 
   const avatarInitials = profile.data.fullName
     .split(" ")
