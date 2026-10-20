@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { env } from "@/env";
-import { JobResponse, Job, JobWithEmployer } from "@/schemas/responses/jobs";
+import { Job, JobWithEmployer } from "@/schemas/responses/jobs";
 import {
   ApiResponse,
   OrganizationJobStats,
@@ -28,7 +28,9 @@ export const getJobs = async (
   return handlePaginatedApiResponse(res, "Failed to fetch jobs");
 };
 
-export const getJobById = async (jobId: number): Promise<JobResponse> => {
+export const getJobById = async (
+  jobId: number,
+): Promise<ApiResponse<JobWithEmployer>> => {
   const cookieStore = await cookies();
   const res = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/jobs/${jobId}`, {
     credentials: "include",
@@ -38,7 +40,7 @@ export const getJobById = async (jobId: number): Promise<JobResponse> => {
     cache: "no-store",
   });
 
-  return res.json();
+  return handleApiResponse<JobWithEmployer>(res, "Failed to fetch job");
 };
 
 export const getOrganizationJobsList = async (

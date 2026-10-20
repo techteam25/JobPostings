@@ -12,7 +12,10 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
-import { cacheKeys } from "@shared/infrastructure/cache-keys";
+import {
+  cacheKeys,
+  recommendationsPattern,
+} from "@shared/infrastructure/cache-keys";
 import {
   updateWorkAvailabilitySchema,
   uploadProfilePictureSchema,
@@ -47,6 +50,9 @@ export function createProfileRoutes({
   router.patch(
     "/me/visibility",
     invalidateCacheMiddleware(() => cacheKeys.userProfile),
+    invalidateCacheMiddleware((req) =>
+      recommendationsPattern(cacheKeys.recommendations, req.userId),
+    ),
     profileController.changeProfileVisibility,
   );
 
@@ -55,6 +61,9 @@ export function createProfileRoutes({
     "/me/availability",
     validate(updateWorkAvailabilitySchema),
     invalidateCacheMiddleware(() => cacheKeys.userProfile),
+    invalidateCacheMiddleware((req) =>
+      recommendationsPattern(cacheKeys.recommendations, req.userId),
+    ),
     profileController.changeWorkAvailability,
   );
 
@@ -84,6 +93,9 @@ export function createProfileRoutes({
     "/me/profile",
     validate(updateUserPayloadSchema),
     invalidateCacheMiddleware(() => cacheKeys.userProfile),
+    invalidateCacheMiddleware((req) =>
+      recommendationsPattern(cacheKeys.recommendations, req.userId),
+    ),
     profileController.updateProfile,
   );
 
@@ -92,6 +104,9 @@ export function createProfileRoutes({
     "/me/profile",
     validate(createUserPayloadSchema),
     invalidateCacheMiddleware(() => cacheKeys.userProfile),
+    invalidateCacheMiddleware((req) =>
+      recommendationsPattern(cacheKeys.recommendations, req.userId),
+    ),
     profileController.createProfile,
   );
 
@@ -119,6 +134,9 @@ export function createProfileRoutes({
   router.delete(
     "/me/resume",
     invalidateCacheMiddleware(() => cacheKeys.userProfile),
+    invalidateCacheMiddleware((req) =>
+      recommendationsPattern(cacheKeys.recommendations, req.userId),
+    ),
     profileController.deleteResume,
   );
 

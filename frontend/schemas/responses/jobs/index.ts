@@ -27,6 +27,10 @@ export const JobSchema = z.object({
   applicationDeadline: z.date().nullable(),
   experience: z.string().nullable(),
   employerId: z.number(),
+  // Requested skill names, mirrored from the backend detail payload
+  // (`JobDetailWithEmployer`). Matches `SearchJobResult.skills` so the same
+  // badge rendering works for both the card list and the detail panels.
+  skills: z.string().array().default([]),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

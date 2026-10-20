@@ -16,6 +16,7 @@ import logger from "@shared/logger";
 import { userEmailPreferences } from "./schema";
 import { educations } from "./schema";
 import { workExperiences } from "./schema";
+import { skills, jobSkills } from "./schema";
 
 type DB = MySql2Database<typeof schema>;
 
@@ -225,6 +226,127 @@ async function seedOrganizationsWithJobs(
   return { orgIds };
 }
 
+// Canonical skill catalog seeded into the `skills` table. Kept intentionally
+// small and realistic so job/user skill overlap is meaningful for the
+// recommendation coverage scoring.
+const SKILL_CATALOG = [
+  "JavaScript",
+  "TypeScript",
+  "React",
+  "Node.js",
+  "Python",
+  "SQL",
+  "AWS",
+  "Figma",
+  "Excel",
+  "Project Management",
+  "Communication",
+  "Leadership",
+  "Accounting",
+  "Marketing",
+  "Customer Service",
+] as const;
+
+// Deterministic title-keyword -> skill-name mapping. A job's title is lowercased
+// and matched against each keyword; all matching groups' skills are unioned.
+// Jobs whose title matches nothing get NO skills (intentional NO_SKILLS_REQ
+// cases for the tier logic). Deterministic so a fixed-seed reseed is repeatable.
+const TITLE_SKILL_RULES: { keywords: string[]; skills: string[] }[] = [
+  {
+    keywords: [
+      "developer",
+      "software",
+      "programmer",
+      "web",
+      "front-end",
+      "back-end",
+      "full-stack",
+    ],
+    skills: ["JavaScript", "TypeScript", "React", "Node.js"],
+  },
+  {
+    keywords: ["engineer"],
+    skills: ["JavaScript", "Python", "AWS", "SQL"],
+  },
+  {
+    keywords: ["data", "analyst", "scientist", "research"],
+    skills: ["Python", "SQL", "Excel"],
+  },
+  {
+    keywords: ["designer", "ux", "ui", "interior", "graphic"],
+    skills: ["Figma", "Communication"],
+  },
+  {
+    keywords: ["manager", "director", "lead", "coordinator", "administrator"],
+    skills: ["Project Management", "Leadership", "Communication"],
+  },
+  {
+    keywords: ["account", "finance", "investment", "bookkeep"],
+    skills: ["Accounting", "Excel"],
+  },
+  {
+    keywords: ["marketing", "sales", "advertis"],
+    skills: ["Marketing", "Communication"],
+  },
+  {
+    keywords: ["assistant", "support", "representative", "service", "office"],
+    skills: ["Customer Service", "Communication", "Excel"],
+  },
+];
+
+function skillsForTitle(title: string): string[] {
+  const lower = title.toLowerCase();
+  const matched = new Set<string>();
+  for (const rule of TITLE_SKILL_RULES) {
+    if (rule.keywords.some((kw) => lower.includes(kw))) {
+      rule.skills.forEach((s) => matched.add(s));
+    }
+  }
+  return [...matched];
+}
+
+async function seedJobSkills(db: DB): Promise<void> {
+  logger.info("Seeding skills catalog and job_skills links...");
+
+  // 1. Insert the skill catalog (idempotent on the unique name).
+  await db
+    .insert(skills)
+    .values(SKILL_CATALOG.map((name) => ({ name })))
+    .onDuplicateKeyUpdate({ set: { name: sql`values(${skills.name})` } });
+
+  const catalog = await db
+    .select({ id: skills.id, name: skills.name })
+    .from(skills);
+  const skillIdByName = new Map(catalog.map((s) => [s.name, s.id]));
+
+  // 2. For each job, derive skills from its title and insert job_skills links.
+  const jobs = await db
+    .select({ id: jobsDetails.id, title: jobsDetails.title })
+    .from(jobsDetails);
+
+  const links: { jobId: number; skillId: number; isRequired: boolean }[] = [];
+  let jobsWithSkills = 0;
+  for (const job of jobs) {
+    const names = skillsForTitle(job.title);
+    if (names.length === 0) continue;
+    jobsWithSkills++;
+    for (const name of names) {
+      const skillId = skillIdByName.get(name);
+      if (skillId !== undefined) {
+        links.push({ jobId: job.id, skillId, isRequired: true });
+      }
+    }
+  }
+
+  if (links.length > 0) {
+    await db.insert(jobSkills).values(links);
+  }
+
+  logger.info(
+    `✓ ${catalog.length} skills in catalog; ${links.length} job_skills links across ${jobsWithSkills}/${jobs.length} jobs (${jobs.length - jobsWithSkills} jobs left with no skills)`,
+  );
+}
+
 async function seedOrganizationMembers(
   db: DB,
   userIds: number[],
@@ -427,6 +549,7 @@ async function runSeed() {
 
   const { userIds, profileIds } = await seedUsers(db, faker);
   const { orgIds } = await seedOrganizationsWithJobs(db);
+  await seedJobSkills(db);
   await seedOrganizationMembers(db, userIds, orgIds);
   await seedEducations(db, faker, profileIds);
   await seedWorkExperiences(db, faker, profileIds);

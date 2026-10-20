@@ -7,6 +7,10 @@ import {
   searchSkillsSchema,
 } from "@/validations/skills.validation";
 import { invalidateCacheMiddleware } from "@/middleware/cache.middleware";
+import {
+  cacheKeys,
+  recommendationsPattern,
+} from "@shared/infrastructure/cache-keys";
 
 export function createSkillRoutes({
   controller,
@@ -27,6 +31,9 @@ export function createSkillRoutes({
     "/me/skills",
     validate(linkSkillSchema),
     invalidateCacheMiddleware(() => "users/me"),
+    invalidateCacheMiddleware((req) =>
+      recommendationsPattern(cacheKeys.recommendations, req.userId),
+    ),
     controller.linkSkill,
   );
 
@@ -35,6 +42,9 @@ export function createSkillRoutes({
     "/me/skills/:skillId",
     validate(unlinkSkillSchema),
     invalidateCacheMiddleware(() => "users/me"),
+    invalidateCacheMiddleware((req) =>
+      recommendationsPattern(cacheKeys.recommendations, req.userId),
+    ),
     controller.unlinkSkill,
   );
 

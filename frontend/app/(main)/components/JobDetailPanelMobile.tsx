@@ -13,6 +13,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface JobDetailPanelProps {
   jobId: number | undefined;
@@ -90,6 +91,24 @@ export const JobDetailPanelMobile = ({
                   ⚡ Upload your resume
                 </Button>
               </div>
+              {job.skills.length > 0 && (
+                <div>
+                  <h2 className="mb-2 text-base font-semibold">
+                    Requested skills
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {job.skills.map((skill) => (
+                      <Badge
+                        key={skill}
+                        variant="secondary"
+                        className="px-3 py-1"
+                      >
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="prose max-w-none pb-4">
                 <p className="mb-4 text-gray-700">{job.description || ""}</p>
               </div>

@@ -6,6 +6,10 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import {
+  cacheKeys,
+  recommendationsPattern,
+} from "@shared/infrastructure/cache-keys";
 
 export function createJobPreferenceRoutes({
   controller,
@@ -26,6 +30,9 @@ export function createJobPreferenceRoutes({
     "/me/job-preferences",
     validate(patchJobPreferenceSchema),
     invalidateCacheMiddleware(() => "users/me"),
+    invalidateCacheMiddleware((req) =>
+      recommendationsPattern(cacheKeys.recommendations, req.userId),
+    ),
     controller.updateJobPreferences,
   );
 

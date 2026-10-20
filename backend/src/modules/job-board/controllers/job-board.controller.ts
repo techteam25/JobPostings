@@ -8,6 +8,7 @@ import type {
   DeleteJobSchema,
   GetJobSchema,
   Job,
+  JobDetailWithEmployer,
   JobWithEmployer,
   JobWithSkills,
   UpdateJobSchema,
@@ -147,9 +148,7 @@ export class JobBoardController extends BaseController {
 
   getJobById = async (
     req: Request<GetJobSchema["params"]>,
-    res: Response<
-      ApiResponse<Job & { employer: { name: string; logoUrl: string | null } }>
-    >,
+    res: Response<ApiResponse<JobDetailWithEmployer>>,
   ) => {
     const jobId = parseInt(req.params.jobId);
     const userId = req.userId;
@@ -157,7 +156,7 @@ export class JobBoardController extends BaseController {
     const job = await this.jobBoardService.getJobById(jobId, userId);
 
     if (job.isSuccess) {
-      return this.sendSuccess<JobWithEmployer>(
+      return this.sendSuccess<JobDetailWithEmployer>(
         res,
         job.value,
         "Job retrieved successfully",

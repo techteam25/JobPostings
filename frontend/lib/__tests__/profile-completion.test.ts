@@ -7,6 +7,7 @@ import type {
   UserWithProfile,
   WorkExperience,
 } from "@/lib/types";
+import type { JobPreference } from "@/schemas/job-preferences";
 
 type ProfileInner = NonNullable<UserWithProfile["profile"]>;
 
@@ -121,19 +122,43 @@ function fullyPopulatedProfile(): Partial<UserProfile> &
   };
 }
 
+function makeJobPreference(
+  overrides: Partial<JobPreference> = {},
+): JobPreference {
+  return {
+    id: 1,
+    userProfileId: 10,
+    jobTypes: [],
+    compensationTypes: [],
+    volunteerHoursPerWeek: null,
+    workScheduleDays: null,
+    scheduleTypes: null,
+    workArrangements: null,
+    commuteTime: null,
+    willingnessToRelocate: null,
+    workAreas: null,
+    createdAt: "2024-01-01",
+    updatedAt: "2024-01-01",
+    ...overrides,
+  };
+}
+
 describe("computeProfileCompletion", () => {
   it("returns 0% and all items missing when profile is null", () => {
     const result = computeProfileCompletion(makeUser(null));
 
     expect(result.percentage).toBe(0);
     expect(result.label).toBe("Getting started");
-    expect(result.items).toHaveLength(8);
+    expect(result.items).toHaveLength(9);
     expect(result.items.every((item) => !item.done)).toBe(true);
-    expect(result.missing).toHaveLength(8);
+    expect(result.missing).toHaveLength(9);
   });
 
   it("returns 100% and empty missing when fully populated", () => {
-    const result = computeProfileCompletion(makeUser(fullyPopulatedProfile()));
+    const result = computeProfileCompletion(
+      makeUser(fullyPopulatedProfile()),
+      makeJobPreference({ jobTypes: ["full-time"] }),
+    );
 
     expect(result.percentage).toBe(100);
     expect(result.label).toBe("Strong");
@@ -146,9 +171,10 @@ describe("computeProfileCompletion", () => {
         ...fullyPopulatedProfile(),
         resumeUrl: "pending:resume-upload",
       }),
+      makeJobPreference({ jobTypes: ["full-time"] }),
     );
 
-    expect(result.percentage).toBe(88);
+    expect(result.percentage).toBe(89);
     expect(result.missing).toEqual([
       {
         id: "resume",
@@ -200,7 +226,7 @@ describe("computeProfileCompletion", () => {
       }),
     );
 
-    expect(result.percentage).toBe(75);
+    expect(result.percentage).toBe(67);
     expect(result.label).toBe("Good");
     expect(result.missing).toEqual([
       {
@@ -213,10 +239,52 @@ describe("computeProfileCompletion", () => {
         label: "Add your skills",
         href: "/me/profile/qualifications?tab=skills",
       },
+      {
+        id: "jobPreferences",
+        label: "Set your job preferences",
+        href: "/me/profile/preferences",
+      },
     ]);
 
     expect(result.missing.find((item) => item.id === "skills")?.href).toBe(
       "/me/profile/qualifications?tab=skills",
     );
+  });
+
+  it("marks job preferences done when a meaningful preference is set", () => {
+    const result = computeProfileCompletion(
+      makeUser({}),
+      makeJobPreference({ jobTypes: ["full-time"] }),
+    );
+
+    expect(
+      result.items.find((item) => item.id === "jobPreferences")?.done,
+    ).toBe(true);
+  });
+
+  it("counts a single-value preference field as done", () => {
+    const result = computeProfileCompletion(
+      makeUser({}),
+      makeJobPreference({ willingnessToRelocate: "willing_anywhere" }),
+    );
+
+    expect(
+      result.items.find((item) => item.id === "jobPreferences")?.done,
+    ).toBe(true);
+  });
+
+  it("marks job preferences not done when null or all empty", () => {
+    const whenNull = computeProfileCompletion(makeUser({}), null);
+    expect(
+      whenNull.items.find((item) => item.id === "jobPreferences")?.done,
+    ).toBe(false);
+
+    const whenEmpty = computeProfileCompletion(
+      makeUser({}),
+      makeJobPreference(),
+    );
+    expect(
+      whenEmpty.items.find((item) => item.id === "jobPreferences")?.done,
+    ).toBe(false);
   });
 });
