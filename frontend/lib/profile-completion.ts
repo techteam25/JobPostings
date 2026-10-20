@@ -1,4 +1,5 @@
 import type { UserWithProfile } from "@/lib/types";
+import type { JobPreference } from "@/schemas/job-preferences";
 
 const RESUME_PENDING_SENTINEL = "pending:resume-upload";
 
@@ -21,14 +22,40 @@ function hasText(value: string | null | undefined): boolean {
 }
 
 /**
- * Computes a profile-completion summary from a UserWithProfile.
+ * A job preference counts as "done" once the user has expressed at least one
+ * meaningful preference — any populated array or any filled single-value field.
+ */
+function hasJobPreference(
+  jobPreference: JobPreference | null | undefined,
+): boolean {
+  if (!jobPreference) {
+    return false;
+  }
+
+  return (
+    jobPreference.jobTypes.length > 0 ||
+    jobPreference.compensationTypes.length > 0 ||
+    (jobPreference.workArrangements?.length ?? 0) > 0 ||
+    (jobPreference.scheduleTypes?.length ?? 0) > 0 ||
+    (jobPreference.workScheduleDays?.length ?? 0) > 0 ||
+    (jobPreference.workAreas?.length ?? 0) > 0 ||
+    hasText(jobPreference.volunteerHoursPerWeek) ||
+    hasText(jobPreference.commuteTime) ||
+    hasText(jobPreference.willingnessToRelocate)
+  );
+}
+
+/**
+ * Computes a profile-completion summary from a UserWithProfile and the user's
+ * job preference.
  *
- * Eight equally weighted items are evaluated; the percentage is
- * round(doneCount / 8 * 100). A null profile, nullish fields, empty strings,
- * and empty arrays all count as "not done".
+ * Equally weighted items are evaluated; the percentage is
+ * round(doneCount / items.length * 100). A null profile, nullish fields, empty
+ * strings, and empty arrays all count as "not done".
  */
 export function computeProfileCompletion(
   user: UserWithProfile,
+  jobPreference?: JobPreference | null,
 ): ProfileCompletion {
   const profile = user.profile;
 
@@ -85,6 +112,12 @@ export function computeProfileCompletion(
       label: "Add your skills",
       href: "/me/profile/qualifications?tab=skills",
       done: (profile?.skills?.length ?? 0) > 0,
+    },
+    {
+      id: "jobPreferences",
+      label: "Set your job preferences",
+      href: "/me/profile/preferences",
+      done: hasJobPreference(jobPreference),
     },
   ];
 

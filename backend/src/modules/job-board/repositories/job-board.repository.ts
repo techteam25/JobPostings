@@ -200,6 +200,15 @@ export class JobBoardRepository
       const result = await db.query.jobsDetails.findFirst({
         where: eq(jobsDetails.id, id),
         with: {
+          skills: {
+            with: {
+              skill: {
+                columns: {
+                  name: true,
+                },
+              },
+            },
+          },
           employer: {
             columns: {
               id: true,
@@ -215,10 +224,15 @@ export class JobBoardRepository
       if (!result) {
         throw new NotFoundError(`Job with Id: ${id} not found`);
       }
-      const { employer, ...rest } = result;
+      const { employer, skills: jobSkillLinks, ...rest } = result;
+
+      // Flatten the job_skills → skills join to the same `string[]` of skill
+      // names the search/recommendations payload exposes, so the frontend can
+      // render one Badge list for both payload shapes.
+      const skillsArray = jobSkillLinks.map((s) => s.skill.name);
 
       return {
-        job: rest,
+        job: { ...rest, skills: skillsArray },
         employer,
       };
     });

@@ -1,6 +1,7 @@
 import type { Result } from "@shared/result";
 import type {
   Job,
+  JobDetailWithEmployer,
   JobWithEmployer,
   JobWithSkills,
   CreateJobSchema,
@@ -33,7 +34,7 @@ export interface JobBoardServicePort {
   getJobById(
     id: number,
     userId?: number | undefined,
-  ): Promise<Result<JobWithEmployer, Error>>;
+  ): Promise<Result<JobDetailWithEmployer, Error>>;
 
   incrementJobViews(jobId: number): Promise<Result<null, Error>>;
 
