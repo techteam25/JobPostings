@@ -46,6 +46,7 @@ export function SearchJobsList({
             logoUrl={result.logoUrl ?? null}
             onJobSelected={() => onJobSelected(jobId)}
             hasSaved={false}
+            skills={result.skills}
           />
         );
       })}

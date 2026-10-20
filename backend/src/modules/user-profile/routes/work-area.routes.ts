@@ -6,6 +6,10 @@ import {
   cacheMiddleware,
   invalidateCacheMiddleware,
 } from "@/middleware/cache.middleware";
+import {
+  cacheKeys,
+  recommendationsPattern,
+} from "@shared/infrastructure/cache-keys";
 
 export function createWorkAreaRoutes({
   controller,
@@ -26,6 +30,9 @@ export function createWorkAreaRoutes({
     "/me/job-preferences/work-areas",
     validate(updateWorkAreasSchema),
     invalidateCacheMiddleware(() => "users/me"),
+    invalidateCacheMiddleware((req) =>
+      recommendationsPattern(cacheKeys.recommendations, req.userId),
+    ),
     controller.updateWorkAreas,
   );
 

@@ -192,6 +192,13 @@ export type JobWithEmployer = {
     "id" | "name" | "city" | "state" | "logoUrl"
   > | null;
 };
+
+// Detail-view variant: the single-job fetch (`findJobById` / `getJobById`)
+// joins the job_skills → skills table and exposes the requested skill names
+// as a `string[]`, matching the shape the search/recommendations payload uses.
+export type JobDetailWithEmployer = Omit<JobWithEmployer, "job"> & {
+  job: Job & { skills: JobSkills["name"][] };
+};
 export type JobWithSkills = Job & {
   skills: JobSkills["name"][];
   employer: { name: string };

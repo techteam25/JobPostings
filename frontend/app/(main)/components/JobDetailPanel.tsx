@@ -10,6 +10,7 @@ import { useAuthenticationStatus } from "@/hooks/use-authentication-status";
 
 import { Bookmark, Building2, Menu, Briefcase } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -159,6 +160,21 @@ export const JobDetailPanel = ({ jobId }: JobDetailPanelProps) => {
             ⚡ Upload your resume
           </Button>
         </div>
+
+        {job.skills.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-foreground mb-2 text-lg font-semibold">
+              Requested skills
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {job.skills.map((skill) => (
+                <Badge key={skill} variant="secondary" className="px-3 py-1">
+                  {skill}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="prose max-w-none">
           <p className="text-card-foreground mb-4">{job.description || ""}</p>

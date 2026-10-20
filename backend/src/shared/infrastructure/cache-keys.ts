@@ -41,9 +41,36 @@ export const userScoped = (base: string, userId?: number): string =>
 export const userScopedPattern = (base: string, userId?: number): string =>
   userId ? `${base}*:user:${userId}` : base;
 
+/**
+ * Eviction pattern for ONE user's recommendations ("For You") keys.
+ *
+ * Unlike the user-SUFFIX keys handled by `userScopedPattern`, the
+ * recommendations key puts `:user:<id>` in the MIDDLE
+ * (`recommendations:user:<id>:page:<n>:limit:<n>`), so a suffix-anchored
+ * pattern would never match. This anchors on the `…:user:<id>:` PREFIX and
+ * wildcards the pagination tail, evicting every page/limit variant for the
+ * user. The embedded `*` tells `CacheService.invalidate` to use the pattern
+ * as-is (no trailing `*` appended). Falls back to the broad base prefix glob
+ * when no userId is available, which over-evicts but never leaves stale
+ * entries.
+ */
+export const recommendationsPattern = (
+  base: string,
+  userId?: number,
+): string => (userId ? `${base}:user:${userId}:*` : base);
+
 export const cacheKeys = {
   // ─── Job board ────────────────────────────────────────────────────
   jobs: "jobs",
+
+  // ─── Recommendations ──────────────────────────────────────────────
+  // Base for the "For You" per-user key
+  // (`recommendations:user:<id>:page:<n>:limit:<n>`), kept out of the
+  // `jobs` namespace. The `:user:<id>` segment is in the MIDDLE of the key,
+  // so evict one user's entries with
+  // `recommendationsPattern(cacheKeys.recommendations, req.userId)` — NOT
+  // `userScopedPattern`, which is suffix-anchored and would match nothing.
+  recommendations: "recommendations",
 
   // ─── Applications ─────────────────────────────────────────────────
   seekerApplications: "jobs/me/applications",
