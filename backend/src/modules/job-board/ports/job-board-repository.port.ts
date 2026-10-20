@@ -2,6 +2,7 @@ import type { BaseRepositoryPort } from "@shared/ports/base-repository.port";
 import type { jobsDetails } from "@/db/schema";
 import type {
   Job,
+  JobDetailWithEmployer,
   JobSkills,
   JobWithEmployer,
   JobWithSkills,
@@ -23,9 +24,10 @@ export interface JobBoardRepositoryPort extends BaseRepositoryPort<
 
   updateJob(jobData: UpdateJob, jobId: number): Promise<JobWithSkills>;
 
-  findJobById(
-    id: number,
-  ): Promise<{ job: Job; employer: JobWithEmployer["employer"] }>;
+  findJobById(id: number): Promise<{
+    job: JobDetailWithEmployer["job"];
+    employer: JobWithEmployer["employer"];
+  }>;
 
   findActiveJobs(options?: { page?: number; limit?: number }): Promise<{
     items: Omit<JobWithEmployer, "hasApplied" | "hasSaved">[];

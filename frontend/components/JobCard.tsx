@@ -33,7 +33,12 @@ interface JobCardType {
   onJobSelected: () => void;
   isSelected: boolean;
   hasSaved?: boolean;
+  skills?: string[];
 }
+
+// Number of skill chips shown inline on a card before collapsing the rest
+// into a "+N more" badge.
+const MAX_VISIBLE_SKILLS = 4;
 
 export const JobCard = memo(
   ({
@@ -49,7 +54,11 @@ export const JobCard = memo(
     onJobSelected,
     isSelected,
     hasSaved = false,
+    skills = [],
   }: JobCardType) => {
+    const visibleSkills = skills.slice(0, MAX_VISIBLE_SKILLS);
+    const hiddenSkillCount = skills.length - visibleSkills.length;
+
     const { isAuthenticated } = useAuthenticationStatus();
     const [isPending, startTransition] = useTransition();
     const queryClient = useQueryClient();
@@ -136,10 +145,24 @@ export const JobCard = memo(
           <p className="text-secondary-foreground mb-2 line-clamp-2 text-xs md:line-clamp-3">
             {jobDescription}
           </p>
-          <div className="text-muted-foreground mb-2 hidden text-xs md:block">
-            <span className="font-semibold">Skills:</span> CI/CD, Customer
-            retention, Software deployment, Salesforce, E-commerce
-          </div>
+          {skills.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {visibleSkills.map((skill) => (
+                <Badge
+                  key={skill}
+                  variant="secondary"
+                  className="px-2 py-0 text-[10px]"
+                >
+                  {skill}
+                </Badge>
+              ))}
+              {hiddenSkillCount > 0 && (
+                <Badge variant="secondary" className="px-2 py-0 text-[10px]">
+                  +{hiddenSkillCount} more
+                </Badge>
+              )}
+            </div>
+          )}
           <div className="text-muted-foreground text-xs">{posted}</div>
         </CardContent>
       </Card>

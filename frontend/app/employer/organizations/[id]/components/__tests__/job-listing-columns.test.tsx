@@ -28,6 +28,7 @@ function createJob(overrides: Partial<Job> = {}): Job {
     applicationDeadline: null,
     experience: null,
     employerId: 10,
+    skills: [],
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
     ...overrides,

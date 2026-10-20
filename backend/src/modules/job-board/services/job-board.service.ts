@@ -24,7 +24,7 @@ import type { OrgMembershipForJobPort } from "@/modules/job-board/ports/org-memb
 import type { UserContactQueryPort } from "@/modules/job-board/ports/user-contact-query.port";
 
 import type {
-  JobWithEmployer,
+  JobDetailWithEmployer,
   JobWithSkills,
   CreateJobSchema,
   UpdateJob,
@@ -190,7 +190,7 @@ export class JobBoardService
   async getJobById(
     id: number,
     userId?: number | undefined,
-  ): Promise<Result<JobWithEmployer, Error>> {
+  ): Promise<Result<JobDetailWithEmployer, Error>> {
     try {
       const job = await this.jobBoardRepository.findJobById(id);
 
