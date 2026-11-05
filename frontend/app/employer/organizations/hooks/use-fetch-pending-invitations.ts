@@ -15,10 +15,9 @@ export const useFetchPendingInvitations = (
     queryFn: async () => {
       const response = await instance.get<
         ApiResponse<PendingOrganizationInvitation[]>
-      >(
-        `/organizations/${organizationId}/invitations`,
-        { withCredentials: true },
-      );
+      >(`/organizations/${organizationId}/invitations`, {
+        withCredentials: true,
+      });
       return response.data;
     },
     enabled: enabled && !!organizationId,

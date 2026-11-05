@@ -3,7 +3,14 @@
 import { memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { JobAlert } from "@/lib/types";
@@ -18,7 +25,13 @@ interface JobAlertCardProps {
   isPauseLoading?: boolean;
 }
 
-export const JobAlertCard = memo(function JobAlertCard({ alert, onEdit, onDelete, onTogglePause, isPauseLoading }: JobAlertCardProps) {
+export const JobAlertCard = memo(function JobAlertCard({
+  alert,
+  onEdit,
+  onDelete,
+  onTogglePause,
+  isPauseLoading,
+}: JobAlertCardProps) {
   const getStatusBadge = () => {
     if (!alert.isActive) {
       return <Badge variant="secondary">Inactive</Badge>;
@@ -70,7 +83,7 @@ export const JobAlertCard = memo(function JobAlertCard({ alert, onEdit, onDelete
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="mb-2 flex items-center gap-2">
               <CardTitle className="text-lg">{alert.name}</CardTitle>
               {getStatusBadge()}
             </div>
@@ -92,26 +105,26 @@ export const JobAlertCard = memo(function JobAlertCard({ alert, onEdit, onDelete
         )}
 
         {/* Location and Remote */}
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="text-muted-foreground flex items-center gap-4 text-sm">
           {location && (
             <div className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
               <span>{location}</span>
             </div>
           )}
-          {alert.includeRemote && (
-            <Badge variant="outline">Remote OK</Badge>
-          )}
+          {alert.includeRemote && <Badge variant="outline">Remote OK</Badge>}
         </div>
 
         {/* Frequency and Last Sent */}
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="text-muted-foreground flex items-center gap-4 text-sm">
           <div className="flex items-center gap-1">
             <Clock className="h-4 w-4" />
             <span className="capitalize">{alert.frequency}</span>
           </div>
           {alert.lastSentAt && (
-            <span>Last sent: {format(new Date(alert.lastSentAt), "MMM d, yyyy")}</span>
+            <span>
+              Last sent: {format(new Date(alert.lastSentAt), "MMM d, yyyy")}
+            </span>
           )}
         </div>
 
@@ -139,11 +152,15 @@ export const JobAlertCard = memo(function JobAlertCard({ alert, onEdit, onDelete
 
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => onEdit(alert)}>
-            <Pencil className="h-4 w-4 mr-1" />
+            <Pencil className="mr-1 h-4 w-4" />
             Edit
           </Button>
-          <Button variant="destructive" size="sm" onClick={() => onDelete(alert)}>
-            <Trash2 className="h-4 w-4 mr-1" />
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => onDelete(alert)}
+          >
+            <Trash2 className="mr-1 h-4 w-4" />
             Delete
           </Button>
         </div>
