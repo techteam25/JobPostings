@@ -1,0 +1,691 @@
+import { fail, ok } from "@shared/result";
+import { BaseService } from "@shared/base/base.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
+
+import {
+  AppError,
+  BadRequestError,
+  ConflictError,
+  DatabaseError,
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from "@shared/errors";
+import { StorageFolder } from "@shared/constants/storage-folders";
+import type { FileUploadJobData } from "@/validations/file.validation";
+import type {
+  NewOrganization,
+  OrganizationRole,
+} from "@/validations/organization.validation";
+import type { OrganizationsServicePort } from "@/modules/organizations";
+import type { OrganizationsRepositoryPort } from "@/modules/organizations";
+import type { IntentSyncPort } from "@/modules/organizations/ports/intent-sync.port";
+import { OrganizationsLogoFile } from "@/modules/organizations/types/organizations.module.types";
+import type { EmployerDocument } from "@shared/ports/typesense-employer-service.port";
+import type { EventBusPort } from "@shared/events";
+import { createOwnershipTransferredEvent } from "@/modules/organizations/events/ownership-transferred.event";
+
+/**
+ * Service class for managing organization CRUD and membership operations.
+ * Does NOT include invitation or employer-facing application methods
+ * (those belong to their respective modules).
+ */
+export class OrganizationsService
+  extends BaseService
+  implements OrganizationsServicePort
+{
+  constructor(
+    private organizationsRepository: OrganizationsRepositoryPort,
+    private intentSync: IntentSyncPort,
+    private eventBus: EventBusPort,
+  ) {
+    super();
+  }
+
+  /**
+   * Retrieves all organizations with optional pagination and search.
+   * @param options Pagination and search options including page, limit, and searchTerm.
+   * @returns A Result containing the organizations or an error.
+   */
+  async getAllOrganizations(
+    options: { page?: number; limit?: number; searchTerm?: string } = {},
+  ) {
+    try {
+      const { searchTerm = "", ...paginationOptions } = options;
+
+      const results = await this.organizationsRepository.searchOrganizations(
+        searchTerm,
+        paginationOptions,
+      );
+
+      return ok(results);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to fetch organizations"));
+    }
+  }
+
+  /**
+   * Retrieves an organization by its ID, including members.
+   * @param id The ID of the organization.
+   * @returns A Result containing the organization or an error.
+   */
+  async getOrganizationById(id: number) {
+    try {
+      const organization =
+        await this.organizationsRepository.findByIdIncludingMembers(id);
+      if (!organization) {
+        return fail(new NotFoundError("Organization not found"));
+      }
+
+      return ok(organization);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to fetch organization"));
+    }
+  }
+
+  /**
+   * Creates a new organization.
+   * @param organizationData The data for the new organization.
+   * @param sessionUserId The ID of the user creating the organization.
+   * @param correlationId A correlation ID for tracking.
+   * @returns A Result containing the created organization or an error.
+   */
+  async createOrganization(
+    organizationData: NewOrganization,
+    sessionUserId: number,
+    correlationId: string,
+  ) {
+    try {
+      // Check if organization with same name exists
+      const existingOrg = await this.organizationsRepository.findByName(
+        organizationData.name,
+      );
+      if (existingOrg) {
+        return fail(
+          new ConflictError("Organization with this name already exists"),
+        );
+      }
+
+      const createdOrganization =
+        await this.organizationsRepository.createOrganization(
+          organizationData,
+          sessionUserId,
+        );
+
+      if (!createdOrganization) {
+        return fail(new DatabaseError("Failed to create organization"));
+      }
+
+      // Sync denormalized intent to user table for session cookie cache
+      await this.intentSync.syncIntentToUser(
+        sessionUserId,
+        "employer",
+        "completed",
+      );
+
+      // Index employer in Typesense for search JOIN
+      await queueService.addJob<EmployerDocument & { correlationId: string }>(
+        QUEUE_NAMES.TYPESENSE_EMPLOYER_QUEUE,
+        "indexEmployer",
+        {
+          id: createdOrganization.id.toString(),
+          name: createdOrganization.name,
+          logoUrl: createdOrganization.logoUrl ?? undefined,
+          city: createdOrganization.city,
+          state: createdOrganization.state,
+          correlationId,
+        },
+      );
+
+      // Upload logo to cloud storage if provided in organizationData
+      if (organizationData.logo) {
+        await queueService.addJob<FileUploadJobData>(
+          QUEUE_NAMES.FILE_UPLOAD_QUEUE,
+          "uploadFile",
+          {
+            entityType: "organization",
+            entityId: createdOrganization.id.toString(),
+            mergeWithExisting: false,
+            tempFiles: [
+              {
+                originalname: organizationData.logo.originalname,
+                tempPath: organizationData.logo.path,
+                size: organizationData.logo.size,
+                mimetype: organizationData.logo.mimetype,
+              },
+            ],
+            userId: sessionUserId.toString(),
+            folder: StorageFolder.ORGANIZATION_LOGOS,
+            correlationId,
+          },
+        );
+      }
+
+      return ok(createdOrganization);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to create organization"));
+    }
+  }
+
+  /**
+   * Uploads a logo for an organization.
+   * @param userId The ID of the user uploading the logo.
+   * @param organizationId The ID of the organization.
+   * @param logoFile The logo file to upload.
+   * @param correlationId A correlation ID for tracking.
+   * @returns A Result indicating success or failure.
+   */
+  async uploadOrganizationLogo(
+    userId: number,
+    organizationId: number,
+    logoFile: OrganizationsLogoFile | undefined,
+    correlationId: string,
+  ) {
+    if (!logoFile) {
+      return fail(new BadRequestError("No file uploaded"));
+    }
+    try {
+      await queueService.addJob<FileUploadJobData>(
+        QUEUE_NAMES.FILE_UPLOAD_QUEUE,
+        "uploadFile",
+        {
+          entityType: "organization",
+          entityId: organizationId.toString(),
+          mergeWithExisting: true,
+          tempFiles: [
+            {
+              originalname: logoFile.originalname,
+              tempPath: logoFile.path,
+              size: logoFile.size,
+              mimetype: logoFile.mimetype,
+            },
+          ],
+          userId: userId.toString(),
+          folder: StorageFolder.ORGANIZATION_LOGOS,
+          correlationId,
+        },
+      );
+
+      return ok({ message: "Logo upload initiated" });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to upload organization logo"));
+    }
+  }
+
+  /**
+   * Updates an existing organization.
+   * @param id The ID of the organization to update.
+   * @param updateData The data to update.
+   * @returns A Result containing the updated organization or an error.
+   */
+  async updateOrganization(id: number, updateData: Partial<NewOrganization>) {
+    try {
+      const success = await this.organizationsRepository.update(id, updateData);
+      if (!success) {
+        return fail(new DatabaseError("Failed to update organization"));
+      }
+
+      const result = await this.getOrganizationById(id);
+
+      if (result.isSuccess) {
+        const org = result.value;
+        await queueService.addJob<EmployerDocument & { correlationId: string }>(
+          QUEUE_NAMES.TYPESENSE_EMPLOYER_QUEUE,
+          "updateEmployerIndex",
+          {
+            id: org.id.toString(),
+            name: org.name,
+            logoUrl: org.logoUrl ?? undefined,
+            city: org.city,
+            state: org.state,
+            correlationId: crypto.randomUUID(),
+          },
+        );
+      }
+
+      return result;
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to update organization"));
+    }
+  }
+
+  /**
+   * Deletes an organization.
+   * @param id The ID of the organization to delete.
+   * @returns A Result containing a success message or an error.
+   */
+  async deleteOrganization(id: number) {
+    try {
+      const success = await this.organizationsRepository.delete(id);
+      if (!success) {
+        return fail(new Error("Failed to delete organization"));
+      }
+
+      await queueService.addJob<{ id: string; correlationId: string }>(
+        QUEUE_NAMES.TYPESENSE_EMPLOYER_QUEUE,
+        "deleteEmployerIndex",
+        {
+          id: id.toString(),
+          correlationId: crypto.randomUUID(),
+        },
+      );
+
+      return ok({ message: "Organization deleted successfully" });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to delete organization"));
+    }
+  }
+
+  /**
+   * Checks if a user has permission to post jobs.
+   * @param userId The ID of the user.
+   * @returns A Result containing the permission status or an error.
+   */
+  async isRolePermitted(userId: number) {
+    try {
+      return ok(await this.organizationsRepository.canPostJobs(userId));
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to verify permission to post jobs"),
+      );
+    }
+  }
+
+  /**
+   * Checks if a user has permission to reject applications for an organization.
+   * @param userId The ID of the user.
+   * @param organizationId The ID of the organization.
+   * @returns A Result containing the permission status or an error.
+   */
+  async isRolePermittedToRejectApplications(
+    userId: number,
+    organizationId: number,
+  ) {
+    try {
+      const canReject =
+        await this.organizationsRepository.canRejectJobApplications(
+          userId,
+          organizationId,
+        );
+
+      if (!canReject) {
+        return fail(
+          new ForbiddenError(
+            "User does not have permission to reject applications",
+          ),
+        );
+      }
+
+      return ok(canReject);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to verify permission to reject applications"),
+      );
+    }
+  }
+
+  /**
+   * Retrieves organization members by their role.
+   * @param organizationId The ID of the organization.
+   * @param role The role to filter by (owner, admin, recruiter).
+   * @returns A Result containing the members or an error.
+   */
+  async getOrganizationMembersByRole(
+    organizationId: number,
+    role: "owner" | "admin" | "recruiter",
+  ) {
+    try {
+      const members =
+        await this.organizationsRepository.getOrganizationMembersByRole(
+          organizationId,
+          role,
+        );
+
+      if (!members) {
+        return fail(
+          new NotFoundError("No members found with the specified role"),
+        );
+      }
+      return ok(members);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to fetch organization members"));
+    }
+  }
+
+  /**
+   * Retrieves the organization member for a given user.
+   * @param sessionUserId The ID of the user.
+   * @param organizationId The ID of the organization.
+   * @returns A Result containing the member or an error.
+   */
+  async getOrganizationMember(sessionUserId: number, organizationId: number) {
+    try {
+      const member = await this.organizationsRepository.findByContact(
+        sessionUserId,
+        organizationId,
+      );
+      if (!member) {
+        return fail(new NotFoundError("Organization member not found"));
+      }
+      return ok(member);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to fetch organization member"));
+    }
+  }
+
+  /**
+   * Retrieves the first active organization membership for a user.
+   * @param userId The ID of the user.
+   * @returns A Result containing the member or an error.
+   */
+  async getFirstOrganizationForUser(userId: number) {
+    try {
+      const member =
+        await this.organizationsRepository.findMemberByUserId(userId);
+      if (!member) {
+        return fail(new NotFoundError("Organization member not found"));
+      }
+      return ok(member);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to fetch organization member"));
+    }
+  }
+
+  /**
+   * Retrieves all active organizations for a user.
+   * @param userId The ID of the user.
+   * @returns A Result containing the memberships or an error.
+   */
+  async getUserOrganizations(userId: number) {
+    try {
+      const memberships =
+        await this.organizationsRepository.getUserOrganizations(userId);
+      return ok(memberships);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to fetch user organizations"));
+    }
+  }
+
+  /**
+   * Checks if a user has `delete` permission for an organization.
+   * @param userId The ID of the user.
+   * @param organizationId The ID of the organization.
+   * @returns A boolean indicating if the user has `delete` permission.
+   */
+  async hasDeletePermission(
+    userId: number,
+    organizationId: number,
+  ): Promise<boolean> {
+    try {
+      return await this.organizationsRepository.hasDeletePermission(
+        userId,
+        organizationId,
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Removes an active member from an organization.
+   * Owners cannot be removed through this action.
+   * @param organizationId The ID of the organization.
+   * @param memberId The ID of the membership record to remove.
+   * @returns A Result containing a success message or an error.
+   */
+  async removeOrganizationMember(organizationId: number, memberId: number) {
+    try {
+      const memberResult = await this.requireActiveNonOwnerMember(
+        organizationId,
+        memberId,
+        "Organization owners cannot be removed. Transfer ownership first.",
+      );
+      if (memberResult.isFailure) {
+        return this.handleError(memberResult.error);
+      }
+
+      const deactivated = await this.organizationsRepository.deactivateMember(
+        memberId,
+        organizationId,
+      );
+
+      if (!deactivated) {
+        return fail(new DatabaseError("Failed to remove organization member"));
+      }
+
+      return ok({ message: "Member removed successfully" });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(new DatabaseError("Failed to remove organization member"));
+    }
+  }
+
+  /**
+   * Updates an active member's role in an organization.
+   * Owners cannot have their role changed through this action.
+   * @param organizationId The ID of the organization.
+   * @param memberId The ID of the membership record to update.
+   * @param role The new role to assign.
+   * @returns A Result containing a success message or an error.
+   */
+  async updateOrganizationMemberRole(
+    organizationId: number,
+    memberId: number,
+    role: OrganizationRole,
+  ) {
+    try {
+      const memberResult = await this.requireActiveNonOwnerMember(
+        organizationId,
+        memberId,
+        "Organization owners cannot have their role changed. Transfer ownership first.",
+      );
+      if (memberResult.isFailure) {
+        return this.handleError(memberResult.error);
+      }
+
+      const updated = await this.organizationsRepository.updateMemberRole(
+        memberId,
+        organizationId,
+        role,
+      );
+
+      if (!updated) {
+        return fail(
+          new DatabaseError("Failed to update organization member role"),
+        );
+      }
+
+      return ok({ message: "Member role updated successfully" });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to update organization member role"),
+      );
+    }
+  }
+
+  /**
+   * Transfers organization ownership to an active admin in one step.
+   * The caller becomes admin; the successor becomes the only owner.
+   */
+  async transferOwnership(
+    organizationId: number,
+    actorUserId: number,
+    successorMemberId: number,
+  ) {
+    try {
+      let actorMember;
+      try {
+        actorMember = await this.organizationsRepository.findByContact(
+          actorUserId,
+          organizationId,
+        );
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          return fail(new ForbiddenError());
+        }
+        throw error;
+      }
+
+      if (actorMember.role !== "owner") {
+        return fail(new ForbiddenError());
+      }
+
+      const successor = await this.organizationsRepository.findMemberById(
+        successorMemberId,
+        organizationId,
+      );
+
+      const successorInvalid =
+        !successor ||
+        !successor.isActive ||
+        successor.role !== "admin" ||
+        successor.id === actorMember.id ||
+        successor.userId === actorUserId;
+
+      if (successorInvalid) {
+        return fail(
+          new ConflictError(
+            "Ownership can only be transferred to another active admin.",
+            { code: "OWNERSHIP_SUCCESSOR_INVALID" },
+          ),
+        );
+      }
+
+      const transferred = await this.organizationsRepository.transferOwnership({
+        organizationId,
+        previousOwnerMemberId: actorMember.id,
+        newOwnerMemberId: successor.id,
+      });
+
+      if (!transferred) {
+        let stillOwner;
+        try {
+          stillOwner = await this.organizationsRepository.findByContact(
+            actorUserId,
+            organizationId,
+          );
+        } catch (error) {
+          if (error instanceof NotFoundError) {
+            return fail(new ForbiddenError());
+          }
+          throw error;
+        }
+
+        if (stillOwner.role !== "owner") {
+          return fail(new ForbiddenError());
+        }
+
+        return fail(
+          new ConflictError(
+            "Ownership can only be transferred to another active admin.",
+            { code: "OWNERSHIP_SUCCESSOR_INVALID" },
+          ),
+        );
+      }
+
+      const organization =
+        await this.organizationsRepository.findById(organizationId);
+      const newOwnerMember = await this.organizationsRepository.findByContact(
+        successor.userId,
+        organizationId,
+      );
+
+      await this.eventBus.publish(
+        createOwnershipTransferredEvent({
+          organizationId,
+          organizationName: organization.name,
+          previousOwnerUserId: actorMember.userId,
+          previousOwnerFullName: actorMember.user.fullName,
+          newOwnerUserId: successor.userId,
+          newOwnerEmail: newOwnerMember.user.email,
+          newOwnerFullName: newOwnerMember.user.fullName,
+        }),
+      );
+
+      return ok({
+        message: "Ownership transferred successfully",
+        previousOwnerUserId: actorMember.userId,
+        newOwnerUserId: successor.userId,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        return this.handleError(error);
+      }
+      return fail(
+        new DatabaseError("Failed to transfer organization ownership"),
+      );
+    }
+  }
+
+  /**
+   * Shared preamble for member mutations: must exist, be active, and not be owner.
+   */
+  private async requireActiveNonOwnerMember(
+    organizationId: number,
+    memberId: number,
+    ownerForbiddenMessage: string,
+  ) {
+    const member = await this.organizationsRepository.findMemberById(
+      memberId,
+      organizationId,
+    );
+
+    if (!member) {
+      return fail(new NotFoundError("Organization member not found"));
+    }
+
+    if (!member.isActive) {
+      return fail(new ValidationError("Member is not active"));
+    }
+
+    if (member.role === "owner") {
+      return fail(new ForbiddenError(ownerForbiddenMessage));
+    }
+
+    return ok(member);
+  }
+}

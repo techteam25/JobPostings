@@ -41,7 +41,7 @@ export const useCreateJobAlert = () => {
     },
     onSuccess: (result) => {
       const newAlert = result.data;
-      
+
       queryClient.setQueriesData<PaginatedApiResponse<JobAlert>>(
         { queryKey: ["job-alerts"] },
         (old) => {
@@ -54,10 +54,8 @@ export const useCreateJobAlert = () => {
       );
       toast.success("Job alert created successfully");
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to create job alert",
-      );
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create job alert");
     },
   });
 };
@@ -199,7 +197,7 @@ export const useTogglePauseJobAlert = () => {
 
       return { previousAlerts };
     },
-    onError: (_err, { isPaused }, context) => {
+    onError: (_err, _, context) => {
       if (context?.previousAlerts) {
         context.previousAlerts.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);

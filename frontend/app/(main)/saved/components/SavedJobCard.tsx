@@ -1,38 +1,57 @@
 "use client";
 
+import { memo, useCallback, useTransition } from "react";
+import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { SavedJob } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { BsBookmarkFill } from "react-icons/bs";
-import { ImOffice } from "react-icons/im";
+import { Bookmark, Building2 } from "lucide-react";
 import { formatToRelativeDate } from "@/lib/utils";
 import { removeSavedJobForUser } from "@/lib/api";
+import { toast } from "sonner";
 
 interface SavedJobCardProps {
   savedJob: SavedJob;
 }
 
-export const SavedJobCard = ({ savedJob }: SavedJobCardProps) => {
+export const SavedJobCard = memo(function SavedJobCard({
+  savedJob,
+}: SavedJobCardProps) {
+  const [isPending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
+
+  const handleRemove = useCallback(() => {
+    startTransition(async () => {
+      const result = await removeSavedJobForUser(savedJob.job.id);
+      if (!result.success) toast.error("Failed to remove saved job");
+      await queryClient.invalidateQueries({
+        queryKey: ["job-details", savedJob.job.id],
+      });
+    });
+  }, [savedJob.job.id, queryClient]);
+
   return (
     <Card className="group overflow-hidden transition-shadow duration-300 hover:shadow-lg">
       <div className="p-6">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center justify-start">
-            <div className="flex size-8 flex-shrink-0 justify-center rounded-full">
-              <ImOffice className="text-muted-foreground mr-2 size-5" />
+            <div className="flex size-8 shrink-0 justify-center rounded-full">
+              <Building2 className="text-muted-foreground mr-2 size-5" />
             </div>
-            <span className="text-secondary-foreground line-clamp-1 text-sm text-ellipsis">
+            <span className="text-secondary-foreground line-clamp-1 text-sm font-medium text-ellipsis">
               {savedJob.job.employer.name}
             </span>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="text-secondary-foreground hover:text-foreground cursor-pointer hover:bg-transparent"
-            onClick={() => removeSavedJobForUser(savedJob.job.id)}
+            className="text-secondary-foreground hover:text-foreground cursor-pointer hover:bg-transparent [&_svg]:size-5"
+            onClick={handleRemove}
+            disabled={isPending}
           >
-            <BsBookmarkFill />
+            <Bookmark className="fill-primary stroke-primary" />
           </Button>
         </div>
 
@@ -67,12 +86,16 @@ export const SavedJobCard = ({ savedJob }: SavedJobCardProps) => {
               Job Closed
             </Button>
           ) : (
-            <Button className="bg-primary/90 text-primary-foreground hover:bg-primary w-full cursor-pointer">
-              View Job Details
+            <Button
+              asChild
+              className="bg-primary/90 text-primary-foreground hover:bg-primary w-full cursor-pointer"
+            >
+              <Link href={`/jobs/${savedJob.job.id}`}>View Job Details</Link>
             </Button>
           )}
         </div>
       </div>
     </Card>
   );
-};
+});
+SavedJobCard.displayName = "SavedJobCard";

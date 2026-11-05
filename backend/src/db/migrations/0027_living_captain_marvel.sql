@@ -1,0 +1,2 @@
+ALTER TABLE `work_experiences` DROP CONSTRAINT `resigned_end_date_check`;--> statement-breakpoint
+ALTER TABLE `work_experiences` ADD CONSTRAINT `resigned_end_date_check` CHECK ((`work_experiences`.`current` = true OR `work_experiences`.`end_date` IS NOT NULL));

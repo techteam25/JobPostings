@@ -7,32 +7,60 @@ on:
       - 'frontend/**'
   workflow_dispatch:
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/jobpostings-frontend
+
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Check backend health before deployment
-        run: |
-          echo "Checking if backend is healthy before deploying frontend..."
-          curl -f https://api.getinvolved.team/health || \
-          (echo "❌ Backend is not healthy, aborting frontend deployment" && exit 1)
-          echo "✅ Backend is healthy, proceeding with frontend deployment"
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create deployment tarball
-        run: |
-          cd frontend
-          tar -czf ../frontend-deploy.tar.gz \
-            --exclude='node_modules' \
-            --exclude='.next' \
-            --exclude='.git' \
-            --exclude='.env*' \
-            --exclude='*.log' \
-            .
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_SERVER_URL=${{ vars.NEXT_PUBLIC_SERVER_URL }}
+            NEXT_PUBLIC_FRONTEND_URL=${{ vars.NEXT_PUBLIC_FRONTEND_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -40,30 +68,41 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Transfer deployment package
-        run: |
-          scp -i ~/.ssh/deploy_key frontend-deploy.tar.gz \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-      - name: Transfer deployment script
+      - name: Sync config files to server
         run: |
-          scp -i ~/.ssh/deploy_key scripts/deploy-frontend.sh \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+          scp -i ~/.ssh/deploy_key docker-compose.prod.yml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/jobpostings/docker-compose.prod.yml
 
-      - name: Deploy and restart service
+      - name: Pull image and restart frontend
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            'bash /tmp/deploy-frontend.sh'
+          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd /opt/jobpostings
+            docker compose --env-file .env.production -f docker-compose.prod.yml pull frontend
+            docker compose --env-file .env.production -f docker-compose.prod.yml up -d frontend
+            docker compose --env-file .env.production -f docker-compose.prod.yml restart nginx
+          EOF
 
       - name: Health check
         run: |
-          echo "Waiting 15 seconds for frontend service to start..."
-          sleep 15
-          echo "Checking frontend health..."
-          curl -f https://site.getinvolved.team || exit 1
-          echo "Frontend deployment successful!"
+          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            set -e
+            cd /opt/jobpostings
+            echo "Probing frontend container directly (bypasses Cloudflare)..."
+            for i in $(seq 1 12); do
+              if docker compose --env-file .env.production -f docker-compose.prod.yml exec -T frontend \
+                  bun -e "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+                echo "Frontend deployment successful!"
+                exit 0
+              fi
+              echo "Frontend not healthy yet (attempt $i/12); retrying in 5s..."
+              sleep 5
+            done
+            echo "Frontend failed health check"
+            exit 1
+          EOF
 
       - name: Cleanup
         if: always()
-        run: |
-          rm -f ~/.ssh/deploy_key
+        run: rm -f ~/.ssh/deploy_key

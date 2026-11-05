@@ -4,7 +4,6 @@ import { request, TestHelpers } from "@tests/utils/testHelpers";
 import {
   seedJobApplicationsScenario,
   seedOrgScenario,
-  seedUserScenario,
 } from "@tests/utils/seedScenarios";
 import { organizationFixture } from "@tests/utils/fixtures";
 import { expect } from "vitest";

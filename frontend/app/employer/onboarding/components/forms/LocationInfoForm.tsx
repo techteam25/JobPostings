@@ -184,7 +184,7 @@ const LocationInfoForm = ({
                       <SelectTrigger
                         id="form-select-state"
                         aria-invalid={isInvalid}
-                        className="h-12 min-w-[120px] rounded-xl"
+                        className="h-12 min-w-30 rounded-xl"
                       >
                         <SelectValue placeholder="Select State" />
                       </SelectTrigger>
@@ -226,7 +226,7 @@ const LocationInfoForm = ({
                       <SelectTrigger
                         id="form-select-country"
                         aria-invalid={isInvalid}
-                        className="h-12 min-w-[120px] rounded-xl"
+                        className="h-12 min-w-30 rounded-xl"
                       >
                         <SelectValue placeholder="Select Country" />
                       </SelectTrigger>

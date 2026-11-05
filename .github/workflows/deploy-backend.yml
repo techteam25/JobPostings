@@ -7,26 +7,57 @@ on:
       - 'backend/**'
   workflow_dispatch:
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/jobpostings-backend
+
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Create deployment tarball
-        run: |
-          cd backend
-          tar -czf ../backend-deploy.tar.gz \
-            --exclude='node_modules' \
-            --exclude='dist' \
-            --exclude='.git' \
-            --exclude='.env*' \
-            --exclude='*.log' \
-            --exclude='mysql-data' \
-            .
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -34,30 +65,41 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Transfer deployment package
-        run: |
-          scp -i ~/.ssh/deploy_key backend-deploy.tar.gz \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-      - name: Transfer deployment script
+      - name: Sync config files to server
         run: |
-          scp -i ~/.ssh/deploy_key scripts/deploy-backend.sh \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+          scp -i ~/.ssh/deploy_key docker-compose.prod.yml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/jobpostings/docker-compose.prod.yml
 
-      - name: Deploy and restart service
+      - name: Pull image and restart backend
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            'bash /tmp/deploy-backend.sh'
+          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd /opt/jobpostings
+            docker compose --env-file .env.production -f docker-compose.prod.yml pull backend migrations typesense-migrations
+            docker compose --env-file .env.production -f docker-compose.prod.yml up -d backend
+            docker compose --env-file .env.production -f docker-compose.prod.yml restart nginx
+          EOF
 
       - name: Health check
         run: |
-          echo "Waiting 10 seconds for service to start..."
-          sleep 10
-          echo "Checking backend health..."
-          curl -f https://api.getinvolved.team/health || exit 1
-          echo "Backend deployment successful!"
+          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            set -e
+            cd /opt/jobpostings
+            echo "Probing backend container directly (bypasses Cloudflare)..."
+            for i in $(seq 1 18); do
+              if docker compose --env-file .env.production -f docker-compose.prod.yml exec -T backend \
+                  bun -e "fetch('http://localhost:5500/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+                echo "Backend deployment successful!"
+                exit 0
+              fi
+              echo "Backend not healthy yet (attempt $i/18); retrying in 5s..."
+              sleep 5
+            done
+            echo "Backend failed health check"
+            exit 1
+          EOF
 
       - name: Cleanup
         if: always()
-        run: |
-          rm -f ~/.ssh/deploy_key
+        run: rm -f ~/.ssh/deploy_key

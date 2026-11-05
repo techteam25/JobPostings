@@ -50,7 +50,7 @@ export class TestHelpers {
   /**
    * Creates a mock request body
    */
-  static createMockRequestBody(override: Record<string, any> = {}) {
+  static createMockRequestBody(override: Record<string, unknown> = {}) {
     return {
       name: "Test Name",
       email: "test@example.com",

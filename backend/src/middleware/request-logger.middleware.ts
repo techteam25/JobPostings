@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
-import logger from "@/logger";
+import logger from "@shared/logger";
 
 /**
  * Middleware to log incoming HTTP requests and their responses

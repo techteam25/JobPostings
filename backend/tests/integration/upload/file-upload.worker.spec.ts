@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { db } from "@/db/connection";
-import { firebaseUploadService } from "@/infrastructure/firebase-upload.service";
+import { db } from "@shared/db/connection";
+import { firebaseUploadService } from "@shared/infrastructure/firebase-upload.service";
 
 import {
   FileUploadJobData,
@@ -9,7 +9,7 @@ import {
 } from "@/validations/file.validation";
 
 // Mock the database
-vi.mock("@/db/connection", () => ({
+vi.mock("@shared/db/connection", () => ({
   db: {
     query: {
       jobApplications: {
@@ -31,7 +31,7 @@ vi.mock("@/db/connection", () => ({
 }));
 
 // Mock Firebase upload service
-vi.mock("@/infrastructure/firebase-upload.service", () => ({
+vi.mock("@shared/infrastructure/firebase-upload.service", () => ({
   firebaseUploadService: {
     uploadFiles: vi.fn(() =>
       Promise.resolve({
@@ -226,7 +226,11 @@ describe("File Upload Worker Integration", () => {
 
       // Mock to capture progress callback
       (firebaseUploadService.uploadFiles as any).mockImplementationOnce(
-        async (_files: any, _options: any, onProgress?: (progress: number) => void) => {
+        async (
+          _files: any,
+          _options: any,
+          onProgress?: (progress: number) => void,
+        ) => {
           if (onProgress) {
             onProgress(25);
             onProgress(50);

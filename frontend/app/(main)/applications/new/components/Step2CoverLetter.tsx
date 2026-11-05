@@ -6,26 +6,16 @@ import { Button } from "@/components/ui/button";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { useApplicationStore } from "@/context/store";
-
-const ALLOWED_TYPES = [
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-];
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+import { step2CoverLetterSchema } from "@/schemas/applications";
 
 export const Step2CoverLetter = () => {
   const [isDragging, setIsDragging] = useState(false);
   const { setStep, formData, setFormData } = useApplicationStore();
 
   const handleFileUpload = (file: File) => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error("Please upload a PDF, DOC, or DOCX file");
-      return;
-    }
-
-    if (file.size > MAX_SIZE) {
-      toast.error("File size must be less than 5MB");
+    const result = step2CoverLetterSchema.safeParse(file);
+    if (!result.success) {
+      toast.error(result.error.issues[0].message);
       return;
     }
 

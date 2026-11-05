@@ -12,69 +12,18 @@ import { authClient } from "@/lib/auth";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { FieldInfo } from "@/components/common/FieldInfo";
 
-import { BsEye, BsEyeSlash } from "react-icons/bs";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { PasswordStrengthIndicator } from "@/components/common/password-strength-indicator";
 
 const defaultValues: ChangePasswordData = {
   currentPassword: "",
   newPassword: "",
   confirmNewPassword: "",
 };
-
-const PASSWORD_REQUIREMENTS = [
-  { label: "Minimum 8 characters", test: (pw: string) => pw.length >= 8 },
-  {
-    label: "One uppercase character",
-    test: (pw: string) => /[A-Z]/.test(pw),
-  },
-  {
-    label: "One lowercase character",
-    test: (pw: string) => /[a-z]/.test(pw),
-  },
-  {
-    label: "One special character",
-    test: (pw: string) => /[@$!%*?&]/.test(pw),
-  },
-  { label: "One number", test: (pw: string) => /\d/.test(pw) },
-] as const;
-
-function PasswordStrengthIndicator({ password }: { password: string }) {
-  if (!password) return null;
-
-  return (
-    <div className="mt-2 space-y-1">
-      <p className="text-muted-foreground text-xs font-medium">
-        Please add all necessary characters to create a safe password.
-      </p>
-      <ul className="space-y-0.5">
-        {PASSWORD_REQUIREMENTS.map((req) => {
-          const met = req.test(password);
-          return (
-            <li key={req.label} className="flex items-center gap-2 text-xs">
-              <span
-                className={cn(
-                  "inline-block h-1.5 w-1.5 rounded-full",
-                  met ? "bg-accent" : "bg-destructive",
-                )}
-              />
-              <span
-                className={cn(
-                  met ? "text-muted-foreground" : "text-destructive",
-                )}
-              >
-                {req.label}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
 
 export default function ChangePasswordForm() {
   const [isPending, startTransition] = useTransition();
@@ -124,13 +73,13 @@ export default function ChangePasswordForm() {
         <form.Field
           name="currentPassword"
           children={(field) => (
-            <div>
-              <Label
+            <Field>
+              <FieldLabel
                 htmlFor={field.name}
                 className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
               >
                 Old Password
-              </Label>
+              </FieldLabel>
               <div className="relative">
                 <Input
                   id={field.name}
@@ -148,11 +97,11 @@ export default function ChangePasswordForm() {
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                   className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5"
                 >
-                  {showCurrentPassword ? <BsEye /> : <BsEyeSlash />}
+                  {showCurrentPassword ? <Eye /> : <EyeOff />}
                 </Button>
               </div>
               <FieldInfo field={field} />
-            </div>
+            </Field>
           )}
         />
 
@@ -160,13 +109,13 @@ export default function ChangePasswordForm() {
         <form.Field
           name="newPassword"
           children={(field) => (
-            <div>
-              <Label
+            <Field>
+              <FieldLabel
                 htmlFor={field.name}
                 className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
               >
                 New Password
-              </Label>
+              </FieldLabel>
               <div className="relative">
                 <Input
                   id={field.name}
@@ -184,12 +133,12 @@ export default function ChangePasswordForm() {
                   onClick={() => setShowNewPassword(!showNewPassword)}
                   className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5"
                 >
-                  {showNewPassword ? <BsEye /> : <BsEyeSlash />}
+                  {showNewPassword ? <Eye /> : <EyeOff />}
                 </Button>
               </div>
               <PasswordStrengthIndicator password={field.state.value} />
               <FieldInfo field={field} />
-            </div>
+            </Field>
           )}
         />
 
@@ -197,13 +146,13 @@ export default function ChangePasswordForm() {
         <form.Field
           name="confirmNewPassword"
           children={(field) => (
-            <div>
-              <Label
+            <Field>
+              <FieldLabel
                 htmlFor={field.name}
                 className="text-secondary-foreground mb-2 block text-xs font-semibold sm:text-sm"
               >
                 Confirm New Password
-              </Label>
+              </FieldLabel>
               <div className="relative">
                 <Input
                   id={field.name}
@@ -221,11 +170,11 @@ export default function ChangePasswordForm() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="hover:text-secondary-foreground text-secondary-foreground absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer border-none bg-transparent shadow-none hover:bg-transparent [&_svg]:size-4 sm:[&_svg]:size-5"
                 >
-                  {showConfirmPassword ? <BsEye /> : <BsEyeSlash />}
+                  {showConfirmPassword ? <Eye /> : <EyeOff />}
                 </Button>
               </div>
               <FieldInfo field={field} />
-            </div>
+            </Field>
           )}
         />
 
@@ -237,7 +186,7 @@ export default function ChangePasswordForm() {
               type="submit"
               disabled={!canSubmit || isSubmitting || isPending}
               className={cn(
-                "bg-accent hover:bg-accent/90 text-accent-foreground w-full cursor-pointer rounded-lg py-3 font-semibold transition",
+                "bg-primary hover:bg-primary/90 text-primary-foreground w-full cursor-pointer rounded-lg py-3 font-semibold transition",
                 {
                   "cursor-not-allowed opacity-50":
                     !canSubmit || isSubmitting || isPending,

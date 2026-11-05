@@ -8,8 +8,32 @@ import {
   organizationInvitations,
 } from "@/db/schema";
 import { getJobSchema } from "@/validations/job.validation";
-import { getJobApplicationSchema } from "@/validations/jobApplications.validation";
+import {
+  Application,
+  getJobApplicationSchema,
+} from "@/validations/jobApplications.validation";
 import { searchParams } from "@/validations/base.validation";
+import { PaginationMeta } from "@shared/types";
+import { User } from "@/validations/userProfile.validation";
+import { isPossiblePhoneNumber } from "libphonenumber-js";
+
+const URL_PROTOCOL_REGEX = /^https?:\/\//i;
+const URL_PROTOCOL_ONLY_REGEX = /^https?:\/\/$/i;
+function normalizeUrl(input: unknown): string {
+  const trimmed = typeof input === "string" ? input.trim() : "";
+  if (!trimmed) return "";
+  if (URL_PROTOCOL_ONLY_REGEX.test(trimmed)) return "";
+  return URL_PROTOCOL_REGEX.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+/** Shared org membership / invitation role (DB enum + API contracts). */
+export const organizationRoleSchema = z.enum([
+  "owner",
+  "admin",
+  "recruiter",
+  "member",
+]);
+export type OrganizationRole = z.infer<typeof organizationRoleSchema>;
 
 // Zod schemas for validation
 export const selectOrganizationSchema = createSelectSchema(organizations);
@@ -20,7 +44,10 @@ export const insertJobApplicationNoteSchema =
 // Base schema WITHOUT logo refinements (for use with .partial())
 const insertOrganizationBaseSchema = createInsertSchema(organizations, {
   name: z.string().min(1, "Name must be at least 1 characters").max(100),
-  url: z.url("Invalid organization website URL"),
+  url: z
+    .string()
+    .transform(normalizeUrl)
+    .pipe(z.string().url("Invalid organization website URL")),
   phone: z
     .string()
     .min(10, "Phone must be at least 10 characters")
@@ -73,6 +100,13 @@ export const insertOrganizationSchema = insertOrganizationBaseSchema
       message: "File size must be under 5MB",
       path: ["logo", "size"],
     },
+  )
+  .refine(
+    (data) => {
+      if (!data.phone) return true;
+      return isPossiblePhoneNumber(data.phone, "US");
+    },
+    { message: "Invalid phone number", path: ["phone"] },
   );
 
 // Update schema: use base schema, apply partial FIRST, then add refinements
@@ -104,6 +138,13 @@ export const updateOrganizationInputSchema = insertOrganizationBaseSchema
       message: "File size must be under 5MB",
       path: ["logo", "size"],
     },
+  )
+  .refine(
+    (data) => {
+      if (!data.phone) return true;
+      return isPossiblePhoneNumber(data.phone, "US");
+    },
+    { message: "Invalid phone number", path: ["phone"] },
   );
 
 const organizationIdParamSchema = z.object({
@@ -203,6 +244,9 @@ export const getOrganizationSchema = z.object({
       q: true,
       sortBy: true,
       order: true,
+    })
+    .extend({
+      sortBy: z.enum(["createdAt", "applicationDeadline"]).optional(),
     })
     .strict(),
   params: organizationIdParamSchema,
@@ -327,28 +371,38 @@ export const deleteOrganizationSchema = z.object({
   params: organizationIdParamSchema,
 });
 
+export const removeOrganizationMemberSchema = z.object({
+  body: z.object({}).strict(),
+  query: z.object({}).strict(),
+  params: organizationIdParamSchema.extend({
+    memberId: z.string().regex(/^\d+$/, "memberId is required"),
+  }),
+});
+
+export const updateOrganizationMemberRoleSchema = z.object({
+  body: z.object({
+    role: organizationRoleSchema,
+  }),
+  query: z.object({}).strict(),
+  params: organizationIdParamSchema.extend({
+    memberId: z.string().regex(/^\d+$/, "memberId is required"),
+  }),
+});
+
+export const transferOrganizationOwnershipSchema = z.object({
+  body: z.object({
+    memberId: z.number().int().positive("memberId is required"),
+  }),
+  query: z.object({}).strict(),
+  params: organizationIdParamSchema,
+});
+
 export type NewOrganization = z.infer<typeof insertOrganizationSchema>;
 export type Organization = z.infer<typeof selectOrganizationSchema>;
 
 export type OrganizationMember = z.infer<
   typeof selectOrganizationMembersSchema
 >;
-
-export type OrganizationWithMembers = Organization & {
-  members: {
-    id: number;
-    organizationId: number;
-    userId: number;
-    role: "owner" | "admin" | "recruiter" | "member";
-    isActive: boolean;
-    createdAt: Date;
-    updatedAt: Date;
-    memberName: string;
-    memberEmail: string;
-    memberEmailVerified: boolean;
-    memberStatus: string;
-  }[];
-};
 
 export type GetOrganizationSchema = z.infer<typeof getOrganizationSchema>;
 export type CreateOrganizationSchema = z.infer<typeof createOrganizationSchema>;
@@ -357,6 +411,15 @@ export type UploadOrganizationLogoSchema = z.infer<
 >;
 export type UpdateOrganizationSchema = z.infer<typeof updateOrganizationSchema>;
 export type DeleteOrganizationSchema = z.infer<typeof deleteOrganizationSchema>;
+export type RemoveOrganizationMemberSchema = z.infer<
+  typeof removeOrganizationMemberSchema
+>;
+export type UpdateOrganizationMemberRoleSchema = z.infer<
+  typeof updateOrganizationMemberRoleSchema
+>;
+export type TransferOrganizationOwnershipSchema = z.infer<
+  typeof transferOrganizationOwnershipSchema
+>;
 export type JobApplicationManagementSchema = z.infer<
   typeof jobApplicationManagementSchema
 >;
@@ -389,8 +452,8 @@ export const selectOrganizationInvitationSchema = createSelectSchema(
 export const insertOrganizationInvitationSchema = createInsertSchema(
   organizationInvitations,
   {
-    email: z.string().email("Invalid email address").toLowerCase(),
-    role: z.enum(["owner", "admin", "recruiter", "member"]),
+    email: z.email("Invalid email address").toLowerCase(),
+    role: organizationRoleSchema,
   },
 ).omit({
   id: true,
@@ -407,7 +470,7 @@ export const insertOrganizationInvitationSchema = createInsertSchema(
 export const createOrganizationInvitationSchema = z.object({
   body: z.object({
     email: z.email("Invalid email address").toLowerCase(),
-    role: z.enum(["owner", "admin", "recruiter", "member"]).default("member"),
+    role: organizationRoleSchema.default("member"),
   }),
   params: organizationIdParamSchema,
   query: z.object({}).strict(),
@@ -439,6 +502,20 @@ export const cancelOrganizationInvitationSchema = z.object({
   query: z.object({}).strict(),
 });
 
+export const listOrganizationInvitationsSchema = z.object({
+  body: z.object({}).strict(),
+  params: organizationIdParamSchema,
+  query: z.object({}).strict(),
+});
+
+export const pendingOrganizationInvitationSchema = z.object({
+  id: z.number(),
+  email: z.string(),
+  role: organizationRoleSchema,
+  expiresAt: z.coerce.date(),
+  createdAt: z.coerce.date(),
+});
+
 export type OrganizationInvitation = z.infer<
   typeof selectOrganizationInvitationSchema
 >;
@@ -457,3 +534,88 @@ export type GetOrganizationInvitationDetailsInput = z.infer<
 export type CancelOrganizationInvitationInput = z.infer<
   typeof cancelOrganizationInvitationSchema
 >;
+export type ListOrganizationInvitationsInput = z.infer<
+  typeof listOrganizationInvitationsSchema
+>;
+export type PendingOrganizationInvitation = z.infer<
+  typeof pendingOrganizationInvitationSchema
+>;
+
+export type OrganizationWithMembersInterface = Organization & {
+  members: {
+    id: number;
+    userId: number;
+    organizationId: number;
+    role: OrganizationRole;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+};
+
+export type OrganizationSearchResultInterface = {
+  items: Organization[];
+  pagination: PaginationMeta;
+};
+
+export type OrganizationMemberInterface = OrganizationMember & {
+  user: {
+    id: number;
+    status: string;
+    fullName: string;
+    email: string;
+    emailVerified: boolean;
+  };
+};
+
+export type UserOrganizationInterface = OrganizationMember & {
+  organization: Organization;
+};
+
+export type OrganizationWithMembers = {
+  organizations: Organization;
+  organization_members: OrganizationMember;
+  users: User;
+}[];
+
+export type JobApplicationsForOrganizationInterface = Pick<
+  Application,
+  "status" | "coverLetter" | "resumeUrl" | "appliedAt" | "reviewedAt"
+> & { applicant: { id: number; fullName: string; email: string } };
+
+export type ApplicationsForOrganizationInterface = {
+  items: {
+    applicationId: number;
+    jobId: number;
+    applicantName: string;
+    applicantEmail: string;
+    status:
+      | "pending"
+      | "reviewed"
+      | "shortlisted"
+      | "interviewing"
+      | "rejected"
+      | "hired"
+      | "withdrawn";
+    coverLetter: string | null;
+    resumeUrl: string | null;
+    appliedAt: Date;
+    reviewedAt: Date | null;
+    jobTitle: string;
+    organizationId: number;
+    organizationName: string;
+  }[];
+  pagination: PaginationMeta;
+};
+
+export type OrganizationInvitationDetailsInterface = OrganizationInvitation & {
+  organization: {
+    id: number;
+    name: string;
+  };
+  inviter: {
+    id: number;
+    fullName: string;
+    email: string;
+  };
+};

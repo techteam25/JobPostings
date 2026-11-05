@@ -65,6 +65,37 @@ describe("Job Controller Integration Tests", () => {
         : "";
     });
 
+    it("should create a job from the employer form payload returning 201", async () => {
+      const frontendFormPayload = {
+        title: "Communications Coordinator",
+        description:
+          "ability to ensure information is organized; strong written and oral communication skills.",
+        city: "Longview",
+        state: "TX",
+        country: "United States",
+        zipcode: 75602,
+        jobType: "full-time",
+        compensationType: "missionary",
+        isRemote: false,
+        applicationDeadline: "2030-12-09",
+        experience: "4",
+        employerId: 1,
+      };
+
+      const response = await request
+        .post("/api/jobs")
+        .set("Cookie", cookie)
+        .send(frontendFormPayload);
+
+      TestHelpers.validateApiResponse(response, 201);
+      expect(response.body.data).toHaveProperty(
+        "title",
+        frontendFormPayload.title,
+      );
+      expect(response.body.data).toHaveProperty("zipcode", "75602");
+      expect(response.body.data.skills).toEqual([]);
+    });
+
     it("should create a single job returning 201", async () => {
       const newJob = await jobPostingFixture();
 
@@ -238,7 +269,10 @@ describe("Job Controller Integration Tests", () => {
       });
 
       it("should allow recruiter role to create a job", async () => {
-        await seedUserWithRoleScenario("recruiter", "recruiter.user@example.com");
+        await seedUserWithRoleScenario(
+          "recruiter",
+          "recruiter.user@example.com",
+        );
 
         const loginResponse = await request
           .post("/api/auth/sign-in/email")
@@ -423,8 +457,6 @@ describe("Job Controller Integration Tests", () => {
         .set("Cookie", cookie)
         .send(updatedJob);
 
-      console.log(JSON.stringify(response.body, null, 2));
-
       TestHelpers.validateApiResponse(response, 200);
 
       expect(response.body.data).toHaveProperty("id", 1);
@@ -436,6 +468,103 @@ describe("Job Controller Integration Tests", () => {
       expect(response.body).toHaveProperty(
         "message",
         "Job updated successfully",
+      );
+    });
+
+    it("should save a full job edit and return the updated listing via GET", async () => {
+      const editedPayload = {
+        title: "Edited Communications Coordinator",
+        description:
+          "Updated role description with strong communication and organizational skills required.",
+        city: "Austin",
+        state: "TX",
+        country: "United States",
+        zipcode: 78701,
+        jobType: "part-time",
+        compensationType: "paid",
+        isRemote: true,
+        applicationDeadline: "2031-06-15",
+        experience: "5",
+      };
+
+      const putResponse = await request
+        .put("/api/jobs/1")
+        .set("Cookie", cookie)
+        .send(editedPayload);
+
+      TestHelpers.validateApiResponse(putResponse, 200);
+      expect(putResponse.body.data).toHaveProperty(
+        "title",
+        editedPayload.title,
+      );
+      expect(putResponse.body.data).toHaveProperty("city", editedPayload.city);
+      expect(putResponse.body.data).toHaveProperty("isRemote", true);
+
+      const getResponse = await request.get("/api/jobs/1");
+
+      TestHelpers.validateApiResponse(getResponse, 200);
+      expect(getResponse.body.data.job).toHaveProperty(
+        "title",
+        editedPayload.title,
+      );
+      expect(getResponse.body.data.job).toHaveProperty(
+        "description",
+        editedPayload.description,
+      );
+      expect(getResponse.body.data.job).toHaveProperty(
+        "city",
+        editedPayload.city,
+      );
+      expect(getResponse.body.data.job).toHaveProperty(
+        "state",
+        editedPayload.state,
+      );
+      expect(getResponse.body.data.job).toHaveProperty(
+        "jobType",
+        editedPayload.jobType,
+      );
+      expect(getResponse.body.data.job).toHaveProperty("isRemote", true);
+    });
+
+    it("should return 400 for invalid job update payload", async () => {
+      const invalidUpdate = {
+        title: "SWE",
+        country: "United States",
+      };
+
+      const response = await request
+        .put("/api/jobs/1")
+        .set("Cookie", cookie)
+        .send(invalidUpdate);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("success", false);
+      expect(response.body.error).toHaveProperty("code", "VALIDATION_ERROR");
+    });
+
+    it("should return 403 when member role attempts to update a job", async () => {
+      await seedUserWithRoleScenario("member", "member.user@example.com");
+
+      const loginResponse = await request.post("/api/auth/sign-in/email").send({
+        email: "member.user@example.com",
+        password: "Password@123",
+      });
+
+      const memberCookie = loginResponse.headers["set-cookie"]![0]!;
+
+      const response = await request
+        .put("/api/jobs/1")
+        .set("Cookie", memberCookie)
+        .send({
+          title: "Member Updated Title",
+          description:
+            "Attempted update by member role with sufficient description length.",
+        });
+
+      TestHelpers.validateApiResponse(response, 403);
+      expect(response.body).toHaveProperty(
+        "message",
+        "Insufficient permissions",
       );
     });
   });

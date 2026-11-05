@@ -6,7 +6,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { BsBookmarkFill } from "react-icons/bs";
+import { Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { getUserSavedJobs } from "@/lib/api";
@@ -19,12 +19,12 @@ import {
 export default async function SavedJobsPage() {
   const savedJobs = await getUserSavedJobs();
 
-  if (!savedJobs || savedJobs.data.length === 0) {
+  if (!savedJobs.success || savedJobs.data.length === 0) {
     return (
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <BsBookmarkFill />
+            <Bookmark />
           </EmptyMedia>
           <EmptyTitle>No Saved Jobs</EmptyTitle>
           <EmptyDescription>
@@ -49,7 +49,7 @@ export default async function SavedJobsPage() {
           {savedJobs.data.length > 1 ? "Saved Jobs" : "Saved Job"}
         </p>
         <Suspense fallback={<SavedJobsGridSkeleton />}>
-          <SavedJobsGrid userSavedJobs={savedJobs} />
+          <SavedJobsGrid initialData={savedJobs} />
         </Suspense>
       </div>
     </div>

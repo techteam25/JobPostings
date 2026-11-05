@@ -1,5 +1,18 @@
 import { z } from "zod";
 
+import { coerceQueryBool } from "@/validations/shared/coerce";
+
+export const jobSearchSortBySchema = z.enum([
+  "recent",
+  "relevant",
+  // Backward-compatible aliases from the pre-modular job-search API.
+  "relevance",
+  "date_posted_desc",
+  "date_posted_asc",
+  "title_asc",
+  "title_desc",
+]);
+
 export const searchParams = z.object({
   body: z.object({}).strict(),
   query: z
@@ -33,26 +46,23 @@ export const searchParams = z.object({
             "internship",
           ]),
         ),
+      compensationType: z
+        .enum(["paid", "missionary", "volunteer", "stipend"])
+        .array()
+        .optional()
+        .or(z.enum(["paid", "missionary", "volunteer", "stipend"])),
       city: z.string().optional(),
       experience: z.string().optional(),
       state: z.string().optional(),
       country: z.string().optional(),
       zipcode: z.string().optional(),
       skills: z.string().array().optional().or(z.string().optional()),
-      includeRemote: z.coerce.boolean().optional(),
-      isActive: z.coerce.boolean().optional(),
-      sortBy: z.enum(['relevance', 'date_posted_desc', 'date_posted_asc', 'title_asc', 'title_desc']).optional(),
-      status: z
-        .enum([
-          "pending",
-          "reviewed",
-          "shortlisted",
-          "interviewing",
-          "rejected",
-          "hired",
-          "withdrawn",
-        ])
+      includeRemote: coerceQueryBool().optional(),
+      isActive: coerceQueryBool().optional(),
+      datePosted: z
+        .enum(["last-24-hours", "last-7-days", "last-14-days"])
         .optional(),
+      sortBy: jobSearchSortBySchema.optional(),
       order: z
         .string()
         .optional()
@@ -74,27 +84,25 @@ export const searchJobResult = z.object({
   state: z.string().optional(),
   country: z.string().optional(),
   isRemote: z.boolean(),
-  status: z.string(),
   experience: z.string().optional(),
   jobType: z.string(),
   skills: z.string().array(),
   createdAt: z.number(),
+  compensationType: z.string().optional(),
+  logoUrl: z.string().optional(),
 });
 
-export const candidateDocument = z.object({
-  id: z.string(),
-  fullName: z.string(),
-  email: z.string(),
-  bio: z.string(),
-  city: z.string(),
-  state: z.string(),
-  country: z.string(),
-  skills: z.string().array(),
-  experience: z.string(),
-  status: z.string(),
-  createdAt: z.number(),
+export const recommendationParams = z.object({
+  body: z.object({}).strict(),
+  query: z
+    .object({
+      page: z.coerce.number().int().positive().default(1).optional(),
+      limit: z.coerce.number().int().positive().max(50).default(10).optional(),
+    })
+    .strict(),
+  params: z.object({}).strict(),
 });
 
 export type SearchParams = z.infer<typeof searchParams>;
+export type RecommendationParams = z.infer<typeof recommendationParams>;
 export type JobDocumentType = z.infer<typeof searchJobResult>;
-export type CandidateDocumentType = z.infer<typeof candidateDocument>;

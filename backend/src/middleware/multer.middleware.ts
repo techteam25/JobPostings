@@ -1,11 +1,20 @@
 import multer, { diskStorage, FileFilterCallback } from "multer";
+import fs from "fs";
 import path from "path";
 import { Request } from "express";
 
 import {
+  AllowedFileTypes,
   DEFAULT_ALLOWED_TYPES,
   FILE_UPLOAD_CONFIG,
 } from "@/validations/file.validation";
+
+/**
+ * Absolute path to the temporary uploads directory.
+ * Resolved once so it stays consistent regardless of the process CWD and
+ * matches the directory used by the temp-file-cleanup worker.
+ */
+const uploadsDir = path.resolve("uploads");
 
 /**
  * Multer disk storage configuration
@@ -13,7 +22,12 @@ import {
  */
 const storage = diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, "uploads/");
+    // Ensure the uploads directory exists before writing. `recursive: true`
+    // is idempotent (no error if it already exists) and guards against the
+    // directory being absent on a fresh checkout/deploy or removed at runtime.
+    fs.mkdir(uploadsDir, { recursive: true }, (err) => {
+      cb(err, uploadsDir);
+    });
   },
   filename: (_req, file, cb) => {
     const timestamp = Date.now();
@@ -33,7 +47,7 @@ const fileFilter = (
   file: Express.Multer.File,
   cb: FileFilterCallback,
 ) => {
-  if (DEFAULT_ALLOWED_TYPES.includes(file.mimetype as any)) {
+  if (DEFAULT_ALLOWED_TYPES.includes(file.mimetype as AllowedFileTypes)) {
     cb(null, true);
   } else {
     cb(

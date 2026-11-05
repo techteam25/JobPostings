@@ -27,9 +27,7 @@
       "compositePrimaryKeys": {
         "certifications_id": {
           "name": "certifications_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -59,12 +57,8 @@
           "name": "user_certifications_user_id_user_profile_id_fk",
           "tableFrom": "user_certifications",
           "tableTo": "user_profile",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -72,12 +66,8 @@
           "name": "user_certifications_certification_id_certifications_id_fk",
           "tableFrom": "user_certifications",
           "tableTo": "certifications",
-          "columnsFrom": [
-            "certification_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["certification_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -85,10 +75,7 @@
       "compositePrimaryKeys": {
         "user_certifications_certification_id_user_id_pk": {
           "name": "user_certifications_certification_id_user_id_pk",
-          "columns": [
-            "certification_id",
-            "user_id"
-          ]
+          "columns": ["certification_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -158,16 +145,12 @@
       "indexes": {
         "program_idx": {
           "name": "program_idx",
-          "columns": [
-            "program"
-          ],
+          "columns": ["program"],
           "isUnique": false
         },
         "major_idx": {
           "name": "major_idx",
-          "columns": [
-            "major"
-          ],
+          "columns": ["major"],
           "isUnique": false
         }
       },
@@ -176,12 +159,8 @@
           "name": "educations_user_profile_id_user_profile_id_fk",
           "tableFrom": "educations",
           "tableTo": "user_profile",
-          "columnsFrom": [
-            "user_profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -189,9 +168,7 @@
       "compositePrimaryKeys": {
         "educations_id": {
           "name": "educations_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -280,30 +257,22 @@
       "indexes": {
         "idx_audit_user_id": {
           "name": "idx_audit_user_id",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "idx_audit_preference_type": {
           "name": "idx_audit_preference_type",
-          "columns": [
-            "preference_type"
-          ],
+          "columns": ["preference_type"],
           "isUnique": false
         },
         "idx_audit_context": {
           "name": "idx_audit_context",
-          "columns": [
-            "context"
-          ],
+          "columns": ["context"],
           "isUnique": false
         },
         "idx_audit_changed_at": {
           "name": "idx_audit_changed_at",
-          "columns": [
-            "changed_at"
-          ],
+          "columns": ["changed_at"],
           "isUnique": false
         }
       },
@@ -312,12 +281,8 @@
           "name": "email_preference_audit_log_user_id_users_id_fk",
           "tableFrom": "email_preference_audit_log",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -325,9 +290,7 @@
       "compositePrimaryKeys": {
         "email_preference_audit_log_id": {
           "name": "email_preference_audit_log_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -414,16 +377,12 @@
       "indexes": {
         "idx_users_status": {
           "name": "idx_users_status",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         },
         "idx_users_email": {
           "name": "idx_users_email",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": false
         }
       },
@@ -431,17 +390,13 @@
       "compositePrimaryKeys": {
         "users_id": {
           "name": "users_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "users_email_unique": {
           "name": "users_email_unique",
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "checkConstraint": {
@@ -603,16 +558,12 @@
       "indexes": {
         "idx_user_email_preferences_user_id": {
           "name": "idx_user_email_preferences_user_id",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "idx_user_email_preferences_unsubscribe_token": {
           "name": "idx_user_email_preferences_unsubscribe_token",
-          "columns": [
-            "unsubscribe_token"
-          ],
+          "columns": ["unsubscribe_token"],
           "isUnique": false
         }
       },
@@ -621,12 +572,8 @@
           "name": "user_email_preferences_user_id_users_id_fk",
           "tableFrom": "user_email_preferences",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -634,17 +581,13 @@
       "compositePrimaryKeys": {
         "user_email_preferences_id": {
           "name": "user_email_preferences_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "user_email_preferences_user_id_unique": {
           "name": "user_email_preferences_user_id_unique",
-          "columns": [
-            "user_id"
-          ]
+          "columns": ["user_id"]
         }
       },
       "checkConstraint": {}
@@ -706,12 +649,8 @@
           "name": "user_onboarding_user_id_users_id_fk",
           "tableFrom": "user_onboarding",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -719,17 +658,13 @@
       "compositePrimaryKeys": {
         "user_onboarding_id": {
           "name": "user_onboarding_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "user_onboarding_user_id_unique": {
           "name": "user_onboarding_user_id_unique",
-          "columns": [
-            "user_id"
-          ]
+          "columns": ["user_id"]
         }
       },
       "checkConstraint": {}
@@ -873,9 +808,7 @@
       "indexes": {
         "idx_user_profile_is_profile_public": {
           "name": "idx_user_profile_is_profile_public",
-          "columns": [
-            "is_profile_public"
-          ],
+          "columns": ["is_profile_public"],
           "isUnique": false
         }
       },
@@ -884,12 +817,8 @@
           "name": "user_profile_user_id_users_id_fk",
           "tableFrom": "user_profile",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -897,17 +826,13 @@
       "compositePrimaryKeys": {
         "user_profile_id": {
           "name": "user_profile_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "user_profile_user_id_unique": {
           "name": "user_profile_user_id_unique",
-          "columns": [
-            "user_id"
-          ]
+          "columns": ["user_id"]
         }
       },
       "checkConstraint": {}
@@ -1022,30 +947,22 @@
       "indexes": {
         "idx_org_invitations_org": {
           "name": "idx_org_invitations_org",
-          "columns": [
-            "organization_id"
-          ],
+          "columns": ["organization_id"],
           "isUnique": false
         },
         "idx_org_invitations_email": {
           "name": "idx_org_invitations_email",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": false
         },
         "idx_org_invitations_token": {
           "name": "idx_org_invitations_token",
-          "columns": [
-            "token"
-          ],
+          "columns": ["token"],
           "isUnique": false
         },
         "idx_org_invitations_status": {
           "name": "idx_org_invitations_status",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         }
       },
@@ -1054,12 +971,8 @@
           "name": "organization_invitations_organization_id_organizations_id_fk",
           "tableFrom": "organization_invitations",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1067,12 +980,8 @@
           "name": "organization_invitations_invited_by_users_id_fk",
           "tableFrom": "organization_invitations",
           "tableTo": "users",
-          "columnsFrom": [
-            "invited_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invited_by"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1080,12 +989,8 @@
           "name": "organization_invitations_cancelled_by_users_id_fk",
           "tableFrom": "organization_invitations",
           "tableTo": "users",
-          "columnsFrom": [
-            "cancelled_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cancelled_by"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1093,17 +998,13 @@
       "compositePrimaryKeys": {
         "organization_invitations_id": {
           "name": "organization_invitations_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "organization_invitations_token_unique": {
           "name": "organization_invitations_token_unique",
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "checkConstraint": {}
@@ -1169,16 +1070,12 @@
       "indexes": {
         "idx_org_members_user": {
           "name": "idx_org_members_user",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "idx_org_members_org": {
           "name": "idx_org_members_org",
-          "columns": [
-            "organization_id"
-          ],
+          "columns": ["organization_id"],
           "isUnique": false
         }
       },
@@ -1187,12 +1084,8 @@
           "name": "organization_members_user_id_users_id_fk",
           "tableFrom": "organization_members",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1200,12 +1093,8 @@
           "name": "organization_members_organization_id_organizations_id_fk",
           "tableFrom": "organization_members",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1213,18 +1102,13 @@
       "compositePrimaryKeys": {
         "organization_members_id": {
           "name": "organization_members_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "unique_user_org": {
           "name": "unique_user_org",
-          "columns": [
-            "user_id",
-            "organization_id"
-          ]
+          "columns": ["user_id", "organization_id"]
         }
       },
       "checkConstraint": {}
@@ -1383,37 +1267,27 @@
       "indexes": {
         "organization_name_idx": {
           "name": "organization_name_idx",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": false
         },
         "state_idx": {
           "name": "state_idx",
-          "columns": [
-            "state"
-          ],
+          "columns": ["state"],
           "isUnique": false
         },
         "city_idx": {
           "name": "city_idx",
-          "columns": [
-            "city"
-          ],
+          "columns": ["city"],
           "isUnique": false
         },
         "zip_idx": {
           "name": "zip_idx",
-          "columns": [
-            "zip_code"
-          ],
+          "columns": ["zip_code"],
           "isUnique": false
         },
         "idx_subscription_status": {
           "name": "idx_subscription_status",
-          "columns": [
-            "subscription_status"
-          ],
+          "columns": ["subscription_status"],
           "isUnique": false
         }
       },
@@ -1421,9 +1295,7 @@
       "compositePrimaryKeys": {
         "organizations_id": {
           "name": "organizations_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1481,16 +1353,12 @@
       "indexes": {
         "application_idx": {
           "name": "application_idx",
-          "columns": [
-            "application_id"
-          ],
+          "columns": ["application_id"],
           "isUnique": false
         },
         "user_idx": {
           "name": "user_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         }
       },
@@ -1499,12 +1367,8 @@
           "name": "fk_note_application",
           "tableFrom": "application_notes",
           "tableTo": "job_applications",
-          "columnsFrom": [
-            "application_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["application_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1512,12 +1376,8 @@
           "name": "fk_note_user",
           "tableFrom": "application_notes",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1525,9 +1385,7 @@
       "compositePrimaryKeys": {
         "application_notes_id": {
           "name": "application_notes_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1636,54 +1494,37 @@
       "indexes": {
         "job_idx": {
           "name": "job_idx",
-          "columns": [
-            "job_id"
-          ],
+          "columns": ["job_id"],
           "isUnique": false
         },
         "applicant_idx": {
           "name": "applicant_idx",
-          "columns": [
-            "applicant_id"
-          ],
+          "columns": ["applicant_id"],
           "isUnique": false
         },
         "status_idx": {
           "name": "status_idx",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         },
         "applied_date_idx": {
           "name": "applied_date_idx",
-          "columns": [
-            "applied_at"
-          ],
+          "columns": ["applied_at"],
           "isUnique": false
         },
         "user_applications_idx": {
           "name": "user_applications_idx",
-          "columns": [
-            "applicant_id",
-            "applied_at"
-          ],
+          "columns": ["applicant_id", "applied_at"],
           "isUnique": false
         },
         "job_applications_idx": {
           "name": "job_applications_idx",
-          "columns": [
-            "job_id",
-            "applied_at"
-          ],
+          "columns": ["job_id", "applied_at"],
           "isUnique": false
         },
         "user_job_lookup_idx": {
           "name": "user_job_lookup_idx",
-          "columns": [
-            "job_id",
-            "applicant_id"
-          ],
+          "columns": ["job_id", "applicant_id"],
           "isUnique": false
         }
       },
@@ -1692,12 +1533,8 @@
           "name": "fk_application_job",
           "tableFrom": "job_applications",
           "tableTo": "job_details",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1705,12 +1542,8 @@
           "name": "fk_application_applicant",
           "tableFrom": "job_applications",
           "tableTo": "users",
-          "columnsFrom": [
-            "applicant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["applicant_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1718,18 +1551,13 @@
       "compositePrimaryKeys": {
         "job_applications_id": {
           "name": "job_applications_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "unique_applicant_job": {
           "name": "unique_applicant_job",
-          "columns": [
-            "job_id",
-            "applicant_id"
-          ]
+          "columns": ["job_id", "applicant_id"]
         }
       },
       "checkConstraint": {}
@@ -1795,9 +1623,7 @@
       "indexes": {
         "job_idx": {
           "name": "job_idx",
-          "columns": [
-            "job_id"
-          ],
+          "columns": ["job_id"],
           "isUnique": false
         }
       },
@@ -1806,12 +1632,8 @@
           "name": "job_insights_job_id_job_details_id_fk",
           "tableFrom": "job_insights",
           "tableTo": "job_details",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1819,12 +1641,8 @@
           "name": "job_insights_organization_id_organizations_id_fk",
           "tableFrom": "job_insights",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1832,9 +1650,7 @@
       "compositePrimaryKeys": {
         "job_insights_id": {
           "name": "job_insights_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1898,16 +1714,12 @@
       "indexes": {
         "job_idx": {
           "name": "job_idx",
-          "columns": [
-            "job_id"
-          ],
+          "columns": ["job_id"],
           "isUnique": false
         },
         "skill_idx": {
           "name": "skill_idx",
-          "columns": [
-            "skill_id"
-          ],
+          "columns": ["skill_id"],
           "isUnique": false
         }
       },
@@ -1916,12 +1728,8 @@
           "name": "job_skills_job_id_job_details_id_fk",
           "tableFrom": "job_skills",
           "tableTo": "job_details",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1929,12 +1737,8 @@
           "name": "job_skills_skill_id_skills_id_fk",
           "tableFrom": "job_skills",
           "tableTo": "skills",
-          "columnsFrom": [
-            "skill_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["skill_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1942,9 +1746,7 @@
       "compositePrimaryKeys": {
         "job_skills_id": {
           "name": "job_skills_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2074,79 +1876,57 @@
       "indexes": {
         "employer_idx": {
           "name": "employer_idx",
-          "columns": [
-            "employer_id"
-          ],
+          "columns": ["employer_id"],
           "isUnique": false
         },
         "job_type_idx": {
           "name": "job_type_idx",
-          "columns": [
-            "job_type"
-          ],
+          "columns": ["job_type"],
           "isUnique": false
         },
         "city_idx": {
           "name": "city_idx",
-          "columns": [
-            "city"
-          ],
+          "columns": ["city"],
           "isUnique": false
         },
         "state_idx": {
           "name": "state_idx",
-          "columns": [
-            "state"
-          ],
+          "columns": ["state"],
           "isUnique": false
         },
         "zipcode_idx": {
           "name": "zipcode_idx",
-          "columns": [
-            "zipcode"
-          ],
+          "columns": ["zipcode"],
           "isUnique": false
         },
         "is_remote_idx": {
           "name": "is_remote_idx",
-          "columns": [
-            "is_remote"
-          ],
+          "columns": ["is_remote"],
           "isUnique": false
         },
         "experience_idx": {
           "name": "experience_idx",
-          "columns": [
-            "experience"
-          ],
+          "columns": ["experience"],
           "isUnique": false
         },
         "is_active_idx": {
           "name": "is_active_idx",
-          "columns": [
-            "is_active"
-          ],
+          "columns": ["is_active"],
           "isUnique": false
         },
         "active_idx": {
           "name": "active_idx",
-          "columns": [
-            "is_active"
-          ],
+          "columns": ["is_active"],
           "isUnique": false
         },
         "deadline_idx": {
           "name": "deadline_idx",
-          "columns": [
-            "application_deadline"
-          ],
+          "columns": ["application_deadline"],
           "isUnique": false
         },
         "created_at_idx": {
           "name": "created_at_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         }
       },
@@ -2155,12 +1935,8 @@
           "name": "fk_job_employer",
           "tableFrom": "job_details",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "employer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["employer_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2168,9 +1944,7 @@
       "compositePrimaryKeys": {
         "job_details_id": {
           "name": "job_details_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2212,16 +1986,12 @@
       "indexes": {
         "user_idx": {
           "name": "user_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "job_idx": {
           "name": "job_idx",
-          "columns": [
-            "job_id"
-          ],
+          "columns": ["job_id"],
           "isUnique": false
         }
       },
@@ -2230,12 +2000,8 @@
           "name": "saved_jobs_user_id_users_id_fk",
           "tableFrom": "saved_jobs",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2243,12 +2009,8 @@
           "name": "saved_jobs_job_id_job_details_id_fk",
           "tableFrom": "saved_jobs",
           "tableTo": "job_details",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2256,18 +2018,13 @@
       "compositePrimaryKeys": {
         "saved_jobs_id": {
           "name": "saved_jobs_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "unique_user_job": {
           "name": "unique_user_job",
-          "columns": [
-            "user_id",
-            "job_id"
-          ]
+          "columns": ["user_id", "job_id"]
         }
       },
       "checkConstraint": {}
@@ -2310,9 +2067,7 @@
       "indexes": {
         "skill_name_idx": {
           "name": "skill_name_idx",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": false
         }
       },
@@ -2320,17 +2075,13 @@
       "compositePrimaryKeys": {
         "skills_id": {
           "name": "skills_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "skills_name_unique": {
           "name": "skills_name_unique",
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "checkConstraint": {}
@@ -2385,9 +2136,7 @@
       "indexes": {
         "program_idx": {
           "name": "program_idx",
-          "columns": [
-            "company_name"
-          ],
+          "columns": ["company_name"],
           "isUnique": false
         }
       },
@@ -2396,12 +2145,8 @@
           "name": "work_experiences_user_profile_id_user_profile_id_fk",
           "tableFrom": "work_experiences",
           "tableTo": "user_profile",
-          "columnsFrom": [
-            "user_profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2409,9 +2154,7 @@
       "compositePrimaryKeys": {
         "work_experiences_id": {
           "name": "work_experiences_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2521,9 +2264,7 @@
       "indexes": {
         "idx_account_user_id": {
           "name": "idx_account_user_id",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         }
       },
@@ -2532,12 +2273,8 @@
           "name": "account_user_id_users_id_fk",
           "tableFrom": "account",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2545,9 +2282,7 @@
       "compositePrimaryKeys": {
         "account_id": {
           "name": "account_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2617,16 +2352,12 @@
       "indexes": {
         "idx_session_user_id": {
           "name": "idx_session_user_id",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "idx_session_expires_at": {
           "name": "idx_session_expires_at",
-          "columns": [
-            "expires_at"
-          ],
+          "columns": ["expires_at"],
           "isUnique": false
         }
       },
@@ -2635,12 +2366,8 @@
           "name": "session_user_id_users_id_fk",
           "tableFrom": "session",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2648,17 +2375,13 @@
       "compositePrimaryKeys": {
         "session_id": {
           "name": "session_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "session_token_unique": {
           "name": "session_token_unique",
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "checkConstraint": {}
@@ -2716,9 +2439,7 @@
       "compositePrimaryKeys": {
         "verification_id": {
           "name": "verification_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2820,23 +2541,17 @@
       "indexes": {
         "organization_idx": {
           "name": "organization_idx",
-          "columns": [
-            "organization_id"
-          ],
+          "columns": ["organization_id"],
           "isUnique": false
         },
         "status_idx": {
           "name": "status_idx",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         },
         "provider_idx": {
           "name": "provider_idx",
-          "columns": [
-            "provider_id"
-          ],
+          "columns": ["provider_id"],
           "isUnique": false
         }
       },
@@ -2845,12 +2560,8 @@
           "name": "subscriptions_organization_id_organizations_id_fk",
           "tableFrom": "subscriptions",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2858,9 +2569,7 @@
       "compositePrimaryKeys": {
         "subscriptions_id": {
           "name": "subscriptions_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -2925,31 +2634,22 @@
       "indexes": {
         "job_alert_matches_job_alert_id_idx": {
           "name": "job_alert_matches_job_alert_id_idx",
-          "columns": [
-            "job_alert_id"
-          ],
+          "columns": ["job_alert_id"],
           "isUnique": false
         },
         "job_alert_matches_job_id_idx": {
           "name": "job_alert_matches_job_id_idx",
-          "columns": [
-            "job_id"
-          ],
+          "columns": ["job_id"],
           "isUnique": false
         },
         "job_alert_matches_was_sent_idx": {
           "name": "job_alert_matches_was_sent_idx",
-          "columns": [
-            "was_sent"
-          ],
+          "columns": ["was_sent"],
           "isUnique": false
         },
         "job_alert_matches_job_alert_id_was_sent_idx": {
           "name": "job_alert_matches_job_alert_id_was_sent_idx",
-          "columns": [
-            "job_alert_id",
-            "was_sent"
-          ],
+          "columns": ["job_alert_id", "was_sent"],
           "isUnique": false
         }
       },
@@ -2958,12 +2658,8 @@
           "name": "job_alert_matches_job_alert_id_job_alerts_id_fk",
           "tableFrom": "job_alert_matches",
           "tableTo": "job_alerts",
-          "columnsFrom": [
-            "job_alert_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_alert_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2971,12 +2667,8 @@
           "name": "job_alert_matches_job_id_job_details_id_fk",
           "tableFrom": "job_alert_matches",
           "tableTo": "job_details",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2984,9 +2676,7 @@
       "compositePrimaryKeys": {
         "job_alert_matches_id": {
           "name": "job_alert_matches_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -3125,38 +2815,27 @@
       "indexes": {
         "job_alerts_user_id_idx": {
           "name": "job_alerts_user_id_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "job_alerts_is_active_idx": {
           "name": "job_alerts_is_active_idx",
-          "columns": [
-            "is_active"
-          ],
+          "columns": ["is_active"],
           "isUnique": false
         },
         "job_alerts_is_paused_idx": {
           "name": "job_alerts_is_paused_idx",
-          "columns": [
-            "is_paused"
-          ],
+          "columns": ["is_paused"],
           "isUnique": false
         },
         "job_alerts_frequency_idx": {
           "name": "job_alerts_frequency_idx",
-          "columns": [
-            "frequency"
-          ],
+          "columns": ["frequency"],
           "isUnique": false
         },
         "job_alerts_user_id_is_active_idx": {
           "name": "job_alerts_user_id_is_active_idx",
-          "columns": [
-            "user_id",
-            "is_active"
-          ],
+          "columns": ["user_id", "is_active"],
           "isUnique": false
         }
       },
@@ -3165,12 +2844,8 @@
           "name": "job_alerts_user_id_users_id_fk",
           "tableFrom": "job_alerts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3178,9 +2853,7 @@
       "compositePrimaryKeys": {
         "job_alerts_id": {
           "name": "job_alerts_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},

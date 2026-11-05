@@ -2,7 +2,10 @@ import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
 export const env = createEnv({
-  server: {},
+  server: {
+    /** Server-only key for Places API (New) + Geocoding API. Never expose to client. */
+    GOOGLE_MAPS_API_KEY: z.string().optional(),
+  },
   client: {
     NEXT_PUBLIC_SERVER_URL: z.url(),
     NEXT_PUBLIC_FRONTEND_URL: z.url(),

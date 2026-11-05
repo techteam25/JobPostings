@@ -1,10 +1,7 @@
 import { eq } from "drizzle-orm";
-import { db } from "@/db/connection";
-import {
-  user,
-  jobsDetails,
-} from "@/db/schema";
-import { JobRepository } from "@/repositories/job.repository";
+import { db } from "@shared/db/connection";
+import { user, jobsDetails } from "@/db/schema";
+import { ApplicationsRepository } from "@/modules/applications";
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import {
   expect,
@@ -15,7 +12,10 @@ import {
   beforeAll,
   afterAll,
 } from "vitest";
-import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
 import { auth } from "@/utils/auth";
 import { seedUserWithRoleScenario } from "@tests/utils/seedScenarios";
 import { createJobApplication } from "@tests/utils/seedBuilders";
@@ -27,15 +27,17 @@ describe("Application Status Change Notification Integration Tests", () => {
   let applicationId: number;
   let applicantEmail: string;
   let applicantFullName: string;
-  let jobTitle: string;
-  let jobRepository: JobRepository;
+  let applicationsRepository: ApplicationsRepository;
 
   // Helper function to seed test data
   async function seedTestApplicationData() {
     const { faker } = await import("@faker-js/faker");
 
     // Create organization owner using seedUserWithRoleScenario
-    const { user: ownerUser, org } = await seedUserWithRoleScenario("owner", "org.owner@example.com");
+    const { user: ownerUser, org } = await seedUserWithRoleScenario(
+      "owner",
+      "org.owner@example.com",
+    );
 
     // Create job
     const jobTitle = faker.person.jobTitle();
@@ -76,7 +78,10 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     // Create application
-    const application = await createJobApplication(job.id, Number(applicant.user.id));
+    const application = await createJobApplication(
+      job.id,
+      Number(applicant.user.id),
+    );
 
     // Fetch applicant details
     const applicantRecord = await db
@@ -109,7 +114,7 @@ describe("Application Status Change Notification Integration Tests", () => {
   }
 
   beforeAll(() => {
-    jobRepository = new JobRepository();
+    applicationsRepository = new ApplicationsRepository();
 
     // Mock email queue to prevent actual email sending during tests
     vi.spyOn(queueService, "addJob").mockResolvedValue({} as any);
@@ -135,7 +140,6 @@ describe("Application Status Change Notification Integration Tests", () => {
     applicationId = application.id;
     applicantEmail = applicant.email;
     applicantFullName = applicant.fullName;
-    jobTitle = job.title;
 
     // Clear mock calls before each test to ensure isolation
     vi.clearAllMocks();
@@ -147,7 +151,6 @@ describe("Application Status Change Notification Integration Tests", () => {
 
   describe("Status Update Notification - Happy Path", () => {
     it("should queue email notification when status changes from pending to reviewed", async () => {
-
       const newStatus = "reviewed";
       const response = await request
         .patch(
@@ -175,7 +178,6 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should queue email notification when status changes from reviewed to shortlisted", async () => {
-
       // First update to reviewed
       await request
         .patch(
@@ -210,7 +212,6 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should queue email notification when status changes to rejected", async () => {
-
       // First transition to reviewed (required before rejected)
       await request
         .patch(
@@ -244,7 +245,6 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should queue email notification when status changes to hired", async () => {
-
       // First transition through the required path: reviewed → shortlisted → interviewing
       await request
         .patch(
@@ -292,7 +292,6 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should queue email notification when status changes to interviewing", async () => {
-
       // First transition to shortlisted (required before interviewing)
       await request
         .patch(
@@ -333,7 +332,6 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should queue email notification for multiple status transitions", async () => {
-
       // First transition: pending → reviewed
       await request
         .patch(
@@ -376,7 +374,6 @@ describe("Application Status Change Notification Integration Tests", () => {
 
   describe("Status Update Notification - No Notification Cases", () => {
     it("should not queue email notification when status does not change", async () => {
-
       // First update to reviewed
       await request
         .patch(
@@ -407,7 +404,6 @@ describe("Application Status Change Notification Integration Tests", () => {
 
   describe("Status Update Notification - Error Handling", () => {
     it("should succeed status update even if queue service fails", async () => {
-
       // Mock queue service to throw an error
       vi.spyOn(queueService, "addJob").mockRejectedValueOnce(
         new Error("Queue service error"),
@@ -427,19 +423,18 @@ describe("Application Status Change Notification Integration Tests", () => {
 
       // Verify status was actually updated in database
       const application =
-        await jobRepository.findApplicationById(applicationId);
+        await applicationsRepository.findApplicationById(applicationId);
       expect(application?.application.status).toBe("reviewed");
     });
   });
 
   describe("Status Update Notification - Data Verification", () => {
     it("should pass correct applicant email and full name to queue", async () => {
-
       vi.clearAllMocks();
 
       // Fetch current application data before the test
       const currentApplication =
-        await jobRepository.findApplicationById(applicationId);
+        await applicationsRepository.findApplicationById(applicationId);
       if (!currentApplication) {
         throw new Error("Test application not found");
       }
@@ -473,12 +468,11 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should pass correct job title to queue", async () => {
-
       vi.clearAllMocks();
 
       // Fetch current application data before the test
       const currentApplication =
-        await jobRepository.findApplicationById(applicationId);
+        await applicationsRepository.findApplicationById(applicationId);
       if (!currentApplication) {
         throw new Error("Test application not found");
       }
@@ -510,7 +504,6 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should pass correct application ID to queue", async () => {
-
       vi.clearAllMocks();
 
       const response = await request
@@ -540,7 +533,6 @@ describe("Application Status Change Notification Integration Tests", () => {
     });
 
     it("should pass correct old and new status to queue", async () => {
-
       vi.clearAllMocks();
 
       const newStatus = "reviewed";

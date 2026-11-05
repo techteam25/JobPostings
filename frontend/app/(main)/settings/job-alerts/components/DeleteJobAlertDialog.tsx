@@ -19,7 +19,11 @@ interface DeleteJobAlertDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function DeleteJobAlertDialog({ alert, open, onOpenChange }: DeleteJobAlertDialogProps) {
+export function DeleteJobAlertDialog({
+  alert,
+  open,
+  onOpenChange,
+}: DeleteJobAlertDialogProps) {
   const deleteMutation = useDeleteJobAlert();
 
   const handleDelete = async () => {
@@ -36,13 +40,19 @@ export function DeleteJobAlertDialog({ alert, open, onOpenChange }: DeleteJobAle
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Job Alert</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete "{alert.name}"? This action cannot be undone and you will
-            stop receiving notifications for this alert.
+            Are you sure you want to delete &ldquo;{alert.name}&rdquo;? This
+            action cannot be undone and you will stop receiving notifications
+            for this alert.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} disabled={deleteMutation.isPending}>
+          <AlertDialogCancel disabled={deleteMutation.isPending}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+          >
             {deleteMutation.isPending ? "Deleting..." : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>

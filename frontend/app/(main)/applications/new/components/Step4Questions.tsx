@@ -1,8 +1,9 @@
 "use client";
 
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FieldInfo } from "@/components/common/FieldInfo";
 import {
   Select,
@@ -15,20 +16,7 @@ import { useForm } from "@tanstack/react-form";
 import { useApplicationStore } from "@/context/store";
 import { ApplicationFormData } from "@/context/slices/application-form-slice";
 import { toast } from "sonner";
-import { z } from "zod";
-
-const step4Schema = z.object({
-  salvationStatement: z
-    .string()
-    .min(10, "Please share your salvation experience"),
-  race: z.string().min(1, "Please select a race"),
-  gender: z.enum(["Male", "Female"], { message: "Please select a gender" }),
-  veteranStatus: z.string().min(1, "Please select veteran status"),
-  yearsOfExperience: z.enum(["0-1", "2-4", "5-9", "10+"], {
-    message: "Please select years of experience",
-  }),
-  authorized: z.enum(["yes", "no"], { message: "Please select an option" }),
-});
+import { step4QuestionsSchema } from "@/schemas/applications";
 
 const RACE_OPTIONS = [
   "Asian",
@@ -60,14 +48,13 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
     defaultValues: {
       salvationStatement: formData.customAnswers?.salvationStatement || "",
       race: formData.customAnswers?.race || "",
-      gender: formData.customAnswers?.gender || (undefined as any),
+      gender: formData.customAnswers?.gender,
       veteranStatus: formData.customAnswers?.veteranStatus || "",
-      yearsOfExperience:
-        formData.customAnswers?.yearsOfExperience || (undefined as any),
-      authorized: formData.customAnswers?.authorized || (undefined as any),
+      yearsOfExperience: formData.customAnswers?.yearsOfExperience,
+      authorized: formData.customAnswers?.authorized,
     },
     onSubmit: async ({ value }) => {
-      const result = step4Schema.safeParse(value);
+      const result = step4QuestionsSchema.safeParse(value);
 
       if (!result.success) {
         const firstError = result.error.issues[0];
@@ -101,20 +88,20 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
   });
 
   return (
-    <div className="animate-in fade-in slide-in-from-right-8 space-y-6 duration-500">
-      <h2 className="text-xl font-bold text-slate-900">
+    <div className="animate-in fade-in slide-in-from-right-8 flex flex-col gap-6 duration-500">
+      <h2 className="text-foreground text-xl font-bold">
         A few more questions
       </h2>
 
-      <div className="space-y-5">
+      <div className="flex flex-col gap-5">
         {/* Salvation Statement */}
         <form.Field
           name="salvationStatement"
           children={(field) => (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">
+            <Field>
+              <FieldLabel>
                 Briefly share your salvation experience with Jesus.
-              </Label>
+              </FieldLabel>
               <Textarea
                 className="min-h-24 resize-y"
                 placeholder="Share your experience..."
@@ -123,7 +110,7 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
                 onChange={(e) => field.handleChange(e.target.value)}
               />
               <FieldInfo field={field} />
-            </div>
+            </Field>
           )}
         />
 
@@ -131,8 +118,8 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
         <form.Field
           name="race"
           children={(field) => (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">Race</Label>
+            <Field>
+              <FieldLabel>Race</FieldLabel>
               <Select
                 value={field.state.value}
                 onValueChange={(val) => field.handleChange(val)}
@@ -149,7 +136,7 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
                 </SelectContent>
               </Select>
               <FieldInfo field={field} />
-            </div>
+            </Field>
           )}
         />
 
@@ -157,10 +144,8 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
         <form.Field
           name="gender"
           children={(field) => (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">
-                Gender
-              </Label>
+            <Field>
+              <FieldLabel>Gender</FieldLabel>
               <Select
                 value={field.state.value}
                 onValueChange={(val) =>
@@ -179,7 +164,7 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
                 </SelectContent>
               </Select>
               <FieldInfo field={field} />
-            </div>
+            </Field>
           )}
         />
 
@@ -187,10 +172,8 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
         <form.Field
           name="veteranStatus"
           children={(field) => (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">
-                Veteran Status
-              </Label>
+            <Field>
+              <FieldLabel>Veteran Status</FieldLabel>
               <Select
                 value={field.state.value}
                 onValueChange={(val) => field.handleChange(val)}
@@ -207,7 +190,7 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
                 </SelectContent>
               </Select>
               <FieldInfo field={field} />
-            </div>
+            </Field>
           )}
         />
 
@@ -215,10 +198,8 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
         <form.Field
           name="yearsOfExperience"
           children={(field) => (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">
-                Years of Relevant Work Experience
-              </Label>
+            <Field>
+              <FieldLabel>Years of Relevant Work Experience</FieldLabel>
               <Select
                 value={field.state.value}
                 onValueChange={(val) => field.handleChange(val)}
@@ -235,7 +216,7 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
                 </SelectContent>
               </Select>
               <FieldInfo field={field} />
-            </div>
+            </Field>
           )}
         />
 
@@ -243,36 +224,26 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
         <form.Field
           name="authorized"
           children={(field) => (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">
+            <Field>
+              <FieldLabel>
                 Are you authorized to work in the United States?
-              </Label>
-              <div className="flex gap-4">
-                <Label className="flex w-full cursor-pointer items-center gap-2 rounded-lg border p-3 hover:bg-slate-50">
-                  <input
-                    type="radio"
-                    name="auth"
-                    className="text-blue-600 focus:ring-blue-500"
-                    value="yes"
-                    checked={field.state.value === "yes"}
-                    onChange={() => field.handleChange("yes")}
-                  />
+              </FieldLabel>
+              <RadioGroup
+                value={field.state.value}
+                onValueChange={(val) => field.handleChange(val as "yes" | "no")}
+                className="flex gap-4"
+              >
+                <FieldLabel className="hover:bg-accent flex w-full cursor-pointer items-center gap-2 rounded-lg border p-3 font-normal">
+                  <RadioGroupItem value="yes" />
                   <span className="text-sm">Yes, I am authorized</span>
-                </Label>
-                <Label className="flex w-full cursor-pointer items-center gap-2 rounded-lg border p-3 hover:bg-slate-50">
-                  <input
-                    type="radio"
-                    name="auth"
-                    className="text-blue-600 focus:ring-blue-500"
-                    value="no"
-                    checked={field.state.value === "no"}
-                    onChange={() => field.handleChange("no")}
-                  />
+                </FieldLabel>
+                <FieldLabel className="hover:bg-accent flex w-full cursor-pointer items-center gap-2 rounded-lg border p-3 font-normal">
+                  <RadioGroupItem value="no" />
                   <span className="text-sm">No, I require sponsorship</span>
-                </Label>
-              </div>
+                </FieldLabel>
+              </RadioGroup>
               <FieldInfo field={field} />
-            </div>
+            </Field>
           )}
         />
       </div>
@@ -281,15 +252,14 @@ export const Step4Questions = ({ onSubmit }: Step4QuestionsProps) => {
         <Button variant="outline" onClick={() => setStep(3)}>
           Back
         </Button>
-        <button
+        <Button
           onClick={(e) => {
             e.preventDefault();
             form.handleSubmit();
           }}
-          className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
         >
           Submit Application
-        </button>
+        </Button>
       </div>
     </div>
   );

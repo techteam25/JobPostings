@@ -1,7 +1,5 @@
-import { sql } from "drizzle-orm";
-import { db } from "@/db/connection";
-import { connection } from "@/db/connection";
-import { redisCacheService } from "@/infrastructure/redis-cache.service";
+import { createTestDatabase } from "./testDatabase";
+import { redisCacheService } from "@shared/infrastructure/redis-cache.service";
 
 const tableNames = [
   "job_alert_matches",
@@ -10,6 +8,7 @@ const tableNames = [
   "job_applications",
   "saved_jobs",
   "job_skills",
+  "user_skills",
   "skills",
   "job_insights",
   "job_details",
@@ -30,6 +29,8 @@ const tableNames = [
   "verification",
   "users",
 ] as const;
+
+const { connection } = createTestDatabase(); // Ensure test database is initialized before cleanup
 
 /**
  * Deletes all data from every table and resets AUTO_INCREMENT counters.

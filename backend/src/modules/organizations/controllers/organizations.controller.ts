@@ -1,0 +1,363 @@
+import { Request, Response } from "express";
+import { BaseController } from "@shared/base/base.controller";
+import { auditService } from "@shared/audit";
+import {
+  type ApiResponse,
+  type EmptyBody,
+  type PaginatedResponse,
+} from "@shared/types";
+import type {
+  CreateOrganizationSchema,
+  DeleteOrganizationSchema,
+  GetOrganizationSchema,
+  UpdateOrganizationSchema,
+  UploadOrganizationLogoSchema,
+  RemoveOrganizationMemberSchema,
+  UpdateOrganizationMemberRoleSchema,
+  TransferOrganizationOwnershipSchema,
+  Organization,
+  OrganizationMember,
+} from "@/validations/organization.validation";
+import type { GetUserSchema } from "@/validations/user.validation";
+import type { SearchParams } from "@/validations/base.validation";
+import type { OrganizationsServicePort } from "@/modules/organizations";
+
+/**
+ * Controller class for handling organization CRUD API endpoints.
+ * Does NOT handle invitation or employer-facing application endpoints
+ * (those belong to their respective module controllers).
+ */
+export class OrganizationsController extends BaseController {
+  constructor(private organizationsService: OrganizationsServicePort) {
+    super();
+  }
+
+  /**
+   * Retrieves all organizations with pagination and search.
+   * @param req The Express request object with query parameters.
+   * @param res The Express response object.
+   */
+  getAllOrganizations = async (
+    req: Request<EmptyBody, EmptyBody, EmptyBody, SearchParams["query"]>,
+    res: Response<PaginatedResponse<Organization>>,
+  ) => {
+    const { page, limit, q: search } = req.query;
+    const options = {
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      searchTerm: search,
+    };
+
+    const result = await this.organizationsService.getAllOrganizations(options);
+
+    if (result.isSuccess) {
+      const { items, pagination } = result.value;
+      return this.sendPaginatedResponse<Organization>(
+        res,
+        items,
+        pagination,
+        "Organizations retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Retrieves an organization by its ID, including members.
+   * @param req The Express request object with organization ID parameters.
+   * @param res The Express response object.
+   */
+  getOrganizationById = async (
+    req: Request<GetOrganizationSchema["params"]>,
+    res: Response<ApiResponse<Organization>>,
+  ) => {
+    const id = parseInt(req.params.organizationId);
+    const organization =
+      await this.organizationsService.getOrganizationById(id);
+
+    if (organization.isSuccess) {
+      return this.sendSuccess(
+        res,
+        organization.value,
+        "Organization retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, organization.error);
+    }
+  };
+
+  /**
+   * Retrieves the organization ID for a given member ID.
+   * @param req The Express request object with user ID parameters.
+   * @param res The Express response object.
+   */
+  getOrganizationIdByMemberId = async (
+    req: Request<GetUserSchema["params"]>,
+    res: Response<ApiResponse<OrganizationMember>>,
+  ) => {
+    const memberId = parseInt(req.params.id);
+    const organization =
+      await this.organizationsService.getFirstOrganizationForUser(memberId);
+
+    if (organization.isSuccess) {
+      return this.sendSuccess<{ organizationId: number }>(
+        res,
+        { organizationId: organization.value.organizationId },
+        "Organization retrieved successfully",
+      );
+    } else {
+      return this.handleControllerError(res, organization.error);
+    }
+  };
+
+  /**
+   * Creates a new organization.
+   * @param req The Express request object with organization creation data.
+   * @param res The Express response object.
+   */
+  createOrganization = async (
+    req: Request<EmptyBody, EmptyBody, CreateOrganizationSchema["body"]>,
+    res: Response<
+      ApiResponse<Organization & { members: OrganizationMember[] }>
+    >,
+  ) => {
+    const organizationData = { ...req.body, logo: req.file };
+
+    const userId = req.userId;
+    const organization = await this.organizationsService.createOrganization(
+      organizationData,
+      userId!,
+      req.correlationId!,
+    );
+
+    if (organization.isSuccess) {
+      auditService.emit({
+        name: "org.created",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "organization", id: organization.value.id },
+        action: "created organization",
+        outcome: "success",
+      });
+      return this.sendSuccess<Organization & { members: OrganizationMember[] }>(
+        res,
+        organization.value,
+        "Organization created successfully",
+        201,
+      );
+    } else {
+      return this.handleControllerError(res, organization.error);
+    }
+  };
+
+  /**
+   * Uploads a logo for an organization.
+   * @param req The Express request object with organization ID parameters and file upload.
+   * @param res The Express response object.
+   */
+  uploadOrganizationLogo = async (
+    req: Request<
+      UploadOrganizationLogoSchema["params"],
+      EmptyBody,
+      UploadOrganizationLogoSchema["body"]
+    >,
+    res: Response<ApiResponse<Organization>>,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const file = req.file;
+
+    const result = await this.organizationsService.uploadOrganizationLogo(
+      req.userId!,
+      organizationId,
+      file,
+      req.correlationId!,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess<{ message: string }>(
+        res,
+        result.value,
+        "Organization logo uploaded successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Updates an existing organization.
+   * @param req The Express request object with organization update data.
+   * @param res The Express response object.
+   */
+  updateOrganization = async (
+    req: Request<
+      UpdateOrganizationSchema["params"],
+      EmptyBody,
+      UpdateOrganizationSchema["body"]
+    >,
+    res: Response<ApiResponse<Organization>>,
+  ) => {
+    const id = parseInt(req.params.organizationId);
+    const updateData = req.body;
+    const organization = await this.organizationsService.updateOrganization(
+      id,
+      updateData,
+    );
+
+    if (organization.isSuccess) {
+      return this.sendSuccess<Organization>(
+        res,
+        organization.value,
+        "Organization updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, organization.error);
+    }
+  };
+
+  /**
+   * Deletes an organization.
+   * @param req The Express request object with organization ID parameters.
+   * @param res The Express response object.
+   */
+  deleteOrganization = async (
+    req: Request<DeleteOrganizationSchema["params"]>,
+    res: Response<ApiResponse<void>>,
+  ) => {
+    const id = parseInt(req.params.organizationId);
+    const result = await this.organizationsService.deleteOrganization(id);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, null, result.value.message, 204);
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Removes a member from an organization.
+   * @param req The Express request object with organization and member ID parameters.
+   * @param res The Express response object.
+   */
+  removeOrganizationMember = async (
+    req: Request<RemoveOrganizationMemberSchema["params"]>,
+    res: Response<ApiResponse<{ message: string }>>,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const memberId = parseInt(req.params.memberId);
+    const result = await this.organizationsService.removeOrganizationMember(
+      organizationId,
+      memberId,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, result.value, result.value.message, 200);
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Updates an organization member's role.
+   * @param req The Express request object with organization, member ID, and role.
+   * @param res The Express response object.
+   */
+  updateOrganizationMemberRole = async (
+    req: Request<
+      UpdateOrganizationMemberRoleSchema["params"],
+      EmptyBody,
+      UpdateOrganizationMemberRoleSchema["body"]
+    >,
+    res: Response<ApiResponse<{ message: string }>>,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const memberId = parseInt(req.params.memberId);
+    const result = await this.organizationsService.updateOrganizationMemberRole(
+      organizationId,
+      memberId,
+      req.body.role,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, result.value, result.value.message, 200);
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  /**
+   * Transfers organization ownership to another active admin.
+   * Requires the caller to be the current owner.
+   */
+  transferOwnership = async (
+    req: Request<
+      TransferOrganizationOwnershipSchema["params"],
+      EmptyBody,
+      TransferOrganizationOwnershipSchema["body"]
+    >,
+    res: Response<
+      ApiResponse<{
+        message: string;
+        previousOwnerUserId: number;
+        newOwnerUserId: number;
+      }>
+    >,
+  ) => {
+    const organizationId = parseInt(req.params.organizationId);
+    const result = await this.organizationsService.transferOwnership(
+      organizationId,
+      req.userId!,
+      req.body.memberId,
+    );
+
+    if (result.isSuccess) {
+      const actor = {
+        id: req.userId,
+        ip: req.ip,
+        userAgent: req.headers["user-agent"],
+      };
+      auditService.emit({
+        name: "org.ownership.transferred",
+        actor,
+        resource: { type: "organization", id: organizationId },
+        action: "transferred ownership",
+        outcome: "success",
+        metadata: {
+          previousOwnerUserId: result.value.previousOwnerUserId,
+          newOwnerUserId: result.value.newOwnerUserId,
+        },
+      });
+      auditService.emit({
+        name: "org.member.role.changed",
+        actor,
+        resource: { type: "organization", id: organizationId },
+        action: "changed member role",
+        outcome: "success",
+        metadata: {
+          userId: result.value.previousOwnerUserId,
+          role: "admin",
+          via: "ownership-transfer",
+        },
+      });
+      auditService.emit({
+        name: "org.member.role.changed",
+        actor,
+        resource: { type: "organization", id: organizationId },
+        action: "changed member role",
+        outcome: "success",
+        metadata: {
+          userId: result.value.newOwnerUserId,
+          role: "owner",
+          via: "ownership-transfer",
+        },
+      });
+      return this.sendSuccess(res, result.value, result.value.message, 200);
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+}

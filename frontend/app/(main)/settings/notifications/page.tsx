@@ -14,7 +14,9 @@ export default async function NotificationsPage() {
           </p>
         </div>
 
-        <JobAlertsList initialData={initialJobAlerts} />
+        <JobAlertsList
+          initialData={initialJobAlerts.success ? initialJobAlerts : undefined}
+        />
       </div>
     </div>
   );

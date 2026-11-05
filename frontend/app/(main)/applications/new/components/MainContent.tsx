@@ -1,16 +1,66 @@
 "use client";
 
 import { useEffect } from "react";
+import dynamic from "next/dynamic";
 import { toast } from "sonner";
-import { Step1Upload } from "@/app/(main)/applications/new/components/Step1Upload";
-import { Step2CoverLetter } from "@/app/(main)/applications/new/components/Step2CoverLetter";
-import { Step3UserInfo } from "@/app/(main)/applications/new/components/Step3UserInfo";
-import { Step4Questions } from "@/app/(main)/applications/new/components/Step4Questions";
-import { Step5Success } from "@/app/(main)/applications/new/components/Step5Success";
+import { Skeleton } from "@/components/ui/skeleton";
 import { applyForJob } from "@/lib/api";
 import { UserWithProfile } from "@/lib/types";
 import { useApplicationStore } from "@/context/store";
 import { ApplicationFormData } from "@/context/slices/application-form-slice";
+import { applicationFormSchema } from "@/schemas/applications";
+
+const StepSkeleton = () => (
+  <div className="flex flex-col gap-6">
+    <Skeleton className="h-8 w-48" />
+    <Skeleton className="h-4 w-full max-w-md" />
+    <Skeleton className="h-48 w-full rounded-md" />
+    <div className="flex justify-end gap-3">
+      <Skeleton className="h-10 w-24 rounded-md" />
+      <Skeleton className="h-10 w-24 rounded-md" />
+    </div>
+  </div>
+);
+
+const Step1Upload = dynamic(
+  () =>
+    import("@/app/(main)/applications/new/components/Step1Upload").then(
+      (mod) => ({ default: mod.Step1Upload }),
+    ),
+  { loading: () => <StepSkeleton /> },
+);
+
+const Step2CoverLetter = dynamic(
+  () =>
+    import("@/app/(main)/applications/new/components/Step2CoverLetter").then(
+      (mod) => ({ default: mod.Step2CoverLetter }),
+    ),
+  { loading: () => <StepSkeleton /> },
+);
+
+const Step3UserInfo = dynamic(
+  () =>
+    import("@/app/(main)/applications/new/components/Step3UserInfo").then(
+      (mod) => ({ default: mod.Step3UserInfo }),
+    ),
+  { loading: () => <StepSkeleton /> },
+);
+
+const Step4Questions = dynamic(
+  () =>
+    import("@/app/(main)/applications/new/components/Step4Questions").then(
+      (mod) => ({ default: mod.Step4Questions }),
+    ),
+  { loading: () => <StepSkeleton /> },
+);
+
+const Step5Success = dynamic(
+  () =>
+    import("@/app/(main)/applications/new/components/Step5Success").then(
+      (mod) => ({ default: mod.Step5Success }),
+    ),
+  { loading: () => <StepSkeleton /> },
+);
 
 interface MainContentProps {
   jobId: number;
@@ -38,6 +88,12 @@ export const MainContent = ({ jobId, userProfile }: MainContentProps) => {
   const handleSubmitApplication = async (
     finalData: ApplicationFormData,
   ): Promise<boolean> => {
+    const validation = applicationFormSchema.safeParse(finalData);
+    if (!validation.success) {
+      toast.error(validation.error.issues[0].message);
+      return false;
+    }
+
     const formDataToSend = new FormData();
 
     if (finalData.resume) {

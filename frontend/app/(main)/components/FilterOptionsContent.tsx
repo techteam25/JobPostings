@@ -1,6 +1,6 @@
 "use client";
 
-import { DatePosted, useFiltersStore } from "@/context/store";
+import type { DatePosted, JobType, ServiceRole } from "@/context/store";
 import {
   Accordion,
   AccordionContent,
@@ -10,34 +10,57 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { RemoteOnlyFilter } from "@/app/(main)/components/RemoteOnlyFilter";
+import { Switch } from "@/components/ui/switch";
 
-export const FilterOptionsContent = () => {
-  const datePosted = useFiltersStore((state) => state.datePosted);
-  const jobTypes = useFiltersStore((state) => state.jobTypes);
-  const serviceRoles = useFiltersStore((state) => state.serviceRoles);
+export interface FilterOptionsContentProps {
+  jobTypes: JobType[];
+  remoteOnly: boolean;
+  datePosted: DatePosted | null;
+  serviceRoles: ServiceRole[];
+  onJobTypesChange: (types: JobType[]) => void;
+  onRemoteOnlyChange: (remote: boolean) => void;
+  onDatePostedChange: (datePosted: DatePosted | null) => void;
+  onServiceRolesChange: (roles: ServiceRole[]) => void;
+}
 
-  const setDatePosted = useFiltersStore((state) => state.setDatePosted);
-  const setJobTypes = useFiltersStore((state) => state.setJobTypes);
-  const setServiceRoles = useFiltersStore((state) => state.setServiceRoles);
-
+export const FilterOptionsContent = ({
+  jobTypes,
+  remoteOnly,
+  datePosted,
+  serviceRoles,
+  onJobTypesChange,
+  onRemoteOnlyChange,
+  onDatePostedChange,
+  onServiceRolesChange,
+}: FilterOptionsContentProps) => {
   return (
-    <div className="w-full">
-      <RemoteOnlyFilter />
+    <div className="w-full space-y-1">
+      <div className="flex items-center justify-between space-x-2">
+        <Label htmlFor="remote-only">Remote Only</Label>
+        <Switch
+          id="remote-only"
+          onCheckedChange={onRemoteOnlyChange}
+          checked={remoteOnly}
+          className="data-[state=checked]:bg-primary"
+        />
+      </div>
 
-      <Accordion type="single" collapsible className="my-2 w-full">
+      <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="date-posted" className="border-secondary">
-          <AccordionTrigger className="p-1">Date Posted</AccordionTrigger>
-          <AccordionContent className="flex flex-col space-y-3 pb-1">
+          <AccordionTrigger className="py-3 text-sm font-semibold">
+            Date Posted
+          </AccordionTrigger>
+          <AccordionContent className="flex flex-col space-y-3 pb-3">
             <RadioGroup
               value={datePosted || ""}
               onValueChange={(value) =>
-                setDatePosted(value === "" ? null : (value as DatePosted))
+                onDatePostedChange(value === "" ? null : (value as DatePosted))
               }
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem
-                  className="border-accent focus-visible:ring-accent text-accent"
+                  className="border-primary focus-visible:ring-primary"
+                  circleClassName="fill-primary"
                   value=""
                   id="any-time"
                 />
@@ -50,7 +73,8 @@ export const FilterOptionsContent = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem
-                  className="border-accent focus-visible:ring-accent text-accent"
+                  className="border-primary focus-visible:ring-primary"
+                  circleClassName="fill-primary"
                   value="last-24-hours"
                   id="last-24-hours"
                 />
@@ -63,7 +87,8 @@ export const FilterOptionsContent = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem
-                  className="border-accent focus-visible:ring-accent text-accent"
+                  className="border-primary focus-visible:ring-primary"
+                  circleClassName="fill-primary"
                   value="last-7-days"
                   id="last-7-days"
                 />
@@ -76,7 +101,8 @@ export const FilterOptionsContent = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem
-                  className="border-accent focus-visible:ring-accent text-accent"
+                  className="border-primary focus-visible:ring-primary"
+                  circleClassName="fill-primary"
                   value="last-14-days"
                   id="last-14-days"
                 />
@@ -92,20 +118,22 @@ export const FilterOptionsContent = () => {
         </AccordionItem>
       </Accordion>
 
-      <Accordion type="single" collapsible className="my-2 w-full">
+      <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="job-type" className="border-secondary">
-          <AccordionTrigger className="p-1">Job Type</AccordionTrigger>
-          <AccordionContent className="flex flex-col space-y-3 pb-1">
+          <AccordionTrigger className="py-3 text-sm font-semibold">
+            Job Type
+          </AccordionTrigger>
+          <AccordionContent className="flex flex-col space-y-3 pb-3">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="full-time"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={jobTypes.includes("full-time")}
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    setJobTypes([...jobTypes, "full-time"]);
+                    onJobTypesChange([...jobTypes, "full-time"]);
                   } else {
-                    setJobTypes(
+                    onJobTypesChange(
                       jobTypes.filter((type) => type !== "full-time"),
                     );
                   }
@@ -118,13 +146,13 @@ export const FilterOptionsContent = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="part-time"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={jobTypes.includes("part-time")}
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    setJobTypes([...jobTypes, "part-time"]);
+                    onJobTypesChange([...jobTypes, "part-time"]);
                   } else {
-                    setJobTypes(
+                    onJobTypesChange(
                       jobTypes.filter((type) => type !== "part-time"),
                     );
                   }
@@ -137,13 +165,15 @@ export const FilterOptionsContent = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="contract"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={jobTypes.includes("contract")}
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    setJobTypes([...jobTypes, "contract"]);
+                    onJobTypesChange([...jobTypes, "contract"]);
                   } else {
-                    setJobTypes(jobTypes.filter((type) => type !== "contract"));
+                    onJobTypesChange(
+                      jobTypes.filter((type) => type !== "contract"),
+                    );
                   }
                 }}
               />
@@ -153,14 +183,33 @@ export const FilterOptionsContent = () => {
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
+                id="volunteer"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                checked={jobTypes.includes("volunteer")}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    onJobTypesChange([...jobTypes, "volunteer"]);
+                  } else {
+                    onJobTypesChange(
+                      jobTypes.filter((type) => type !== "volunteer"),
+                    );
+                  }
+                }}
+              />
+              <Label htmlFor="volunteer" className="cursor-pointer font-normal">
+                Volunteer
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
                 id="internship"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={jobTypes.includes("internship")}
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    setJobTypes([...jobTypes, "internship"]);
+                    onJobTypesChange([...jobTypes, "internship"]);
                   } else {
-                    setJobTypes(
+                    onJobTypesChange(
                       jobTypes.filter((type) => type !== "internship"),
                     );
                   }
@@ -177,20 +226,22 @@ export const FilterOptionsContent = () => {
         </AccordionItem>
       </Accordion>
 
-      <Accordion type="single" collapsible className="my-2 w-full">
+      <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="service-role" className="border-secondary">
-          <AccordionTrigger className="p-1">Service Role</AccordionTrigger>
-          <AccordionContent className="flex flex-col space-y-3 pb-1">
+          <AccordionTrigger className="py-3 text-sm font-semibold">
+            Service Role
+          </AccordionTrigger>
+          <AccordionContent className="flex flex-col space-y-3 pb-3">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="paid"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={serviceRoles.includes("paid")}
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    setServiceRoles([...serviceRoles, "paid"]);
+                    onServiceRolesChange([...serviceRoles, "paid"]);
                   } else {
-                    setServiceRoles(
+                    onServiceRolesChange(
                       serviceRoles.filter((role) => role !== "paid"),
                     );
                   }
@@ -203,13 +254,13 @@ export const FilterOptionsContent = () => {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="missionary"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={serviceRoles.includes("missionary")}
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    setServiceRoles([...serviceRoles, "missionary"]);
+                    onServiceRolesChange([...serviceRoles, "missionary"]);
                   } else {
-                    setServiceRoles(
+                    onServiceRolesChange(
                       serviceRoles.filter((role) => role !== "missionary"),
                     );
                   }
@@ -224,33 +275,36 @@ export const FilterOptionsContent = () => {
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
-                id="volunteer"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                id="volunteer-role"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={serviceRoles.includes("volunteer")}
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    setServiceRoles([...serviceRoles, "volunteer"]);
+                    onServiceRolesChange([...serviceRoles, "volunteer"]);
                   } else {
-                    setServiceRoles(
+                    onServiceRolesChange(
                       serviceRoles.filter((role) => role !== "volunteer"),
                     );
                   }
                 }}
               />
-              <Label htmlFor="volunteer" className="cursor-pointer font-normal">
+              <Label
+                htmlFor="volunteer-role"
+                className="cursor-pointer font-normal"
+              >
                 Volunteer
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="stipend"
-                className="accent-accent focus:ring-accent border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
+                className="accent-primary focus:ring-primary border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 checked={serviceRoles.includes("stipend")}
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    setServiceRoles([...serviceRoles, "stipend"]);
+                    onServiceRolesChange([...serviceRoles, "stipend"]);
                   } else {
-                    setServiceRoles(
+                    onServiceRolesChange(
                       serviceRoles.filter((role) => role !== "stipend"),
                     );
                   }

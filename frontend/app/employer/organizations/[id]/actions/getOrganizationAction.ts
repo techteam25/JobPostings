@@ -1,10 +1,10 @@
 "use server";
 
 import { getOrganization } from "@/lib/api";
-import { OrganizationWithMembers } from "@/lib/types";
+import { ApiResponse, OrganizationWithMembers } from "@/lib/types";
 
 export const getOrganizationAction = async (
   id: number,
-): Promise<OrganizationWithMembers | null> => {
+): Promise<ApiResponse<OrganizationWithMembers>> => {
   return getOrganization(id);
 };

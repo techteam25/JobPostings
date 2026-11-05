@@ -9,6 +9,7 @@ import {
   check,
   index,
   mysqlEnum,
+  unique,
 } from "drizzle-orm/mysql-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -19,6 +20,8 @@ import { userCertifications } from "./certifications";
 import { organizationMembers } from "./organizations";
 import { FileMetadata } from "@/validations/file.validation";
 import { jobAlerts } from "@/db/schema/jobAlerts";
+import { skills } from "@/db/schema/jobsDetails";
+import { jobPreferences } from "@/db/schema/jobPreferences";
 
 /**
  * Users table schema defining the structure for storing user account information.
@@ -39,6 +42,13 @@ export const user = mysqlTable(
     status: varchar("status", { length: 20 }).default("active").notNull(),
     deletedAt: timestamp("deleted_at", { fsp: 3 }),
     lastLoginAt: timestamp("last_login_at", { fsp: 3 }),
+    // Denormalized from userOnBoarding for easier access during auth flows and to avoid extra joins when determining user intent during login/signup, as this is frequently accessed data.
+    intent: mysqlEnum("intent", ["seeker", "employer"])
+      .default("seeker")
+      .notNull(),
+    onboardingStatus: mysqlEnum("onboarding_status", ["completed", "pending"])
+      .default("pending")
+      .notNull(),
   },
   (table) => [
     index("idx_users_status").on(table.status),
@@ -77,7 +87,7 @@ export const userProfile = mysqlTable(
     state: varchar("state", { length: 100 }),
     zipCode: varchar("zip_code", { length: 10 }),
     country: varchar("country", { length: 100 }).default("US"),
-    isProfilePublic: boolean("is_profile_public").default(true).notNull(),
+    isProfilePublic: boolean("is_profile_public").default(false).notNull(),
     isAvailableForWork: boolean("is_available_for_work")
       .default(true)
       .notNull(),
@@ -88,6 +98,27 @@ export const userProfile = mysqlTable(
   (table) => [
     index("idx_user_profile_is_profile_public").on(table.isProfilePublic),
   ],
+);
+
+/**
+ * User skills schema defining the structure for storing the many-to-many relationship between users and skills, allowing users to have multiple skills and each skill to be associated with multiple users.
+ */
+export const userSkills = mysqlTable(
+  "user_skills",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    skillId: int("skill_id")
+      .references(() => skills.id, { onDelete: "cascade" })
+      .notNull(),
+    userProfileId: int("user_profile_id")
+      .references(() => userProfile.id, {
+        onDelete: "cascade",
+      })
+      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [unique().on(table.skillId, table.userProfileId)],
 );
 
 /**
@@ -169,8 +200,11 @@ export const emailPreferenceAuditLog = mysqlTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     preferenceType: varchar("preference_type", { length: 100 }).notNull(),
-    context: mysqlEnum("context", ["job_seeker", "employer", "global"])
-      .notNull(),
+    context: mysqlEnum("context", [
+      "job_seeker",
+      "employer",
+      "global",
+    ]).notNull(),
     previousValue: boolean("previous_value"),
     newValue: boolean("new_value").notNull(),
     changeSource: mysqlEnum("change_source", [
@@ -226,6 +260,11 @@ export const userProfileRelations = relations(userProfile, ({ one, many }) => ({
   education: many(educations),
   workExperiences: many(workExperiences),
   certifications: many(userCertifications),
+  skills: many(userSkills),
+  userJobPreferences: one(jobPreferences, {
+    fields: [userProfile.id],
+    references: [jobPreferences.userProfileId],
+  }),
 }));
 
 /**
@@ -250,3 +289,17 @@ export const userEmailPreferencesRelations = relations(
     }),
   }),
 );
+
+/**
+ * Relations for the userSkills table, defining many-to-one relationships with userProfile and skill.
+ */
+export const userSkillsRelations = relations(userSkills, ({ one }) => ({
+  userProfile: one(userProfile, {
+    fields: [userSkills.userProfileId],
+    references: [userProfile.id],
+  }),
+  skill: one(skills, {
+    fields: [userSkills.skillId],
+    references: [skills.id],
+  }),
+}));

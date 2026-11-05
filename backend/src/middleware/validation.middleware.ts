@@ -38,7 +38,7 @@ const formatZodErrors = (error: ZodError): ValidationError[] => {
  * @returns Express middleware function
  */
 const validate =
-  (schema: ZodObject<any, any>) =>
+  (schema: ZodObject) =>
   (
     req: Request<unknown, unknown, unknown, unknown>,
     res: Response,

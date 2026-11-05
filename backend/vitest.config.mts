@@ -13,7 +13,7 @@ export default defineConfig({
 
     // Coverage configuration
     coverage: {
-      provider: "v8",
+      provider: "istanbul",
       reporter: ["text", "json", "html"],
       exclude: [
         "node_modules/",
@@ -53,11 +53,20 @@ export default defineConfig({
       json: "./tests/reports/results.json",
       html: "./tests/reports/index.html",
     },
+
+    // Zod v4 uses conditional exports that break Vitest's SSR module loader.
+    // Inlining forces Vitest to bundle it with standard ESM resolution.
+    server: {
+      deps: {
+        inline: ["zod"],
+      },
+    },
   },
 
   // Path resolution
   resolve: {
     alias: {
+      "@shared": path.resolve(__dirname, "./src/shared"),
       "@": path.resolve(__dirname, "./src"),
       "@tests": path.resolve(__dirname, "./tests"),
     },

@@ -7,14 +7,7 @@ import { FieldInfo } from "@/components/common/FieldInfo";
 import { useForm } from "@tanstack/react-form";
 import { useApplicationStore } from "@/context/store";
 import { toast } from "sonner";
-import { z } from "zod";
-
-const step3Schema = z.object({
-  country: z.string().min(1, "Country is required"),
-  city: z.string().min(1, "City is required"),
-  state: z.string().optional().or(z.literal("")),
-  zipcode: z.string().optional().or(z.literal("")),
-});
+import { step3LocationSchema } from "@/schemas/applications";
 
 export const Step3UserInfo = () => {
   const { setStep, formData, setFormData } = useApplicationStore();
@@ -34,7 +27,7 @@ export const Step3UserInfo = () => {
 
   const handleContinue = async () => {
     const values = form.state.values;
-    const result = step3Schema.safeParse(values);
+    const result = step3LocationSchema.safeParse(values);
 
     if (!result.success) {
       const firstError = result.error.issues[0];

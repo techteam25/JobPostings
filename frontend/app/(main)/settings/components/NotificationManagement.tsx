@@ -4,8 +4,29 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
+type NotificationKinds =
+  | "jobMatchNotifications"
+  | "applicationStatusNotifications"
+  | "savedJobUpdates"
+  | "weeklyJobDigest"
+  | "monthlyNewsletter"
+  | "marketingEmails"
+  | "accountSecurityAlerts"
+  | "globalUnsubscribe";
+
+// construct a type that maps each notification kind to its properties
+type NotificationSettings = {
+  [key in NotificationKinds]: {
+    enabled: boolean;
+    frequency: "instant" | "daily" | "weekly" | "monthly" | "none";
+    label: string;
+    description: string;
+    locked?: boolean; // for notifications that cannot be disabled
+  };
+};
+
 const NotificationPreferences = () => {
-  const [notifications, setNotifications] = useState<Record<string, any>>({
+  const [notifications, setNotifications] = useState<NotificationSettings>({
     jobMatchNotifications: {
       enabled: true,
       frequency: "instant",
@@ -64,7 +85,7 @@ const NotificationPreferences = () => {
     },
   });
 
-  const toggleNotification = (key: string) => {
+  const toggleNotification = (key: NotificationKinds) => {
     if (notifications[key].locked) return;
 
     setNotifications((prev) => ({
@@ -77,7 +98,7 @@ const NotificationPreferences = () => {
   };
 
   const updateFrequency = (
-    key: string,
+    key: NotificationKinds,
     frequency: "instant" | "daily" | "weekly",
   ) => {
     setNotifications((prev) => ({
@@ -97,7 +118,12 @@ const NotificationPreferences = () => {
     return ["instant", "daily", "weekly"];
   };
 
-  const categories = [
+  type NotificationCategories = {
+    title: string;
+    items: NotificationKinds[];
+  }[];
+
+  const categories: NotificationCategories = [
     {
       title: "Job Alerts",
       items: [

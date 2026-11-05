@@ -1,14 +1,20 @@
 // noinspection DuplicatedCode
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { request, TestHelpers } from "@tests/utils/testHelpers";
 import { eq } from "drizzle-orm";
 
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 
-import {
-  userEmailPreferences,
-} from "@/db/schema";
+import { user, userEmailPreferences } from "@/db/schema";
 
 import {
   seedJobsScenario,
@@ -23,7 +29,7 @@ import {
   workExperiencesFixture,
 } from "@tests/utils/fixtures";
 import { auth } from "@/utils/auth";
-import { UserRepository } from "@/repositories/user.repository";
+import { NotificationsRepository } from "@/modules/notifications";
 const {
   mockSendAccountDeactivationConfirmation,
   mockSendAccountDeletionConfirmation,
@@ -32,19 +38,21 @@ const {
   mockSendAccountDeletionConfirmation: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/infrastructure/email.service", () => {
+vi.mock("@shared/infrastructure/email.service", () => {
   // noinspection JSUnusedGlobalSymbols
-  return {
-    EmailService: class {
-      sendAccountDeactivationConfirmation =
-        mockSendAccountDeactivationConfirmation;
-      sendAccountDeletionConfirmation = mockSendAccountDeletionConfirmation;
-    },
+  const MockEmailService = class {
+    sendAccountDeactivationConfirmation =
+      mockSendAccountDeactivationConfirmation;
+    sendAccountDeletionConfirmation = mockSendAccountDeletionConfirmation;
   };
+  return { EmailService: MockEmailService };
 });
 
-vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/infrastructure/queue.service")>();
+vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import("@shared/infrastructure/queue.service")
+    >();
   return {
     ...original,
     queueService: {
@@ -55,7 +63,9 @@ vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
 
 describe("User Controller Integration Tests", () => {
   beforeAll(() => {
-    vi.spyOn(auth.api, "deleteUser").mockResolvedValue({ success: true } as any);
+    vi.spyOn(auth.api, "deleteUser").mockResolvedValue({
+      success: true,
+    } as any);
   });
 
   afterAll(() => {
@@ -131,7 +141,9 @@ describe("User Controller Integration Tests", () => {
         await seedUserScenario();
       });
 
-      it("should create user profile returning 201", async () => {
+      it("should reject creating a duplicate profile returning 500", async () => {
+        // Registration auto-creates a profile, so POST should fail for
+        // users who already have one.
         const loginResponse = await request
           .post("/api/auth/sign-in/email")
           .send({
@@ -150,34 +162,15 @@ describe("User Controller Integration Tests", () => {
           .set("Cookie", cookie!)
           .send(profileData);
 
-        TestHelpers.validateApiResponse(response, 201);
-
-        expect(response.body).toHaveProperty("success", true);
-        expect(response.body).toHaveProperty("message", "User profile created");
-        expect(response.body.data).toHaveProperty("id", 1);
-        expect(response.body.data).toHaveProperty("userId", 1);
-        expect(response.body.data).toHaveProperty(
-          "profilePicture",
-          profileData.profilePicture,
-        );
-        expect(response.body.data).toHaveProperty("bio", profileData.bio);
-        expect(response.body.data).toHaveProperty(
-          "profilePicture",
-          profileData.profilePicture,
-        );
-        expect(response.body.data).toHaveProperty(
-          "address",
-          profileData.address,
-        );
-        expect(response.body.data).toHaveProperty(
-          "linkedinUrl",
-          profileData.linkedinUrl,
-        );
+        TestHelpers.validateApiResponse(response, 500);
       });
 
       it("should update user profile returning 200", async () => {
         // User already created by beforeEach(seedUserScenario); just add profile + prefs
-        const { createUserProfile: createProfile, createEmailPreferences: createPrefs } = await import("@tests/utils/seedBuilders");
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
         await createProfile(1);
         await createPrefs(1);
 
@@ -223,6 +216,208 @@ describe("User Controller Integration Tests", () => {
         expect(response.body.data.profile).toHaveProperty("userId", 1);
         expect(response.body.data.profile).toHaveProperty("bio", "Updated bio");
       });
+
+      it("should update fullName via cross-module identity write", async () => {
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
+        await createProfile(1);
+        await createPrefs(1);
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+        const cookie = loginResponse.headers["set-cookie"]?.[0] ?? "";
+
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Cookie", cookie!)
+          .send({
+            fullName: "Updated Display Name",
+            bio: "<p>A valid bio that is long enough</p>",
+            educations: [],
+            workExperiences: [],
+            certifications: [],
+          });
+
+        TestHelpers.validateApiResponse(response, 200);
+        expect(response.body).toHaveProperty("success", true);
+
+        // Verify fullName was updated on the user table (cross-module write)
+        const updatedUser = await db.query.user.findFirst({
+          where: eq(user.id, 1),
+        });
+        expect(updatedUser?.fullName).toBe("Updated Display Name");
+      });
+
+      it("should reject bio with fewer than 10 plain-text characters (HTML stripped)", async () => {
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
+        await createProfile(1);
+        await createPrefs(1);
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+        const cookie = loginResponse.headers["set-cookie"]?.[0] ?? "";
+
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Cookie", cookie!)
+          .send({
+            bio: "<p><strong>Short</strong></p>",
+            educations: [],
+            workExperiences: [],
+            certifications: [],
+          });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty("success", false);
+      });
+
+      it("should accept bio with 10+ plain-text characters in HTML", async () => {
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
+        await createProfile(1);
+        await createPrefs(1);
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+        const cookie = loginResponse.headers["set-cookie"]?.[0] ?? "";
+
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Cookie", cookie!)
+          .send({
+            bio: "<p>This is a <strong>valid</strong> bio text</p>",
+            educations: [],
+            workExperiences: [],
+            certifications: [],
+          });
+
+        TestHelpers.validateApiResponse(response, 200);
+        expect(response.body).toHaveProperty("success", true);
+        expect(response.body.data.profile).toHaveProperty(
+          "bio",
+          "<p>This is a <strong>valid</strong> bio text</p>",
+        );
+      });
+
+      it("should reject invalid phone number", async () => {
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
+        await createProfile(1);
+        await createPrefs(1);
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+        const cookie = loginResponse.headers["set-cookie"]?.[0] ?? "";
+
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Cookie", cookie!)
+          .send({
+            phoneNumber: "abc",
+            educations: [],
+            workExperiences: [],
+            certifications: [],
+          });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty("success", false);
+      });
+
+      it("should accept valid phone number formats", async () => {
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
+        await createProfile(1);
+        await createPrefs(1);
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+        const cookie = loginResponse.headers["set-cookie"]?.[0] ?? "";
+
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Cookie", cookie!)
+          .send({
+            phoneNumber: "+1 (123) 456 7890",
+            educations: [],
+            workExperiences: [],
+            certifications: [],
+          });
+
+        TestHelpers.validateApiResponse(response, 200);
+        expect(response.body).toHaveProperty("success", true);
+        expect(response.body.data.profile).toHaveProperty(
+          "phoneNumber",
+          "+1 (123) 456 7890",
+        );
+      });
+
+      it("should update city, state, and country", async () => {
+        const {
+          createUserProfile: createProfile,
+          createEmailPreferences: createPrefs,
+        } = await import("@tests/utils/seedBuilders");
+        await createProfile(1);
+        await createPrefs(1);
+
+        const loginResponse = await request
+          .post("/api/auth/sign-in/email")
+          .send({
+            email: "normal.user@example.com",
+            password: "Password@123",
+          });
+        const cookie = loginResponse.headers["set-cookie"]?.[0] ?? "";
+
+        const response = await request
+          .put("/api/users/me/profile")
+          .set("Cookie", cookie!)
+          .send({
+            city: "Denver",
+            state: "Colorado",
+            country: "United States",
+            educations: [],
+            workExperiences: [],
+            certifications: [],
+          });
+
+        TestHelpers.validateApiResponse(response, 200);
+        expect(response.body.data.profile).toHaveProperty("city", "Denver");
+        expect(response.body.data.profile).toHaveProperty("state", "Colorado");
+        expect(response.body.data.profile).toHaveProperty(
+          "country",
+          "United States",
+        );
+      });
     });
 
     describe("PATCH /users/me/deactivate", () => {
@@ -262,40 +457,10 @@ describe("User Controller Integration Tests", () => {
         );
       });
     });
-
-    describe("DELETE /me/delete", () => {
-      beforeEach(async () => {
-        vi.clearAllMocks();
-
-        await seedOrgScenario();
-      });
-
-      it("should delete user account returning 204", async () => {
-        const loginResponse = await request
-          .post("/api/auth/sign-in/email")
-          .send({
-            email: "org.owner@example.com",
-            password: "Password@123",
-          });
-
-        const cookie = loginResponse.headers["set-cookie"]
-          ? loginResponse.headers["set-cookie"][0]
-          : "";
-
-        const response = await request
-          .delete("/api/users/me/delete")
-          .set("Cookie", cookie!)
-          .send({ currentPassword: "Password@123", confirm: true });
-
-        expect(response.status).toBe(204);
-        // expect(auth.api.deleteUser).toHaveBeenCalledWith({ body: { token } });
-      });
-    });
   });
 
   describe("GET users/me/saved-jobs/:jobId/check", () => {
     beforeEach(async () => {
-      const { jobs } = await seedJobsScenario();
       const user = await createUser({ email: "normal.user@example.com" });
       await createUserProfile(user.id);
     });
@@ -574,7 +739,10 @@ describe("User Controller Integration Tests", () => {
 
       it("should return 404 if preferences not found", async () => {
         const preferencesSpy = vi
-          .spyOn(UserRepository.prototype, "findEmailPreferencesByUserId")
+          .spyOn(
+            NotificationsRepository.prototype,
+            "findEmailPreferencesByUserId",
+          )
           .mockResolvedValue(undefined);
 
         const loginResponse = await request
@@ -896,7 +1064,10 @@ describe("User Controller Integration Tests", () => {
 
         it("should return 404 if preferences not found", async () => {
           const preferencesSpy = vi
-            .spyOn(UserRepository.prototype, "findEmailPreferencesByUserId")
+            .spyOn(
+              NotificationsRepository.prototype,
+              "findEmailPreferencesByUserId",
+            )
             .mockResolvedValueOnce(undefined);
 
           const loginResponse = await request

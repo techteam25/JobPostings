@@ -2,6 +2,7 @@ import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { instance } from "@/lib/axios-instance";
 import type { SendInvitationInput } from "@/lib/types";
+import { pendingInvitationsQueryKey } from "./use-fetch-pending-invitations";
 
 export const useSendInvitation = (organizationId: number) => {
   const queryClient = useQueryClient();
@@ -18,12 +19,13 @@ export const useSendInvitation = (organizationId: number) => {
       queryClient.invalidateQueries({
         queryKey: ["fetch-organization", String(organizationId)],
       });
+      queryClient.invalidateQueries({
+        queryKey: pendingInvitationsQueryKey(organizationId),
+      });
       toast.success("Invitation sent successfully");
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to send invitation",
-      );
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to send invitation");
     },
   });
 };
@@ -42,21 +44,28 @@ export const useCancelInvitation = (organizationId: number) => {
       queryClient.invalidateQueries({
         queryKey: ["fetch-organization", String(organizationId)],
       });
+      queryClient.invalidateQueries({
+        queryKey: pendingInvitationsQueryKey(organizationId),
+      });
       toast.success("Invitation cancelled");
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to cancel invitation",
-      );
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to cancel invitation");
     },
   });
 };
 
 export const useAcceptInvitation = () => {
   return useMutation({
-    mutationFn: async (token: string) => {
+    mutationFn: async ({
+      organizationId,
+      token,
+    }: {
+      organizationId: number;
+      token: string;
+    }) => {
       const response = await instance.post(
-        `/invitations/${token}/accept`,
+        `/invitations/${organizationId}/${token}/accept`,
         {},
         { withCredentials: true },
       );
@@ -65,10 +74,8 @@ export const useAcceptInvitation = () => {
     onSuccess: () => {
       toast.success("Invitation accepted! Welcome to the organization.");
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to accept invitation",
-      );
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to accept invitation");
     },
   });
 };

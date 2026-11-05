@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -14,26 +15,47 @@ import {
   Clock,
   Calendar,
   Construction,
+  ChevronRight,
 } from "lucide-react";
 import { OrganizationJobApplications, PaginatedApiResponse } from "@/lib/types";
+import {
+  getApplicationStatusLabel,
+  type ApplicationStatus,
+} from "@/lib/application-status";
+import { formatToReadableDate } from "@/lib/utils";
+import { ApplicantDetailSheet } from "./ApplicantDetailSheet";
 
 interface JobApplicationListingProps {
+  organizationId: number;
   applications: PaginatedApiResponse<OrganizationJobApplications>;
 }
 
-type StatusKey =
-  | "pending"
-  | "reviewed"
-  | "shortlisted"
-  | "interviewing"
-  | "rejected"
-  | "hired"
-  | "withdrawn";
+type StatusKey = ApplicationStatus;
 
 export const JobApplicationListing = ({
+  organizationId,
   applications,
 }: JobApplicationListingProps) => {
-  const appData = applications.data;
+  const [appData, setAppData] = useState(applications.data);
+  const [selectedApplication, setSelectedApplication] =
+    useState<OrganizationJobApplications | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const openApplicantDetail = (application: OrganizationJobApplications) => {
+    setSelectedApplication(application);
+    setDetailOpen(true);
+  };
+
+  const handleStatusChange = (updated: OrganizationJobApplications) => {
+    setAppData((current) =>
+      current.map((application) =>
+        application.applicationId === updated.applicationId
+          ? updated
+          : application,
+      ),
+    );
+    setSelectedApplication(updated);
+  };
 
   const stats = useMemo(() => {
     const uniqueJobIds = new Set(appData.map((a) => a.jobId));
@@ -236,9 +258,7 @@ export const JobApplicationListing = ({
                               <div
                                 key={stage.key}
                                 className={
-                                  isHighest
-                                    ? "font-medium text-purple-600"
-                                    : ""
+                                  isHighest ? "font-medium text-purple-600" : ""
                                 }
                               >
                                 <div className="mb-2 flex justify-center -space-x-2">
@@ -258,6 +278,46 @@ export const JobApplicationListing = ({
                             );
                           })}
                         </div>
+
+                        {group.statusCounts.withdrawn > 0 && (
+                          <p className="text-muted-foreground mt-2 text-xs">
+                            {group.statusCounts.withdrawn} withdrawn
+                          </p>
+                        )}
+
+                        <ul className="mt-4 flex flex-col gap-2">
+                          {group.applications.map((application) => (
+                            <li key={application.applicationId}>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="h-auto w-full justify-between px-3 py-3 text-left"
+                                onClick={() => openApplicantDetail(application)}
+                                aria-label={`View ${application.applicantName}'s application`}
+                              >
+                                <div className="flex min-w-0 flex-col gap-1">
+                                  <span className="truncate font-medium">
+                                    {application.applicantName}
+                                  </span>
+                                  <span className="text-muted-foreground text-xs">
+                                    Applied{" "}
+                                    {formatToReadableDate(
+                                      application.appliedAt,
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-2">
+                                  <Badge variant="outline">
+                                    {getApplicationStatusLabel(
+                                      application.status,
+                                    )}
+                                  </Badge>
+                                  <ChevronRight className="text-muted-foreground size-4" />
+                                </div>
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     );
                   })
@@ -334,6 +394,14 @@ export const JobApplicationListing = ({
           </div>
         </div>
       </div>
+
+      <ApplicantDetailSheet
+        application={selectedApplication}
+        organizationId={organizationId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onStatusChange={handleStatusChange}
+      />
     </div>
   );
 };

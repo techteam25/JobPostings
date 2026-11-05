@@ -1,6 +1,10 @@
 import { z } from "@/swagger/registry";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { jobAlerts, jobAlertMatches } from "@/db/schema";
+import {
+  jobAlerts,
+  jobAlertMatches,
+  emailPreferenceAuditLog,
+} from "@/db/schema";
 
 // Schema for creating a new job alert
 export const insertJobAlertSchema = createInsertSchema(jobAlerts, {
@@ -9,27 +13,26 @@ export const insertJobAlertSchema = createInsertSchema(jobAlerts, {
     .string()
     .min(3, "Name must be at least 3 characters")
     .max(100)
-    .refine((val) => /^[a-zA-Z0-9\s\-]+$/.test(val)), // no special characters except spaces/hyphens
-  searchQuery: z.string().max(500, "Search query must be at most 500 characters").optional(),
+    .refine((val) => /^[a-zA-Z0-9\s-]+$/.test(val)), // no special characters except spaces/hyphens
+  searchQuery: z
+    .string()
+    .max(500, "Search query must be at most 500 characters")
+    .optional(),
   frequency: z.enum(["daily", "weekly", "monthly"]).default("weekly"),
   includeRemote: z.boolean().default(true),
 });
 
 export type InsertJobAlert = z.infer<typeof insertJobAlertSchema>;
 
-// Schema for job alert matches
-export const insertJobAlertMatchSchema = createInsertSchema(jobAlertMatches, {
-  jobAlertId: z.number().int().positive("Job Alert ID is required"),
-  jobId: z.number().int().positive("Job ID is required"),
-});
-export type InsertJobAlertMatch = z.infer<typeof insertJobAlertMatchSchema>;
-
 // Select schemas
 export const selectJobAlertSchema = createSelectSchema(jobAlerts);
 export const selectJobAlertMatchSchema = createSelectSchema(jobAlertMatches);
+export const selectEmailPreferenceAuditLogSchema = createSelectSchema(
+  emailPreferenceAuditLog,
+);
 
 // Create job alert - body only (exclude userId, id, timestamps)
-// Apply omit BEFORE refine to preserve custom validation
+// Apply `omit` BEFORE refine to preserve custom validation
 const createJobAlertBodySchema = insertJobAlertSchema
   .omit({
     userId: true,
@@ -154,5 +157,8 @@ export type TogglePauseJobAlert = z.infer<typeof togglePauseJobAlertSchema>;
 // Export types for use in services/controllers
 export type JobAlert = z.infer<typeof selectJobAlertSchema>;
 export type JobAlertMatch = z.infer<typeof selectJobAlertMatchSchema>;
+export type EmailPreferenceAuditLog = z.infer<
+  typeof selectEmailPreferenceAuditLogSchema
+>;
 export type CreateJobAlertInput = z.infer<typeof createJobAlertSchema>["body"];
 export type UpdateJobAlertInput = z.infer<typeof updateJobAlertSchema>["body"];

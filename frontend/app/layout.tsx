@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import { Montserrat, Poppins } from "next/font/google";
 
 import Providers from "@/providers";
+import { WebVitalsReporter } from "@/components/common/WebVitalsReporter";
 
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -32,15 +33,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body
-        className={cn(
-          poppins.className,
-          montserrat.className,
-          "bg-background min-h-screen",
-        )}
-      >
+    <html
+      lang="en"
+      className={cn(poppins.variable, montserrat.variable)}
+      suppressHydrationWarning
+    >
+      <body className="bg-background min-h-screen">
         <Providers>{children}</Providers>
+        <WebVitalsReporter />
         <Toaster position="bottom-right" />
       </body>
     </html>

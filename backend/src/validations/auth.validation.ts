@@ -88,14 +88,6 @@ const changePasswordSchema = z
   })
   .openapi("ChangePassword");
 
-const profileIdParamSchema = z
-  .object({
-    profileId: z.coerce.number("profileId is required").openapi({
-      example: 1,
-    }),
-  })
-  .openapi("ProfileParam");
-
 export const registerUserSchema = z.object({
   body: registerSchema,
   params: z.object({}).strict(),

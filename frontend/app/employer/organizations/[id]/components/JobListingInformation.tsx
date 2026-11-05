@@ -1,38 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, MoreVertical, Plus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
+import { Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
 
-import { formatToReadableDate } from "@/lib/utils";
 import { Job } from "@/schemas/responses/jobs";
 import { PaginatedApiResponse } from "@/lib/types";
 import {
   useUpdateJob,
   useCreateJob,
+  useDeleteJob,
 } from "@/app/employer/organizations/hooks/use-manage-jobs";
+import { useCanDeleteJobs } from "@/app/employer/organizations/[id]/context/organization-context";
+import { useJobListingFilters } from "@/app/employer/organizations/[id]/hooks/use-job-listing-filters";
+import { JobListingTable } from "./JobListingTable";
 
 interface JobListingInformationProps {
   jobsList: PaginatedApiResponse<Job>;
@@ -43,82 +29,34 @@ export function JobListingsSection({
   jobsList,
   organizationId,
 }: JobListingInformationProps) {
+  const { activeTab, setActiveTab, searchTerm, setSearchTerm, filteredJobs } =
+    useJobListingFilters(jobsList.data);
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
+  const canDeleteJobs = useCanDeleteJobs();
   const { mutateAsync: updateJobAsync } = useUpdateJob(organizationId);
   const { mutateAsync: createJobAsync } = useCreateJob(organizationId);
-
-  const filteredJobs = useMemo(() => {
-    let jobs = jobsList.data;
-
-    // Tab filtering
-    switch (activeTab) {
-      case "open":
-        jobs = jobs.filter((j) => j.isActive);
-        break;
-      case "expiring":
-        jobs = jobs.filter((j) => {
-          if (!j.applicationDeadline || !j.isActive) return false;
-          const deadline = new Date(j.applicationDeadline);
-          const now = new Date();
-          const daysUntil = Math.ceil(
-            (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-          );
-          return daysUntil <= 7 && daysUntil >= 0;
-        });
-        break;
-      case "expired":
-        jobs = jobs.filter((j) => !j.isActive);
-        break;
-    }
-
-    // Search filtering
-    if (searchTerm) {
-      const lower = searchTerm.toLowerCase();
-      jobs = jobs.filter(
-        (j) =>
-          j.title.toLowerCase().includes(lower) ||
-          j.city.toLowerCase().includes(lower),
-      );
-    }
-
-    return jobs;
-  }, [jobsList.data, activeTab, searchTerm]);
-
-  const getStatusBadge = (job: Job) => {
-    if (!job.isActive) {
-      return (
-        <Badge className="border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20">
-          Expired
-        </Badge>
-      );
-    }
-
-    if (job.applicationDeadline) {
-      const deadline = new Date(job.applicationDeadline);
-      const now = new Date();
-      const daysUntil = Math.ceil(
-        (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-      );
-      if (daysUntil <= 7 && daysUntil >= 0) {
-        return (
-          <Badge className="border-amber-200 bg-amber-100 text-amber-700 hover:bg-amber-200">
-            Expiring
-          </Badge>
-        );
-      }
-    }
-
-    return (
-      <Badge className="border-accent/80 bg-accent/10 text-accent/80 hover:bg-accent/20">
-        Active
-      </Badge>
-    );
-  };
+  const { mutateAsync: deleteJobAsync, isPending: isDeletePending } =
+    useDeleteJob(organizationId);
 
   const handleCloseJob = async (jobId: number) => {
     await updateJobAsync({ jobId, data: { isActive: false } });
+    router.refresh();
+  };
+
+  const handleReopenJob = async (
+    jobId: number,
+    applicationDeadline: string,
+  ) => {
+    await updateJobAsync({
+      jobId,
+      data: {
+        isActive: true,
+        applicationDeadline: new Date(
+          `${applicationDeadline}T00:00:00.000Z`,
+        ).toISOString(),
+      },
+    });
+    router.refresh();
   };
 
   const handleDuplicate = async (job: Job) => {
@@ -139,6 +77,11 @@ export function JobListingsSection({
     });
   };
 
+  const handleDeleteJob = async (jobId: number) => {
+    await deleteJobAsync(jobId);
+    router.refresh();
+  };
+
   return (
     <div className="min-h-screen p-8">
       <div>
@@ -152,9 +95,7 @@ export function JobListingsSection({
               Manage all your jobs in one place
             </p>
           </div>
-          <Link
-            href={`/employer/organizations/${organizationId}/jobs/new`}
-          >
+          <Link href={`/employer/organizations/${organizationId}/jobs/new`}>
             <Button className="bg-primary/90 hover:bg-primary cursor-pointer [&_svg]:size-4">
               <Plus className="size-4" />
               Post new job
@@ -162,14 +103,14 @@ export function JobListingsSection({
           </Link>
         </div>
 
-        {/* Filters & Tabs */}
-        <Card className="border-0 shadow-sm">
-          <div className="p-6">
+        {/* Table Section */}
+        <Card className="w-full border-0 shadow-sm">
+          <div className="border-b p-6">
             {/* Status Tabs */}
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}
-              className="mb-6"
+              className="mb-4"
             >
               <TabsList className="bg-background grid w-full max-w-md grid-cols-4">
                 <TabsTrigger value="all">All</TabsTrigger>
@@ -179,107 +120,39 @@ export function JobListingsSection({
               </TabsList>
             </Tabs>
 
-            {/* Search & Filters */}
-            <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center">
-              <div className="relative max-w-md flex-1">
-                <Search className="text-muted-foreground absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2" />
-                <Input
-                  placeholder="Search by job title or location..."
-                  className="bg-input/50 pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            {/* Search */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
+                  <Input
+                    placeholder="Search by job title or location..."
+                    className="w-64 pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-background">
-                  <TableHead>Job title</TableHead>
-                  <TableHead>Location (City)</TableHead>
-                  <TableHead>Date posted</TableHead>
-                  <TableHead>Closing date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredJobs.map((job) => (
-                  <TableRow key={job.id} className="hover:bg-background">
-                    <TableCell className="font-medium">
-                      <div>
-                        <div className="text-foreground text-sm font-semibold">
-                          {job.title}
-                        </div>
-                        <div className="text-secondary-foreground mt-1 text-xs">
-                          {job.jobType}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{job.city}</span>
-                    </TableCell>
-                    <TableCell className="text-secondary-foreground">
-                      {formatToReadableDate(job.createdAt)}
-                    </TableCell>
-                    <TableCell className="text-secondary-foreground">
-                      {job.applicationDeadline
-                        ? formatToReadableDate(job.applicationDeadline)
-                        : "—"}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(job)}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="hover:bg-primary hover:text-primary-foreground [&_svg]:size-4"
-                          >
-                            Options
-                            <MoreVertical className="ml-2" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(
-                                `/employer/organizations/${organizationId}/applications`,
-                              )
-                            }
-                          >
-                            View Applicants
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              toast.info("Job editing is coming soon")
-                            }
-                          >
-                            Edit Job
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDuplicate(job)}
-                          >
-                            Duplicate
-                          </DropdownMenuItem>
-                          {job.isActive && (
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleCloseJob(job.id)}
-                            >
-                              Close Job
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <span className="text-secondary-foreground text-sm">
+                Total Jobs: {filteredJobs.length} jobs
+              </span>
+            </div>
+
+            <JobListingTable
+              jobs={filteredJobs}
+              organizationId={organizationId}
+              onCloseJob={handleCloseJob}
+              onReopenJob={handleReopenJob}
+              onDuplicate={handleDuplicate}
+              canDeleteJobs={canDeleteJobs}
+              onDeleteJob={handleDeleteJob}
+              isDeletePending={isDeletePending}
+            />
           </div>
         </Card>
       </div>
@@ -299,65 +172,37 @@ export function JobListingsSectionSkeleton() {
           <Skeleton className="h-10 w-40 rounded-md" />
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-background rounded-md p-4 shadow-sm">
-              <Skeleton className="mb-3 h-4 w-24" />
-              <Skeleton className="h-8 w-32" />
+        <Card className="w-full border-0 shadow-sm">
+          <div className="border-b p-6">
+            <div className="mb-4 grid w-full max-w-md grid-cols-4 gap-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 rounded-md" />
+              ))}
             </div>
-          ))}
-        </div>
-
-        <div className="bg-background mb-6 rounded-md p-6 shadow-sm">
-          <div className="mb-6 grid w-full max-w-md grid-cols-4 gap-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 rounded-md" />
-            ))}
+            <Skeleton className="h-10 w-64 rounded-md" />
           </div>
-          <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center">
-            <div className="relative max-w-md flex-1">
-              <Skeleton className="h-10 w-full rounded-md" />
-            </div>
-          </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <div className="bg-background rounded-md shadow-sm">
-            <div className="grid grid-cols-6 gap-4 border-b p-4">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-4 w-20" />
-              <div className="flex justify-end">
-                <Skeleton className="h-4 w-16" />
-              </div>
-            </div>
-            <div className="divide-y">
+          <div className="p-6">
+            <Skeleton className="mb-4 h-4 w-32" />
+            <div className="space-y-4">
               {Array.from({ length: 6 }).map((_, row) => (
-                <div
-                  key={row}
-                  className="hover:bg-background grid grid-cols-6 items-center gap-4 p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="h-8 w-8 rounded-full" />
-                    <div>
-                      <Skeleton className="mb-2 h-4 w-36" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
+                <div key={row} className="grid grid-cols-6 items-center gap-4">
+                  <div>
+                    <Skeleton className="mb-2 h-4 w-36" />
+                    <Skeleton className="h-3 w-24" />
                   </div>
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-4 w-28" />
                   <Skeleton className="h-4 w-28" />
-                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
                   <div className="flex justify-end">
-                    <Skeleton className="h-8 w-16 rounded-md" />
+                    <Skeleton className="h-8 w-20 rounded-md" />
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

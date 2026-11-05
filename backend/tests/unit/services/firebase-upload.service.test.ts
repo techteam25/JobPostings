@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 
-import { FirebaseUploadService } from "@/infrastructure/firebase-upload.service";
+import { FirebaseUploadService } from "@shared/infrastructure/firebase-upload.service";
 import { TempFile } from "@/validations/file.validation";
 
 // Mock Firebase Admin config - all mocks must be inside factory
-vi.mock("@/config/firebase", () => {
+vi.mock("@shared/config/firebase", () => {
   const mockFileSave = vi.fn(() => Promise.resolve());
   const mockFileMakePublic = vi.fn(() => Promise.resolve());
   const mockFileDelete = vi.fn(() => Promise.resolve());

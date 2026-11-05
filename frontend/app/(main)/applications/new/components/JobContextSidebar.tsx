@@ -1,4 +1,4 @@
-import { Clock, DollarSign, MapPin } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 import { Job, Organization } from "@/schemas/responses/jobs";
 
 interface JobContextSidebarProps {
@@ -43,9 +43,9 @@ export const JobContextSidebar = ({
               Role Overview
             </h3>
             <p className="text-sm leading-relaxed text-slate-500">
-              We're looking for a Senior Product Designer to lead our core
-              product initiatives. You'll work directly with engineering and
-              product to ship high-impact features.
+              We&apos;re looking for a Senior Product Designer to lead our core
+              product initiatives. You&apos;ll work directly with engineering
+              and product to ship high-impact features.
             </p>
           </div>
         </div>

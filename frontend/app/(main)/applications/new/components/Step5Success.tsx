@@ -19,7 +19,7 @@ export const Step5Success = ({ userName, email }: Step5SuccessProps) => {
         Application Sent!
       </h2>
       <p className="mx-auto mb-8 max-w-sm text-slate-500">
-        Thanks for applying, {userName.split(" ")[0]}. We've sent a
+        Thanks for applying, {userName.split(" ")[0]}. We&apos;ve sent a
         confirmation email to{" "}
         <span className="font-medium text-slate-900">{email}</span>.
       </p>

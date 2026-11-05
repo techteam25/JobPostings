@@ -4,6 +4,9 @@
 
 # User-specific stuff
 .idea
+.vscode
+.claude
+node_modules/
 
 # macOS
 .DS_Store
@@ -11,5 +14,20 @@
 # Cursor AI rules (local only)
 .cursorrules
 
+# Claude AI
+.claude/
+
 # Documentation (local only)
 backend/documentation/
+
+# Production secrets (never commit)
+.env.production
+secrets/
+
+# architecture docs
+docs/
+
+# Private directories (secrets/keys) anywhere in the project — never commit
+**/_private/
+# Personal todo (local only)
+jesse-todo.md

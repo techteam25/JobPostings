@@ -1,0 +1,118 @@
+import { Request, Response } from "express";
+import { BaseController } from "@shared/base/base.controller";
+import type { IdentityServicePort } from "@/modules/identity";
+import type { GetUserSchema } from "@/validations/user.validation";
+import type { UpdateUser, User } from "@/validations/userProfile.validation";
+import type { EmptyBody } from "@shared/types";
+import { auditService } from "@shared/audit";
+
+export class IdentityController extends BaseController {
+  constructor(private identityService: IdentityServicePort) {
+    super();
+  }
+
+  updateUser = async (
+    req: Request<GetUserSchema["params"], EmptyBody, UpdateUser>,
+    res: Response,
+  ) => {
+    const id = Number(req.params.id);
+    const updateData = req.body;
+    const user = await this.identityService.updateUser(id, updateData);
+
+    if (user.isSuccess) {
+      return this.sendSuccess<User>(
+        res,
+        user.value,
+        "User updated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, user.error);
+    }
+  };
+
+  deactivateSelf = async (req: Request, res: Response) => {
+    const result = await this.identityService.deactivateSelf(req.userId!);
+
+    if (result.isSuccess) {
+      auditService.emit({
+        name: "account.deactivated",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "user", id: req.userId },
+        action: "deactivated account",
+        outcome: "success",
+        metadata: { self: true },
+      });
+      return this.sendSuccess<User>(
+        res,
+        result.value,
+        "Account deactivated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  getWalkAwayOrgs = async (req: Request, res: Response) => {
+    const result = await this.identityService.getWalkAwayOrgs(req.userId!);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(
+        res,
+        result.value,
+        "Walk-away organizations retrieved successfully",
+      );
+    }
+
+    return this.handleControllerError(res, result.error);
+  };
+
+  deactivateUser = async (
+    req: Request<GetUserSchema["params"]>,
+    res: Response,
+  ) => {
+    const id = Number(req.params.id);
+
+    const result = await this.identityService.deactivateUser(id, req.userId!);
+
+    if (result.isSuccess) {
+      auditService.emit({
+        name: "account.deactivated",
+        actor: {
+          id: req.userId,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+        resource: { type: "user", id },
+        action: "deactivated account",
+        outcome: "success",
+        metadata: { self: false },
+      });
+      return this.sendSuccess(
+        res,
+        result.value,
+        "User deactivated successfully",
+      );
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+
+  activateUser = async (
+    req: Request<GetUserSchema["params"]>,
+    res: Response,
+  ) => {
+    const id = Number(req.params.id);
+
+    const result = await this.identityService.activateUser(id);
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, result.value, "User activated successfully");
+    } else {
+      return this.handleControllerError(res, result.error);
+    }
+  };
+}

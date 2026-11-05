@@ -8,20 +8,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  *   checking it's not called at import time
  */
 
-const { mockIsReady, mockGetClient, mockRateLimit, MockRedisStore } = vi.hoisted(() => {
-  class MockRedisStore {}
-  return {
-    mockIsReady: vi.fn<() => boolean>().mockReturnValue(false),
-    mockGetClient: vi.fn(),
-    mockRateLimit: vi.fn().mockReturnValue(vi.fn()),
-    MockRedisStore,
-  };
-});
+const { mockIsReady, mockGetClient, mockRateLimit, MockRedisStore } =
+  vi.hoisted(() => {
+    class MockRedisStore {}
+    return {
+      mockIsReady: vi.fn<() => boolean>().mockReturnValue(false),
+      mockGetClient: vi.fn(),
+      mockRateLimit: vi.fn().mockReturnValue(vi.fn()),
+      MockRedisStore,
+    };
+  });
 
 vi.mock("express-rate-limit", () => ({ default: mockRateLimit }));
 vi.mock("rate-limit-redis", () => ({ RedisStore: MockRedisStore }));
 
-vi.mock("@/infrastructure/redis-rate-limiter.service", () => ({
+vi.mock("@shared/infrastructure/redis-rate-limiter.service", () => ({
   redisRateLimiterService: {
     isReady: mockIsReady,
     getClient: mockGetClient,

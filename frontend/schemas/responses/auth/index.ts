@@ -1,13 +1,13 @@
 import { z } from "zod";
 
-const authTokens = z.object({
+export const authTokens = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),
   expiresAt: z.date(),
   refreshExpiresAt: z.date(),
 });
 
-const userSchema = z.object({
+export const userSchema = z.object({
   id: z.int().positive(),
   email: z.email(),
   firstName: z.string(),

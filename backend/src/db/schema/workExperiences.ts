@@ -6,6 +6,7 @@ import {
   index,
   check,
   int,
+  text,
 } from "drizzle-orm/mysql-core";
 import { relations, sql } from "drizzle-orm";
 import { userProfile } from "./users";
@@ -23,6 +24,8 @@ export const workExperiences = mysqlTable(
       })
       .notNull(),
     companyName: varchar("company_name", { length: 100 }).notNull(),
+    jobTitle: varchar("job_title", { length: 100 }).default("").notNull(),
+    description: text("description"),
     current: boolean("current").default(false).notNull(),
     startDate: timestamp("start_date").notNull(),
     endDate: timestamp("end_date"),
@@ -31,7 +34,7 @@ export const workExperiences = mysqlTable(
     index("program_idx").on(table.companyName),
     check(
       "resigned_end_date_check",
-      sql`(${table.current} = false OR ${table.endDate} IS NOT NULL)`,
+      sql`(${table.current} = true OR ${table.endDate} IS NOT NULL)`,
     ),
   ],
 );

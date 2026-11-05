@@ -6,5 +6,6 @@ export * from "./workExperiences";
 export * from "./certifications";
 export * from "./sessions";
 export * from "./subscriptions";
-export * from "./auditLogs";
 export * from "./jobAlerts";
+export * from "./jobPreferences";
+export * from "./workAreas";

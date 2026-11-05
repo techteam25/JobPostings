@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { JobAlert } from "@/lib/types";
+import { JobAlert, JobTypeEnum } from "@/lib/types";
 import { toast } from "sonner";
 
 interface JobAlertFormProps {
@@ -57,12 +57,12 @@ export function JobAlertForm({
     },
   });
 
-  const jobTypeOptions = [
-    { value: "full_time", label: "Full-time" },
-    { value: "part_time", label: "Part-time" },
-    { value: "contract", label: "Contract" },
-    { value: "temporary", label: "Temporary" },
-    { value: "intern", label: "Intern" },
+  const jobTypeOptions: { value: JobType; label: JobTypeEnum }[] = [
+    { value: "full_time", label: JobTypeEnum.FullTime },
+    { value: "part_time", label: JobTypeEnum.PartTime },
+    { value: "contract", label: JobTypeEnum.Contract },
+    { value: "temporary", label: JobTypeEnum.Temporary },
+    { value: "intern", label: JobTypeEnum.Internship },
   ];
 
   const experienceLevelOptions = [
@@ -196,19 +196,14 @@ export function JobAlertForm({
                 <div key={option.value} className="flex items-center space-x-2">
                   <Checkbox
                     id={`jobType-${option.value}`}
-                    checked={field.state.value?.includes(
-                      option.value as JobType,
-                    )}
+                    checked={field.state.value?.includes(option.value)}
                     onCheckedChange={(checked) => {
                       const current = field.state.value || [];
                       if (checked) {
-                        field.handleChange([
-                          ...current,
-                          option.value as JobType,
-                        ]);
+                        field.handleChange([...current, option.value]);
                       } else {
                         field.handleChange(
-                          current.filter((v) => v !== option.value) as any,
+                          current.filter((v) => v !== option.value),
                         );
                       }
                     }}

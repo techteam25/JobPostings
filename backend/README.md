@@ -5,6 +5,7 @@ A comprehensive Job Board backend API built with Express.js, TypeScript, and mod
 ## Tech Stack
 
 ### Core Technologies
+
 - **Runtime**: Bun v1.2.21
 - **Framework**: Express.js
 - **Language**: TypeScript
@@ -17,6 +18,7 @@ A comprehensive Job Board backend API built with Express.js, TypeScript, and mod
 - **API Documentation**: @asteasolutions/zod-to-openapi
 
 ### Infrastructure
+
 - **Cache**: Redis (separate instance)
 - **Queue Backend**: Redis (separate instance)
 - **Rate Limiting**: Redis (separate instance)
@@ -25,6 +27,7 @@ A comprehensive Job Board backend API built with Express.js, TypeScript, and mod
 - **File Upload**: Multer
 
 ### Testing
+
 - **Test Framework**: Vitest
 - **Coverage**: @vitest/coverage-v8
 
@@ -135,6 +138,7 @@ TYPESENSE_PROTOCOL=http
 ```
 
 **Important Notes:**
+
 - JWT secrets must be at least 32 characters
 - Redis URLs must include the password in the format: `redis://:password@host:port`
 - For production, use strong, randomly generated passwords
@@ -186,7 +190,9 @@ const envSchema = z.object({
   // Redis configuration
   REDIS_CACHE_URL: z.url({ error: "REDIS_CACHE_URL must be a valid URL" }),
   REDIS_QUEUE_URL: z.url({ error: "REDIS_QUEUE_URL must be a valid URL" }),
-  REDIS_RATE_LIMITER_URL: z.url({ error: "REDIS_RATE_LIMITER_URL must be a valid URL" }),
+  REDIS_RATE_LIMITER_URL: z.url({
+    error: "REDIS_RATE_LIMITER_URL must be a valid URL",
+  }),
 
   // Email service configuration
   SMTP_HOST: z.string().min(1, "SMTP host is required"),
@@ -201,16 +207,24 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1, "Google Client ID is required"),
   GOOGLE_CLIENT_SECRET: z.string().min(1, "Google Client Secret is required"),
   LINKEDIN_CLIENT_ID: z.string().min(1, "LinkedIn Client ID is required"),
-  LINKEDIN_CLIENT_SECRET: z.string().min(1, "LinkedIn Client Secret is required"),
+  LINKEDIN_CLIENT_SECRET: z
+    .string()
+    .min(1, "LinkedIn Client Secret is required"),
 
   // Firebase Configuration
   FIREBASE_PROJECT_ID: z.string().min(1, "Firebase Project Id is required"),
   FIREBASE_API_KEY: z.string().min(1, "Firebase API Key is required"),
   FIREBASE_AUTH_DOMAIN: z.string().min(1, "Firebase Auth domain is required"),
-  FIREBASE_STORAGE_BUCKET: z.string().min(1, "Firebase storage bucket is required"),
-  FIREBASE_MESSAGING_SENDER_ID: z.string().min(1, "Firebase Messaging Sender Id is required"),
+  FIREBASE_STORAGE_BUCKET: z
+    .string()
+    .min(1, "Firebase storage bucket is required"),
+  FIREBASE_MESSAGING_SENDER_ID: z
+    .string()
+    .min(1, "Firebase Messaging Sender Id is required"),
   FIREBASE_APP_ID: z.string().min(1, "Firebase App Id is required"),
-  FIREBASE_MEASUREMENT_ID: z.string().min(1, "Firebase Measurement Id is required"),
+  FIREBASE_MEASUREMENT_ID: z
+    .string()
+    .min(1, "Firebase Measurement Id is required"),
 
   // TypeSense Configuration
   TYPESENSE_API_KEY: z.string().min(1, "Typesense API Key is required"),
@@ -258,6 +272,7 @@ export const env = validateEnv();
 When you need to add new environment variables:
 
 1. **Add to `.env` file**:
+
 ```bash
 # .env
 NEW_SERVICE_API_KEY=your-api-key-here
@@ -265,6 +280,7 @@ NEW_SERVICE_URL=https://api.newservice.com
 ```
 
 2. **Add to `.env.example`**:
+
 ```bash
 # .env.example
 NEW_SERVICE_API_KEY=your-new-service-api-key
@@ -272,10 +288,11 @@ NEW_SERVICE_URL=https://api.newservice.com
 ```
 
 3. **Add to Zod schema in `src/config/env.ts`**:
+
 ```typescript
 const envSchema = z.object({
   // ... existing variables ...
-  
+
   // New Service Configuration
   NEW_SERVICE_API_KEY: z.string().min(1, "New Service API Key is required"),
   NEW_SERVICE_URL: z.url("New Service URL must be a valid URL"),
@@ -283,12 +300,13 @@ const envSchema = z.object({
 ```
 
 4. **Use in your code** (with full type safety):
+
 ```typescript
 import { env } from "@/config/env";
 
 // TypeScript knows the type automatically
 const apiKey = env.NEW_SERVICE_API_KEY; // string
-const serviceUrl = env.NEW_SERVICE_URL;  // string
+const serviceUrl = env.NEW_SERVICE_URL; // string
 ```
 
 #### Common Validation Patterns
@@ -351,6 +369,7 @@ bun run services:up
 ```
 
 This command starts:
+
 - MySQL database (port 3306)
 - Redis cache (port 6369)
 - Redis queue (port 6359)
@@ -404,6 +423,7 @@ curl http://localhost:5500/health
 ```
 
 Expected response:
+
 ```json
 {
   "status": "OK",
@@ -425,6 +445,7 @@ Visit API documentation: `http://localhost:5500/docs`
 ## Available Scripts
 
 ### Development
+
 ```bash
 bun run dev          # Start development server with hot reload
 bun run start        # Start production server
@@ -433,6 +454,7 @@ bun run build:tsc    # TypeScript build
 ```
 
 ### Database
+
 ```bash
 bun run db:generate  # Generate migrations from schema changes
 bun run db:migrate   # Run pending migrations
@@ -443,6 +465,7 @@ bun run db:seed      # Seed database with sample data
 ```
 
 ### Testing
+
 ```bash
 bun run test              # Run all tests
 bun run test:watch        # Run tests in watch mode
@@ -453,6 +476,7 @@ bun run test:unit         # Run unit tests only
 ```
 
 ### Docker Services
+
 ```bash
 bun run services:up     # Start all Docker services
 bun run services:down   # Stop all Docker services
@@ -460,6 +484,7 @@ bun run services:purge  # Stop and remove all services, volumes, and images
 ```
 
 ### Code Quality
+
 ```bash
 bun run type-check  # Check TypeScript types
 bun run clean       # Remove build artifacts
@@ -593,6 +618,7 @@ Once the server is running, access the interactive API documentation:
 **Swagger UI**: http://localhost:5500/docs
 
 The API documentation is auto-generated from Zod schemas and includes:
+
 - All available endpoints
 - Request/response schemas
 - Authentication requirements
@@ -631,6 +657,7 @@ See [workers/README.md](./src/workers/README.md) for details on creating workers
 ### Database Design
 
 See [db/README.md](./src/db/README.md) for detailed database documentation including:
+
 - Schema definitions
 - Relationships
 - Indexes
@@ -731,6 +758,7 @@ NODE_ENV=production bun run start
 ## Support
 
 For questions or issues:
+
 1. Check existing documentation
 2. Search closed issues
 3. Open a new issue with detailed information

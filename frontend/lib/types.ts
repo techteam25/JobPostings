@@ -1,9 +1,10 @@
 import { MutableRefObject } from "react";
 
 import { CreateOrganizationData } from "@/schemas/organizations";
+import { AnyFormApi } from "@tanstack/form-core";
+import type { ApplicationStatus } from "@/lib/application-status";
 
-
-export enum JobType {
+export enum JobTypeEnum {
   FullTime = "Full-time",
   PartTime = "Part-time",
   Contract = "Contract",
@@ -11,23 +12,14 @@ export enum JobType {
   Temporary = "Temporary",
 }
 
-export interface JobCardType {
-  positionName: string;
-  companyName: string;
-  location: string;
-  jobType: JobType;
-  experienceLevel: string;
-  posted: string;
-  jobDescription: string;
-  logoUrl: string | null;
-  onJobSelected: () => void;
-}
-
 export interface TCreateOrganizationFormProps {
   organization: CreateOrganizationData;
   setOrganizationData: (formData: CreateOrganizationData) => void;
-  formRef?: MutableRefObject<any>;
+
+  formRef?: MutableRefObject<AnyFormApi | null>;
 }
+
+export type OrganizationRole = "owner" | "admin" | "recruiter" | "member";
 
 export type Organization = {
   id: number;
@@ -56,7 +48,7 @@ export type OrganizationWithMembers = Organization & {
     id: number;
     organizationId: number;
     userId: number;
-    role: "owner" | "admin" | "recruiter" | "member";
+    role: OrganizationRole;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -73,11 +65,16 @@ export type UserOrganizationMembership = {
   id: number;
   userId: number;
   organizationId: number;
-  role: "owner" | "admin" | "recruiter" | "member";
+  role: OrganizationRole;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
   organization: Organization;
+};
+
+export type ApplicationNote = {
+  note: string;
+  createdAt: string;
 };
 
 export type OrganizationJobApplications = {
@@ -85,14 +82,7 @@ export type OrganizationJobApplications = {
   jobId: number;
   applicantName: string;
   applicantEmail: string;
-  status:
-    | "pending"
-    | "reviewed"
-    | "shortlisted"
-    | "interviewing"
-    | "rejected"
-    | "hired"
-    | "withdrawn";
+  status: ApplicationStatus;
   coverLetter: string | null;
   resumeUrl: string | null;
   appliedAt: Date;
@@ -162,6 +152,71 @@ export type SavedJob = {
   };
 };
 
+export type Education = {
+  id: number;
+  userProfileId: number;
+  schoolName: string;
+  program:
+    | "GED"
+    | "High School Diploma"
+    | "Associate Degree"
+    | "Bachelors"
+    | "Masters"
+    | "Doctorate";
+  major: string;
+  graduated: boolean;
+  startDate: string;
+  endDate: string | null;
+};
+
+export type WorkExperience = {
+  id: number;
+  userProfileId: number;
+  companyName: string;
+  jobTitle: string;
+  description: string | null;
+  current: boolean;
+  startDate: string;
+  endDate: string | null;
+};
+
+export type Certification = {
+  id: number;
+  certificationName: string;
+};
+
+export type Skill = {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UserSkill = {
+  id: number;
+  skillId: number;
+  userProfileId: number;
+  skill: Skill;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UpdateProfileData = {
+  fullName?: string;
+  bio?: string;
+  resumeUrl?: string;
+  linkedinUrl?: string;
+  portfolioUrl?: string;
+  phoneNumber?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  isProfilePublic?: boolean;
+  isAvailableForWork?: boolean;
+};
+
 export type UserProfile = {
   id: number;
   userId: number;
@@ -202,8 +257,16 @@ export type UserWithProfile = {
   status: string;
   deletedAt: Date | null;
   lastLoginAt: Date | null;
-} & { profile: UserProfile | null };
-
+} & {
+  profile:
+    | (UserProfile & {
+        education: Education[];
+        workExperiences: WorkExperience[];
+        certifications: { certification: Certification }[];
+        skills: UserSkill[];
+      })
+    | null;
+};
 
 export type EmailPreferences = {
   jobMatchNotifications: boolean;
@@ -309,6 +372,21 @@ export type PaginatedApiResponse<T> = ApiSuccessResponse<T[]> & {
   pagination: PaginationMeta;
 };
 
+export type ServerActionPaginatedResponse<T> =
+  | PaginatedApiResponse<T>
+  | ApiErrorResponse;
+
+export class ApiError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    message: string,
+    public readonly errorCode = "UNKNOWN_ERROR",
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export type JobAlert = {
   id: number;
   userId: number;
@@ -317,7 +395,9 @@ export type JobAlert = {
   state?: string;
   city?: string;
   searchQuery?: string;
-  jobType?: Array<"full_time" | "part_time" | "contract" | "temporary" | "intern">;
+  jobType?: Array<
+    "full_time" | "part_time" | "contract" | "temporary" | "intern"
+  >;
   skills?: string[];
   experienceLevel?: string[];
   includeRemote: boolean;
@@ -329,7 +409,10 @@ export type JobAlert = {
   updatedAt: string;
 };
 
-export type CreateJobAlertInput = Omit<JobAlert, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'lastSentAt'>;
+export type CreateJobAlertInput = Omit<
+  JobAlert,
+  "id" | "userId" | "createdAt" | "updatedAt" | "lastSentAt"
+>;
 export type UpdateJobAlertInput = Partial<CreateJobAlertInput>;
 
 export type Invitation = {
@@ -344,19 +427,19 @@ export type Invitation = {
   updatedAt: Date;
 };
 
+export type PendingOrganizationInvitation = {
+  id: number;
+  email: string;
+  role: OrganizationRole;
+  expiresAt: Date;
+  createdAt: Date;
+};
+
 export type InvitationDetails = {
-  invitation: {
-    id: number;
-    email: string;
-    role: string;
-    status: string;
-    expiresAt: Date;
-  };
-  organization: {
-    id: number;
-    name: string;
-    logoUrl: string | null;
-  };
+  organizationName: string;
+  role: string;
+  inviterName: string;
+  expiresAt: string;
 };
 
 export type OrganizationJobStats = {
@@ -380,12 +463,13 @@ export type CreateJobInput = {
   city: string;
   state: string;
   country: string;
-  zipcode: number | null;
+  zipcode: number | string | null;
   jobType: "full-time" | "part-time" | "contract" | "volunteer" | "internship";
   compensationType: "paid" | "missionary" | "volunteer" | "stipend";
   isRemote: boolean;
   applicationDeadline: string | null;
   experience: string;
+  skills?: string[];
 };
 
 export type UpdateJobInput = Partial<CreateJobInput> & { isActive?: boolean };

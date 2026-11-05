@@ -2,9 +2,10 @@ import rateLimit, { type RateLimitRequestHandler } from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
 import { Request, Response, NextFunction } from "express";
 
-import { redisRateLimiterService } from "@/infrastructure/redis-rate-limiter.service";
-import logger from "@/logger";
-import { isTest } from "@/config/env";
+import { redisRateLimiterService } from "@shared/infrastructure/redis-rate-limiter.service";
+import logger from "@shared/logger";
+import { rateLimitBlocksTotal } from "@shared/metrics";
+import { isTest } from "@shared/config/env";
 
 /**
  * Get Redis store for rate limiting
@@ -44,6 +45,11 @@ const createLimiter = () =>
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     handler: (req: Request, res: Response) => {
+      // Route-template label to avoid id-based cardinality explosion.
+      // req.route?.path is populated after matching; fall back to baseUrl.
+      const route =
+        (req.route?.path as string | undefined) ?? req.baseUrl ?? "unknown";
+      rateLimitBlocksTotal.add(1, { route });
       logger.warn("Rate limit exceeded", {
         ip: req.ip,
         path: req.path,

@@ -6,17 +6,19 @@
 import { eq, sql } from "drizzle-orm";
 
 import { auth } from "@/utils/auth";
-import { db } from "@/db/connection";
+import { createTestDatabase } from "./testDatabase";
 import {
-  organizations,
-  jobsDetails,
-  user,
-  userProfile,
-  userEmailPreferences,
-  organizationMembers,
   jobApplications,
+  jobsDetails,
+  organizationMembers,
+  organizations,
+  user,
+  userEmailPreferences,
+  userProfile,
 } from "@/db/schema";
 import { userProfileFixture } from "@tests/utils/fixtures";
+
+const { db } = createTestDatabase();
 
 // ─── User Builders ───────────────────────────────────────────────────
 
@@ -84,12 +86,10 @@ export async function createUsers(count: number = 5): Promise<CreatedUser[]> {
   await db.insert(user).values(values);
 
   // Fetch inserted users to get their IDs
-  const inserted = await db
+  return db
     .select({ id: user.id, email: user.email })
     .from(user)
     .orderBy(user.id);
-
-  return inserted;
 }
 
 // ─── Organization Builders ───────────────────────────────────────────
@@ -254,28 +254,14 @@ export async function createJob(
         .toString(),
     jobType:
       (overrides.jobType as
-        | "full-time"
-        | "part-time"
-        | "contract"
-        | "volunteer"
-        | "internship") ??
+        "full-time" | "part-time" | "contract" | "volunteer" | "internship") ??
       (faker.helpers.enumValue(jobTypeEnum) as
-        | "full-time"
-        | "part-time"
-        | "contract"
-        | "volunteer"
-        | "internship"),
+        "full-time" | "part-time" | "contract" | "volunteer" | "internship"),
     compensationType:
       (overrides.compensationType as
-        | "paid"
-        | "missionary"
-        | "volunteer"
-        | "stipend") ??
+        "paid" | "missionary" | "volunteer" | "stipend") ??
       (faker.helpers.enumValue(compensationTypeEnum) as
-        | "paid"
-        | "missionary"
-        | "volunteer"
-        | "stipend"),
+        "paid" | "missionary" | "volunteer" | "stipend"),
     isRemote: overrides.isRemote ?? faker.datatype.boolean(),
     isActive: overrides.isActive ?? true,
     applicationDeadline: overrides.applicationDeadline ?? faker.date.future(),
@@ -366,18 +352,41 @@ export async function createUserProfile(
 ): Promise<CreatedUserProfile> {
   const profileData = await userProfileFixture();
 
-  const [inserted] = await db
+  const values = {
+    ...profileData,
+    ...overrides,
+    userId,
+  };
+
+  await db
     .insert(userProfile)
-    .values({
-      ...profileData,
-      ...overrides,
-      userId,
-    })
-    .$returningId();
+    .values(values)
+    .onDuplicateKeyUpdate({
+      set: {
+        bio: sql`values(${userProfile.bio})`,
+        resumeUrl: sql`values(${userProfile.resumeUrl})`,
+        linkedinUrl: sql`values(${userProfile.linkedinUrl})`,
+        portfolioUrl: sql`values(${userProfile.portfolioUrl})`,
+        phoneNumber: sql`values(${userProfile.phoneNumber})`,
+        address: sql`values(${userProfile.address})`,
+        city: sql`values(${userProfile.city})`,
+        state: sql`values(${userProfile.state})`,
+        zipCode: sql`values(${userProfile.zipCode})`,
+        country: sql`values(${userProfile.country})`,
+        isProfilePublic: sql`values(${userProfile.isProfilePublic})`,
+        isAvailableForWork: sql`values(${userProfile.isAvailableForWork})`,
+      },
+    });
 
-  if (!inserted) throw new Error("Failed to create user profile");
+  const [existing] = await db
+    .select({ id: userProfile.id })
+    .from(userProfile)
+    .where(eq(userProfile.userId, userId))
+    .limit(1);
 
-  return { id: inserted.id, userId };
+  if (!existing) throw new Error("Failed to create user profile");
+
+  return { id: existing.id, userId };
 }
 
 // ─── Email Preferences Builders ──────────────────────────────────────

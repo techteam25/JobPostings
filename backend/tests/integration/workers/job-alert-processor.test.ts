@@ -1,29 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { db } from "@/db/connection";
-import {
-  jobAlerts,
-  jobAlertMatches,
-  jobsDetails,
-} from "@/db/schema";
+import { db } from "@shared/db/connection";
+import { jobAlerts, jobAlertMatches, jobsDetails } from "@/db/schema";
 import { seedUserScenario } from "@tests/utils/seedScenarios";
 import { createOrganization } from "@tests/utils/seedBuilders";
 import { eq } from "drizzle-orm";
-import { processJobAlerts } from "@/workers/job-alert-processor";
-import type { SearchResponse } from "typesense/lib/Typesense/Documents";
-import type { JobDocumentType } from "@/validations/base.validation";
+import { createJobAlertProcessorWorker } from "@/modules/notifications/workers/job-alert-processor.worker";
+import { NotificationsRepository } from "@/modules/notifications";
+import { ok } from "@shared/result";
+import type { JobMatchingServicePort } from "@/modules/notifications/ports/job-matching-service.port";
 
-// Mock TypesenseService to control search results
-const mockSearchJobsForAlert = vi.fn();
-vi.mock("@/infrastructure/typesense.service/typesense.service", () => ({
-  TypesenseService: vi.fn().mockImplementation(() => ({
-    searchJobsForAlert: mockSearchJobsForAlert,
-  })),
-}));
+const mockRegisterWorker = vi.hoisted(() => vi.fn());
 
 // Mock queue service to prevent actual email sending
-vi.mock("@/infrastructure/queue.service", () => ({
+vi.mock("@shared/infrastructure/queue.service", () => ({
   queueService: {
     addJob: vi.fn().mockResolvedValue(undefined),
+    registerWorker: mockRegisterWorker,
   },
   QUEUE_NAMES: {
     EMAIL_QUEUE: "emailQueue",
@@ -35,6 +27,9 @@ describe("Job Alert Processing Integration Tests", () => {
   let testUserId: number;
   let testOrgId: number;
   let testJobId: number;
+  let processJobAlerts: (job: any) => Promise<any>;
+
+  const mockFindMatchingJobsForAlert = vi.fn();
 
   beforeEach(async () => {
     // Seed test user (cleanAll() runs via setupTests.ts beforeEach)
@@ -67,6 +62,22 @@ describe("Job Alert Processing Integration Tests", () => {
 
     // Clear all mocks before each test
     vi.clearAllMocks();
+
+    // Create worker with real NotificationsRepository and mock JobMatchingService
+    const mockJobMatchingService: JobMatchingServicePort = {
+      findMatchingJobsForAlert: mockFindMatchingJobsForAlert,
+    };
+
+    const notificationsRepository = new NotificationsRepository();
+
+    const worker = createJobAlertProcessorWorker({
+      notificationsRepository,
+      jobMatchingService: mockJobMatchingService,
+    });
+    worker.initialize();
+
+    // Capture the handler registered with the worker
+    processJobAlerts = mockRegisterWorker.mock.calls[0]![1];
   });
 
   describe("End-to-End Alert Processing", () => {
@@ -88,45 +99,24 @@ describe("Job Alert Processing Integration Tests", () => {
         })
         .$returningId();
 
-      // Mock Typesense response
-      const nowTimestamp = Math.floor(Date.now() / 1000);
-      const mockSearchResponse: SearchResponse<JobDocumentType> = {
-        found: 1,
-        hits: [
+      // Mock JobMatchingService to return matches (Result type)
+      mockFindMatchingJobsForAlert.mockResolvedValue(
+        ok([
           {
-            document: {
-              id: testJobId.toString(),
+            job: {
+              id: testJobId,
               title: "JavaScript Developer",
-              company: "Test Company",
               description: "JS role",
               city: "Seattle",
               state: "Washington",
               country: "USA",
-              isRemote: false,
-              status: "open",
               jobType: "full-time",
               experience: "mid",
-              skills: ["JavaScript"],
-              createdAt: nowTimestamp - 3600,
             },
-            text_match: 100,
-            text_match_info: {
-              best_field_score: "100",
-              best_field_weight: 1,
-              fields_matched: 3,
-              score: "95.5",
-              tokens_matched: 2,
-            },
-            highlight: {} as any,
+            matchScore: 95.5,
           },
-        ],
-        out_of: 1,
-        page: 1,
-        request_params: { per_page: 50 },
-        search_time_ms: 15,
-      };
-
-      mockSearchJobsForAlert.mockResolvedValue(mockSearchResponse);
+        ]),
+      );
 
       // Run worker
       const result = await processJobAlerts({
@@ -188,16 +178,8 @@ describe("Job Alert Processing Integration Tests", () => {
         })
         .$returningId();
 
-      const mockSearchResponse: SearchResponse<JobDocumentType> = {
-        found: 0,
-        hits: [],
-        out_of: 0,
-        page: 1,
-        request_params: { per_page: 50 },
-        search_time_ms: 5,
-      };
-
-      mockSearchJobsForAlert.mockResolvedValue(mockSearchResponse);
+      // Mock JobMatchingService to return empty matches
+      mockFindMatchingJobsForAlert.mockResolvedValue(ok([]));
 
       const result = await processJobAlerts({
         data: { frequency: "daily" },

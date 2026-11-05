@@ -9,7 +9,11 @@ export const createJobSchema = z.object({
   city: z.string().min(1, "City is required"),
   state: z.string(),
   country: z.string().min(1, "Country is required"),
-  zipcode: z.union([z.number().int().positive(), z.null()]),
+  zipcode: z
+    .string()
+    .trim()
+    .max(20, "Zip code cannot exceed 20 characters")
+    .nullable(),
   jobType: z.enum([
     "full-time",
     "part-time",

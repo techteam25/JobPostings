@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
+import { headers } from "next/headers";
 import { getOrganizationAction } from "./actions/getOrganizationAction";
+import { getServerSession } from "@/lib/auth-server";
 import { LayoutClient } from "./components/LayoutClient";
 import {
   Empty,
@@ -19,9 +21,9 @@ interface LayoutProps {
 export default async function Layout({ children, params }: LayoutProps) {
   const { id } = await params;
 
-  const organization = await getOrganizationAction(Number(id));
+  const result = await getOrganizationAction(Number(id));
 
-  if (!organization) {
+  if (!result.success) {
     return (
       <Empty>
         <EmptyHeader>
@@ -38,12 +40,12 @@ export default async function Layout({ children, params }: LayoutProps) {
     );
   }
 
+  const headerStore = await headers();
+  const session = await getServerSession(headerStore.get("cookie"));
+  const currentUserId = session.user?.id ? parseInt(session.user.id) : 0;
+
   return (
-    <LayoutClient
-      organizationId={organization.id}
-      organizationName={organization.name}
-      organizationLogoUrl={organization.logoUrl}
-    >
+    <LayoutClient organization={result.data} currentUserId={currentUserId}>
       {children}
     </LayoutClient>
   );

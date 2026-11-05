@@ -1,8 +1,10 @@
 "use client";
 
+import { memo } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -13,16 +15,19 @@ import { Button } from "@/components/ui/button";
 
 import { type SortBy } from "@/context/store";
 
-import { BsChevronDown } from "react-icons/bs";
+import { ChevronDown } from "lucide-react";
 import { useFiltersStore } from "@/context/store";
 
 const sortOptions = {
   recent: "Most Recent",
   relevant: "Most Relevant",
 };
-export const SortByDropDownButton = () => {
+export const SortByDropDownButton = memo(function SortByDropDownButton() {
   const sortBy = useFiltersStore((state) => state.sortBy);
   const setSortBy = useFiltersStore((state) => state.setSortBy);
+  const keyword = useFiltersStore((state) => state.keyword);
+  const hasKeyword = !!keyword.trim();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -35,25 +40,35 @@ export const SortByDropDownButton = () => {
         >
           <span>
             {sortOptions[sortBy]}
-            <BsChevronDown className="ml-1 inline-flex" />
+            <ChevronDown className="ml-1 inline-flex" />
           </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56">
+      <DropdownMenuContent className="w-56" align="end" side="bottom">
         <DropdownMenuLabel>Sort By</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup
-          value={sortBy}
-          onValueChange={(val) => setSortBy(val as SortBy)}
-        >
-          <DropdownMenuRadioItem value="recent">
-            Most Recent
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="relevant">
-            Most Relevant
-          </DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
+        <DropdownMenuGroup className="flex flex-col space-y-2">
+          <DropdownMenuRadioGroup
+            value={sortBy}
+            onValueChange={(val) => setSortBy(val as SortBy)}
+          >
+            <DropdownMenuRadioItem
+              value="recent"
+              className="hover:bg-secondary cursor-pointer rounded-lg py-2 pr-2 pl-8 font-medium"
+            >
+              Most Recent
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem
+              value="relevant"
+              disabled={!hasKeyword}
+              className="hover:bg-secondary cursor-pointer rounded-lg py-2 pr-2 pl-8 font-medium disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Most Relevant
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+});
+SortByDropDownButton.displayName = "SortByDropDownButton";

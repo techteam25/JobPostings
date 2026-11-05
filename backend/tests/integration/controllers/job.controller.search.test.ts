@@ -1,21 +1,24 @@
 import { sql } from "drizzle-orm";
 
-import { db } from "@/db/connection";
+import { db } from "@shared/db/connection";
 import { jobsDetails, jobSkills, skills } from "@/db/schema";
-import { TypesenseService } from "@/infrastructure/typesense.service/typesense.service";
+import { TypesenseJobService } from "@shared/infrastructure/typesense.service/typesense.service";
 import { request } from "@tests/utils/testHelpers";
 import { seedAdminScenario } from "@tests/utils/seedScenarios";
 import { jobPostingFixture } from "@tests/utils/fixtures";
 import { waitForJobIndexing } from "@tests/utils/wait-for-jobIndexer";
-import { QUEUE_NAMES, queueService } from "@/infrastructure/queue.service";
-import { initializeTypesenseWorker } from "@/workers/typesense-job-indexer";
+import {
+  QUEUE_NAMES,
+  queueService,
+} from "@shared/infrastructure/queue.service";
+import { createTypesenseJobIndexerWorker } from "@/modules/job-board/workers/typesense-job-indexer.worker";
 
 // Override the global queue mock — this test needs real Redis queue + Typesense
-vi.mock("@/infrastructure/queue.service", async (importOriginal) => {
+vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
   return await importOriginal();
 });
 
-const typesenseService = new TypesenseService();
+const typesenseService = new TypesenseJobService();
 
 describe("Job Search Integration Tests", () => {
   let cookie: string;
@@ -23,7 +26,10 @@ describe("Job Search Integration Tests", () => {
   beforeAll(async () => {
     // Initialize real queue service and Typesense worker (requires running Docker services)
     await queueService.initialize();
-    initializeTypesenseWorker();
+    const typesenseWorker = createTypesenseJobIndexerWorker({
+      typesenseService,
+    });
+    typesenseWorker.initialize();
 
     // Clean DB before seeding — beforeEach only runs before each test, not before beforeAll
     const { cleanAll } = await import("@tests/utils/cleanAll");
@@ -45,7 +51,7 @@ describe("Job Search Integration Tests", () => {
     await db.execute(sql.raw(`ALTER TABLE job_skills AUTO_INCREMENT = 1`));
     await db.execute(sql.raw(`ALTER TABLE skills AUTO_INCREMENT = 1`));
     await db.execute(sql.raw(`ALTER TABLE job_details AUTO_INCREMENT = 1`));
-    await queueService.obliterateQueue(QUEUE_NAMES.TYPESENSE_QUEUE);
+    await queueService.obliterateQueue(QUEUE_NAMES.TYPESENSE_JOB_QUEUE);
 
     const res = await Promise.all([
       request
@@ -270,8 +276,12 @@ describe("Job Search Integration Tests", () => {
         .query({ experience: "senior" })
         .expect(200);
 
-      expect(response.body.data.length).toBe(0);
       expect(response.body).toHaveProperty("pagination");
+      // Every returned result must match the requested experience level.
+      // The count may vary because the Typesense instance is shared with dev.
+      for (const job of response.body.data) {
+        expect(job.experience.toLowerCase()).toContain("senior");
+      }
     });
   });
 
@@ -544,6 +554,150 @@ describe("Job Search Integration Tests", () => {
         expect(response.status).toBe(200);
         expect(response.body).toHaveProperty("data");
       });
+    });
+  });
+
+  describe("GET /api/jobs/search - Date Posted Filter", () => {
+    it("should accept datePosted=last-24-hours and return results", async () => {
+      const response = await request
+        .get("/api/jobs/search")
+        .query({ datePosted: "last-24-hours" })
+        .expect(200);
+
+      expect(response.body).toHaveProperty("data");
+      // All seeded jobs were just created, so they should all be within 24 hours
+      expect(response.body.data.length).toBeGreaterThan(0);
+
+      const now = Date.now();
+      const twentyFourHoursAgo = now - 86_400_000;
+      for (const job of response.body.data) {
+        expect(job.createdAt).toBeGreaterThanOrEqual(twentyFourHoursAgo);
+      }
+    });
+
+    it("should accept datePosted=last-7-days and return results", async () => {
+      const response = await request
+        .get("/api/jobs/search")
+        .query({ datePosted: "last-7-days" })
+        .expect(200);
+
+      expect(response.body).toHaveProperty("data");
+      expect(response.body.data.length).toBeGreaterThan(0);
+    });
+
+    it("should accept datePosted=last-14-days and return results", async () => {
+      const response = await request
+        .get("/api/jobs/search")
+        .query({ datePosted: "last-14-days" })
+        .expect(200);
+
+      expect(response.body).toHaveProperty("data");
+      expect(response.body.data.length).toBeGreaterThan(0);
+    });
+
+    it("should reject invalid datePosted value", async () => {
+      const response = await request
+        .get("/api/jobs/search")
+        .query({ datePosted: "last-month" })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("error");
+    });
+
+    it("should combine datePosted with other filters", async () => {
+      const response = await request
+        .get("/api/jobs/search")
+        .query({ datePosted: "last-7-days", includeRemote: true })
+        .expect(200);
+
+      expect(response.body).toHaveProperty("data");
+      expect(response.body).toHaveProperty("pagination");
+    });
+
+    it("should return results when no datePosted filter applied", async () => {
+      const response = await request.get("/api/jobs/search").expect(200);
+
+      // Without datePosted, all jobs should be returned (at least the 3 seeded)
+      expect(response.body.data.length).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe("GET /api/jobs/search - Sort Functionality", () => {
+    it("should default to most recent (createdAt desc) when no sortBy provided", async () => {
+      const response = await request.get("/api/jobs/search").expect(200);
+
+      expect(response.body).toHaveProperty("data");
+      const jobs = response.body.data;
+      if (jobs.length > 1) {
+        for (let i = 0; i < jobs.length - 1; i++) {
+          expect(jobs[i].createdAt).toBeGreaterThanOrEqual(
+            jobs[i + 1].createdAt,
+          );
+        }
+      }
+    });
+
+    it("should sort by createdAt desc when sortBy=recent", async () => {
+      const response = await request
+        .get("/api/jobs/search")
+        .query({ sortBy: "recent" })
+        .expect(200);
+
+      expect(response.body).toHaveProperty("data");
+      const jobs = response.body.data;
+      if (jobs.length > 1) {
+        for (let i = 0; i < jobs.length - 1; i++) {
+          expect(jobs[i].createdAt).toBeGreaterThanOrEqual(
+            jobs[i + 1].createdAt,
+          );
+        }
+      }
+    });
+
+    it("should use relevance scoring when sortBy=relevant with a text query", async () => {
+      const response = await request
+        .get("/api/jobs/search")
+        .query({ q: "developer", sortBy: "relevant" })
+        .expect(200);
+
+      expect(response.body).toHaveProperty("data");
+      // Relevance sort is Typesense's default text ranking — we can't assert
+      // a specific order, but the request must succeed.
+    });
+
+    it("should fall back to createdAt desc when sortBy=relevant without a query", async () => {
+      const response = await request
+        .get("/api/jobs/search")
+        .query({ sortBy: "relevant" })
+        .expect(200);
+
+      expect(response.body).toHaveProperty("data");
+      const jobs = response.body.data;
+      if (jobs.length > 1) {
+        for (let i = 0; i < jobs.length - 1; i++) {
+          expect(jobs[i].createdAt).toBeGreaterThanOrEqual(
+            jobs[i + 1].createdAt,
+          );
+        }
+      }
+    });
+
+    it("should reject invalid sortBy value", async () => {
+      const response = await request
+        .get("/api/jobs/search")
+        .query({ sortBy: "popularity" })
+        .expect(400);
+
+      expect(response.body).toHaveProperty("error");
+    });
+
+    it("should work with sortBy combined with filters", async () => {
+      const response = await request
+        .get("/api/jobs/search")
+        .query({ sortBy: "recent", includeRemote: true })
+        .expect(200);
+
+      expect(response.body).toHaveProperty("data");
     });
   });
 });
