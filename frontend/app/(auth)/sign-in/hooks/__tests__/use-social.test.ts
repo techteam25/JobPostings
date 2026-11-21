@@ -43,4 +43,34 @@ describe("useSocialAuth", () => {
       newUserCallbackURL: "http://localhost:3000/post-login",
     });
   });
+
+  it("sends selected intent through OAuth state only for signup", async () => {
+    const { result } = renderHook(() => useSocialAuth());
+
+    await act(async () => {
+      await result.current.handleSocialAuth("google", "employer");
+    });
+
+    expect(signInSocial).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "google",
+        additionalData: { intent: "employer" },
+      }),
+    );
+  });
+
+  it("shows a returned provider error", async () => {
+    const { toast } = await import("sonner");
+    signInSocial.mockResolvedValue({
+      error: { message: "Google sign-in failed" },
+    });
+    const { result } = renderHook(() => useSocialAuth());
+
+    await act(async () => {
+      await result.current.handleSocialAuth("google");
+    });
+
+    expect(toast.error).toHaveBeenCalledWith("Google sign-in failed");
+    expect(result.current.isSocialPending).toBe(false);
+  });
 });

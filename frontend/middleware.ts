@@ -6,6 +6,11 @@ import { parseSessionCookie } from "@/lib/session-cookie";
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Legal documents must be available before signup and during onboarding.
+  if (pathname === "/terms" || pathname === "/privacy") {
+    return NextResponse.next();
+  }
+
   // Public routes that don't require authentication
   const publicRoutes = [
     "/sign-in",

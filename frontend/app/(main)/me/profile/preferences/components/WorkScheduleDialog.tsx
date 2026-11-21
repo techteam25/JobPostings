@@ -23,6 +23,7 @@ import {
   SCHEDULE_TYPE_OPTIONS,
 } from "@/schemas/job-preferences";
 import { useUpdateJobPreferences } from "../hooks/use-job-preferences";
+import { orderWorkScheduleDays } from "./work-schedule-order";
 
 interface WorkScheduleDialogProps {
   open: boolean;
@@ -41,12 +42,12 @@ export function WorkScheduleDialog({
 
   const form = useForm({
     defaultValues: {
-      workScheduleDays: defaultWorkScheduleDays,
+      workScheduleDays: orderWorkScheduleDays(defaultWorkScheduleDays),
       scheduleTypes: defaultScheduleTypes,
     },
     onSubmit: async ({ value }) => {
       await mutation.mutateAsync({
-        workScheduleDays: value.workScheduleDays,
+        workScheduleDays: orderWorkScheduleDays(value.workScheduleDays),
         scheduleTypes: value.scheduleTypes,
       });
       onOpenChange(false);
@@ -92,11 +93,13 @@ export function WorkScheduleDialog({
                             onCheckedChange={(isChecked) => {
                               const current = field.state.value;
                               field.handleChange(
-                                isChecked
-                                  ? [...current, option.value]
-                                  : current.filter(
-                                      (v: string) => v !== option.value,
-                                    ),
+                                orderWorkScheduleDays(
+                                  isChecked
+                                    ? [...current, option.value]
+                                    : current.filter(
+                                        (v: string) => v !== option.value,
+                                      ),
+                                ),
                               );
                             }}
                           />

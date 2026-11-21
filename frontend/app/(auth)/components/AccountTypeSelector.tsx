@@ -72,9 +72,11 @@ export function AccountTypeSelector({
               <div className="mb-2 flex justify-center">
                 <Briefcase className="text-chart-2 size-6 sm:size-10" />
               </div>
-              <div className="text-foreground font-semibold">Employer</div>
+              <div className="text-foreground font-semibold">
+                Hiring Manager
+              </div>
               <div className="text-muted-foreground hidden text-xs sm:block">
-                Hiring talent
+                Create an organization after signing up
               </div>
             </button>
           )}

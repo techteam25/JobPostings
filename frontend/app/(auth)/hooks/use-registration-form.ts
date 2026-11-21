@@ -9,8 +9,8 @@ import {
   registrationSchema,
 } from "@/schemas/auth/registration";
 import { instance } from "@/lib/axios-instance";
+import { ApiError } from "@/lib/types";
 import { useSocialAuth } from "@/app/(auth)/sign-in/hooks/use-social";
-import { isAxiosError } from "axios";
 
 export function useRegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -39,7 +39,10 @@ export function useRegistrationForm() {
     onSubmit: async (values) => {
       startTransition(async () => {
         try {
-          const response = await instance.post("/auth/sign-up/email", {
+          const response = await instance.post<{
+            token?: string | null;
+            message?: string;
+          }>("/auth/sign-up/email", {
             name: `${values.value.firstName} ${values.value.lastName}`,
             email: values.value.email,
             password: values.value.password,
@@ -47,22 +50,24 @@ export function useRegistrationForm() {
           });
 
           if (response.status === 200) {
-            toast.success(
-              "Account created! Please check your email to verify your account.",
-            );
             form.reset();
-
-            window.location.href = `/verify-email?email=${encodeURIComponent(values.value.email)}`;
+            if (response.data.token) {
+              toast.success("Account created successfully!");
+              window.location.href = "/post-login";
+            } else {
+              toast.success(
+                "Account created! Please check your email to verify your account.",
+              );
+              window.location.href = `/verify-email?email=${encodeURIComponent(values.value.email)}`;
+            }
           } else {
             toast.error(
               response.data.message || "Account creation unsuccessful",
             );
           }
         } catch (error: unknown) {
-          if (isAxiosError(error)) {
-            const errorMessage =
-              error.response?.data?.message || "Account creation unsuccessful";
-            toast.error(errorMessage);
+          if (error instanceof ApiError) {
+            toast.error(error.message || "Account creation unsuccessful");
           } else {
             toast.error("An unexpected error occurred. Please try again.");
           }
@@ -72,6 +77,9 @@ export function useRegistrationForm() {
     },
   });
 
+  const handleRegistrationSocialAuth = (provider: "google" | "linkedin") =>
+    handleSocialAuth(provider, form.state.values.accountType);
+
   return {
     form,
     isPending,
@@ -79,7 +87,7 @@ export function useRegistrationForm() {
     setShowPassword,
     showConfirmPassword,
     setShowConfirmPassword,
-    handleSocialAuth,
+    handleSocialAuth: handleRegistrationSocialAuth,
     isSocialPending,
     setIntent,
   };
