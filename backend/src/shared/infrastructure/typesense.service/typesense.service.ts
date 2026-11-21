@@ -17,7 +17,7 @@ import type { TypesenseJobServicePort } from "@shared/ports/typesense-service.po
 
 type SortDirection = "asc" | "desc";
 type MetaSearchParams = {
-  sortBy?: string;
+  sortBy?: "createdAt" | "title";
   sortDirection?: SortDirection;
   page?: number;
   offset?: number;
@@ -175,14 +175,21 @@ export class TypesenseJobService implements TypesenseJobServicePort {
   async searchJobsCollection(
     q: string = "*",
     filters?: string,
-    {
-      sortBy = "createdAt",
+    options: MetaSearchParams = {},
+  ): Promise<SearchResponse<JobDocumentType>> {
+    const {
+      sortBy,
       sortDirection = "desc",
       page = 1,
       limit = 10,
       offset = 0,
-    }: MetaSearchParams = {},
-  ): Promise<SearchResponse<JobDocumentType>> {
+    } = options;
+    const resolvedSortBy = Object.prototype.hasOwnProperty.call(
+      options,
+      "sortBy",
+    )
+      ? sortBy
+      : "createdAt";
     const start = Date.now();
     const response = await typesenseClient
       .collections<JobDocumentType>(JOBS_COLLECTION)
@@ -190,12 +197,14 @@ export class TypesenseJobService implements TypesenseJobServicePort {
       .search({
         q,
         filter_by: filters ? filters : undefined,
-        sort_by: sortBy ? `${sortBy}:${sortDirection}` : undefined,
+        sort_by: resolvedSortBy
+          ? `${resolvedSortBy}:${sortDirection}`
+          : undefined,
         page,
         limit,
         offset,
         query_by: "title, skills, jobType, description, city, state, country",
-        include_fields: "$employers(logoUrl, strategy: merge)",
+        include_fields: "*, $employers(logoUrl, strategy: merge)",
       });
     typesenseSearchDurationSeconds.record((Date.now() - start) / 1000);
     typesenseSearchResultCount.record(response.found ?? 0);

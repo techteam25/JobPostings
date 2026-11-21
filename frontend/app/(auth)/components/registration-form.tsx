@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -57,13 +58,11 @@ export default function RegistrationForm() {
             name="hasAgreedToTerms"
             children={(field) => (
               <>
-                <Label
-                  htmlFor={field.name}
-                  className="flex cursor-pointer items-start gap-3"
-                >
+                <div className="flex items-start gap-3">
                   <Checkbox
                     id={field.name}
                     name={field.name}
+                    aria-label="I agree to the Terms and Conditions and Privacy Policy"
                     checked={field.state.value}
                     onCheckedChange={(checked) =>
                       field.handleChange(checked === true)
@@ -72,16 +71,31 @@ export default function RegistrationForm() {
                     className="data-[state=checked]:bg-background data-[state=checked]:text-accent-foreground border-border mt-0.5 h-5 w-5 cursor-pointer"
                   />
                   <span className="text-secondary-foreground text-xs sm:text-sm">
-                    I agree to the{" "}
-                    <span className="text-secondary-foreground hover:text-secondary-foreground/90 cursor-pointer font-semibold">
+                    <Label
+                      htmlFor={field.name}
+                      className="cursor-pointer text-xs sm:text-sm"
+                    >
+                      I agree to the
+                    </Label>{" "}
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary font-semibold underline underline-offset-2 hover:opacity-80"
+                    >
                       Terms & Conditions
-                    </span>{" "}
+                    </Link>{" "}
                     and{" "}
-                    <span className="text-secondary-foreground hover:text-secondary-foreground/90 cursor-pointer font-semibold">
+                    <Link
+                      href="/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary font-semibold underline underline-offset-2 hover:opacity-80"
+                    >
                       Privacy Policy
-                    </span>
+                    </Link>
                   </span>
-                </Label>
+                </div>
                 <FieldInfo field={field} />
               </>
             )}

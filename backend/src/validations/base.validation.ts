@@ -2,6 +2,17 @@ import { z } from "zod";
 
 import { coerceQueryBool } from "@/validations/shared/coerce";
 
+export const jobSearchSortBySchema = z.enum([
+  "recent",
+  "relevant",
+  // Backward-compatible aliases from the pre-modular job-search API.
+  "relevance",
+  "date_posted_desc",
+  "date_posted_asc",
+  "title_asc",
+  "title_desc",
+]);
+
 export const searchParams = z.object({
   body: z.object({}).strict(),
   query: z
@@ -51,7 +62,7 @@ export const searchParams = z.object({
       datePosted: z
         .enum(["last-24-hours", "last-7-days", "last-14-days"])
         .optional(),
-      sortBy: z.enum(["recent", "relevant"]).optional(),
+      sortBy: jobSearchSortBySchema.optional(),
       order: z
         .string()
         .optional()

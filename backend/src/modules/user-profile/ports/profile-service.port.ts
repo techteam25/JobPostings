@@ -78,13 +78,31 @@ export interface ProfileServicePort {
     userId: number,
     file: ProfilePictureFile | undefined,
     correlationId: string,
-  ): Promise<Result<{ message: string }, AppError>>;
+  ): Promise<
+    Result<{ message: string; jobId: string; status: "queued" }, AppError>
+  >;
 
   uploadResume(
     userId: number,
     file: ResumeFile | undefined,
     correlationId: string,
-  ): Promise<Result<{ message: string }, AppError>>;
+  ): Promise<
+    Result<{ message: string; jobId: string; status: "queued" }, AppError>
+  >;
+
+  getUploadStatus(
+    userId: number,
+    jobId: string,
+  ): Promise<
+    Result<
+      {
+        status: "queued" | "processing" | "completed" | "failed";
+        url?: string;
+        message?: string;
+      },
+      AppError
+    >
+  >;
 
   deleteResume(userId: number): Promise<Result<{ message: string }, AppError>>;
 }

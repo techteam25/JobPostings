@@ -13,7 +13,7 @@ vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
   return {
     ...original,
     queueService: {
-      addJob: vi.fn().mockResolvedValue(undefined),
+      addJob: vi.fn().mockResolvedValue({ id: "test-resume-job" }),
     },
   };
 });
@@ -54,24 +54,25 @@ describe("Resume Upload - POST /api/users/me/resume", () => {
   let profileId: number;
 
   beforeEach(async () => {
-    vi.mocked(queueService.addJob).mockClear();
     const result = await seedAndLogin();
     cookie = result.cookie;
     profileId = result.profile.id;
+    vi.mocked(queueService.addJob).mockClear();
   });
 
-  it("should accept a valid PDF upload and return 200", async () => {
+  it("should accept a valid PDF upload and return 202 while processing", async () => {
     const response = await request
       .post("/api/users/me/resume")
       .set("Cookie", cookie)
       .attach("resume", TEST_RESUME_PATH);
 
-    TestHelpers.validateApiResponse(response, 200);
+    TestHelpers.validateApiResponse(response, 202);
     expect(response.body).toHaveProperty("success", true);
-    expect(response.body.data).toHaveProperty(
-      "message",
-      "Resume upload initiated",
-    );
+    expect(response.body.data).toHaveProperty("message", "Resume queued");
+    expect(response.body.data).toMatchObject({
+      jobId: "test-resume-job",
+      status: "queued",
+    });
   });
 
   it("should enqueue a FILE_UPLOAD_QUEUE job with correct payload", async () => {
@@ -109,9 +110,7 @@ describe("Resume Upload - POST /api/users/me/resume", () => {
   });
 
   it("should return 401 when not authenticated", async () => {
-    const response = await request
-      .post("/api/users/me/resume")
-      .attach("resume", TEST_RESUME_PATH);
+    const response = await request.post("/api/users/me/resume");
 
     expect(response.status).toBe(401);
   });
@@ -129,12 +128,58 @@ describe("Resume Upload - POST /api/users/me/resume", () => {
         .set("Cookie", cookie)
         .attach("resume", textFilePath);
 
-      // Multer fileFilter rejects non-allowed types with an error.
-      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(response.status).toBe(415);
       expect(response.body.success).not.toBe(true);
     } finally {
       await fs.unlink(textFilePath).catch(() => {});
     }
+  });
+
+  it("rejects a PDF extension with non-PDF contents", async () => {
+    const response = await request
+      .post("/api/users/me/resume")
+      .set("Cookie", cookie)
+      .attach("resume", Buffer.from("not a PDF"), {
+        filename: "fake.pdf",
+        contentType: "application/pdf",
+      });
+
+    expect(response.status).toBe(415);
+    expect(response.body.error.code).toBe("INVALID_FILE_CONTENT");
+    expect(queueService.addJob).not.toHaveBeenCalled();
+  });
+
+  it("rejects files over 10 MB with 413", async () => {
+    const response = await request
+      .post("/api/users/me/resume")
+      .set("Cookie", cookie)
+      .attach("resume", Buffer.alloc(10 * 1024 * 1024 + 1), {
+        filename: "large.pdf",
+        contentType: "application/pdf",
+      });
+
+    expect(response.status).toBe(413);
+    expect(response.body.error.code).toBe("FILE_TOO_LARGE");
+  });
+
+  it("returns 503 and removes the temp file when enqueueing fails", async () => {
+    vi.mocked(queueService.addJob).mockRejectedValueOnce(
+      new Error("Redis unavailable"),
+    );
+
+    const response = await request
+      .post("/api/users/me/resume")
+      .set("Cookie", cookie)
+      .attach("resume", TEST_RESUME_PATH);
+
+    expect(response.status).toBe(503);
+    expect(response.body.message).toMatch(/unavailable/i);
+    const calls = vi.mocked(queueService.addJob).mock.calls;
+    const payload = calls[calls.length - 1]?.[2];
+    const tempPath = (payload as { tempFiles: { tempPath: string }[] })
+      .tempFiles[0]?.tempPath;
+    expect(tempPath).toBeDefined();
+    await expect(fs.stat(tempPath!)).rejects.toThrow();
   });
 });
 

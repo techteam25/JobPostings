@@ -5,7 +5,7 @@ import {
   createUpdateSchema,
 } from "drizzle-zod";
 import {
-  insertUserProfileSchema,
+  editableUserProfileFieldsSchema,
   updateUserProfileSchema,
 } from "@/validations/userProfile.validation";
 import { userEmailPreferences } from "@/db/schema";
@@ -137,7 +137,7 @@ export const userEmailPayloadSchema = z.object({
 });
 
 export const createUserPayloadSchema = z.object({
-  body: insertUserProfileSchema.omit({ userId: true }),
+  body: editableUserProfileFieldsSchema,
   params: z.object({}).strict(),
   query: z.object({}).strict(),
 });

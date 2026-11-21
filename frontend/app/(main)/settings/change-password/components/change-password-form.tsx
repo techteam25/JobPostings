@@ -30,6 +30,7 @@ export default function ChangePasswordForm() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isConfirmFocused, setIsConfirmFocused] = useState(false);
 
   const form = useForm({
     defaultValues,
@@ -159,7 +160,11 @@ export default function ChangePasswordForm() {
                   name={field.name}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
+                  onFocus={() => setIsConfirmFocused(true)}
+                  onBlur={() => {
+                    setIsConfirmFocused(false);
+                    field.handleBlur();
+                  }}
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Enter your confirm new password"
                   className="border-border focus:ring-accent w-full rounded-lg border px-4 py-3 pr-12 transition outline-none focus:border-transparent focus:ring-2"
@@ -173,7 +178,7 @@ export default function ChangePasswordForm() {
                   {showConfirmPassword ? <Eye /> : <EyeOff />}
                 </Button>
               </div>
-              <FieldInfo field={field} />
+              {!isConfirmFocused && <FieldInfo field={field} />}
             </Field>
           )}
         />

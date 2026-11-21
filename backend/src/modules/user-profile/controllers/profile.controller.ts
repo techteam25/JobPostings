@@ -163,11 +163,11 @@ export class ProfileController extends BaseController {
     );
 
     if (result.isSuccess) {
-      return this.sendSuccess<{ message: string }>(
-        res,
-        result.value,
-        "Profile picture upload initiated",
-      );
+      return this.sendSuccess<{
+        message: string;
+        jobId: string;
+        status: "queued";
+      }>(res, result.value, "Profile picture queued for processing", 202);
     } else {
       return this.handleControllerError(res, result.error);
     }
@@ -194,14 +194,26 @@ export class ProfileController extends BaseController {
         action: "uploaded cv",
         outcome: "success",
       });
-      return this.sendSuccess<{ message: string }>(
-        res,
-        result.value,
-        "Resume upload initiated",
-      );
+      return this.sendSuccess<{
+        message: string;
+        jobId: string;
+        status: "queued";
+      }>(res, result.value, "Resume queued for processing", 202);
     } else {
       return this.handleControllerError(res, result.error);
     }
+  };
+
+  getUploadStatus = async (req: Request<{ jobId: string }>, res: Response) => {
+    const result = await this.profileService.getUploadStatus(
+      req.userId!,
+      req.params.jobId,
+    );
+
+    if (result.isSuccess) {
+      return this.sendSuccess(res, result.value, "Upload status retrieved");
+    }
+    return this.handleControllerError(res, result.error);
   };
 
   deleteResume = async (req: Request, res: Response) => {

@@ -12,7 +12,7 @@ vi.mock("@shared/infrastructure/queue.service", async (importOriginal) => {
   return {
     ...original,
     queueService: {
-      addJob: vi.fn().mockResolvedValue(undefined),
+      addJob: vi.fn().mockResolvedValue({ id: "test-picture-job" }),
     },
   };
 });
@@ -44,24 +44,28 @@ describe("Profile Picture Upload - POST /api/users/me/profile-picture", () => {
   let profileId: number;
 
   beforeEach(async () => {
-    vi.mocked(queueService.addJob).mockClear();
     const result = await seedAndLogin();
     cookie = result.cookie;
     profileId = result.profile.id;
+    vi.mocked(queueService.addJob).mockClear();
   });
 
-  it("should accept a valid image upload and return 200", async () => {
+  it("should accept a valid image upload and return 202 while processing", async () => {
     const response = await request
       .post("/api/users/me/profile-picture")
       .set("Cookie", cookie)
       .attach("profilePicture", TEST_IMAGE_PATH);
 
-    TestHelpers.validateApiResponse(response, 200);
+    TestHelpers.validateApiResponse(response, 202);
     expect(response.body).toHaveProperty("success", true);
     expect(response.body.data).toHaveProperty(
       "message",
-      "Profile picture upload initiated",
+      "Profile picture queued",
     );
+    expect(response.body.data).toMatchObject({
+      jobId: "test-picture-job",
+      status: "queued",
+    });
   });
 
   it("should enqueue a FILE_UPLOAD_QUEUE job with correct payload", async () => {
@@ -98,21 +102,7 @@ describe("Profile Picture Upload - POST /api/users/me/profile-picture", () => {
   });
 
   it("should return 401 when not authenticated", async () => {
-    // The server responds 401 before the file finishes uploading, which can
-    // cause supertest to receive an EPIPE/ECONNRESET as it's still streaming
-    // the multipart body. In that case the response is attached to the error.
-    const response = await request
-      .post("/api/users/me/profile-picture")
-      .attach("profilePicture", TEST_IMAGE_PATH)
-      .catch((err: any) => {
-        if (
-          (err.code === "EPIPE" || err.code === "ECONNRESET") &&
-          err.response
-        ) {
-          return err.response;
-        }
-        throw err;
-      });
+    const response = await request.post("/api/users/me/profile-picture");
 
     expect(response.status).toBe(401);
   });
@@ -132,12 +122,37 @@ describe("Profile Picture Upload - POST /api/users/me/profile-picture", () => {
         .set("Cookie", cookie)
         .attach("profilePicture", textFilePath);
 
-      // Multer fileFilter rejects non-image types with an error.
-      // The file is rejected and does not reach the controller.
-      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(response.status).toBe(415);
       expect(response.body.success).not.toBe(true);
     } finally {
       await fs.unlink(textFilePath).catch(() => {});
     }
+  });
+
+  it("rejects image names with mismatched content", async () => {
+    const response = await request
+      .post("/api/users/me/profile-picture")
+      .set("Cookie", cookie)
+      .attach("profilePicture", Buffer.from("not a PNG"), {
+        filename: "fake.png",
+        contentType: "image/png",
+      });
+
+    expect(response.status).toBe(415);
+    expect(response.body.error.code).toBe("INVALID_FILE_CONTENT");
+    expect(queueService.addJob).not.toHaveBeenCalled();
+  });
+
+  it("rejects images over 5 MB with 413", async () => {
+    const response = await request
+      .post("/api/users/me/profile-picture")
+      .set("Cookie", cookie)
+      .attach("profilePicture", Buffer.alloc(5 * 1024 * 1024 + 1), {
+        filename: "large.png",
+        contentType: "image/png",
+      });
+
+    expect(response.status).toBe(413);
+    expect(response.body.error.code).toBe("FILE_TOO_LARGE");
   });
 });

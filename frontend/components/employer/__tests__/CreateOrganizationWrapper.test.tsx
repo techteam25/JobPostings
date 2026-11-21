@@ -109,7 +109,7 @@ describe("CreateOrganizationWrapper", () => {
   });
 
   it("does not advance when Next is clicked with an invalid current step", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<CreateOrganizationWrapper />);
 
     await user.click(screen.getByRole("button", { name: /next/i }));
@@ -120,7 +120,7 @@ describe("CreateOrganizationWrapper", () => {
   });
 
   it("includes the last step's contact values on the create request", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<CreateOrganizationWrapper />);
 
     await fillGeneralInfo(user);
@@ -154,7 +154,7 @@ describe("CreateOrganizationWrapper", () => {
   });
 
   it("does not create an organization when Submit is invalid", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<CreateOrganizationWrapper />);
 
     await fillGeneralInfo(user);
@@ -176,7 +176,7 @@ describe("CreateOrganizationWrapper", () => {
   });
 
   it("keeps a valid step's values after Back", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<CreateOrganizationWrapper />);
 
     await fillGeneralInfo(user);

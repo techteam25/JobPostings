@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useForm } from "@tanstack/react-form";
 import { Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
@@ -17,6 +18,7 @@ import {
 import { ScrollableArea } from "@/components/ui/scroll-affordance";
 import { Separator } from "@/components/ui/separator";
 import { EducationFormFields } from "./EducationFormFields";
+import { getEducationRowsToSave } from "./education-rows";
 import { useBatchCreateEducations } from "../hooks/manage-educations";
 import {
   educationFormSchema,
@@ -32,6 +34,8 @@ const emptyEntry: EducationFormData = {
   endDate: undefined,
 };
 
+type EducationRow = EducationFormData & { rowKey: string };
+
 interface AddEducationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -42,13 +46,15 @@ export function AddEducationDialog({
   onOpenChange,
 }: AddEducationDialogProps) {
   const batchCreateMutation = useBatchCreateEducations();
+  const nextRowKey = useRef(0);
 
   const form = useForm({
     defaultValues: {
-      educations: [{ ...emptyEntry }] as EducationFormData[],
+      educations: [{ ...emptyEntry, rowKey: "initial" }] as EducationRow[],
     },
     onSubmit: async ({ value }) => {
-      const result = z.array(educationFormSchema).safeParse(value.educations);
+      const rowsToSave = getEducationRowsToSave(value.educations);
+      const result = z.array(educationFormSchema).safeParse(rowsToSave);
       if (!result.success) {
         toast.error(
           result.error.issues[0]?.message || "Please check your form inputs",
@@ -86,12 +92,15 @@ export function AddEducationDialog({
           }}
           className="flex min-h-0 flex-col gap-6"
         >
-          <ScrollableArea className="flex-1">
+          <ScrollableArea
+            className="flex-1"
+            viewportClassName="overflow-y-scroll [scrollbar-gutter:stable]"
+          >
             <form.Field name="educations" mode="array">
               {(arrayField) => (
                 <div className="flex flex-col gap-6">
-                  {arrayField.state.value.map((_, index) => (
-                    <div key={index}>
+                  {arrayField.state.value.map((entry, index) => (
+                    <div key={entry.rowKey}>
                       {index > 0 && <Separator className="mb-6" />}
                       <div className="flex flex-col gap-4">
                         {arrayField.state.value.length > 1 && (
@@ -165,7 +174,12 @@ export function AddEducationDialog({
                     variant="outline"
                     size="sm"
                     className="w-full"
-                    onClick={() => arrayField.pushValue({ ...emptyEntry })}
+                    onClick={() =>
+                      arrayField.pushValue({
+                        ...emptyEntry,
+                        rowKey: `row-${++nextRowKey.current}`,
+                      })
+                    }
                   >
                     <Plus data-icon="inline-start" />
                     Add Another

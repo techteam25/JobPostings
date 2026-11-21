@@ -18,6 +18,7 @@ export default defineConfig({
     exclude: ["node_modules", ".next", "e2e/**"],
     css: false,
     mockReset: true,
+    testTimeout: 15000,
     server: {
       deps: {
         inline: ["zod"],

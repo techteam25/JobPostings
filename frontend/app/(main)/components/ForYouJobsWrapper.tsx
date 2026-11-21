@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { ThumbsUp } from "lucide-react";
+import Link from "next/link";
 
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useRecommendedJobs } from "@/app/(main)/hooks/use-recommended-jobs";
@@ -20,10 +21,12 @@ import { JobDetailPanel } from "@/app/(main)/components/JobDetailPanel";
 import { JobDetailPanelMobile } from "@/app/(main)/components/JobDetailPanelMobile";
 import { JobDetailPanelSkeleton } from "@/app/(main)/components/JobsWrapper";
 import { ProfileCompletionNudge } from "@/app/(main)/components/ProfileCompletionNudge";
+import { Button } from "@/components/ui/button";
 
 import {
   Empty,
   EmptyDescription,
+  EmptyContent,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
@@ -91,7 +94,11 @@ export function ForYouJobsWrapper() {
   const listContent = (() => {
     if (isLoading) return <SearchLoadingState />;
     if (isError) return <SearchErrorState onRetry={handleRetry} />;
-    if (results.length === 0) return <RecommendationsEmptyState />;
+    if (results.length === 0) {
+      return (
+        <RecommendationsEmptyState hasPersonalization={hasPersonalization} />
+      );
+    }
     return (
       <SearchJobsList
         data={results}
@@ -137,19 +144,42 @@ export function ForYouJobsWrapper() {
   );
 }
 
-function RecommendationsEmptyState() {
+function RecommendationsEmptyState({
+  hasPersonalization,
+}: {
+  hasPersonalization: boolean;
+}) {
   return (
     <Empty className="from-muted/50 to-background h-full bg-linear-to-b from-30%">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <ThumbsUp />
         </EmptyMedia>
-        <EmptyTitle>No recommendations available</EmptyTitle>
+        <EmptyTitle>
+          {hasPersonalization
+            ? "No matching jobs right now"
+            : "Start building your job profile"}
+        </EmptyTitle>
         <EmptyDescription>
-          There are no job recommendations at this time. Please check back
-          later.
+          {hasPersonalization
+            ? "We could not find an open job that fits your skills and preferences right now. Try the Search tab above or check back later."
+            : "Add your skills and job preferences to get recommendations that fit you. You can also add profile details and upload a resume to help employers get to know you."}
         </EmptyDescription>
       </EmptyHeader>
+      {!hasPersonalization && (
+        <EmptyContent>
+          <Button asChild>
+            <Link href="/me/profile">Complete your profile</Link>
+          </Button>
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+            <Link href="/me/profile/qualifications?tab=skills">Add skills</Link>
+            <Link href="/me/profile/preferences">Set job preferences</Link>
+            <Link href="/me/profile/edit?focus=resume">
+              Upload a resume (optional)
+            </Link>
+          </div>
+        </EmptyContent>
+      )}
     </Empty>
   );
 }

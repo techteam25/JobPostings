@@ -32,7 +32,9 @@ export async function checkDatabaseConnection(): Promise<boolean> {
     const result = await connection.execute("SELECT 1 as healthy");
     return Array.isArray(result) && result.length > 0;
   } catch (error) {
-    logger.error(`Database connection failed:, ${error}`);
+    // Preserve the driver error details (for example ECONNREFUSED or ER_ACCESS_DENIED_ERROR)
+    // instead of stringifying Error to the unhelpful "Error" message.
+    logger.error({ err: error }, "Database connection failed");
     return false;
   }
 }

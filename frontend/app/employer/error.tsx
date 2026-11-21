@@ -31,7 +31,8 @@ export default function Error({
         </EmptyMedia>
         <EmptyTitle>Something went wrong</EmptyTitle>
         <EmptyDescription>
-          We ran into a problem loading the employer dashboard. Please try again.
+          We ran into a problem loading the employer dashboard. Please try
+          again.
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>

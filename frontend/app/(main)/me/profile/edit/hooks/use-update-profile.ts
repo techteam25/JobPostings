@@ -21,8 +21,5 @@ export const useUpdateProfile = () => {
       await revalidateUserProfile();
       router.replace("/me/profile");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to update profile");
-    },
   });
 };

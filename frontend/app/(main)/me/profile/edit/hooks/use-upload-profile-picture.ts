@@ -1,70 +1,109 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { instance } from "@/lib/axios-instance";
 import type { ApiResponse, UserWithProfile } from "@/lib/types";
+import { useProfileUploadStatus } from "./use-profile-upload-status";
+
+type QueuedUpload = { jobId: string; status: "queued"; message: string };
 
 export const useUploadProfilePicture = () => {
   const queryClient = useQueryClient();
-  const queryKey = ["current-user-profile"];
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const previewRef = useRef<string | null>(null);
+  const handledJobRef = useRef<string | null>(null);
+  const status = useProfileUploadStatus(jobId);
+  const isTerminal =
+    status.data?.status === "completed" || status.data?.status === "failed";
 
-  return useMutation({
+  const clearPreview = useCallback(() => {
+    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    previewRef.current = null;
+    setPreviewUrl(null);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!jobId || !status.data || handledJobRef.current === jobId) return;
+
+    if (status.data.status === "completed") {
+      handledJobRef.current = jobId;
+      if (status.data.url) {
+        queryClient.setQueryData<ApiResponse<UserWithProfile>>(
+          ["current-user-profile"],
+          (old) => {
+            if (!old?.success || !old.data.profile) return old;
+            return {
+              ...old,
+              data: {
+                ...old.data,
+                profile: {
+                  ...old.data.profile,
+                  profilePicture: status.data!.url!,
+                },
+              },
+            };
+          },
+        );
+      }
+      void queryClient.refetchQueries({ queryKey: ["current-user-profile"] });
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+      previewRef.current = null;
+      toast.success("Profile picture uploaded successfully");
+    } else if (status.data.status === "failed") {
+      handledJobRef.current = jobId;
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+      previewRef.current = null;
+      toast.error(
+        status.data.message || "Profile picture upload failed. Please retry.",
+      );
+    }
+  }, [jobId, queryClient, status.data]);
+
+  const mutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append("profilePicture", file);
-      const response = await instance.post(
+      const response = await instance.post<ApiResponse<QueuedUpload>>(
         "/users/me/profile-picture",
         formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-          withCredentials: true,
-        },
+        { withCredentials: true },
       );
-      return response.data;
+      if (!response.data.success)
+        throw new Error("Could not queue profile picture upload");
+      return response.data.data;
     },
-    onMutate: async (file: File) => {
-      // Cancel in-flight refetches so they don't overwrite our optimistic blob URL
-      await queryClient.cancelQueries({ queryKey });
-
-      // Snapshot for rollback on error
-      const previous =
-        queryClient.getQueryData<ApiResponse<UserWithProfile>>(queryKey);
-
-      // Optimistically set the blob URL in the shared query cache so ALL
-      // consumers (edit form avatar, desktop navbar, mobile sheet) show
-      // the new picture immediately — no waiting for the async worker.
+    onMutate: (file) => {
+      setJobId(null);
+      clearPreview();
       const blobUrl = URL.createObjectURL(file);
-      queryClient.setQueryData<ApiResponse<UserWithProfile>>(
-        queryKey,
-        (old) => {
-          if (!old || !("data" in old) || !old.data.profile) return old;
-          return {
-            ...old,
-            data: {
-              ...old.data,
-              profile: { ...old.data.profile, profilePicture: blobUrl },
-            },
-          };
-        },
-      );
-
-      return { previous, blobUrl };
+      previewRef.current = blobUrl;
+      setPreviewUrl(blobUrl);
     },
-    onSuccess: (_data, _file, context) => {
-      // No server cache revalidation — the upload is async (BullMQ worker).
-      // Revalidating now would overwrite the optimistic blob URL with stale
-      // DB data. The worker invalidates the backend cache after the DB
-      // update, and the real Firebase URL appears on the next page load.
-      if (context?.blobUrl) URL.revokeObjectURL(context.blobUrl);
-      toast.success("Profile picture uploaded successfully");
+    onSuccess: (data) => {
+      handledJobRef.current = null;
+      setJobId(data.jobId);
+      toast.info("Profile picture queued for upload");
     },
-    onError: (error: Error, _file, context) => {
-      // Restore previous cache value instantly instead of refetching
-      if (context?.previous) {
-        queryClient.setQueryData(queryKey, context.previous);
-      }
-      if (context?.blobUrl) URL.revokeObjectURL(context.blobUrl);
+    onError: (error: Error) => {
+      clearPreview();
       toast.error(error.message || "Failed to upload profile picture");
     },
   });
+
+  return {
+    ...mutation,
+    previewUrl: isTerminal ? null : previewUrl,
+    isProcessing: Boolean(jobId && !isTerminal),
+    processingStatus: status.data?.status ?? "queued",
+    statusError: status.error,
+    retryStatus: status.refetch,
+  };
 };

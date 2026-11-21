@@ -35,7 +35,9 @@ describe("createJobSchema — employer create-job form payload", () => {
     if (!result.success) return;
 
     expect(result.data.body.zipcode).toBe("75602");
-    expect(result.data.body.applicationDeadline).toBe("2030-12-09T00:00:00.000Z");
+    expect(result.data.body.applicationDeadline).toBe(
+      "2030-12-09T00:00:00.000Z",
+    );
     expect(result.data.body.skills).toEqual([]);
   });
 

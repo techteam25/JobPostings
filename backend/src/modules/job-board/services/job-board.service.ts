@@ -38,6 +38,34 @@ const DATE_POSTED_MS: Record<string, number> = {
   "last-14-days": 1_209_600_000,
 };
 
+type JobSearchSort = SearchParams["query"]["sortBy"];
+
+function resolveJobSearchSort(
+  sortBy: JobSearchSort,
+  hasTextQuery: boolean,
+): {
+  sortBy: "createdAt" | "title" | undefined;
+  sortDirection: "asc" | "desc";
+} {
+  switch (sortBy) {
+    case "relevant":
+    case "relevance":
+      return hasTextQuery
+        ? { sortBy: undefined, sortDirection: "desc" }
+        : { sortBy: "createdAt", sortDirection: "desc" };
+    case "date_posted_asc":
+      return { sortBy: "createdAt", sortDirection: "asc" };
+    case "title_asc":
+      return { sortBy: "title", sortDirection: "asc" };
+    case "title_desc":
+      return { sortBy: "title", sortDirection: "desc" };
+    case "date_posted_desc":
+    case "recent":
+    default:
+      return { sortBy: "createdAt", sortDirection: "desc" };
+  }
+}
+
 export class JobBoardService
   extends BaseService
   implements JobBoardServicePort
@@ -167,7 +195,7 @@ export class JobBoardService
       // "relevant" + real query → omit sort_by (Typesense uses text relevance)
       // "recent" or no sortBy or no real query → sort by createdAt:desc
       const hasTextQuery = !!q && q.trim() !== "" && q.trim() !== "*";
-      const useRelevanceSort = sortBy === "relevant" && hasTextQuery;
+      const typesenseSort = resolveJobSearchSort(sortBy, hasTextQuery);
 
       const results = await this.typesenseService.searchJobsCollection(
         q,
@@ -176,8 +204,7 @@ export class JobBoardService
           limit,
           offset,
           page,
-          sortBy: useRelevanceSort ? undefined : "createdAt",
-          sortDirection: "desc",
+          ...typesenseSort,
         },
       );
       return ok(results);

@@ -68,9 +68,9 @@ services:
     image: typesense/typesense:30.0.rc26
     restart: on-failure
     ports:
-      - "8108:8108"
+      - "${TYPESENSE_PORT:-8108}:8108"
     volumes:
-      - ./typesense-data:/data
+      - ${TYPESENSE_DATA_DIR:-./typesense-data}:/data
     command: "--data-dir /data --api-key=${TYPESENSE_API_KEY} --enable-cors"
 
   loki:

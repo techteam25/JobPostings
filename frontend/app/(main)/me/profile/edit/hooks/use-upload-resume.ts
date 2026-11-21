@@ -1,79 +1,69 @@
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { instance } from "@/lib/axios-instance";
-import type { ApiResponse, UserWithProfile } from "@/lib/types";
+import type { ApiResponse } from "@/lib/types";
+import { useProfileUploadStatus } from "./use-profile-upload-status";
 
-/** Sentinel value used as optimistic resumeUrl before the worker sets the real one. */
-const OPTIMISTIC_RESUME_URL = "pending:resume-upload";
+type QueuedUpload = { jobId: string; status: "queued"; message: string };
 
 export const useUploadResume = () => {
   const queryClient = useQueryClient();
-  const queryKey = ["current-user-profile"];
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [pendingFilename, setPendingFilename] = useState<string | null>(null);
+  const status = useProfileUploadStatus(jobId);
+  const handledJobRef = useRef<string | null>(null);
+  const isTerminal =
+    status.data?.status === "completed" || status.data?.status === "failed";
 
-  return useMutation({
+  useEffect(() => {
+    if (!jobId || !status.data || handledJobRef.current === jobId) return;
+
+    if (status.data.status === "completed") {
+      handledJobRef.current = jobId;
+      void queryClient.refetchQueries({ queryKey: ["current-user-profile"] });
+      toast.success("Resume uploaded successfully");
+    } else if (status.data.status === "failed") {
+      handledJobRef.current = jobId;
+      toast.error(status.data.message || "Resume upload failed. Please retry.");
+    }
+  }, [jobId, queryClient, status.data]);
+
+  const mutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append("resume", file);
-      const response = await instance.post("/users/me/resume", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        withCredentials: true,
-      });
-      return response.data;
-    },
-    onMutate: async (file: File) => {
-      await queryClient.cancelQueries({ queryKey });
-
-      const previous =
-        queryClient.getQueryData<ApiResponse<UserWithProfile>>(queryKey);
-
-      // Optimistically update the cache so the UI shows the file info
-      // immediately instead of "No resume uploaded".
-      queryClient.setQueryData<ApiResponse<UserWithProfile>>(
-        queryKey,
-        (old) => {
-          if (!old || !("data" in old) || !old.data.profile) return old;
-
-          const existingMetadata = old.data.profile.fileMetadata ?? [];
-
-          return {
-            ...old,
-            data: {
-              ...old.data,
-              profile: {
-                ...old.data.profile,
-                resumeUrl: OPTIMISTIC_RESUME_URL,
-                fileMetadata: [
-                  ...existingMetadata,
-                  {
-                    url: OPTIMISTIC_RESUME_URL,
-                    filename: file.name,
-                    size: file.size,
-                    mimetype: file.type,
-                    uploadedAt: new Date().toISOString(),
-                  },
-                ],
-              },
-            },
-          };
-        },
+      const response = await instance.post<ApiResponse<QueuedUpload>>(
+        "/users/me/resume",
+        formData,
+        { withCredentials: true },
       );
-
-      return { previous };
+      if (!response.data.success)
+        throw new Error("Could not queue resume upload");
+      return response.data.data;
     },
-    onSuccess: () => {
-      // No server cache revalidation — the upload is async (BullMQ worker).
-      // The worker invalidates the backend cache after the DB update,
-      // and the real Firebase URL appears on the next page load.
-      toast.success("Resume uploaded successfully");
+    onMutate: () => {
+      setJobId(null);
+      setPendingFilename(null);
     },
-    onError: (error: Error, _file, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKey, context.previous);
-      }
+    onSuccess: (data, file) => {
+      handledJobRef.current = null;
+      setPendingFilename(file.name);
+      setJobId(data.jobId);
+      toast.info("Resume queued for upload");
+    },
+    onError: (error: Error) => {
       toast.error(error.message || "Failed to upload resume");
     },
   });
-};
 
-export { OPTIMISTIC_RESUME_URL };
+  return {
+    ...mutation,
+    pendingFilename: isTerminal ? null : pendingFilename,
+    isProcessing: Boolean(jobId && !isTerminal),
+    processingStatus: status.data?.status ?? "queued",
+    statusError: status.error,
+    retryStatus: status.refetch,
+  };
+};

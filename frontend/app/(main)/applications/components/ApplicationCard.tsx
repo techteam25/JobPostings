@@ -88,10 +88,7 @@ export const ApplicationCard = memo(function ApplicationCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem>
-                <Button
-                  variant="ghost"
-                  onClick={handleWithdraw}
-                >
+                <Button variant="ghost" onClick={handleWithdraw}>
                   <XCircle className="mr-1 size-4" />
                   Withdraw Application
                 </Button>

@@ -15,9 +15,9 @@ import Link from "next/link";
 
 const JobListingsSection = dynamic(
   () =>
-    import(
-      "@/app/employer/organizations/[id]/components/JobListingInformation"
-    ).then((mod) => ({ default: mod.JobListingsSection })),
+    import("@/app/employer/organizations/[id]/components/JobListingInformation").then(
+      (mod) => ({ default: mod.JobListingsSection }),
+    ),
   {
     loading: () => <JobListingsSectionSkeleton />,
   },

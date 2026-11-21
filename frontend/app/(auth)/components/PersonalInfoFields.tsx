@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldInfo } from "@/components/common/FieldInfo";
@@ -10,6 +11,8 @@ interface PersonalInfoFieldsProps {
 }
 
 export function PersonalInfoFields({ form }: PersonalInfoFieldsProps) {
+  const [isEmailFocused, setIsEmailFocused] = useState(false);
+
   return (
     <>
       {/* Name Fields */}
@@ -79,12 +82,16 @@ export function PersonalInfoFields({ form }: PersonalInfoFieldsProps) {
               name={field.name}
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
-              onBlur={field.handleBlur}
+              onFocus={() => setIsEmailFocused(true)}
+              onBlur={() => {
+                setIsEmailFocused(false);
+                field.handleBlur();
+              }}
               type="email"
               placeholder="john.doe@example.com"
               className="border-border focus-visible:ring-accent w-full rounded-lg border px-4 py-3 transition outline-none focus-visible:border-transparent focus-visible:ring-2"
             />
-            <FieldInfo field={field} />
+            {!isEmailFocused && <FieldInfo field={field} />}
           </div>
         )}
       />

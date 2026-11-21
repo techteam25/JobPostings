@@ -293,7 +293,10 @@ ${footer}`,
 
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      logger.error(error, "Email service error");
+      logger.error(error, "Failed to send email verification");
+      // Let the email queue retry transient SMTP failures. Swallowing this
+      // error marks the job complete even though the user has no link.
+      throw error;
     }
   }
 
