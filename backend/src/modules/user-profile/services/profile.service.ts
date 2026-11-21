@@ -1,4 +1,5 @@
 import { fail, ok } from "@shared/result";
+import { unlink } from "node:fs/promises";
 import { BaseService } from "@shared/base/base.service";
 import type { ProfileServicePort } from "@/modules/user-profile";
 import type { ProfileRepositoryPort } from "@/modules/user-profile";
@@ -10,6 +11,7 @@ import {
   ForbiddenError,
   NotFoundError,
   BadRequestError,
+  ErrorCode,
 } from "@shared/errors";
 import {
   QUEUE_NAMES,
@@ -22,7 +24,10 @@ import type {
   UpdateUserProfile,
 } from "@/validations/userProfile.validation";
 import type { OrganizationRole } from "@/validations/organization.validation";
-import type { FileUploadJobData } from "@/validations/file.validation";
+import type {
+  FileUploadJobData,
+  FileUploadResult,
+} from "@/validations/file.validation";
 import { StorageFolder } from "@shared/constants/storage-folders";
 import {
   ProfilePictureFile,
@@ -37,6 +42,7 @@ import type {
 } from "@/validations/file.validation";
 import { generateCorrelationId } from "@/validations/file.validation";
 import { enqueueCandidateSearchSync } from "@shared/infrastructure/typesense.service/candidate-search-enqueue";
+import logger from "@shared/logger";
 
 export class ProfileService extends BaseService implements ProfileServicePort {
   constructor(
@@ -176,49 +182,13 @@ export class ProfileService extends BaseService implements ProfileServicePort {
     file: ProfilePictureFile | undefined,
     correlationId: string,
   ) {
-    if (!file) {
-      return fail(new BadRequestError("No file uploaded"));
-    }
-
-    try {
-      const user = await this.profileRepository.findByIdWithProfile(userId);
-      if (!user) {
-        return fail(new NotFoundError("User", userId));
-      }
-
-      if (!user.profile) {
-        return fail(new NotFoundError("Profile", userId));
-      }
-
-      await queueService.addJob<FileUploadJobData>(
-        QUEUE_NAMES.FILE_UPLOAD_QUEUE,
-        "uploadFile",
-        {
-          entityType: "user",
-          entityId: user.profile.id.toString(),
-          mergeWithExisting: true,
-          tempFiles: [
-            {
-              originalname: file.originalname,
-              tempPath: file.path,
-              size: file.size,
-              mimetype: file.mimetype,
-              fieldName: "profilePicture",
-            },
-          ],
-          userId: userId.toString(),
-          folder: StorageFolder.PROFILE_PICTURES,
-          correlationId,
-        },
-      );
-
-      return ok({ message: "Profile picture upload initiated" });
-    } catch (error) {
-      if (error instanceof AppError) {
-        return this.handleError(error);
-      }
-      return fail(new DatabaseError("Failed to upload profile picture"));
-    }
+    return this.enqueueProfileUpload(
+      userId,
+      file,
+      correlationId,
+      "profilePicture",
+      StorageFolder.PROFILE_PICTURES,
+    );
   }
 
   async uploadResume(
@@ -226,10 +196,27 @@ export class ProfileService extends BaseService implements ProfileServicePort {
     file: ResumeFile | undefined,
     correlationId: string,
   ) {
+    return this.enqueueProfileUpload(
+      userId,
+      file,
+      correlationId,
+      "resume",
+      StorageFolder.RESUMES,
+    );
+  }
+
+  private async enqueueProfileUpload(
+    userId: number,
+    file: ProfilePictureFile | ResumeFile | undefined,
+    correlationId: string,
+    fieldName: "profilePicture" | "resume",
+    folder: StorageFolder,
+  ) {
     if (!file) {
       return fail(new BadRequestError("No file uploaded"));
     }
 
+    let queued = false;
     try {
       const user = await this.profileRepository.findByIdWithProfile(userId);
       if (!user) {
@@ -240,34 +227,125 @@ export class ProfileService extends BaseService implements ProfileServicePort {
         return fail(new NotFoundError("Profile", userId));
       }
 
-      await queueService.addJob<FileUploadJobData>(
-        QUEUE_NAMES.FILE_UPLOAD_QUEUE,
-        "uploadFile",
-        {
-          entityType: "user",
-          entityId: user.profile.id.toString(),
-          mergeWithExisting: true,
-          tempFiles: [
-            {
-              originalname: file.originalname,
-              tempPath: file.path,
-              size: file.size,
-              mimetype: file.mimetype,
-              fieldName: "resume",
-            },
-          ],
-          userId: userId.toString(),
-          folder: StorageFolder.RESUMES,
-          correlationId,
-        },
-      );
+      let job;
+      try {
+        job = await queueService.addJob<FileUploadJobData>(
+          QUEUE_NAMES.FILE_UPLOAD_QUEUE,
+          "uploadFile",
+          {
+            entityType: "user",
+            entityId: user.profile.id.toString(),
+            mergeWithExisting: true,
+            tempFiles: [
+              {
+                originalname: file.originalname,
+                tempPath: file.path,
+                size: file.size,
+                mimetype: file.mimetype,
+                fieldName,
+              },
+            ],
+            userId: userId.toString(),
+            folder,
+            correlationId,
+          },
+        );
+      } catch (error) {
+        logger.error(
+          { error, correlationId },
+          "Profile upload queue unavailable",
+        );
+        throw new AppError(
+          "Upload service is unavailable. Please try again.",
+          503,
+          ErrorCode.INTERNAL_ERROR,
+        );
+      }
 
-      return ok({ message: "Resume upload initiated" });
+      if (!job.id) {
+        throw new AppError(
+          "Upload job was not created",
+          503,
+          ErrorCode.INTERNAL_ERROR,
+        );
+      }
+      queued = true;
+      return ok({
+        message:
+          fieldName === "resume" ? "Resume queued" : "Profile picture queued",
+        jobId: job.id,
+        status: "queued" as const,
+      });
     } catch (error) {
       if (error instanceof AppError) {
         return this.handleError(error);
       }
-      return fail(new DatabaseError("Failed to upload resume"));
+      logger.error({ error, correlationId }, "Failed to queue profile upload");
+      return fail(new DatabaseError("Failed to prepare upload"));
+    } finally {
+      if (!queued) {
+        try {
+          await unlink(file.path);
+        } catch (error) {
+          logger.warn(
+            { error, path: file.path },
+            "Unable to remove unqueued upload",
+          );
+        }
+      }
+    }
+  }
+
+  async getUploadStatus(userId: number, jobId: string) {
+    try {
+      const queue = queueService.getQueue(QUEUE_NAMES.FILE_UPLOAD_QUEUE);
+      if (!queue) {
+        return fail(
+          new AppError(
+            "Upload service is unavailable",
+            503,
+            ErrorCode.INTERNAL_ERROR,
+          ),
+        );
+      }
+      const job = await queue.getJob(jobId);
+      if (
+        !job ||
+        job.data.userId !== userId.toString() ||
+        job.data.entityType !== "user"
+      ) {
+        return fail(new NotFoundError("Upload job"));
+      }
+      const state = await job.getState();
+      if (state === "failed") {
+        return ok({
+          status: "failed" as const,
+          message: "Upload failed. Please try again.",
+        });
+      }
+      if (state === "completed") {
+        const result = job.returnvalue as FileUploadResult;
+        if (!result || result.failureCount > 0 || result.successCount < 1) {
+          return ok({
+            status: "failed" as const,
+            message: "Upload failed. Please try again.",
+          });
+        }
+        return ok({ status: "completed" as const, url: result.urls[0] });
+      }
+      return ok({
+        status:
+          state === "active" ? ("processing" as const) : ("queued" as const),
+      });
+    } catch (error) {
+      logger.error({ error, jobId }, "Failed to read profile upload status");
+      return fail(
+        new AppError(
+          "Upload status is unavailable",
+          503,
+          ErrorCode.INTERNAL_ERROR,
+        ),
+      );
     }
   }
 
@@ -484,11 +562,17 @@ export class ProfileService extends BaseService implements ProfileServicePort {
     try {
       // Source of truth (userOnBoarding table, profile module's domain)
       await this.profileRepository.initializeUserIntent(userId, intent);
+      const persisted = await this.profileRepository.getUserIntent(userId);
+      if (!persisted) {
+        return fail(
+          new DatabaseError("Failed to retrieve user onboarding intent"),
+        );
+      }
       // Sync denormalized copy to user table (identity domain) for session cookie cache
       const syncResult = await this.identityWrite.syncIntentToUser(
         userId,
-        intent,
-        "pending",
+        persisted.intent,
+        persisted.status,
       );
 
       if (syncResult.isFailure) {

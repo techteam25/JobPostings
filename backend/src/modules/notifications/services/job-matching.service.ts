@@ -49,7 +49,11 @@ export class JobMatchingService
         const normalizedJobTypes = alert.jobType.map((type) =>
           type.replace(/_/g, "-"),
         ) as (
-          "full-time" | "part-time" | "contract" | "volunteer" | "internship"
+          | "full-time"
+          | "part-time"
+          | "contract"
+          | "volunteer"
+          | "internship"
         )[];
         queryBuilder.addArrayFilter("jobType", normalizedJobTypes, true);
       }

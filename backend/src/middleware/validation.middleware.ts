@@ -53,7 +53,12 @@ const validate =
       };
 
       // Parse and validate the request data
-      schema.parse(validationData);
+      const parsed = schema.parse(validationData) as typeof validationData;
+
+      // Controllers must receive the same normalized values that were validated.
+      // Assigning req.query is unsafe in Express 5 because it is a getter.
+      req.body = parsed.body;
+      req.params = parsed.params;
 
       next();
     } catch (error) {

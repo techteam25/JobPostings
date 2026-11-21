@@ -6,7 +6,7 @@ import { uploadMiddleware } from "@/middleware/multer.middleware";
 import validate from "@/middleware/validation.middleware";
 import {
   createOrganizationSchema,
-  updateOrganizationInputSchema,
+  updateOrganizationSchema,
   getOrganizationSchema,
   deleteOrganizationSchema,
   uploadOrganizationLogoSchema,
@@ -117,7 +117,7 @@ export function createOrganizationsRoutes({
     "/:organizationId",
     authenticate,
     orgGuards.requireAdminOrOwnerRole(["owner"]),
-    validate(updateOrganizationInputSchema),
+    validate(updateOrganizationSchema),
     orgGuards.ensureIsOrganizationMember,
     // `organizations` prefix glob already covers the `organizations/<id>`
     // detail key. Also refresh members' org lists (name/logo changes show

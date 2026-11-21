@@ -16,11 +16,7 @@ import {
   cacheKeys,
   recommendationsPattern,
 } from "@shared/infrastructure/cache-keys";
-import {
-  updateWorkAvailabilitySchema,
-  uploadProfilePictureSchema,
-  uploadResumeSchema,
-} from "@/validations/userProfile.validation";
+import { updateWorkAvailabilitySchema } from "@/validations/userProfile.validation";
 import { uploadMiddleware } from "@/middleware/multer.middleware";
 
 export function createProfileRoutes({
@@ -117,7 +113,6 @@ export function createProfileRoutes({
   router.post(
     "/me/profile-picture",
     uploadMiddleware.profilePicture,
-    validate(uploadProfilePictureSchema),
     profileController.uploadProfilePicture,
   );
 
@@ -126,9 +121,10 @@ export function createProfileRoutes({
   router.post(
     "/me/resume",
     uploadMiddleware.resume,
-    validate(uploadResumeSchema),
     profileController.uploadResume,
   );
+
+  router.get("/me/uploads/:jobId", profileController.getUploadStatus);
 
   // DELETE /users/me/resume
   router.delete(

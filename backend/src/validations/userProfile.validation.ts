@@ -14,7 +14,12 @@ import {
   WorkExperience,
 } from "@/validations/workExperiences.validation";
 import type { Skill } from "@/validations/skills.validation";
-import { isPossiblePhoneNumber } from "libphonenumber-js";
+import {
+  getCountries,
+  isPossiblePhoneNumber,
+  parsePhoneNumberFromString,
+  type CountryCode,
+} from "libphonenumber-js";
 
 const URL_PROTOCOL_REGEX = /^https?:\/\//i;
 const URL_PROTOCOL_ONLY_REGEX = /^https?:\/\/$/i;
@@ -41,7 +46,44 @@ const optionalNormalizedUrl = (message: string) =>
  * since TipTap outputs HTML.
  */
 export function stripHtmlTags(html: string): string {
-  return html.replace(/<[^>]*>/g, "").trim();
+  const entities: Record<string, string> = {
+    amp: "&",
+    lt: "<",
+    gt: ">",
+    quot: '"',
+    apos: "'",
+    nbsp: " ",
+  };
+
+  return html
+    .replace(/<\/?(?:p|div|br|li)\b[^>]*>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&(#(?:x[\da-f]+|\d+)|[a-z]+);/gi, (match, entity: string) => {
+      if (entity.startsWith("#")) {
+        const isHex = entity[1]?.toLowerCase() === "x";
+        const codePoint = Number.parseInt(
+          entity.slice(isHex ? 2 : 1),
+          isHex ? 16 : 10,
+        );
+        return Number.isFinite(codePoint) && codePoint <= 0x10ffff
+          ? String.fromCodePoint(codePoint)
+          : match;
+      }
+      return entities[entity.toLowerCase()] ?? match;
+    })
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
+const countryCodes = getCountries();
+
+function phoneCountryCode(country?: string | null): CountryCode {
+  const selected = country?.trim();
+  if (!selected) return "US";
+  const byCode = countryCodes.find((code) => code === selected.toUpperCase());
+  if (byCode) return byCode;
+  return countryCodes.find((code) => regionNames.of(code) === selected) ?? "US";
 }
 
 // Zod schemas
@@ -64,6 +106,20 @@ export const insertUserProfileSchema = createInsertSchema(userProfile, {
   portfolioUrl: optionalNormalizedUrl("Invalid portfolio URL"),
 });
 
+export const editableUserProfileFieldsSchema = insertUserProfileSchema.pick({
+  bio: true,
+  linkedinUrl: true,
+  portfolioUrl: true,
+  phoneNumber: true,
+  address: true,
+  city: true,
+  state: true,
+  zipCode: true,
+  country: true,
+  isProfilePublic: true,
+  isAvailableForWork: true,
+});
+
 export const selectUserSchema = createSelectSchema(user);
 export const selectUserProfileSchema = createSelectSchema(userProfile);
 
@@ -78,27 +134,25 @@ export const updateUserSchema = insertUserSchema.partial().omit({
  * Base schema without refinements — used for .pick() operations
  * (e.g., visibility and availability sub-schemas).
  */
-const updateUserProfileBaseSchema = insertUserProfileSchema
-  .omit({ userId: true })
-  .extend({
-    fullName: z
-      .string()
-      .min(1, "Display name is required")
-      .max(100)
-      .trim()
-      .optional(),
-    bio: z.string().optional(),
-    phoneNumber: z.string().optional(),
-    educations: insertEducationsSchema
-      .omit({ userProfileId: true })
-      .array()
-      .default([]),
-    workExperiences: insertWorkExperiencesSchema
-      .omit({ userProfileId: true })
-      .array()
-      .default([]),
-    certifications: insertCertificationsSchema.array().default([]),
-  });
+const updateUserProfileBaseSchema = editableUserProfileFieldsSchema.extend({
+  fullName: z
+    .string()
+    .min(1, "Display name is required")
+    .max(100)
+    .trim()
+    .optional(),
+  bio: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  educations: insertEducationsSchema
+    .omit({ userProfileId: true })
+    .array()
+    .default([]),
+  workExperiences: insertWorkExperiencesSchema
+    .omit({ userProfileId: true })
+    .array()
+    .default([]),
+  certifications: insertCertificationsSchema.array().default([]),
+});
 
 /**
  * Full update schema with refinements for bio (HTML-stripped length)
@@ -108,7 +162,8 @@ export const updateUserProfileSchema = updateUserProfileBaseSchema
   .refine(
     (data) => {
       if (!data.bio) return true;
-      return stripHtmlTags(data.bio).length >= 10;
+      const length = stripHtmlTags(data.bio).length;
+      return length === 0 || length >= 10;
     },
     { message: "Bio must be at least 10 characters", path: ["bio"] },
   )
@@ -122,10 +177,25 @@ export const updateUserProfileSchema = updateUserProfileBaseSchema
   .refine(
     (data) => {
       if (!data.phoneNumber) return true;
-      return isPossiblePhoneNumber(data.phoneNumber, "US");
+      return isPossiblePhoneNumber(
+        data.phoneNumber,
+        phoneCountryCode(data.country),
+      );
     },
     { message: "Invalid phone number", path: ["phoneNumber"] },
-  );
+  )
+  .transform((data) => {
+    if (data.bio && stripHtmlTags(data.bio).length === 0) {
+      data.bio = "";
+    }
+    if (data.phoneNumber) {
+      data.phoneNumber = parsePhoneNumberFromString(
+        data.phoneNumber,
+        phoneCountryCode(data.country),
+      )?.number;
+    }
+    return data;
+  });
 
 // Type exports
 export type User = z.infer<typeof selectUserSchema>;

@@ -204,7 +204,7 @@ export class TypesenseJobService implements TypesenseJobServicePort {
         limit,
         offset,
         query_by: "title, skills, jobType, description, city, state, country",
-        include_fields: "$employers(logoUrl, strategy: merge)",
+        include_fields: "*, $employers(logoUrl, strategy: merge)",
       });
     typesenseSearchDurationSeconds.record((Date.now() - start) / 1000);
     typesenseSearchResultCount.record(response.found ?? 0);

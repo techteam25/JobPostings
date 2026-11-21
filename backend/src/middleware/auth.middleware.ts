@@ -42,7 +42,8 @@ export class AuthMiddleware {
           lastLoginAt: session.user.lastLoginAt as Date | null,
           intent: session.user.intent as "seeker" | "employer",
           onboardingStatus: session.user.onboardingStatus as
-            "pending" | "completed",
+            | "pending"
+            | "completed",
         };
         req.userId = parseInt(session.user.id);
       }
@@ -64,6 +65,7 @@ export class AuthMiddleware {
       });
 
       if (!session) {
+        req.resume();
         return res.status(401).json({
           success: false,
           status: "error",
@@ -93,7 +95,8 @@ export class AuthMiddleware {
         lastLoginAt: session.user.lastLoginAt as Date | null,
         intent: session.user.intent as "seeker" | "employer",
         onboardingStatus: session.user.onboardingStatus as
-          "pending" | "completed",
+          | "pending"
+          | "completed",
       };
       req.userId = parseInt(session.user.id);
 

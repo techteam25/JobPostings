@@ -5,7 +5,9 @@ import {
 import logger from "@shared/logger";
 
 export type CandidateSearchSyncJobName =
-  "indexProfile" | "updateProfile" | "deleteProfile";
+  | "indexProfile"
+  | "updateProfile"
+  | "deleteProfile";
 
 /**
  * Fire-and-forget enqueue for candidate-search Typesense sync. Swallows

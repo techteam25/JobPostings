@@ -38,7 +38,8 @@ export class ApplicationsController extends BaseController {
     const jobId = Number(req.params.jobId);
 
     const files = req.files as
-      { [fieldname: string]: Express.Multer.File[] } | undefined;
+      | { [fieldname: string]: Express.Multer.File[] }
+      | undefined;
     const resumeFile = files?.resume?.[0];
     const coverLetterFile = files?.coverLetter?.[0];
 

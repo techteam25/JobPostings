@@ -16,7 +16,8 @@ declare global {
       log: Logger;
       file?: Express.Multer.File;
       files?:
-        { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
+        | { [fieldname: string]: Express.Multer.File[] }
+        | Express.Multer.File[];
     }
   }
 }
