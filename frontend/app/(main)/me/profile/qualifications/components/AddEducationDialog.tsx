@@ -92,15 +92,12 @@ export function AddEducationDialog({
           }}
           className="flex min-h-0 flex-col gap-6"
         >
-          <ScrollableArea
-            className="flex-1"
-            viewportClassName="overflow-y-scroll [scrollbar-gutter:stable]"
-          >
+          <ScrollableArea className="flex-1">
             <form.Field name="educations" mode="array">
               {(arrayField) => (
                 <div className="flex flex-col gap-6">
-                  {arrayField.state.value.map((entry, index) => (
-                    <div key={entry.rowKey}>
+                  {arrayField.state.value.map((_, index) => (
+                    <div key={index}>
                       {index > 0 && <Separator className="mb-6" />}
                       <div className="flex flex-col gap-4">
                         {arrayField.state.value.length > 1 && (

@@ -346,12 +346,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             const isUnderMin = bioCharCount > 0 && bioCharCount < BIO_MIN;
 
             return (
-              <Field
-                id="bio-field"
-                data-invalid={
-                  isOverLimit || isUnderMin || Boolean(serverErrors.bio)
-                }
-              >
+              <Field id="bio-field" data-invalid={isOverLimit || isUnderMin}>
                 <FieldLabel htmlFor={field.name}>Bio</FieldLabel>
                 <DynamicRichTextEditor
                   defaultValue={field.state.value}
