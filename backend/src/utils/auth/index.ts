@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { openAPI } from "better-auth/plugins";
-import { createAuthMiddleware, APIError } from "better-auth/api";
+import { createAuthMiddleware, getOAuthState, APIError } from "better-auth/api";
 
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { z } from "zod";
@@ -61,13 +61,6 @@ export function getAuthIdentityService(): IdentityServicePort {
   return identityService;
 }
 
-type UserRegistrationPayload = {
-  name: string;
-  email: string;
-  password: string;
-  intent: "seeker" | "employer";
-};
-
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "mysql",
@@ -78,7 +71,7 @@ export const auth = betterAuth({
     max: 100, // limit each IP to 100 requests per windowMs
   },
   trustedOrigins: [env.FRONTEND_URL],
-  baseURL: isProduction ? env.SERVER_URL : undefined,
+  baseURL: env.SERVER_URL,
   basePath: "/api/auth",
   session: {
     cookieCache: {
@@ -167,6 +160,42 @@ export const auth = betterAuth({
         input: false,
         validator: {
           input: z.enum(["completed", "pending"]),
+        },
+      },
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (_user, ctx) => {
+          if (ctx?.path === "/sign-up/email") {
+            const requestedIntent = (
+              ctx.body as { intent?: unknown } | undefined
+            )?.intent;
+            if (
+              requestedIntent !== undefined &&
+              requestedIntent !== "seeker" &&
+              requestedIntent !== "employer"
+            ) {
+              throw new APIError("BAD_REQUEST", {
+                message: "Invalid registration intent",
+              });
+            }
+            return { data: { intent: requestedIntent ?? "seeker" } };
+          }
+
+          if (ctx?.path === "/callback/:id") {
+            // OAuth callbacks are redirects, so the normal signup response hook
+            // cannot assign intent after the user has already been created.
+            const oauthState = await getOAuthState();
+            return {
+              data: {
+                intent:
+                  oauthState?.intent === "employer" ? "employer" : "seeker",
+              },
+            };
+          }
+          return;
         },
       },
     },
@@ -326,34 +355,72 @@ function enrichResponse(
   };
 }
 
+async function ensureAuthResources(
+  userId: number,
+  intent: "seeker" | "employer",
+  source: "email_signup" | "email_signin" | "oauth_callback",
+) {
+  const run = async (
+    step: string,
+    action: () => Promise<{ isFailure: boolean; error?: unknown }> | undefined,
+  ) => {
+    try {
+      const result = await action();
+      if (result?.isFailure) {
+        logger.error(
+          { err: result.error, step, source, userId },
+          "auth.resource_initialization_failed",
+        );
+      }
+    } catch (error) {
+      logger.error(
+        { err: error, step, source, userId },
+        "auth.resource_initialization_failed",
+      );
+    }
+  };
+
+  await Promise.all([
+    run("initializeUserIntent", () =>
+      profileService?.initializeUserIntent(userId, intent),
+    ),
+    run("createDefaultEmailPreferences", () =>
+      notificationsService?.createDefaultEmailPreferences(userId),
+    ),
+  ]);
+
+  if (!profileService) {
+    logger.error({ source, userId }, "auth.profile_service_not_initialized");
+    return;
+  }
+
+  try {
+    const existingUser = await profileService.getUserById(userId);
+    if (existingUser.isFailure) {
+      logger.error(
+        { err: existingUser.error, source, userId },
+        "auth.profile_lookup_failed",
+      );
+    } else if (!existingUser.value.profile) {
+      await run("createUserProfile", () =>
+        profileService?.createUserProfile(userId, { country: null }),
+      );
+    }
+  } catch (error) {
+    logger.error({ err: error, source, userId }, "auth.profile_lookup_failed");
+  }
+}
+
 async function handleEmailRegistration(ctx: BetterAuthMiddlewareContext) {
   const userResult = getSuccessResult(ctx);
   if (!userResult) return;
 
-  const body = ctx.body as UserRegistrationPayload;
   const userId = Number(userResult.user.id);
+  const userRecord = userResult.user as Record<string, unknown>;
+  const intent = userRecord.intent === "employer" ? "employer" : "seeker";
 
   try {
-    const POST_ACTION_STEPS = [
-      "initializeUserIntent",
-      "createDefaultEmailPreferences",
-      "createUserProfile",
-    ] as const;
-
-    const results = await Promise.allSettled([
-      profileService?.initializeUserIntent(userId, body.intent),
-      notificationsService?.createDefaultEmailPreferences(userId),
-      profileService?.createUserProfile(userId, { country: null }),
-    ]);
-
-    results.forEach((r, i) => {
-      if (r.status === "rejected") {
-        logger.error(
-          { err: r.reason, step: POST_ACTION_STEPS[i], userId },
-          "registration.post_action_failed",
-        );
-      }
-    });
+    await ensureAuthResources(userId, intent, "email_signup");
 
     auditService.emit({
       name: "auth.signup",
@@ -361,11 +428,11 @@ async function handleEmailRegistration(ctx: BetterAuthMiddlewareContext) {
       resource: { type: "user", id: userId },
       action: "signed up",
       outcome: "success",
-      metadata: { method: "email", intent: body.intent },
+      metadata: { method: "email", intent },
     });
     authSignupTotal.add(1, { method: "email", outcome: "success" });
 
-    return enrichResponse(userResult, body.intent, "pending");
+    return enrichResponse(userResult, intent, "pending");
   } catch (error) {
     logger.error(error, "Error during email registration post-actions");
     throw new APIError("INTERNAL_SERVER_ERROR", {
@@ -375,44 +442,18 @@ async function handleEmailRegistration(ctx: BetterAuthMiddlewareContext) {
 }
 
 async function handleOAuthRegistration(ctx: BetterAuthMiddlewareContext) {
-  const userResult = getSuccessResult(ctx);
-  if (!userResult) return;
+  // Better Auth returns a redirect response for OAuth callbacks. The newly
+  // issued session, including its user, is available on the auth context.
+  const user = ctx.context.newSession?.user;
+  if (!user || ctx.context.returned instanceof APIError) return;
 
-  const userId = Number(userResult.user.id);
+  const userId = Number(user.id);
+  if (!Number.isSafeInteger(userId)) return;
 
   try {
-    // The user's intent additionalField defaults to "seeker". If it's still
-    // the default and onboardingStatus is "pending", this is a first-time
-    // OAuth sign-in. Fires on every OAuth callback (not just first-time);
-    // initializeUserIntent + createDefaultEmailPreferences + createUserProfile
-    // are all idempotent so repeat calls are harmless. We log any rejections
-    // so silent failures surface rather than leaving a user in a half-created
-    // state with no breadcrumb.
-    const userRecord = userResult.user as Record<string, unknown>;
+    const userRecord = user as Record<string, unknown>;
     const intent = userRecord.intent === "employer" ? "employer" : "seeker";
-    const onboardingStatus =
-      userRecord.onboardingStatus === "completed" ? "completed" : "pending";
-
-    const POST_ACTION_STEPS = [
-      "initializeUserIntent",
-      "createDefaultEmailPreferences",
-      "createUserProfile",
-    ] as const;
-
-    const results = await Promise.allSettled([
-      profileService?.initializeUserIntent(userId, intent),
-      notificationsService?.createDefaultEmailPreferences(userId),
-      profileService?.createUserProfile(userId, { country: null }),
-    ]);
-
-    results.forEach((r, i) => {
-      if (r.status === "rejected") {
-        logger.error(
-          { err: r.reason, step: POST_ACTION_STEPS[i], userId },
-          "oauth_registration.post_action_failed",
-        );
-      }
-    });
+    await ensureAuthResources(userId, intent, "oauth_callback");
 
     // OAuth callback fires on both first-time link and every subsequent
     // sign-in. We emit auth.signin.success here; a dedicated
@@ -431,7 +472,8 @@ async function handleOAuthRegistration(ctx: BetterAuthMiddlewareContext) {
       (ctx.params as { id?: string } | undefined)?.id ?? "unknown";
     authSigninTotal.add(1, { method: "oauth", outcome: "success", provider });
 
-    return enrichResponse(userResult, intent, onboardingStatus);
+    // Preserve Better Auth's redirect response and Set-Cookie headers.
+    return;
   } catch (error) {
     logger.error(error, "Error during OAuth registration post-actions");
     return;
@@ -453,6 +495,13 @@ async function postUserAuthenticationActions(ctx: BetterAuthMiddlewareContext) {
   const intent = userRecord.intent === "employer" ? "employer" : "seeker";
   const onboardingStatus =
     userRecord.onboardingStatus === "completed" ? "completed" : "pending";
+
+  const numericUserId = Number(userId);
+  if (Number.isSafeInteger(numericUserId)) {
+    // A previous signup may have created the auth user while a profile or
+    // onboarding post-action failed. Sign-in repairs missing resources.
+    await ensureAuthResources(numericUserId, intent, "email_signin");
+  }
 
   auditService.emit({
     name: "auth.signin.success",

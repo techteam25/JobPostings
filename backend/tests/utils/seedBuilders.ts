@@ -254,28 +254,14 @@ export async function createJob(
         .toString(),
     jobType:
       (overrides.jobType as
-        | "full-time"
-        | "part-time"
-        | "contract"
-        | "volunteer"
-        | "internship") ??
+        "full-time" | "part-time" | "contract" | "volunteer" | "internship") ??
       (faker.helpers.enumValue(jobTypeEnum) as
-        | "full-time"
-        | "part-time"
-        | "contract"
-        | "volunteer"
-        | "internship"),
+        "full-time" | "part-time" | "contract" | "volunteer" | "internship"),
     compensationType:
       (overrides.compensationType as
-        | "paid"
-        | "missionary"
-        | "volunteer"
-        | "stipend") ??
+        "paid" | "missionary" | "volunteer" | "stipend") ??
       (faker.helpers.enumValue(compensationTypeEnum) as
-        | "paid"
-        | "missionary"
-        | "volunteer"
-        | "stipend"),
+        "paid" | "missionary" | "volunteer" | "stipend"),
     isRemote: overrides.isRemote ?? faker.datatype.boolean(),
     isActive: overrides.isActive ?? true,
     applicationDeadline: overrides.applicationDeadline ?? faker.date.future(),

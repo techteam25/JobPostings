@@ -12,6 +12,20 @@ const jobApplicationPayload = z
   })
   .strict();
 
+const jobApplicationStatusSchema = z.enum([
+  "pending",
+  "reviewed",
+  "shortlisted",
+  "interviewing",
+  "rejected",
+  "hired",
+  "withdrawn",
+]);
+
+const updateApplicationStatusPayload = z
+  .object({ status: jobApplicationStatusSchema })
+  .strict();
+
 const applicationIdParamSchema = z.object({
   applicationId: z
     .string()
@@ -29,10 +43,7 @@ export const applyForJobSchema = z.object({
 });
 
 export const updateApplicationStatusSchema = z.object({
-  body: z.object({
-    customAnswers: z.string().optional(),
-    notes: z.string().max(5000).optional(),
-  }),
+  body: updateApplicationStatusPayload,
   params: applicationIdParamSchema,
   query: z.object({}).strict(),
 });
@@ -60,17 +71,7 @@ export const selectJobApplicationSchema = jobApplicationsSchema
 export const applicationQueryParams = z.object({
   page: z.coerce.number().min(1).optional(),
   limit: z.coerce.number().min(1).max(100).optional(),
-  status: z
-    .enum([
-      "pending",
-      "reviewed",
-      "shortlisted",
-      "interviewing",
-      "rejected",
-      "hired",
-      "withdrawn",
-    ])
-    .optional(),
+  status: jobApplicationStatusSchema.optional(),
 });
 
 export type ApplicationQueryParams = z.infer<typeof applicationQueryParams>;

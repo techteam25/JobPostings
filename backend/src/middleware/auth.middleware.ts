@@ -65,6 +65,7 @@ export class AuthMiddleware {
       });
 
       if (!session) {
+        req.resume();
         return res.status(401).json({
           success: false,
           status: "error",

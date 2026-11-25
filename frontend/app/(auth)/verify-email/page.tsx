@@ -26,10 +26,14 @@ function VerifyEmailContent() {
 
     setIsSending(true);
     try {
-      await authClient.sendVerificationEmail({
+      const { error } = await authClient.sendVerificationEmail({
         email,
         callbackURL: "/email-verified",
       });
+      if (error) {
+        toast.error(error.message || "Failed to send verification email.");
+        return;
+      }
       toast.success("Verification email sent!");
       setCooldown(60);
     } catch {
@@ -65,9 +69,7 @@ function VerifyEmailContent() {
           disabled={cooldown > 0 || isSending || !email}
           className="bg-accent hover:bg-accent/90 text-accent-foreground mb-4 w-full cursor-pointer"
         >
-          {isSending ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : null}
+          {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           {cooldown > 0
             ? `Resend in ${cooldown}s`
             : "Resend verification email"}

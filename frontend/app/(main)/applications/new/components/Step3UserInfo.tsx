@@ -41,9 +41,7 @@ export const Step3UserInfo = () => {
   return (
     <div className="animate-in fade-in slide-in-from-right-8 space-y-6 duration-500">
       <div className="space-y-2">
-        <h2 className="text-xl font-bold text-slate-900">
-          Your Location Info
-        </h2>
+        <h2 className="text-xl font-bold text-slate-900">Your Location Info</h2>
         <p className="text-sm text-slate-500">
           Please confirm or update your location details.
         </p>

@@ -9,3 +9,4 @@ export * from "./subscriptions";
 export * from "./jobAlerts";
 export * from "./jobPreferences";
 export * from "./workAreas";
+export * from "./auditLogs";

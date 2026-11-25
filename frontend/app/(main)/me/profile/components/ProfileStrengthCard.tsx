@@ -27,7 +27,7 @@ export default function ProfileStrengthCard({
               Profile Strength: {label}
             </h3>
             <p className="text-secondary-foreground text-sm">
-              Your profile is {percentage}% complete
+              {percentage}% of suggested profile details completed
             </p>
           </div>
           <Badge className="text-primary-foreground bg-ring">
@@ -42,7 +42,7 @@ export default function ProfileStrengthCard({
         </div>
         {showMissing ? (
           <div className="text-secondary-foreground text-xs">
-            <p className="mb-2">To reach 100%, finish these:</p>
+            <p className="mb-2">To reach 100%, consider these steps:</p>
             <ul className="list-disc space-y-1 pl-5">
               {missing.map((item) => (
                 <li key={item.id}>
@@ -55,6 +55,11 @@ export default function ProfileStrengthCard({
                 </li>
               ))}
             </ul>
+            {missing.some((item) => item.id === "resume") && (
+              <p className="mt-2">
+                A resume is optional. You can have a strong profile without one.
+              </p>
+            )}
           </div>
         ) : percentage === 100 ? (
           <p className="text-secondary-foreground text-xs">

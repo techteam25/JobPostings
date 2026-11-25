@@ -21,7 +21,10 @@ describe("applicationFormSlice", () => {
   beforeEach(() => {
     useApplicationStore.setState({
       step: 1,
-      formData: { ...initialFormData, customAnswers: { ...initialFormData.customAnswers } },
+      formData: {
+        ...initialFormData,
+        customAnswers: { ...initialFormData.customAnswers },
+      },
     });
   });
 
@@ -61,9 +64,12 @@ describe("applicationFormSlice", () => {
   });
 
   it("initializes form with profile data", () => {
-    useApplicationStore
-      .getState()
-      .initializeForm({ country: "US", city: "NYC", state: "NY", zipcode: "10001" });
+    useApplicationStore.getState().initializeForm({
+      country: "US",
+      city: "NYC",
+      state: "NY",
+      zipcode: "10001",
+    });
 
     const { formData } = useApplicationStore.getState();
     expect(formData.country).toBe("US");
@@ -74,7 +80,9 @@ describe("applicationFormSlice", () => {
   });
 
   it("initializes form with null values as empty strings", () => {
-    useApplicationStore.getState().initializeForm({ country: null, city: null });
+    useApplicationStore
+      .getState()
+      .initializeForm({ country: null, city: null });
 
     const { formData } = useApplicationStore.getState();
     expect(formData.country).toBe("");

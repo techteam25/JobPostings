@@ -3,6 +3,7 @@ import {
   updateUserProfileSchema,
   stripHtmlTags,
 } from "@/validations/userProfile.validation";
+import { createUserPayloadSchema } from "@/validations/user.validation";
 
 describe("updateUserProfileSchema", () => {
   const validBase = {
@@ -57,6 +58,18 @@ describe("updateUserProfileSchema", () => {
     it("should accept omitted phoneNumber (optional)", () => {
       const result = updateUserProfileSchema.safeParse(validBase);
       expect(result.success).toBe(true);
+    });
+
+    it("normalizes a Nigerian local number using the selected country", () => {
+      const result = updateUserProfileSchema.safeParse({
+        ...validBase,
+        country: "Nigeria",
+        phoneNumber: "0801 234 5678",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.phoneNumber).toBe("+2348012345678");
+      }
     });
   });
 
@@ -119,6 +132,24 @@ describe("updateUserProfileSchema", () => {
       const result = updateUserProfileSchema.safeParse(validBase);
       expect(result.success).toBe(true);
     });
+
+    it("allows a phone-only edit when the editor sends an empty paragraph", () => {
+      const result = updateUserProfileSchema.safeParse({
+        ...validBase,
+        bio: "<p></p>",
+        phoneNumber: "+2348012345678",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.bio).toBe("");
+    });
+
+    it("counts decoded entities as visible characters", () => {
+      const result = updateUserProfileSchema.safeParse({
+        ...validBase,
+        bio: `<p>${"a".repeat(999)}&amp;</p>`,
+      });
+      expect(result.success).toBe(true);
+    });
   });
 
   // ─── fullName Validation ─────────────────────────────────────────────
@@ -178,5 +209,44 @@ describe("updateUserProfileSchema", () => {
     it("should return plain text unchanged", () => {
       expect(stripHtmlTags("Plain text")).toBe("Plain text");
     });
+
+    it("decodes HTML entities and separates paragraphs", () => {
+      expect(stripHtmlTags("<p>Tom &amp; Jane</p><p>Next</p>")).toBe(
+        "Tom & Jane Next",
+      );
+    });
+  });
+
+  it("does not pass worker-owned storage fields into profile updates", () => {
+    const result = updateUserProfileSchema.safeParse({
+      ...validBase,
+      resumeUrl: "https://example.com/forged.pdf",
+      fileMetadata: [],
+      profilePicture: "https://example.com/forged.png",
+      phoneNumber: "+2348012345678",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty("resumeUrl");
+      expect(result.data).not.toHaveProperty("fileMetadata");
+      expect(result.data).not.toHaveProperty("profilePicture");
+    }
+  });
+
+  it("does not pass storage fields into profile creation", () => {
+    const result = createUserPayloadSchema.safeParse({
+      body: {
+        bio: "A valid profile biography",
+        resumeUrl: "https://example.com/forged.pdf",
+        fileMetadata: [],
+        profilePicture: "https://example.com/forged.png",
+      },
+      params: {},
+      query: {},
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.body).toEqual({ bio: "A valid profile biography" });
+    }
   });
 });

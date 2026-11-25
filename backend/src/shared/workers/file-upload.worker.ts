@@ -24,7 +24,7 @@ interface FileUploadWorkerDeps {
   fileMetadataUpdate: FileMetadataUpdatePort;
 }
 
-function createFileUploadHandler(deps: FileUploadWorkerDeps) {
+export function createFileUploadHandler(deps: FileUploadWorkerDeps) {
   return async function processFileUploadJob(
     job: BullMqJob<FileUploadJobData>,
   ) {
@@ -43,6 +43,7 @@ function createFileUploadHandler(deps: FileUploadWorkerDeps) {
     );
 
     const tempPaths = tempFiles.map((f) => f.tempPath);
+    let completed = false;
 
     try {
       await job.updateProgress(0);
@@ -64,6 +65,12 @@ function createFileUploadHandler(deps: FileUploadWorkerDeps) {
           await job.updateProgress(progress);
         },
       );
+
+      // A single-file profile upload can fail without uploadFiles throwing.
+      // Retry it through BullMQ while the temp file is still available.
+      if (result.failureCount > 0 && result.successCount === 0) {
+        throw new Error("File upload failed");
+      }
 
       fileUploadTotal.add(result.successCount, {
         category: folder,
@@ -114,6 +121,7 @@ function createFileUploadHandler(deps: FileUploadWorkerDeps) {
         "File upload job completed",
       );
 
+      completed = true;
       return {
         urls: result.urls,
         successCount: result.successCount,
@@ -135,8 +143,23 @@ function createFileUploadHandler(deps: FileUploadWorkerDeps) {
       );
       throw error;
     } finally {
-      await firebaseUploadService.cleanupTempFiles(tempPaths);
-      logger.debug({ correlationId }, "Temp files cleaned up");
+      const attempts = Math.max(1, job.opts.attempts ?? 1);
+      if (completed || job.attemptsMade + 1 >= attempts) {
+        try {
+          await firebaseUploadService.cleanupTempFiles(tempPaths);
+          logger.debug({ correlationId }, "Temp files cleaned up");
+        } catch (cleanupError) {
+          logger.error(
+            { correlationId, error: cleanupError },
+            "Unable to clean up upload temp files",
+          );
+        }
+      } else {
+        logger.debug(
+          { correlationId, attemptsMade: job.attemptsMade + 1, attempts },
+          "Retaining temp files for upload retry",
+        );
+      }
     }
   };
 }

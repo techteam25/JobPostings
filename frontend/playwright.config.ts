@@ -15,7 +15,14 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
+      },
+    },
+    {
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
     },
     {
       name: "webkit",
@@ -23,7 +30,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "/opt/homebrew/bin/bun dev",
+    command: "bun run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

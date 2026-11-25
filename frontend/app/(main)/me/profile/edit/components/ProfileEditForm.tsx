@@ -7,10 +7,11 @@ import states from "states-us";
 import { toast } from "sonner";
 import { Loader2, Pencil, FileText, Upload } from "lucide-react";
 
-import { isPossiblePhoneNumber } from "libphonenumber-js";
-
-import type { UserWithProfile } from "@/lib/types";
-import { profileEditSchema } from "../schemas/profile-edit.schema";
+import { ApiError, type UserWithProfile } from "@/lib/types";
+import {
+  isProfilePhonePossible,
+  profileEditSchema,
+} from "../schemas/profile-edit.schema";
 import { useUpdateProfile } from "../hooks/use-update-profile";
 import { useUploadProfilePicture } from "../hooks/use-upload-profile-picture";
 import { useUploadResume } from "../hooks/use-upload-resume";
@@ -66,11 +67,26 @@ const ALLOWED_RESUME_TYPES = [
 export default function ProfileEditForm({ user }: ProfileEditFormProps) {
   const profile = user.profile;
   const { mutateAsync: updateProfile, isPending } = useUpdateProfile();
-  const { mutateAsync: uploadPicture, isPending: isUploading } =
-    useUploadProfilePicture();
-  const { mutateAsync: uploadResume, isPending: isUploadingResume } =
-    useUploadResume();
+  const {
+    mutateAsync: uploadPicture,
+    isPending: isUploading,
+    isProcessing: isProcessingPicture,
+    processingStatus: pictureStatus,
+    statusError: pictureStatusError,
+    retryStatus: retryPictureStatus,
+    previewUrl,
+  } = useUploadProfilePicture();
+  const {
+    mutateAsync: uploadResume,
+    isPending: isUploadingResume,
+    isProcessing: isProcessingResume,
+    processingStatus: resumeStatus,
+    statusError: resumeStatusError,
+    retryStatus: retryResumeStatus,
+    pendingFilename,
+  } = useUploadResume();
   const [bioCharCount, setBioCharCount] = useState(0);
+  const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,18 +102,35 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
     ? freshProfile.data.profile?.profilePicture
     : undefined;
   const avatarSrc =
-    freshProfilePicture || profile?.profilePicture || user.image || undefined;
+    previewUrl ||
+    freshProfilePicture ||
+    profile?.profilePicture ||
+    user.image ||
+    undefined;
+
+  const clearServerError = (field: string) => {
+    setServerErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  };
 
   const handleProfilePictureUpload = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      toast.error("Please upload a PNG or JPEG image");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size === 0 || file.size > 5 * 1024 * 1024) {
       toast.error("Image must be under 5MB");
       return;
     }
-    await uploadPicture(file);
+    try {
+      await uploadPicture(file);
+    } catch {
+      // The mutation displays the server error.
+    }
   };
 
   const handleResumeUpload = useCallback(
@@ -106,11 +139,15 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
         toast.error("Please upload a PDF or Word document");
         return;
       }
-      if (file.size > 10 * 1024 * 1024) {
+      if (file.size === 0 || file.size > 10 * 1024 * 1024) {
         toast.error("File must be under 10 MB");
         return;
       }
-      await uploadResume(file);
+      try {
+        await uploadResume(file);
+      } catch {
+        // The mutation displays the server error.
+      }
     },
     [uploadResume],
   );
@@ -140,13 +177,39 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
       const result = profileEditSchema.safeParse(value);
 
       if (!result.success) {
+        setServerErrors(
+          Object.fromEntries(
+            result.error.issues.map((issue) => [
+              String(issue.path[0]),
+              issue.message,
+            ]),
+          ),
+        );
         toast.error(
           result.error.issues[0]?.message || "Please check your form inputs",
         );
         return;
       }
 
-      await updateProfile(result.data);
+      setServerErrors({});
+      try {
+        await updateProfile(result.data);
+      } catch (error) {
+        if (error instanceof ApiError && error.details?.length) {
+          const fields = Object.fromEntries(
+            error.details.map((detail) => [
+              detail.field.replace(/^body\./, ""),
+              detail.message,
+            ]),
+          );
+          setServerErrors(fields);
+          toast.error(error.details[0]?.message || error.message);
+        } else {
+          toast.error(
+            error instanceof Error ? error.message : "Failed to save profile",
+          );
+        }
+      }
     },
   });
 
@@ -175,7 +238,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
           </Avatar>
 
           {/* Loading overlay */}
-          {isUploading && (
+          {(isUploading || isProcessingPicture) && (
             <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
               <Loader2 className="size-6 animate-spin text-white" />
             </div>
@@ -187,7 +250,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             variant="default"
             size="icon"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
+            disabled={isUploading || isProcessingPicture}
             className="border-background absolute -right-1 -bottom-1 size-8 rounded-full border-2 shadow-sm"
             aria-label="Change profile picture"
           >
@@ -208,8 +271,22 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
           />
         </div>
         <p className="text-muted-foreground text-xs">
-          PNG, JPG or JPEG, max 5MB
+          {isProcessingPicture
+            ? pictureStatus === "processing"
+              ? "Processing your picture..."
+              : "Picture queued for processing..."
+            : "PNG, JPG or JPEG, max 5MB"}
         </p>
+        {pictureStatusError && isProcessingPicture && (
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            onClick={() => void retryPictureStatus()}
+          >
+            Could not check upload status. Retry
+          </Button>
+        )}
       </div>
 
       {/* Display Name */}
@@ -229,15 +306,18 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             const isInvalid =
               field.state.meta.isTouched && !field.state.meta.isValid;
             return (
-              <Field data-invalid={isInvalid}>
+              <Field data-invalid={isInvalid || Boolean(serverErrors.fullName)}>
                 <FieldLabel htmlFor={field.name}>Display Name *</FieldLabel>
                 <Input
                   id={field.name}
                   name={field.name}
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  aria-invalid={isInvalid}
+                  onChange={(e) => {
+                    clearServerError("fullName");
+                    field.handleChange(e.target.value);
+                  }}
+                  aria-invalid={isInvalid || Boolean(serverErrors.fullName)}
                   placeholder="Your full name"
                   autoComplete="name"
                 />
@@ -247,6 +327,9 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
                       typeof error === "string" ? { message: error } : error,
                     )}
                   />
+                )}
+                {serverErrors.fullName && (
+                  <FieldError errors={[{ message: serverErrors.fullName }]} />
                 )}
               </Field>
             );
@@ -267,7 +350,10 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
                 <FieldLabel htmlFor={field.name}>Bio</FieldLabel>
                 <DynamicRichTextEditor
                   defaultValue={field.state.value}
-                  onChange={(value) => field.handleChange(value)}
+                  onChange={(value) => {
+                    clearServerError("bio");
+                    field.handleChange(value);
+                  }}
                   onBlur={field.handleBlur}
                   onCharacterCount={setBioCharCount}
                   characterLimit={BIO_MAX}
@@ -296,6 +382,9 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
                     {bioCharCount} / {BIO_MAX}
                   </p>
                 </div>
+                {serverErrors.bio && (
+                  <FieldError errors={[{ message: serverErrors.bio }]} />
+                )}
               </Field>
             );
           }}
@@ -311,7 +400,18 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
               <FileText className="size-5 text-blue-600" />
             </div>
             <div>
-              {currentResumeUrl && resumeMetadata ? (
+              {pendingFilename ? (
+                <>
+                  <p className="text-foreground text-sm font-medium">
+                    {pendingFilename}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {resumeStatus === "processing"
+                      ? "Processing upload..."
+                      : "Upload queued..."}
+                  </p>
+                </>
+              ) : currentResumeUrl && resumeMetadata ? (
                 <>
                   <p className="text-foreground text-sm font-medium">
                     {resumeMetadata.filename}
@@ -332,14 +432,18 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             variant="outline"
             size="sm"
             onClick={() => resumeInputRef.current?.click()}
-            disabled={isUploadingResume}
+            disabled={isUploadingResume || isProcessingResume}
           >
-            {isUploadingResume ? (
+            {isUploadingResume || isProcessingResume ? (
               <Loader2 className="mr-2 size-4 animate-spin" />
             ) : (
               <Upload className="mr-2 size-4" />
             )}
-            {currentResumeUrl ? "Replace" : "Upload"}
+            {isProcessingResume
+              ? "Processing"
+              : currentResumeUrl
+                ? "Replace"
+                : "Upload"}
           </Button>
           <input
             ref={resumeInputRef}
@@ -356,6 +460,16 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
         <p className="text-muted-foreground text-xs">
           PDF, DOC or DOCX, max 10 MB
         </p>
+        {resumeStatusError && isProcessingResume && (
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            onClick={() => void retryResumeStatus()}
+          >
+            Could not check upload status. Retry
+          </Button>
+        )}
       </div>
 
       <Separator />
@@ -369,7 +483,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             validators={{
               onBlur: ({ value }) => {
                 if (!value) return undefined;
-                if (!isPossiblePhoneNumber(value, "US"))
+                if (!isProfilePhonePossible(value, country))
                   return "Invalid phone number";
                 return undefined;
               },
@@ -378,16 +492,25 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
               const isInvalid =
                 field.state.meta.isTouched && !field.state.meta.isValid;
               return (
-                <Field data-invalid={isInvalid}>
+                <Field
+                  data-invalid={isInvalid || Boolean(serverErrors.phoneNumber)}
+                >
                   <FieldLabel htmlFor={field.name}>Phone Number</FieldLabel>
                   <Input
                     id={field.name}
                     name={field.name}
                     value={field.state.value}
                     onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    aria-invalid={isInvalid}
-                    placeholder="(123) 456-7890"
+                    onChange={(e) => {
+                      clearServerError("phoneNumber");
+                      field.handleChange(e.target.value);
+                    }}
+                    aria-invalid={
+                      isInvalid || Boolean(serverErrors.phoneNumber)
+                    }
+                    placeholder={
+                      isUS ? "(123) 456-7890" : "Include country code if needed"
+                    }
                     autoComplete="tel"
                   />
                   {isInvalid && field.state.meta.errors.length > 0 && (
@@ -395,6 +518,11 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
                       errors={field.state.meta.errors.map((error) =>
                         typeof error === "string" ? { message: error } : error,
                       )}
+                    />
+                  )}
+                  {serverErrors.phoneNumber && (
+                    <FieldError
+                      errors={[{ message: serverErrors.phoneNumber }]}
                     />
                   )}
                 </Field>
@@ -408,17 +536,23 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
           <form.Field
             name="city"
             children={(field) => (
-              <Field>
+              <Field data-invalid={Boolean(serverErrors.city)}>
                 <FieldLabel htmlFor={field.name}>City</FieldLabel>
                 <Input
                   id={field.name}
                   name={field.name}
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(e) => {
+                    clearServerError("city");
+                    field.handleChange(e.target.value);
+                  }}
                   placeholder="Your city"
                   autoComplete="address-level2"
                 />
+                {serverErrors.city && (
+                  <FieldError errors={[{ message: serverErrors.city }]} />
+                )}
               </Field>
             )}
           />
@@ -429,12 +563,13 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
           <form.Field
             name="country"
             children={(field) => (
-              <Field>
+              <Field data-invalid={Boolean(serverErrors.country)}>
                 <FieldLabel htmlFor={field.name}>Country</FieldLabel>
                 <Select
                   name={field.name}
                   value={field.state.value}
                   onValueChange={(value: string) => {
+                    clearServerError("country");
                     field.handleChange(value);
                     // Clear state when switching away from US
                     if (value !== "United States") {
@@ -459,6 +594,9 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
+                {serverErrors.country && (
+                  <FieldError errors={[{ message: serverErrors.country }]} />
+                )}
               </Field>
             )}
           />
@@ -469,12 +607,18 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
           <form.Field
             name="state"
             children={(field) => (
-              <Field data-disabled={!isUS}>
+              <Field
+                data-disabled={!isUS}
+                data-invalid={Boolean(serverErrors.state)}
+              >
                 <FieldLabel htmlFor={field.name}>State</FieldLabel>
                 <Select
                   name={field.name}
                   value={field.state.value}
-                  onValueChange={field.handleChange}
+                  onValueChange={(value) => {
+                    clearServerError("state");
+                    field.handleChange(value);
+                  }}
                   disabled={!isUS}
                 >
                   <SelectTrigger id="form-select-state">
@@ -492,6 +636,9 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
+                {serverErrors.state && (
+                  <FieldError errors={[{ message: serverErrors.state }]} />
+                )}
               </Field>
             )}
           />
@@ -510,16 +657,23 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
               const isInvalid =
                 field.state.meta.isTouched && !field.state.meta.isValid;
               return (
-                <Field data-invalid={isInvalid}>
+                <Field
+                  data-invalid={isInvalid || Boolean(serverErrors.linkedinUrl)}
+                >
                   <FieldLabel htmlFor={field.name}>LinkedIn URL</FieldLabel>
                   <UrlInput
                     id={field.name}
                     name={field.name}
                     value={field.state.value ?? ""}
                     onBlur={field.handleBlur}
-                    onChange={(value) => field.handleChange(value)}
+                    onChange={(value) => {
+                      clearServerError("linkedinUrl");
+                      field.handleChange(value);
+                    }}
                     invalid={isInvalid}
-                    aria-invalid={isInvalid}
+                    aria-invalid={
+                      isInvalid || Boolean(serverErrors.linkedinUrl)
+                    }
                     placeholder="linkedin.com/in/yourprofile"
                     autoComplete="url"
                   />
@@ -528,6 +682,11 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
                       errors={field.state.meta.errors.map((error) =>
                         typeof error === "string" ? { message: error } : error,
                       )}
+                    />
+                  )}
+                  {serverErrors.linkedinUrl && (
+                    <FieldError
+                      errors={[{ message: serverErrors.linkedinUrl }]}
                     />
                   )}
                 </Field>
@@ -544,16 +703,23 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
               const isInvalid =
                 field.state.meta.isTouched && !field.state.meta.isValid;
               return (
-                <Field data-invalid={isInvalid}>
+                <Field
+                  data-invalid={isInvalid || Boolean(serverErrors.portfolioUrl)}
+                >
                   <FieldLabel htmlFor={field.name}>Portfolio URL</FieldLabel>
                   <UrlInput
                     id={field.name}
                     name={field.name}
                     value={field.state.value ?? ""}
                     onBlur={field.handleBlur}
-                    onChange={(value) => field.handleChange(value)}
+                    onChange={(value) => {
+                      clearServerError("portfolioUrl");
+                      field.handleChange(value);
+                    }}
                     invalid={isInvalid}
-                    aria-invalid={isInvalid}
+                    aria-invalid={
+                      isInvalid || Boolean(serverErrors.portfolioUrl)
+                    }
                     placeholder="yourportfolio.com"
                     autoComplete="url"
                   />
@@ -562,6 +728,11 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
                       errors={field.state.meta.errors.map((error) =>
                         typeof error === "string" ? { message: error } : error,
                       )}
+                    />
+                  )}
+                  {serverErrors.portfolioUrl && (
+                    <FieldError
+                      errors={[{ message: serverErrors.portfolioUrl }]}
                     />
                   )}
                 </Field>

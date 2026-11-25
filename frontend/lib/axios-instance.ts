@@ -17,13 +17,19 @@ instance.interceptors.response.use(
       window.location.href = "/sign-in";
     }
 
+    const data = error.response?.data;
     const message =
-      error.response?.data?.message ||
+      data?.message ||
+      data?.error?.message ||
       error.message ||
       "An unexpected error occurred";
     const statusCode = error.response?.status || 500;
-    const errorCode = error.response?.data?.errorCode || "UNKNOWN_ERROR";
+    const errorCode = data?.errorCode || data?.error?.code || "UNKNOWN_ERROR";
+    const rawDetails = data?.error?.details ?? data?.details;
+    const details = Array.isArray(rawDetails) ? rawDetails : undefined;
 
-    return Promise.reject(new ApiError(statusCode, message, errorCode));
+    return Promise.reject(
+      new ApiError(statusCode, message, errorCode, details),
+    );
   },
 );

@@ -6,6 +6,7 @@
 .idea
 .vscode
 .claude
+node_modules/
 
 # macOS
 .DS_Store
@@ -25,6 +26,10 @@ secrets/
 
 # architecture docs
 docs/
+!backend/docs/
+backend/docs/*
+!backend/docs/db-repair/
+!backend/docs/db-repair/**
 
 # Private directories (secrets/keys) anywhere in the project — never commit
 **/_private/

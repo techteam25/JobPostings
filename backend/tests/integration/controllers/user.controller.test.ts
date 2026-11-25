@@ -378,7 +378,7 @@ describe("User Controller Integration Tests", () => {
         expect(response.body).toHaveProperty("success", true);
         expect(response.body.data.profile).toHaveProperty(
           "phoneNumber",
-          "+1 (123) 456 7890",
+          "+11234567890",
         );
       });
 
@@ -880,8 +880,6 @@ describe("User Controller Integration Tests", () => {
             )
             .set("Cookie", cookie!);
 
-          console.log(JSON.stringify(response.body, null, 2));
-
           TestHelpers.validateApiResponse(response, 200);
 
           expect(response.body).toHaveProperty("success", true);
@@ -1063,13 +1061,6 @@ describe("User Controller Integration Tests", () => {
         });
 
         it("should return 404 if preferences not found", async () => {
-          const preferencesSpy = vi
-            .spyOn(
-              NotificationsRepository.prototype,
-              "findEmailPreferencesByUserId",
-            )
-            .mockResolvedValueOnce(undefined);
-
           const loginResponse = await request
             .post("/api/auth/sign-in/email")
             .send({
@@ -1080,6 +1071,13 @@ describe("User Controller Integration Tests", () => {
           const cookie = loginResponse.headers["set-cookie"]
             ? loginResponse.headers["set-cookie"][0]
             : "";
+
+          const preferencesSpy = vi
+            .spyOn(
+              NotificationsRepository.prototype,
+              "findEmailPreferencesByUserId",
+            )
+            .mockResolvedValue(undefined);
 
           const response = await request
             .post("/api/users/me/email-preferences/resubscribe")

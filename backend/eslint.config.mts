@@ -60,7 +60,11 @@ export default defineConfig([
               from: { type: "module" },
               allow: {
                 to: [
-                  { type: "module" },
+                  {
+                    type: "module",
+                    captured: { moduleName: "{{ from.moduleName }}" },
+                  },
+                  { type: "module", internalPath: "index.ts" },
                   { type: "shared" },
                   { type: "validation" },
                   { type: "db" },
@@ -82,7 +86,7 @@ export default defineConfig([
               from: { type: "adapter" },
               allow: {
                 to: [
-                  { type: "module" },
+                  { type: "module", internalPath: "index.ts" },
                   { type: "shared" },
                   { type: "validation" },
                   { type: "db" },
@@ -94,7 +98,7 @@ export default defineConfig([
               from: { type: "worker" },
               allow: {
                 to: [
-                  { type: "module" },
+                  { type: "module", internalPath: "index.ts" },
                   { type: "shared" },
                   { type: "validation" },
                   { type: "db" },
@@ -165,7 +169,7 @@ export default defineConfig([
                 to: [
                   { type: "shared" },
                   { type: "db" },
-                  { type: "module" },
+                  { type: "module", internalPath: "index.ts" },
                   { type: "validation" },
                 ],
               },
@@ -175,7 +179,7 @@ export default defineConfig([
               from: { type: "app" },
               allow: {
                 to: [
-                  { type: "module" },
+                  { type: "module", internalPath: "index.ts" },
                   { type: "shared" },
                   { type: "validation" },
                   { type: "adapter" },
@@ -186,33 +190,6 @@ export default defineConfig([
                   { type: "utils" },
                 ],
               },
-            },
-          ],
-        },
-      ],
-      // ─── Entry point: modules importable only via index.ts ─────────
-      "boundaries/entry-point": [
-        "error",
-        {
-          default: "disallow",
-          rules: [
-            {
-              target: [{ type: "module" }],
-              allow: ["index.ts"],
-            },
-            {
-              target: [
-                { type: "shared" },
-                { type: "adapter" },
-                { type: "worker" },
-                { type: "validation" },
-                { type: "middleware" },
-                { type: "db" },
-                { type: "swagger" },
-                { type: "utils" },
-                { type: "app" },
-              ],
-              allow: ["**/*"],
             },
           ],
         },

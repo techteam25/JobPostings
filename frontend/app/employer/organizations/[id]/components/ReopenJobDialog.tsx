@@ -66,8 +66,8 @@ export function ReopenJobDialog({
           <DialogTitle>Reopen job listing</DialogTitle>
           <DialogDescription>
             Choose a new application deadline for &ldquo;{job.title}&rdquo;.
-            Reopening without a future deadline would leave the listing closed to
-            applicants.
+            Reopening without a future deadline would leave the listing closed
+            to applicants.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -24,7 +24,7 @@ const FilterOptionsCard = () => (
       <CardContent>
         {/* Salary Range */}
         <FieldSet className="mb-6">
-          <FieldLegend className="mb-4 flex w-full items-center justify-between font-semibold text-card-foreground">
+          <FieldLegend className="text-card-foreground mb-4 flex w-full items-center justify-between font-semibold">
             Salary Range
             <ChevronDown className="text-secondary-foreground size-5" />
           </FieldLegend>
@@ -36,7 +36,7 @@ const FilterOptionsCard = () => (
               <RadioGroupItem value="under-1000" id="salary-under-1000" />
               <FieldLabel
                 htmlFor="salary-under-1000"
-                className="font-normal text-secondary-foreground"
+                className="text-secondary-foreground font-normal"
               >
                 Under $1,000
               </FieldLabel>
@@ -45,7 +45,7 @@ const FilterOptionsCard = () => (
               <RadioGroupItem value="1000-5000" id="salary-1000-5000" />
               <FieldLabel
                 htmlFor="salary-1000-5000"
-                className="font-normal text-secondary-foreground"
+                className="text-secondary-foreground font-normal"
               >
                 $1,000 - $5,000
               </FieldLabel>
@@ -54,7 +54,7 @@ const FilterOptionsCard = () => (
               <RadioGroupItem value="5000-10000" id="salary-5000-10000" />
               <FieldLabel
                 htmlFor="salary-5000-10000"
-                className="font-normal text-secondary-foreground"
+                className="text-secondary-foreground font-normal"
               >
                 $5,000 - $10,000
               </FieldLabel>
@@ -63,7 +63,7 @@ const FilterOptionsCard = () => (
               <RadioGroupItem value="custom" id="salary-custom" />
               <FieldLabel
                 htmlFor="salary-custom"
-                className="font-normal text-secondary-foreground"
+                className="text-secondary-foreground font-normal"
               >
                 Custom
               </FieldLabel>
@@ -88,7 +88,7 @@ const FilterOptionsCard = () => (
 
         {/* Job Type */}
         <FieldSet>
-          <FieldLegend className="mb-4 flex w-full items-center justify-between font-semibold text-card-foreground">
+          <FieldLegend className="text-card-foreground mb-4 flex w-full items-center justify-between font-semibold">
             Job Type
             <ChevronDown className="text-secondary-foreground size-5" />
           </FieldLegend>

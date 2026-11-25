@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@/test/test-utils";
 import userEvent from "@testing-library/user-event";
 import RegistrationForm from "../registration-form";
+import { ApiError } from "@/lib/types";
 
 const mockPost = vi.fn();
 const mockHandleSocialAuth = vi.fn();
@@ -62,7 +63,7 @@ describe("RegistrationForm", () => {
       screen.getByRole("button", { name: /job seeker/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /employer/i }),
+      screen.getByRole("button", { name: /hiring manager/i }),
     ).toBeInTheDocument();
   });
 
@@ -81,10 +82,29 @@ describe("RegistrationForm", () => {
 
   it("renders terms checkbox and register button", () => {
     render(<RegistrationForm />);
-    expect(screen.getByText(/terms & conditions/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /terms & conditions/i }),
+    ).toHaveAttribute("href", "/terms");
+    expect(
+      screen.getByRole("link", { name: /privacy policy/i }),
+    ).toHaveAttribute("href", "/privacy");
     expect(
       screen.getByRole("button", { name: /register/i }),
     ).toBeInTheDocument();
+  });
+
+  it("opens legal documents without changing consent", async () => {
+    const user = userEvent.setup();
+    render(<RegistrationForm />);
+    const checkbox = screen.getByRole("checkbox");
+    const terms = screen.getByRole("link", { name: /terms & conditions/i });
+    const privacy = screen.getByRole("link", { name: /privacy policy/i });
+
+    expect(terms).toHaveAttribute("target", "_blank");
+    expect(privacy).toHaveAttribute("target", "_blank");
+    await user.click(terms);
+    await user.click(privacy);
+    expect(checkbox).not.toBeChecked();
   });
 
   it("renders social auth buttons in register mode", () => {
@@ -136,11 +156,25 @@ describe("RegistrationForm", () => {
     });
   });
 
+  it("waits until email loses focus before showing an invalid-email message", async () => {
+    const user = userEvent.setup();
+    render(<RegistrationForm />);
+
+    const email = screen.getByLabelText(/email address/i);
+    await user.type(email, "jo");
+    expect(
+      screen.queryByText(/invalid email address/i),
+    ).not.toBeInTheDocument();
+
+    await user.tab();
+    expect(screen.getByText(/invalid email address/i)).toBeInTheDocument();
+  });
+
   it("submits form successfully and redirects to verify-email", async () => {
     const user = userEvent.setup();
     mockPost.mockResolvedValue({
       status: 200,
-      data: { user: { intent: "seeker" } },
+      data: { token: null, user: { intent: "seeker" } },
     });
 
     render(<RegistrationForm />);
@@ -177,16 +211,34 @@ describe("RegistrationForm", () => {
     });
   });
 
+  it("routes an authenticated signup through post-login", async () => {
+    const user = userEvent.setup();
+    mockPost.mockResolvedValue({
+      status: 200,
+      data: { token: "session-token" },
+    });
+
+    render(<RegistrationForm />);
+    await user.type(screen.getByLabelText(/first name/i), "John");
+    await user.type(screen.getByLabelText(/last name/i), "Doe");
+    await user.type(
+      screen.getByLabelText(/email address/i),
+      "john@example.com",
+    );
+    await user.type(screen.getByLabelText(/^password$/i), "password123");
+    await user.type(screen.getByLabelText(/confirm password/i), "password123");
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: /register/i }));
+
+    await waitFor(() => expect(window.location.href).toBe("/post-login"));
+  });
+
   it("shows error toast on failed registration", async () => {
     const { toast } = await import("sonner");
     const user = userEvent.setup();
-    const axiosError = new Error("Request failed") as Error & {
-      isAxiosError: boolean;
-      response: { data: { message: string } };
-    };
-    axiosError.isAxiosError = true;
-    axiosError.response = { data: { message: "Email already exists" } };
-    mockPost.mockRejectedValue(axiosError);
+    mockPost.mockRejectedValue(
+      new ApiError(400, "Email already exists", "USER_ALREADY_EXISTS"),
+    );
 
     render(<RegistrationForm />);
 
@@ -214,14 +266,15 @@ describe("RegistrationForm", () => {
     render(<RegistrationForm />);
 
     await user.click(screen.getByRole("button", { name: /google/i }));
-    expect(mockHandleSocialAuth).toHaveBeenCalledWith("google");
+    expect(mockHandleSocialAuth).toHaveBeenCalledWith("google", "seeker");
   });
 
-  it("calls handleSocialAuth with linkedin", async () => {
+  it("passes the selected employer intent to social signup", async () => {
     const user = userEvent.setup();
     render(<RegistrationForm />);
 
+    await user.click(screen.getByRole("button", { name: /hiring manager/i }));
     await user.click(screen.getByRole("button", { name: /linkedin/i }));
-    expect(mockHandleSocialAuth).toHaveBeenCalledWith("linkedin");
+    expect(mockHandleSocialAuth).toHaveBeenCalledWith("linkedin", "employer");
   });
 });

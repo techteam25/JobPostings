@@ -23,6 +23,7 @@ import { WorkArrangementDialog } from "./WorkArrangementDialog";
 import { CommuteTimeDialog } from "./CommuteTimeDialog";
 import { RelocationDialog } from "./RelocationDialog";
 import { WorkAreasDialog } from "./WorkAreasDialog";
+import { orderWorkScheduleDays } from "./work-schedule-order";
 
 interface PreferenceSectionsProps {
   preferences: JobPreference | null;
@@ -79,7 +80,9 @@ export function PreferenceSections({
   const jobTypes = preferences?.jobTypes ?? [];
   const compensationTypes = preferences?.compensationTypes ?? [];
   const volunteerHours = preferences?.volunteerHoursPerWeek ?? null;
-  const workScheduleDays = preferences?.workScheduleDays ?? [];
+  const workScheduleDays = orderWorkScheduleDays(
+    preferences?.workScheduleDays ?? [],
+  );
   const scheduleTypes = preferences?.scheduleTypes ?? [];
   const workArrangements = preferences?.workArrangements ?? [];
   const commuteTime = preferences?.commuteTime ?? null;

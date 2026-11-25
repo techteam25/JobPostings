@@ -5,12 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldLegend,
+  FieldSet,
 } from "@/components/ui/field";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DatePicker } from "@/components/ui/date-picker";
 import { DynamicRichTextEditor } from "@/components/common/DynamicRichTextEditor";
+import {
+  getCompanyNameForKind,
+  getEmploymentKind,
+  type EmploymentKind,
+} from "./employment-kind";
 
 function getFieldError(field: AnyFieldApi): string | undefined {
   return field.state.meta.errors?.length
@@ -40,26 +49,68 @@ export function WorkExperienceFormFields({
   const startDateError = getFieldError(startDateField);
   const endDateError = getFieldError(endDateField);
   const isCurrent = currentField.state.value ?? false;
+  const employmentKind = getEmploymentKind(companyNameField.state.value ?? "");
+  const employmentKindOptions: { value: EmploymentKind; label: string }[] = [
+    { value: "organization", label: "Organization or client" },
+    { value: "self-employed", label: "Self-employed" },
+    { value: "independent-contractor", label: "Independent contractor" },
+  ];
 
   return (
     <FieldGroup>
-      <div className="grid grid-cols-2 gap-4">
-        <Field data-invalid={!!companyError || undefined}>
-          <FieldLabel htmlFor={`company-${companyNameField.name}`}>
-            Company Name *
-          </FieldLabel>
-          <Input
-            id={`company-${companyNameField.name}`}
-            aria-invalid={!!companyError || undefined}
-            value={companyNameField.state.value ?? ""}
-            onChange={(e) => companyNameField.handleChange(e.target.value)}
-            onBlur={companyNameField.handleBlur}
-            placeholder="e.g., Google"
-          />
-          {companyError && <FieldError>{companyError}</FieldError>}
-        </Field>
+      <FieldSet>
+        <FieldLegend variant="label">Type of work</FieldLegend>
+        <RadioGroup
+          value={employmentKind}
+          onValueChange={(value) =>
+            companyNameField.handleChange(
+              getCompanyNameForKind(value as EmploymentKind),
+            )
+          }
+          className="grid gap-3 sm:grid-cols-3"
+        >
+          {employmentKindOptions.map((option) => (
+            <Field key={option.value} orientation="horizontal">
+              <RadioGroupItem
+                id={`${companyNameField.name}-${option.value}`}
+                value={option.value}
+              />
+              <FieldLabel
+                htmlFor={`${companyNameField.name}-${option.value}`}
+                className="font-normal"
+              >
+                {option.label}
+              </FieldLabel>
+            </Field>
+          ))}
+        </RadioGroup>
+        <FieldDescription>
+          Choose self-employed or independent contractor if you did not work for
+          one organization. This label will appear on your profile.
+        </FieldDescription>
+      </FieldSet>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {employmentKind === "organization" && (
+          <Field data-invalid={!!companyError || undefined}>
+            <FieldLabel htmlFor={`company-${companyNameField.name}`}>
+              Organization or client name *
+            </FieldLabel>
+            <Input
+              id={`company-${companyNameField.name}`}
+              aria-invalid={!!companyError || undefined}
+              value={companyNameField.state.value ?? ""}
+              onChange={(e) => companyNameField.handleChange(e.target.value)}
+              onBlur={companyNameField.handleBlur}
+              placeholder="e.g., a company or client"
+            />
+            {companyError && <FieldError>{companyError}</FieldError>}
+          </Field>
+        )}
 
-        <Field data-invalid={!!jobTitleError || undefined}>
+        <Field
+          data-invalid={!!jobTitleError || undefined}
+          className={employmentKind !== "organization" ? "sm:col-span-2" : ""}
+        >
           <FieldLabel htmlFor={`title-${jobTitleField.name}`}>
             Job Title *
           </FieldLabel>

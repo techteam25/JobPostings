@@ -357,8 +357,19 @@ export type PaginationMeta = {
 
 export type ApiErrorResponse = {
   success: false;
+  message?: string;
+  errorCode?: string;
+  details?: ApiValidationDetail[] | string;
+  error?: {
+    code?: string;
+    message?: string;
+    details?: ApiValidationDetail[];
+  };
+};
+
+export type ApiValidationDetail = {
+  field: string;
   message: string;
-  errorCode: string;
 };
 
 export type ApiSuccessResponse<T> = {
@@ -381,6 +392,7 @@ export class ApiError extends Error {
     public readonly statusCode: number,
     message: string,
     public readonly errorCode = "UNKNOWN_ERROR",
+    public readonly details?: ReadonlyArray<ApiValidationDetail>,
   ) {
     super(message);
     this.name = "ApiError";

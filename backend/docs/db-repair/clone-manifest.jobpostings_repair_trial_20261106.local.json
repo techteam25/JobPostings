@@ -1,0 +1,329 @@
+{
+  "database": "jobpostings_repair_trial_20261106",
+  "baselineHash": "e9a14dca25e201b60315e934b4618562b6b7894a0c638c1b5663006a4f951de7",
+  "tables": {
+    "audit_logs": {
+      "columns": [
+        "id",
+        "user_id",
+        "user_email",
+        "action",
+        "severity",
+        "resource_type",
+        "resource_id",
+        "resource_identifier",
+        "ip_address",
+        "user_agent",
+        "session_id",
+        "old_values",
+        "new_values",
+        "metadata",
+        "description",
+        "success",
+        "error_message",
+        "error_stack",
+        "created_at"
+      ],
+      "rows": 59,
+      "checksum": "90908381cab431110b1aead22ac2b9c525e27cf7a27c5abeaa71e5f30f1a00dd"
+    },
+    "certifications": {
+      "columns": ["id", "certification_name"],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "user_certifications": {
+      "columns": ["user_id", "certification_id"],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "educations": {
+      "columns": [
+        "id",
+        "user_profile_id",
+        "school_name",
+        "program",
+        "major",
+        "graduated",
+        "start_date",
+        "end_date"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "users": {
+      "columns": [
+        "id",
+        "full_name",
+        "email",
+        "email_verified",
+        "image",
+        "created_at",
+        "updated_at",
+        "status",
+        "deleted_at",
+        "last_login_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "user_email_preferences": {
+      "columns": [
+        "id",
+        "user_id",
+        "job_alerts",
+        "application_status",
+        "saved_job_updates",
+        "weekly_job_digest",
+        "monthly_newsletter",
+        "marketing_emails",
+        "account_security_alerts",
+        "unsubscribe_token",
+        "token_created_at",
+        "unsubscribe_token_expires_at",
+        "global_unsubscribe",
+        "created_at",
+        "updated_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "user_onboarding": {
+      "columns": [
+        "id",
+        "user_id",
+        "intent",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "user_profile": {
+      "columns": [
+        "id",
+        "user_id",
+        "profile_picture",
+        "bio",
+        "resume_url",
+        "linkedin_url",
+        "portfolio_url",
+        "phone_number",
+        "address",
+        "city",
+        "state",
+        "zip_code",
+        "country",
+        "is_profile_public",
+        "is_available_for_work",
+        "file_metadata",
+        "created_at",
+        "updated_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "organization_members": {
+      "columns": [
+        "id",
+        "user_id",
+        "organization_id",
+        "role",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "organizations": {
+      "columns": [
+        "id",
+        "name",
+        "street_address",
+        "city",
+        "state",
+        "country",
+        "zip_code",
+        "phone",
+        "url",
+        "logo_url",
+        "mission",
+        "subscription_tier",
+        "subscription_status",
+        "subscription_start_date",
+        "subscription_end_date",
+        "job_posting_limit",
+        "status",
+        "file_metadata",
+        "created_at",
+        "updated_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "application_notes": {
+      "columns": [
+        "id",
+        "application_id",
+        "user_id",
+        "note",
+        "created_at",
+        "updated_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "job_applications": {
+      "columns": [
+        "id",
+        "job_id",
+        "applicant_id",
+        "status",
+        "cover_letter",
+        "resume_url",
+        "applied_at",
+        "reviewed_at",
+        "notes",
+        "file_metadata",
+        "created_at",
+        "updated_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "job_insights": {
+      "columns": [
+        "id",
+        "job_id",
+        "organization_id",
+        "view_count",
+        "application_count",
+        "created_at",
+        "updated_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "job_skills": {
+      "columns": [
+        "id",
+        "job_id",
+        "skill_id",
+        "isRequired",
+        "created_at",
+        "updated_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "job_details": {
+      "columns": [
+        "id",
+        "title",
+        "description",
+        "city",
+        "state",
+        "country",
+        "zipcode",
+        "job_type",
+        "compensation_type",
+        "is_remote",
+        "is_active",
+        "application_deadline",
+        "experience",
+        "employer_id",
+        "created_at",
+        "updated_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "saved_jobs": {
+      "columns": ["id", "user_id", "job_id", "created_at"],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "skills": {
+      "columns": ["id", "name", "created_at", "updated_at"],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "work_experiences": {
+      "columns": [
+        "id",
+        "user_profile_id",
+        "company_name",
+        "current",
+        "start_date",
+        "end_date"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "account": {
+      "columns": [
+        "id",
+        "account_id",
+        "provider_id",
+        "user_id",
+        "access_token",
+        "refresh_token",
+        "id_token",
+        "access_token_expires_at",
+        "refresh_token_expires_at",
+        "scope",
+        "password",
+        "created_at",
+        "updated_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "session": {
+      "columns": [
+        "id",
+        "expires_at",
+        "token",
+        "created_at",
+        "updated_at",
+        "ip_address",
+        "user_agent",
+        "user_id"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "verification": {
+      "columns": [
+        "id",
+        "identifier",
+        "value",
+        "expires_at",
+        "created_at",
+        "updated_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "subscriptions": {
+      "columns": [
+        "id",
+        "organization_id",
+        "provider_id",
+        "plan_type",
+        "status",
+        "current_period_start",
+        "current_period_end",
+        "cancel_at_period_end",
+        "amount",
+        "currency",
+        "created_at",
+        "updated_at"
+      ],
+      "rows": 0,
+      "checksum": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  }
+}

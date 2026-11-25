@@ -212,7 +212,6 @@ export class OrganizationsRepository
    * @returns The organization member with user details.
    */
   async findByContact(contactId: number, organizationId: number) {
-    console.log({ organizationId, contactId });
     return await withDbErrorHandling(async () => {
       const orgMember = await db.query.organizationMembers.findFirst({
         where: and(

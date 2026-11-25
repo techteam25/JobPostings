@@ -25,11 +25,20 @@ export function DatePicker({
   id,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [dialogContainer, setDialogContainer] =
+    React.useState<HTMLElement | null>(null);
+  // Keep the calendar in a modal dialog's focus scope, but outside its
+  // scrolling form viewport. Outside a dialog, the portal uses document.body.
+  const setTriggerContainer = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      setDialogContainer(node?.closest<HTMLElement>('[role="dialog"]') ?? null);
+    },
+    [],
+  );
 
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
-      <div ref={containerRef} className="relative">
+      <div ref={setTriggerContainer} className="relative">
         <PopoverPrimitive.Trigger asChild>
           <Button
             id={id}
@@ -45,12 +54,13 @@ export function DatePicker({
             {value ? format(value, "MMM d, yyyy") : placeholder}
           </Button>
         </PopoverPrimitive.Trigger>
-        <PopoverPrimitive.Portal container={containerRef.current}>
+        <PopoverPrimitive.Portal container={dialogContainer ?? undefined}>
           <PopoverPrimitive.Content
             align="start"
-            sideOffset={4}
+            sideOffset={6}
+            collisionPadding={12}
+            sticky="always"
             className="bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 z-50 w-auto rounded-md border p-0 shadow-md outline-none"
-            onOpenAutoFocus={(e) => e.preventDefault()}
           >
             <Calendar
               mode="single"

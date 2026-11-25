@@ -50,7 +50,7 @@ export interface TypesenseJobServicePort {
     q?: string,
     filters?: string,
     options?: {
-      sortBy?: string;
+      sortBy?: "createdAt" | "title";
       sortDirection?: "asc" | "desc";
       page?: number;
       limit?: number;

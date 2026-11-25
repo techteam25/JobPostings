@@ -1,0 +1,3 @@
+# Drizzle hashes the exact migration SQL bytes. Keep checked-out SQL stable on Windows.
+backend/src/db/migrations/*.sql text eol=lf
+backend/src/db/migrations/meta/*.json text eol=lf

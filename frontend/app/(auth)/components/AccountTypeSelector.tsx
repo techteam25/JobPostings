@@ -40,7 +40,7 @@ export function AccountTypeSelector({
               )}
             >
               <div className="mb-2 flex justify-center">
-                <User className="size-6 text-chart-1 sm:size-10" />
+                <User className="text-chart-1 size-6 sm:size-10" />
               </div>
               <div className="text-foreground font-semibold">Job Seeker</div>
               <div className="text-muted-foreground hidden text-xs sm:block">
@@ -70,11 +70,13 @@ export function AccountTypeSelector({
               )}
             >
               <div className="mb-2 flex justify-center">
-                <Briefcase className="size-6 text-chart-2 sm:size-10" />
+                <Briefcase className="text-chart-2 size-6 sm:size-10" />
               </div>
-              <div className="text-foreground font-semibold">Employer</div>
+              <div className="text-foreground font-semibold">
+                Hiring Manager
+              </div>
               <div className="text-muted-foreground hidden text-xs sm:block">
-                Hiring talent
+                Create an organization after signing up
               </div>
             </button>
           )}
@@ -86,9 +88,7 @@ export function AccountTypeSelector({
               name={field.name}
               value={field.state.value}
               onChange={(e) =>
-                field.handleChange(
-                  e.target.value as "seeker" | "employer",
-                )
+                field.handleChange(e.target.value as "seeker" | "employer")
               }
               type="hidden"
             />
